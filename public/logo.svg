@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFB833"/>
+      <stop offset="50%" stop-color="#FFA800"/>
+      <stop offset="100%" stop-color="#E69600"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#006B95"/>
+      <stop offset="100%" stop-color="#005B82"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background circle -->
+  <rect width="64" height="64" rx="16" fill="#005B82"/>
+
+  <!-- Shopping Tag -->
+  <g transform="translate(16, 6)">
+    <path d="M-1,-8 L8,-8 L12,-4 L12,6 L4,14 L-5,5 Z" fill="#FFA800" stroke="#E69600" stroke-width="0.6"/>
+    <circle cx="5" cy="-3" r="1.8" fill="white" opacity="0.9"/>
+    <circle cx="4.5" cy="3" r="0.9" fill="white"/>
+    <circle cx="9.5" cy="3" r="0.9" fill="white"/>
+    <path d="M3.5,6 Q7,9.5 10.5,6" stroke="white" stroke-width="1" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Letter "و" -->
+  <text x="46" y="44" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="32" font-weight="900" fill="url(#goldGrad)" text-anchor="middle">و</text>
+
+  <!-- Letter "فر" -->
+  <text x="24" y="56" font-family="Cairo, 'Segoe UI', Arial, sans-serif" font-size="22" font-weight="900" fill="white" text-anchor="middle">فر</text>
+</svg>

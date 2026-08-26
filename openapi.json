@@ -1,0 +1,6577 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "توفير API",
+  "description": "توفير — منصة يمنية للخصومات وطلب الوجبات. منصة متعددة الأدوار: العميل (تصفّح المنتجات اليمنية وطلب الوجبات والاشتراك بعضوية الخصم 30%)، المالك (إدارة منشأته ومنتجاته مع استيراد Excel)، والمشرف (إدارة النظام بالكامل وسجل التدقيق). الاشتراك بالعضوية يتم عبر رفع صورة التحويل بانتظار موافقة يدوية من المشرف.",
+  "version": "1.0.0"
+ },
+ "paths": {
+  "/api/v1/regions": {
+   "get": {
+    "tags": [
+     "customer-regions"
+    ],
+    "summary": "Get Regions",
+    "operationId": "get_regions_api_v1_regions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RegionOut"
+         },
+         "type": "array",
+         "title": "Response Get Regions Api V1 Regions Get"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/cards": {
+   "get": {
+    "tags": [
+     "customer-cards"
+    ],
+    "summary": "Get Cards",
+    "operationId": "get_cards_api_v1_cards_get",
+    "parameters": [
+     {
+      "name": "region_id",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "description": "Region id is required",
+       "title": "Region Id"
+      },
+      "description": "Region id is required"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CardOut"
+         },
+         "title": "Response Get Cards Api V1 Cards Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/facilities": {
+   "get": {
+    "tags": [
+     "customer-facilities"
+    ],
+    "summary": "Get Facilities",
+    "description": "المنشآت العامة الموافق عليها والظاهرة، مع ترتيب اختياري حسب الأقرب مسافة.",
+    "operationId": "get_facilities_api_v1_facilities_get",
+    "parameters": [
+     {
+      "name": "region_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب المنطقة (اختياري)",
+       "title": "Region Id"
+      },
+      "description": "فلترة حسب المنطقة (اختياري)"
+     },
+     {
+      "name": "lat",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "خط العرض للترتيب بالأقرب",
+       "title": "Lat"
+      },
+      "description": "خط العرض للترتيب بالأقرب"
+     },
+     {
+      "name": "lng",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "خط الطول للترتيب بالأقرب",
+       "title": "Lng"
+      },
+      "description": "خط الطول للترتيب بالأقرب"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/FacilityOut"
+         },
+         "title": "Response Get Facilities Api V1 Facilities Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/facilities/{facility_id}/products": {
+   "get": {
+    "tags": [
+     "customer-facilities"
+    ],
+    "summary": "Get Facility Products",
+    "description": "Public product listing for a facility (cached when not searching).",
+    "operationId": "get_facility_products_api_v1_facilities__facility_id__products_get",
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "category",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Filter by category",
+       "title": "Category"
+      },
+      "description": "Filter by category"
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Search by product name",
+       "title": "Search"
+      },
+      "description": "Search by product name"
+     },
+     {
+      "name": "only_available",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "description": "Only available products",
+       "default": true,
+       "title": "Only Available"
+      },
+      "description": "Only available products"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ProductOut"
+         },
+         "title": "Response Get Facility Products Api V1 Facilities  Facility Id  Products Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/facilities/{facility_id}/products/categories": {
+   "get": {
+    "tags": [
+     "customer-facilities"
+    ],
+    "summary": "Get Facility Product Categories",
+    "operationId": "get_facility_product_categories_api_v1_facilities__facility_id__products_categories_get",
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "type": "string"
+         },
+         "title": "Response Get Facility Product Categories Api V1 Facilities  Facility Id  Products Categories Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/register": {
+   "post": {
+    "tags": [
+     "customer-auth"
+    ],
+    "summary": "Register",
+    "operationId": "register_api_v1_auth_register_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/UserRegister"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegisterOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/auth/login": {
+   "post": {
+    "tags": [
+     "customer-auth"
+    ],
+    "summary": "Customer Login Endpoint",
+    "operationId": "customer_login_endpoint_api_v1_auth_login_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CustomerLogin"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/me": {
+   "get": {
+    "tags": [
+     "customer-me"
+    ],
+    "summary": "Me Get",
+    "description": "Return the current user's profile with membership card info.",
+    "operationId": "me_get_api_v1_me_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MeOut"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "put": {
+    "tags": [
+     "customer-me"
+    ],
+    "summary": "Me Put",
+    "description": "Update full_name and/or phone. Email is immutable.",
+    "operationId": "me_put_api_v1_me_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MeUpdate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MeOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/membership/info": {
+   "get": {
+    "tags": [
+     "customer-membership"
+    ],
+    "summary": "Membership Info",
+    "description": "معلومات حساب التحويل الثابتة للاشتراك في العضوية.\n\nتعرض المبلغ (3000 ريال يمني) واسم ورقم حساب التحويل (محمد يحيى عبه /\n780090882) واسم المحفظة (محفظة جيب) والتعليمات.",
+    "operationId": "membership_info_api_v1_membership_info_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MembershipInfoOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/membership/subscribe": {
+   "post": {
+    "tags": [
+     "customer-membership"
+    ],
+    "summary": "Membership Subscribe",
+    "description": "رفع صورة التحويل لطلب اشتراك العضوية.\n\nيُنشئ طلباً بحالة ``pending`` بانتظار مراجعة المشرف. لا يمكن للعميل طلب\nالاشتراك إذا كان يملك عضوية نشطة أو طلباً معلّقاً.",
+    "operationId": "membership_subscribe_api_v1_membership_subscribe_post",
+    "requestBody": {
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_membership_subscribe_api_v1_membership_subscribe_post"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MembershipSubscribeOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/products": {
+   "get": {
+    "tags": [
+     "products"
+    ],
+    "summary": "List Products",
+    "description": "قائمة المنتجات العامة عبر كل المنشآت المعتمدة والظاهرة.\n\nيمكن الفلترة بالمنشأة (facility_id)، نوع المنشأة (restaurant|cafe)،\nالتصنيف (category)، أو البحث في الاسم (search). عند تمرير lat/lng\nيتم حساب بُعد كل منتج عن الموقع وترتيب النتائج تصاعدياً حسب المسافة،\nوعند تمرير radius_km يتم حصر النتائج داخل هذا النطاق فقط.",
+    "operationId": "list_products_api_v1_products_get",
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب المنشأة",
+       "title": "Facility Id"
+      },
+      "description": "فلترة حسب المنشأة"
+     },
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "نوع المنشأة: restaurant أو cafe",
+       "title": "Type"
+      },
+      "description": "نوع المنشأة: restaurant أو cafe"
+     },
+     {
+      "name": "category",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب التصنيف",
+       "title": "Category"
+      },
+      "description": "فلترة حسب التصنيف"
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "بحث في اسم المنتج",
+       "title": "Search"
+      },
+      "description": "بحث في اسم المنتج"
+     },
+     {
+      "name": "only_available",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "description": "عرض المنتجات المتاحة فقط",
+       "default": true,
+       "title": "Only Available"
+      },
+      "description": "عرض المنتجات المتاحة فقط"
+     },
+     {
+      "name": "lat",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "خط عرض الموقع الحالي",
+       "title": "Lat"
+      },
+      "description": "خط عرض الموقع الحالي"
+     },
+     {
+      "name": "lng",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "خط طول الموقع الحالي",
+       "title": "Lng"
+      },
+      "description": "خط طول الموقع الحالي"
+     },
+     {
+      "name": "radius_km",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "number",
+         "exclusiveMinimum": 0
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "نصف قطر البحث بالكيلومتر (اختياري)",
+       "title": "Radius Km"
+      },
+      "description": "نصف قطر البحث بالكيلومتر (اختياري)"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_ProductWithFacilityOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/products/nearby": {
+   "get": {
+    "tags": [
+     "products"
+    ],
+    "summary": "List Nearby Products",
+    "description": "المنتجات القريبة من موقع محدد (lat/lng) ضمن نصف قطر معطى.\n\nتُرتّب النتائج تصاعدياً حسب المسافة بالكيلومتر وتشمل حقل\n``distance_km`` لكل منتج.",
+    "operationId": "list_nearby_products_api_v1_products_nearby_get",
+    "parameters": [
+     {
+      "name": "lat",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "number",
+       "description": "خط عرض الموقع الحالي",
+       "title": "Lat"
+      },
+      "description": "خط عرض الموقع الحالي"
+     },
+     {
+      "name": "lng",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "number",
+       "description": "خط طول الموقع الحالي",
+       "title": "Lng"
+      },
+      "description": "خط طول الموقع الحالي"
+     },
+     {
+      "name": "radius_km",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "number",
+       "exclusiveMinimum": 0,
+       "description": "نصف قطر البحث بالكيلومتر (افتراضي 10)",
+       "default": 10,
+       "title": "Radius Km"
+      },
+      "description": "نصف قطر البحث بالكيلومتر (افتراضي 10)"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_ProductWithFacilityOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/products/{product_id}": {
+   "get": {
+    "tags": [
+     "products"
+    ],
+    "summary": "Get Product",
+    "description": "تفاصيل منتج عام مع ملخص المنشأة التابع لها.",
+    "operationId": "get_product_api_v1_products__product_id__get",
+    "parameters": [
+     {
+      "name": "product_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Product Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductDetailOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/orders": {
+   "post": {
+    "tags": [
+     "orders"
+    ],
+    "summary": "Create Order",
+    "description": "إنشاء طلب جديد على منشأة معينة.\n\nيطبّق خصم 30% على كل صنف للعميل صاحب العضوية النشطة، ورسوم توصيل\nثابتة (300 ريال يمني). الدفع الحالي نقداً فقط. يخصم الكمية من\nمخزون المنتج عند وجود مخزون.",
+    "operationId": "create_order_api_v1_orders_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OrderCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "orders"
+    ],
+    "summary": "List My Orders",
+    "description": "قائمة طلبات العميل الحالي (الأحدث أولاً).",
+    "operationId": "list_my_orders_api_v1_orders_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب الحالة",
+       "title": "Status"
+      },
+      "description": "فلترة حسب الحالة"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_OrderListOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/orders/{order_id}": {
+   "get": {
+    "tags": [
+     "orders"
+    ],
+    "summary": "Get Order",
+    "description": "عرض تفاصيل طلب. يُسمح للعميل صاحب الطلب، أو مالك المنشأة، أو المشرف.",
+    "operationId": "get_order_api_v1_orders__order_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "order_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Order Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/orders/{order_id}/status": {
+   "patch": {
+    "tags": [
+     "orders"
+    ],
+    "summary": "Update Order Status",
+    "description": "تحديث حالة الطلب (للمالك أو المشرف).\n\nالانتقالات المسموحة:\n``pending → confirmed → preparing → out_for_delivery → delivered``\nأو ``pending → cancelled``.",
+    "operationId": "update_order_status_api_v1_orders__order_id__status_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "order_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Order Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OrderStatusUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/login": {
+   "post": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Admin Login",
+    "operationId": "admin_login_api_v1_admin_login_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AdminLogin"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/dashboard": {
+   "get": {
+    "tags": [
+     "admin"
+    ],
+    "summary": "Admin Dashboard",
+    "operationId": "admin_dashboard_api_v1_admin_dashboard_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/admin/regions": {
+   "get": {
+    "tags": [
+     "admin-regions"
+    ],
+    "summary": "List Regions",
+    "operationId": "list_regions_api_v1_admin_regions_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/RegionOut"
+         },
+         "type": "array",
+         "title": "Response List Regions Api V1 Admin Regions Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   },
+   "post": {
+    "tags": [
+     "admin-regions"
+    ],
+    "summary": "Create Region",
+    "operationId": "create_region_api_v1_admin_regions_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RegionCreate"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/admin/regions/{region_id}": {
+   "put": {
+    "tags": [
+     "admin-regions"
+    ],
+    "summary": "Update Region",
+    "operationId": "update_region_api_v1_admin_regions__region_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "region_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Region Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RegionUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/RegionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "admin-regions"
+    ],
+    "summary": "Delete Region",
+    "operationId": "delete_region_api_v1_admin_regions__region_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "region_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Region Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/cards": {
+   "get": {
+    "tags": [
+     "admin-cards"
+    ],
+    "summary": "List Cards",
+    "operationId": "list_cards_api_v1_admin_cards_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_CardOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "admin-cards"
+    ],
+    "summary": "Create Card",
+    "operationId": "create_card_api_v1_admin_cards_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CardCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CardOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/cards/{card_id}": {
+   "put": {
+    "tags": [
+     "admin-cards"
+    ],
+    "summary": "Update Card",
+    "operationId": "update_card_api_v1_admin_cards__card_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "card_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Card Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CardUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CardOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "admin-cards"
+    ],
+    "summary": "Delete Card",
+    "operationId": "delete_card_api_v1_admin_cards__card_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "card_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Card Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/facilities": {
+   "get": {
+    "tags": [
+     "admin-facilities"
+    ],
+    "summary": "List Facilities",
+    "operationId": "list_facilities_api_v1_admin_facilities_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Filter: pending|approved|rejected|all",
+       "title": "Status"
+      },
+      "description": "Filter: pending|approved|rejected|all"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_FacilityOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "admin-facilities"
+    ],
+    "summary": "Create Facility",
+    "operationId": "create_facility_api_v1_admin_facilities_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FacilityCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/facilities/{facility_id}": {
+   "put": {
+    "tags": [
+     "admin-facilities"
+    ],
+    "summary": "Update Facility",
+    "operationId": "update_facility_api_v1_admin_facilities__facility_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FacilityUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "admin-facilities"
+    ],
+    "summary": "Delete Facility",
+    "operationId": "delete_facility_api_v1_admin_facilities__facility_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/facilities/pending": {
+   "get": {
+    "tags": [
+     "admin-approval"
+    ],
+    "summary": "List Pending",
+    "description": "List facilities awaiting approval (with owner info).",
+    "operationId": "list_pending_api_v1_admin_facilities_pending_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_PendingFacilityOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/facilities/{facility_id}/approve": {
+   "patch": {
+    "tags": [
+     "admin-approval"
+    ],
+    "summary": "Approve",
+    "description": "Approve a pending facility — makes it visible to customers.",
+    "operationId": "approve_api_v1_admin_facilities__facility_id__approve_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/facilities/{facility_id}/reject": {
+   "patch": {
+    "tags": [
+     "admin-approval"
+    ],
+    "summary": "Reject",
+    "description": "Reject a pending facility with a reason.",
+    "operationId": "reject_api_v1_admin_facilities__facility_id__reject_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__endpoints__admin__approval__RejectBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/users": {
+   "get": {
+    "tags": [
+     "admin-users"
+    ],
+    "summary": "List Users",
+    "operationId": "list_users_api_v1_admin_users_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "Search by name or email",
+       "title": "Search"
+      },
+      "description": "Search by name or email"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_UserOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/users/{user_id}": {
+   "get": {
+    "tags": [
+     "admin-users"
+    ],
+    "summary": "Get User Detail",
+    "operationId": "get_user_detail_api_v1_admin_users__user_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "User Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UserDetailOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/users/{user_id}/role": {
+   "patch": {
+    "tags": [
+     "admin-users"
+    ],
+    "summary": "Update User Role",
+    "description": "Promote/demote a user. Used by the admin to grant the owner role.",
+    "operationId": "update_user_role_api_v1_admin_users__user_id__role_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "user_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "User Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/RoleUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/membership-requests": {
+   "get": {
+    "tags": [
+     "admin-membership"
+    ],
+    "summary": "List Membership Requests",
+    "description": "قائمة طلبات الاشتراك مع بيانات العميل وصورة التحويل.\n\nفلترة: ``status=pending|approved|rejected``. كل عنصر يحوي ``receipt_image_url``\nو``user_full_name``/``user_email``/``user_phone``.",
+    "operationId": "list_membership_requests_api_v1_admin_membership_requests_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Status"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_dict_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/membership-requests/{request_id}/approve": {
+   "patch": {
+    "tags": [
+     "admin-membership"
+    ],
+    "summary": "Approve Membership Request",
+    "description": "الموافقة على طلب اشتراك: توليد رقم عضوية فريد (16 رقم) + تاريخ انتهاء بعد سنة.",
+    "operationId": "approve_membership_request_api_v1_admin_membership_requests__request_id__approve_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "request_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Request Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MembershipRequestOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/membership-requests/{request_id}/reject": {
+   "patch": {
+    "tags": [
+     "admin-membership"
+    ],
+    "summary": "Reject Membership Request",
+    "description": "رفض طلب اشتراك مع سبب الرفض.",
+    "operationId": "reject_membership_request_api_v1_admin_membership_requests__request_id__reject_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "request_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Request Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/app__api__v1__endpoints__admin__membership_requests__RejectBody"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MembershipRequestOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/audit-logs": {
+   "get": {
+    "tags": [
+     "admin-audit"
+    ],
+    "summary": "List Audit Logs",
+    "operationId": "list_audit_logs_api_v1_admin_audit_logs_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 50,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_AuditLogOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/orders": {
+   "get": {
+    "tags": [
+     "admin-orders"
+    ],
+    "summary": "List All Orders",
+    "description": "قائمة كل الطلبات مع إمكانية الفلترة بالحالة/العميل/المنشأة.\n\nمرتّبة تنازلياً حسب تاريخ الإنشاء (الأحدث أولاً).",
+    "operationId": "list_all_orders_api_v1_admin_orders_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب الحالة",
+       "title": "Status"
+      },
+      "description": "فلترة حسب الحالة"
+     },
+     {
+      "name": "customer_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب العميل",
+       "title": "Customer Id"
+      },
+      "description": "فلترة حسب العميل"
+     },
+     {
+      "name": "facility_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "integer"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب المنشأة",
+       "title": "Facility Id"
+      },
+      "description": "فلترة حسب المنشأة"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_OrderListOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/admin/orders/{order_id}": {
+   "get": {
+    "tags": [
+     "admin-orders"
+    ],
+    "summary": "Get Order",
+    "description": "عرض أي طلب (للمشرف).",
+    "operationId": "get_order_api_v1_admin_orders__order_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "order_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Order Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OrderOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/register": {
+   "post": {
+    "tags": [
+     "owner-auth"
+    ],
+    "summary": "Owner Register Endpoint",
+    "description": "Owner self-registration — account active, facility pending approval.",
+    "operationId": "owner_register_endpoint_api_v1_owner_register_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OwnerRegister"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/OwnerRegisterOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/login": {
+   "post": {
+    "tags": [
+     "owner-auth"
+    ],
+    "summary": "Owner Login Endpoint",
+    "operationId": "owner_login_endpoint_api_v1_owner_login_post",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OwnerLogin"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/TokenOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/facility": {
+   "get": {
+    "tags": [
+     "owner-facility"
+    ],
+    "summary": "Get My Facilities",
+    "description": "List the caller's facilities (admins see all).",
+    "operationId": "get_my_facilities_api_v1_owner_facility_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "items": {
+          "$ref": "#/components/schemas/FacilityOut"
+         },
+         "type": "array",
+         "title": "Response Get My Facilities Api V1 Owner Facility Get"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ]
+   }
+  },
+  "/api/v1/owner/facility/{facility_id}": {
+   "get": {
+    "tags": [
+     "owner-facility"
+    ],
+    "summary": "Get My Facility Endpoint",
+    "operationId": "get_my_facility_endpoint_api_v1_owner_facility__facility_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "owner-facility"
+    ],
+    "summary": "Update My Facility Endpoint",
+    "operationId": "update_my_facility_endpoint_api_v1_owner_facility__facility_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OwnerFacilityUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/FacilityOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/{facility_id}/products": {
+   "get": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "List Products",
+    "operationId": "list_products_api_v1_owner__facility_id__products_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "category",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Category"
+      }
+     },
+     {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Search"
+      }
+     },
+     {
+      "name": "only_available",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Only Available"
+      }
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_ProductOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Create Product",
+    "operationId": "create_product_api_v1_owner__facility_id__products_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProductCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/{facility_id}/products/{product_id}": {
+   "get": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Get Product",
+    "operationId": "get_product_api_v1_owner__facility_id__products__product_id__get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "product_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Product Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Update Product",
+    "operationId": "update_product_api_v1_owner__facility_id__products__product_id__put",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "product_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Product Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProductUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Delete Product",
+    "operationId": "delete_product_api_v1_owner__facility_id__products__product_id__delete",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "product_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Product Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/{facility_id}/products/{product_id}/availability": {
+   "patch": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Toggle Availability",
+    "operationId": "toggle_availability_api_v1_owner__facility_id__products__product_id__availability_patch",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "product_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Product Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ProductAvailabilityUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/{facility_id}/products/import": {
+   "post": {
+    "tags": [
+     "owner-products"
+    ],
+    "summary": "Import Products",
+    "operationId": "import_products_api_v1_owner__facility_id__products_import_post",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_import_products_api_v1_owner__facility_id__products_import_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ProductImportResult"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/v1/owner/{facility_id}/orders": {
+   "get": {
+    "tags": [
+     "owner-orders"
+    ],
+    "summary": "List Facility Orders",
+    "description": "قائمة طلبات منشأة يملكها المالك.\n\nلا يُسمح بعرض طلبات منشأة يملكها غيره؛ تُرجع 404 في تلك الحالة.\nفلترة اختيارية بالحالة.",
+    "operationId": "list_facility_orders_api_v1_owner__facility_id__orders_get",
+    "security": [
+     {
+      "HTTPBearer": []
+     }
+    ],
+    "parameters": [
+     {
+      "name": "facility_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "integer",
+       "title": "Facility Id"
+      }
+     },
+     {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "description": "فلترة حسب الحالة",
+       "title": "Status"
+      },
+      "description": "فلترة حسب الحالة"
+     },
+     {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "minimum": 1,
+       "default": 1,
+       "title": "Page"
+      }
+     },
+     {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "maximum": 200,
+       "minimum": 1,
+       "default": 20,
+       "title": "Page Size"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/PaginatedResponse_OrderListOut_"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/health": {
+   "get": {
+    "tags": [
+     "health"
+    ],
+    "summary": "Health",
+    "operationId": "health_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AdminLogin": {
+    "properties": {
+     "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Identifier"
+     },
+     "password": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "identifier",
+     "password"
+    ],
+    "title": "AdminLogin",
+    "description": "``identifier`` accepts either the admin email or phone number."
+   },
+   "AuditLogOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "user_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "User Id"
+     },
+     "action_type": {
+      "type": "string",
+      "title": "Action Type"
+     },
+     "details": {
+      "additionalProperties": true,
+      "type": "object",
+      "title": "Details"
+     },
+     "ip_address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Ip Address"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "user_id",
+     "action_type",
+     "details",
+     "ip_address",
+     "created_at"
+    ],
+    "title": "AuditLogOut"
+   },
+   "Body_import_products_api_v1_owner__facility_id__products_import_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "File"
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_import_products_api_v1_owner__facility_id__products_import_post"
+   },
+   "Body_membership_subscribe_api_v1_membership_subscribe_post": {
+    "properties": {
+     "receipt_image": {
+      "type": "string",
+      "contentMediaType": "application/octet-stream",
+      "title": "Receipt Image",
+      "description": "صورة التحويل (png/jpg، ≤2MB)"
+     },
+     "amount": {
+      "type": "integer",
+      "title": "Amount",
+      "description": "مبلغ التحويل (افتراضي 3000)"
+     },
+     "transfer_account_name": {
+      "type": "string",
+      "title": "Transfer Account Name",
+      "description": "اسم صاحب حساب التحويل"
+     },
+     "transfer_account_number": {
+      "type": "string",
+      "title": "Transfer Account Number",
+      "description": "رقم حساب التحويل"
+     }
+    },
+    "type": "object",
+    "required": [
+     "receipt_image"
+    ],
+    "title": "Body_membership_subscribe_api_v1_membership_subscribe_post"
+   },
+   "CardBrief": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "discount_rate": {
+      "type": "number",
+      "title": "Discount Rate"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "discount_rate"
+    ],
+    "title": "CardBrief"
+   },
+   "CardCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "platform_name": {
+      "type": "string",
+      "maxLength": 160,
+      "title": "Platform Name",
+      "default": "Tawfir"
+     },
+     "discount_rate": {
+      "type": "number",
+      "maximum": 100.0,
+      "minimum": 0.0,
+      "title": "Discount Rate",
+      "default": 30.0
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "is_published": {
+      "type": "boolean",
+      "title": "Is Published",
+      "default": false
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "region_id"
+    ],
+    "title": "CardCreate"
+   },
+   "CardOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "platform_name": {
+      "type": "string",
+      "title": "Platform Name"
+     },
+     "discount_rate": {
+      "type": "number",
+      "title": "Discount Rate"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "is_published": {
+      "type": "boolean",
+      "title": "Is Published"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order"
+     },
+     "facilities": {
+      "items": {
+       "$ref": "#/components/schemas/FacilityBrief"
+      },
+      "type": "array",
+      "title": "Facilities",
+      "default": []
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "platform_name",
+     "discount_rate",
+     "region_id",
+     "is_published",
+     "display_order",
+     "created_at"
+    ],
+    "title": "CardOut"
+   },
+   "CardUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 160,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "platform_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 160
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Platform Name"
+     },
+     "discount_rate": {
+      "anyOf": [
+       {
+        "type": "number",
+        "maximum": 100.0,
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Discount Rate"
+     },
+     "region_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region Id"
+     },
+     "is_published": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Published"
+     },
+     "display_order": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Display Order"
+     }
+    },
+    "type": "object",
+    "title": "CardUpdate"
+   },
+   "CustomerLogin": {
+    "properties": {
+     "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Identifier"
+     },
+     "password": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "identifier",
+     "password"
+    ],
+    "title": "CustomerLogin",
+    "description": "``identifier`` accepts either the customer email or phone number."
+   },
+   "FacilityBrief": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "type": {
+      "$ref": "#/components/schemas/FacilityType"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type"
+    ],
+    "title": "FacilityBrief"
+   },
+   "FacilityCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "type": {
+      "$ref": "#/components/schemas/FacilityType",
+      "default": "restaurant"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "is_visible": {
+      "type": "boolean",
+      "title": "Is Visible",
+      "default": true
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order",
+      "default": 0
+     },
+     "card_ids": {
+      "items": {
+       "type": "integer"
+      },
+      "type": "array",
+      "title": "Card Ids"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "region_id"
+    ],
+    "title": "FacilityCreate"
+   },
+   "FacilityOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "type": {
+      "$ref": "#/components/schemas/FacilityType"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "is_visible": {
+      "type": "boolean",
+      "title": "Is Visible"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order"
+     },
+     "cards": {
+      "items": {
+       "$ref": "#/components/schemas/CardBrief"
+      },
+      "type": "array",
+      "title": "Cards",
+      "default": []
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_approved": {
+      "type": "boolean",
+      "title": "Is Approved",
+      "default": false
+     },
+     "rejection_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejection Reason"
+     },
+     "approved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Approved At"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type",
+     "region_id",
+     "is_visible",
+     "display_order",
+     "created_at"
+    ],
+    "title": "FacilityOut"
+   },
+   "FacilitySummaryOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "type": {
+      "$ref": "#/components/schemas/FacilityType"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type",
+     "region_id"
+    ],
+    "title": "FacilitySummaryOut",
+    "description": "Compact facility summary embedded under each product in list views."
+   },
+   "FacilityType": {
+    "type": "string",
+    "enum": [
+     "restaurant",
+     "cafe"
+    ],
+    "title": "FacilityType"
+   },
+   "FacilityUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 160,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "type": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/FacilityType"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "region_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region Id"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "is_visible": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Visible"
+     },
+     "display_order": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Display Order"
+     },
+     "card_ids": {
+      "anyOf": [
+       {
+        "items": {
+         "type": "integer"
+        },
+        "type": "array"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Card Ids"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     }
+    },
+    "type": "object",
+    "title": "FacilityUpdate"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "MeOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "phone": {
+      "type": "string",
+      "title": "Phone"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "membership": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/MyMembershipCard"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "full_name",
+     "email",
+     "phone",
+     "role",
+     "created_at"
+    ],
+    "title": "MeOut",
+    "description": "Full user profile for GET /api/v1/me."
+   },
+   "MeUpdate": {
+    "properties": {
+     "full_name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 160,
+        "minLength": 2
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Full Name"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     }
+    },
+    "type": "object",
+    "title": "MeUpdate",
+    "description": "Allowed profile update fields for PUT /api/v1/me."
+   },
+   "MembershipInfoOut": {
+    "properties": {
+     "amount": {
+      "type": "integer",
+      "title": "Amount",
+      "description": "مبلغ الاشتراك بالريال اليمني",
+      "examples": [
+       3000
+      ]
+     },
+     "currency": {
+      "type": "string",
+      "title": "Currency",
+      "default": "ريال يمني",
+      "examples": [
+       "ريال يمني"
+      ]
+     },
+     "transfer_account_name": {
+      "type": "string",
+      "title": "Transfer Account Name",
+      "description": "اسم صاحب حساب التحويل",
+      "default": "محمد يحيى عبه",
+      "examples": [
+       "محمد يحيى عبه"
+      ]
+     },
+     "transfer_account_number": {
+      "type": "string",
+      "title": "Transfer Account Number",
+      "description": "رقم حساب التحويل",
+      "default": "780090882",
+      "examples": [
+       "780090882"
+      ]
+     },
+     "wallet_name": {
+      "type": "string",
+      "title": "Wallet Name",
+      "description": "اسم المحفظة الإلكترونية",
+      "default": "محفظة جيب",
+      "examples": [
+       "محفظة جيب"
+      ]
+     },
+     "instructions": {
+      "type": "string",
+      "title": "Instructions",
+      "description": "تعليمات الإرفاق",
+      "default": "حوّل المبلغ ثم ارفق صورة التحويل"
+     }
+    },
+    "type": "object",
+    "required": [
+     "amount"
+    ],
+    "title": "MembershipInfoOut",
+    "description": "Static transfer account info shown to the customer before subscribing."
+   },
+   "MembershipRequestOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "amount": {
+      "type": "integer",
+      "title": "Amount"
+     },
+     "payment_method": {
+      "type": "string",
+      "title": "Payment Method"
+     },
+     "transfer_account_name": {
+      "type": "string",
+      "title": "Transfer Account Name"
+     },
+     "transfer_account_number": {
+      "type": "string",
+      "title": "Transfer Account Number"
+     },
+     "receipt_image_url": {
+      "type": "string",
+      "title": "Receipt Image Url"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status",
+      "description": "pending | approved | rejected",
+      "examples": [
+       "pending"
+      ]
+     },
+     "rejection_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejection Reason"
+     },
+     "membership_number": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Membership Number"
+     },
+     "expires_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Expires At"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "reviewed_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reviewed At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "user_id",
+     "amount",
+     "payment_method",
+     "transfer_account_name",
+     "transfer_account_number",
+     "receipt_image_url",
+     "status",
+     "created_at"
+    ],
+    "title": "MembershipRequestOut",
+    "description": "A membership request (customer's own view / admin outcome)."
+   },
+   "MembershipSubscribeOut": {
+    "properties": {
+     "detail": {
+      "type": "string",
+      "title": "Detail",
+      "default": "تم استلام طلبك، سيتم مراجعته خلال 24 ساعة"
+     },
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status",
+      "default": "pending",
+      "examples": [
+       "pending"
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id"
+    ],
+    "title": "MembershipSubscribeOut",
+    "description": "Response returned right after a customer uploads a receipt."
+   },
+   "MessageOut": {
+    "properties": {
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     },
+     "status_code": {
+      "type": "integer",
+      "title": "Status Code",
+      "default": 200
+     }
+    },
+    "type": "object",
+    "required": [
+     "detail"
+    ],
+    "title": "MessageOut"
+   },
+   "MyMembershipCard": {
+    "properties": {
+     "membership_number": {
+      "type": "string",
+      "title": "Membership Number"
+     },
+     "membership_type": {
+      "type": "string",
+      "title": "Membership Type",
+      "default": "سنوية"
+     },
+     "discount_rate": {
+      "type": "number",
+      "title": "Discount Rate",
+      "default": 30.0
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Expires At"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "required": [
+     "membership_number",
+     "created_at",
+     "expires_at",
+     "is_active"
+    ],
+    "title": "MyMembershipCard",
+    "description": "Membership info for GET /me.\n\nSourced from the customer's latest *approved* membership request. ``None``\nwhen the customer has no approved membership yet."
+   },
+   "OrderCreate": {
+    "properties": {
+     "facility_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Facility Id",
+      "description": "معرف المنشأة التي تنتمي لها كل المنتجات"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OrderItemCreate"
+      },
+      "type": "array",
+      "minItems": 1,
+      "title": "Items"
+     },
+     "delivery_lat": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Lat",
+      "description": "خط عرض موقع التوصيل"
+     },
+     "delivery_lng": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Lng",
+      "description": "خط طول موقع التوصيل"
+     },
+     "delivery_address": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Address"
+     },
+     "payment_method": {
+      "type": "string",
+      "title": "Payment Method",
+      "description": "cash | wallet (wallet غير متاح حالياً)",
+      "default": "cash"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     }
+    },
+    "type": "object",
+    "required": [
+     "facility_id",
+     "items"
+    ],
+    "title": "OrderCreate",
+    "description": "Body for POST /api/v1/orders."
+   },
+   "OrderItemCreate": {
+    "properties": {
+     "product_id": {
+      "type": "integer",
+      "exclusiveMinimum": 0.0,
+      "title": "Product Id"
+     },
+     "quantity": {
+      "type": "integer",
+      "maximum": 1000.0,
+      "exclusiveMinimum": 0.0,
+      "title": "Quantity"
+     }
+    },
+    "type": "object",
+    "required": [
+     "product_id",
+     "quantity"
+    ],
+    "title": "OrderItemCreate"
+   },
+   "OrderItemOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "product_id": {
+      "type": "integer",
+      "title": "Product Id"
+     },
+     "product_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Product Name"
+     },
+     "quantity": {
+      "type": "integer",
+      "title": "Quantity"
+     },
+     "unit_price": {
+      "type": "integer",
+      "title": "Unit Price"
+     },
+     "discount_applied": {
+      "type": "boolean",
+      "title": "Discount Applied"
+     },
+     "subtotal": {
+      "type": "integer",
+      "title": "Subtotal"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "product_id",
+     "quantity",
+     "unit_price",
+     "discount_applied",
+     "subtotal"
+    ],
+    "title": "OrderItemOut"
+   },
+   "OrderListOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "customer_id": {
+      "type": "integer",
+      "title": "Customer Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "facility_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Facility Name"
+     },
+     "customer_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Customer Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "payment_method": {
+      "type": "string",
+      "title": "Payment Method"
+     },
+     "subtotal": {
+      "type": "integer",
+      "title": "Subtotal"
+     },
+     "delivery_fee": {
+      "type": "integer",
+      "title": "Delivery Fee"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "customer_id",
+     "facility_id",
+     "status",
+     "payment_method",
+     "subtotal",
+     "delivery_fee",
+     "total",
+     "created_at"
+    ],
+    "title": "OrderListOut",
+    "description": "Lighter order view for lists (without items)."
+   },
+   "OrderOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "customer_id": {
+      "type": "integer",
+      "title": "Customer Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "facility_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Facility Name"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status",
+      "examples": [
+       "pending"
+      ]
+     },
+     "delivery_lat": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Lat"
+     },
+     "delivery_lng": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Lng"
+     },
+     "delivery_address": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Delivery Address"
+     },
+     "delivery_fee": {
+      "type": "integer",
+      "title": "Delivery Fee"
+     },
+     "payment_method": {
+      "type": "string",
+      "title": "Payment Method"
+     },
+     "subtotal": {
+      "type": "integer",
+      "title": "Subtotal"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "notes": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Notes"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Updated At"
+     },
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OrderItemOut"
+      },
+      "type": "array",
+      "title": "Items",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "customer_id",
+     "facility_id",
+     "status",
+     "delivery_fee",
+     "payment_method",
+     "subtotal",
+     "total",
+     "created_at"
+    ],
+    "title": "OrderOut",
+    "description": "Full order view (detail + list)."
+   },
+   "OrderStatusUpdate": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status",
+      "description": "confirmed | preparing | out_for_delivery | delivered | cancelled"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "title": "OrderStatusUpdate",
+    "description": "Body for PATCH /api/v1/orders/{id}/status.\n\nAllowed transitions:\n    pending → confirmed → preparing → out_for_delivery → delivered\n    OR pending → cancelled"
+   },
+   "OwnerFacilityUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 160,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "latitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Latitude"
+     },
+     "longitude": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Longitude"
+     },
+     "phone": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_visible": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Visible"
+     }
+    },
+    "type": "object",
+    "title": "OwnerFacilityUpdate",
+    "description": "The subset of facility fields a owner is allowed to edit."
+   },
+   "OwnerLogin": {
+    "properties": {
+     "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Identifier"
+     },
+     "password": {
+      "type": "string",
+      "minLength": 1,
+      "title": "Password"
+     }
+    },
+    "type": "object",
+    "required": [
+     "identifier",
+     "password"
+    ],
+    "title": "OwnerLogin",
+    "description": "``identifier`` accepts either the owner email or phone number."
+   },
+   "OwnerRegister": {
+    "properties": {
+     "full_name": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 2,
+      "title": "Full Name"
+     },
+     "email": {
+      "type": "string",
+      "format": "email",
+      "title": "Email"
+     },
+     "phone": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Phone"
+     },
+     "password": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 6,
+      "title": "Password"
+     },
+     "password_confirm": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 6,
+      "title": "Password Confirm"
+     },
+     "facility_name": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 2,
+      "title": "Facility Name"
+     },
+     "facility_type": {
+      "$ref": "#/components/schemas/FacilityType"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "address": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Address"
+     },
+     "phone_facility": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 40
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Phone Facility"
+     },
+     "working_hours": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 255
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Working Hours"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     }
+    },
+    "type": "object",
+    "required": [
+     "full_name",
+     "email",
+     "phone",
+     "password",
+     "password_confirm",
+     "facility_name",
+     "facility_type",
+     "region_id"
+    ],
+    "title": "OwnerRegister",
+    "description": "Owner self-registration with facility data.\n\nThe owner account is active immediately (can login) but the facility\nis created with ``is_approved=False`` pending admin review."
+   },
+   "OwnerRegisterOut": {
+    "properties": {
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     },
+     "status_code": {
+      "type": "integer",
+      "title": "Status Code",
+      "default": 201
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "status": {
+      "type": "string",
+      "title": "Status"
+     }
+    },
+    "type": "object",
+    "required": [
+     "detail",
+     "user_id",
+     "facility_id",
+     "status"
+    ],
+    "title": "OwnerRegisterOut",
+    "description": "Owner registration response — no membership, includes facility_id and status."
+   },
+   "PaginatedResponse_AuditLogOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/AuditLogOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[AuditLogOut]"
+   },
+   "PaginatedResponse_CardOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/CardOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[CardOut]"
+   },
+   "PaginatedResponse_FacilityOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/FacilityOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[FacilityOut]"
+   },
+   "PaginatedResponse_OrderListOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/OrderListOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[OrderListOut]"
+   },
+   "PaginatedResponse_PendingFacilityOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/PendingFacilityOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[PendingFacilityOut]"
+   },
+   "PaginatedResponse_ProductOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ProductOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[ProductOut]"
+   },
+   "PaginatedResponse_ProductWithFacilityOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/ProductWithFacilityOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[ProductWithFacilityOut]"
+   },
+   "PaginatedResponse_UserOut_": {
+    "properties": {
+     "items": {
+      "items": {
+       "$ref": "#/components/schemas/UserOut"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[UserOut]"
+   },
+   "PaginatedResponse_dict_": {
+    "properties": {
+     "items": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Items"
+     },
+     "total": {
+      "type": "integer",
+      "title": "Total"
+     },
+     "page": {
+      "type": "integer",
+      "title": "Page"
+     },
+     "pages": {
+      "type": "integer",
+      "title": "Pages"
+     }
+    },
+    "type": "object",
+    "required": [
+     "items",
+     "total",
+     "page",
+     "pages"
+    ],
+    "title": "PaginatedResponse[dict]"
+   },
+   "PendingFacilityOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "type": {
+      "$ref": "#/components/schemas/FacilityType"
+     },
+     "region_id": {
+      "type": "integer",
+      "title": "Region Id"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "is_visible": {
+      "type": "boolean",
+      "title": "Is Visible"
+     },
+     "owner_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Id"
+     },
+     "owner_name": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Name"
+     },
+     "owner_email": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Email"
+     },
+     "owner_phone": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Owner Phone"
+     },
+     "rejection_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejection Reason"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "type",
+     "region_id",
+     "is_visible",
+     "created_at"
+    ],
+    "title": "PendingFacilityOut",
+    "description": "Facility with owner info — used in admin pending list."
+   },
+   "ProductAvailabilityUpdate": {
+    "properties": {
+     "is_available": {
+      "type": "boolean",
+      "title": "Is Available"
+     }
+    },
+    "type": "object",
+    "required": [
+     "is_available"
+    ],
+    "title": "ProductAvailabilityUpdate"
+   },
+   "ProductCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+       }
+      ],
+      "title": "Price"
+     },
+     "category": {
+      "type": "string",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Category"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_available": {
+      "type": "boolean",
+      "title": "Is Available",
+      "default": true
+     },
+     "available_quantity": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available Quantity",
+      "description": "null = غير محدود، 0 = نفد، >0 = مخزون"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "price",
+     "category"
+    ],
+    "title": "ProductCreate"
+   },
+   "ProductDetailOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "price": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Price"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_available": {
+      "type": "boolean",
+      "title": "Is Available"
+     },
+     "available_quantity": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available Quantity"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "facility": {
+      "$ref": "#/components/schemas/FacilitySummaryOut"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "facility_id",
+     "name",
+     "price",
+     "category",
+     "is_available",
+     "display_order",
+     "created_at",
+     "facility"
+    ],
+    "title": "ProductDetailOut",
+    "description": "Full product details + full facility info."
+   },
+   "ProductImportResult": {
+    "properties": {
+     "status": {
+      "type": "string",
+      "title": "Status"
+     },
+     "imported_count": {
+      "type": "integer",
+      "title": "Imported Count"
+     },
+     "errors": {
+      "items": {
+       "additionalProperties": true,
+       "type": "object"
+      },
+      "type": "array",
+      "title": "Errors"
+     },
+     "message": {
+      "type": "string",
+      "title": "Message"
+     }
+    },
+    "type": "object",
+    "required": [
+     "status",
+     "imported_count",
+     "errors",
+     "message"
+    ],
+    "title": "ProductImportResult"
+   },
+   "ProductOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "price": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Price"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_available": {
+      "type": "boolean",
+      "title": "Is Available"
+     },
+     "available_quantity": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available Quantity",
+      "description": "null = متاح دائماً (غير محدود)، 0 = نفد المخزون، >0 = مخزون متبقٍ"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "facility_id",
+     "name",
+     "price",
+     "category",
+     "is_available",
+     "display_order",
+     "created_at"
+    ],
+    "title": "ProductOut",
+    "description": "Owner/public basic product view."
+   },
+   "ProductUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 200,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "price": {
+      "anyOf": [
+       {
+        "type": "number",
+        "minimum": 0.0
+       },
+       {
+        "type": "string",
+        "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Price"
+     },
+     "category": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 100,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Category"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_available": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Available"
+     },
+     "available_quantity": {
+      "anyOf": [
+       {
+        "type": "integer",
+        "minimum": 0.0
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available Quantity"
+     },
+     "display_order": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Display Order"
+     }
+    },
+    "type": "object",
+    "title": "ProductUpdate"
+   },
+   "ProductWithFacilityOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "facility_id": {
+      "type": "integer",
+      "title": "Facility Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "description": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Description"
+     },
+     "price": {
+      "type": "string",
+      "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+      "title": "Price"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "image_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Image Url"
+     },
+     "is_available": {
+      "type": "boolean",
+      "title": "Is Available"
+     },
+     "available_quantity": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Available Quantity"
+     },
+     "display_order": {
+      "type": "integer",
+      "title": "Display Order"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "facility": {
+      "$ref": "#/components/schemas/FacilitySummaryOut"
+     },
+     "distance_km": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Distance Km",
+      "description": "المسافة بالكيلومتر إلى الموقع المُرسل (lat/lng)، أو null"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "facility_id",
+     "name",
+     "price",
+     "category",
+     "is_available",
+     "display_order",
+     "created_at",
+     "facility"
+    ],
+    "title": "ProductWithFacilityOut",
+    "description": "A product with its facility summary (and optional distance in km)."
+   },
+   "RegionCreate": {
+    "properties": {
+     "name": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Name"
+     },
+     "slug": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Slug"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active",
+      "default": true
+     }
+    },
+    "type": "object",
+    "required": [
+     "name",
+     "slug"
+    ],
+    "title": "RegionCreate"
+   },
+   "RegionOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "name": {
+      "type": "string",
+      "title": "Name"
+     },
+     "slug": {
+      "type": "string",
+      "title": "Slug"
+     },
+     "is_active": {
+      "type": "boolean",
+      "title": "Is Active"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "slug",
+     "is_active",
+     "created_at"
+    ],
+    "title": "RegionOut"
+   },
+   "RegionUpdate": {
+    "properties": {
+     "name": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Name"
+     },
+     "slug": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120,
+        "minLength": 1
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Slug"
+     },
+     "is_active": {
+      "anyOf": [
+       {
+        "type": "boolean"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Is Active"
+     }
+    },
+    "type": "object",
+    "title": "RegionUpdate"
+   },
+   "RegisterOut": {
+    "properties": {
+     "detail": {
+      "type": "string",
+      "title": "Detail",
+      "default": "تم إنشاء حسابك بنجاح. لتفعيل خصم العضوية 30% يرجى اشتراك العضوية."
+     },
+     "status_code": {
+      "type": "integer",
+      "title": "Status Code",
+      "default": 201
+     },
+     "user_id": {
+      "type": "integer",
+      "title": "User Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "user_id"
+    ],
+    "title": "RegisterOut",
+    "description": "Customer registration response.\n\nRegistration now creates a customer account *only* — no card and no\nmembership. Membership is requested separately via ``POST /membership/subscribe``\nand granted after manual admin approval."
+   },
+   "RoleUpdate": {
+    "properties": {
+     "role": {
+      "type": "string",
+      "title": "Role",
+      "description": "One of: admin, owner, customer"
+     }
+    },
+    "type": "object",
+    "required": [
+     "role"
+    ],
+    "title": "RoleUpdate"
+   },
+   "TokenOut": {
+    "properties": {
+     "access_token": {
+      "type": "string",
+      "title": "Access Token"
+     },
+     "token_type": {
+      "type": "string",
+      "title": "Token Type",
+      "default": "bearer"
+     }
+    },
+    "type": "object",
+    "required": [
+     "access_token"
+    ],
+    "title": "TokenOut"
+   },
+   "UserCardOut": {
+    "properties": {
+     "card_id": {
+      "type": "integer",
+      "title": "Card Id"
+     },
+     "card_name": {
+      "type": "string",
+      "title": "Card Name"
+     },
+     "discount_rate": {
+      "type": "number",
+      "title": "Discount Rate"
+     },
+     "assignment_date": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Assignment Date"
+     }
+    },
+    "type": "object",
+    "required": [
+     "card_id",
+     "card_name",
+     "discount_rate",
+     "assignment_date"
+    ],
+    "title": "UserCardOut",
+    "description": "The card registered under a customer's name + the registration date."
+   },
+   "UserDetailOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "phone": {
+      "type": "string",
+      "title": "Phone"
+     },
+     "is_admin": {
+      "type": "boolean",
+      "title": "Is Admin"
+     },
+     "role": {
+      "$ref": "#/components/schemas/UserRole"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "card": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/UserCardOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "full_name",
+     "email",
+     "phone",
+     "is_admin",
+     "role",
+     "created_at"
+    ],
+    "title": "UserDetailOut"
+   },
+   "UserOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "full_name": {
+      "type": "string",
+      "title": "Full Name"
+     },
+     "email": {
+      "type": "string",
+      "title": "Email"
+     },
+     "phone": {
+      "type": "string",
+      "title": "Phone"
+     },
+     "is_admin": {
+      "type": "boolean",
+      "title": "Is Admin"
+     },
+     "role": {
+      "$ref": "#/components/schemas/UserRole"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "full_name",
+     "email",
+     "phone",
+     "is_admin",
+     "role",
+     "created_at"
+    ],
+    "title": "UserOut"
+   },
+   "UserRegister": {
+    "properties": {
+     "full_name": {
+      "type": "string",
+      "maxLength": 160,
+      "minLength": 2,
+      "title": "Full Name"
+     },
+     "email": {
+      "type": "string",
+      "maxLength": 190,
+      "title": "Email"
+     },
+     "phone": {
+      "type": "string",
+      "maxLength": 40,
+      "title": "Phone"
+     },
+     "password": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 6,
+      "title": "Password"
+     },
+     "password_confirm": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 6,
+      "title": "Password Confirm"
+     },
+     "region_id": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Region Id"
+     }
+    },
+    "type": "object",
+    "required": [
+     "full_name",
+     "email",
+     "phone",
+     "password",
+     "password_confirm"
+    ],
+    "title": "UserRegister"
+   },
+   "UserRole": {
+    "type": "string",
+    "enum": [
+     "admin",
+     "owner",
+     "customer"
+    ],
+    "title": "UserRole"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     },
+     "input": {
+      "title": "Input"
+     },
+     "ctx": {
+      "type": "object",
+      "title": "Context"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "app__api__v1__endpoints__admin__approval__RejectBody": {
+    "properties": {
+     "reason": {
+      "type": "string",
+      "maxLength": 500,
+      "minLength": 1,
+      "title": "Reason",
+      "description": "سبب الرفض"
+     }
+    },
+    "type": "object",
+    "required": [
+     "reason"
+    ],
+    "title": "RejectBody"
+   },
+   "app__api__v1__endpoints__admin__membership_requests__RejectBody": {
+    "properties": {
+     "reason": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 500
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason"
+     }
+    },
+    "type": "object",
+    "title": "RejectBody"
+   }
+  },
+  "securitySchemes": {
+   "HTTPBearer": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  }
+ }
+}

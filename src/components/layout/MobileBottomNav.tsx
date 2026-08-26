@@ -1,0 +1,149 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Home, Flame, ReceiptText, CircleUserRound, LogIn } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useMe } from "@/hooks/useMe";
+import { useMyOrders } from "@/hooks/useMyOrders";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
+import type { OrderListOut } from "@/types/api.generated";
+
+/** الحالات التي تُعد «طلب نشط» (لم يُسلَّم ولم يُلغَ). */
+const ACTIVE_ORDER_STATUSES = new Set<OrderListOut["status"]>([
+  "pending",
+  "confirmed",
+  "preparing",
+  "out_for_delivery",
+]);
+
+/** شارة عدّاد صغيرة (نمط YouTube) — أعلى يسار الأيقونة. */
+function TabBadge({ count, label }: { count: number; label: string }) {
+  if (count <= 0) return null;
+  return (
+    <span
+      aria-label={`${label}: ${count}`}
+      className="absolute -start-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-extrabold leading-none text-white tabular-nums ring-2 ring-card"
+    >
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
+/**
+ * شريط التنقل السفلي — قياسات YouTube الرسمية (الجولة 4):
+ *  - ارتفاع الشريط: h-14 (56dp) + env(safe-area-inset-bottom)
+ *  - الأيقونات: h-6 w-6 (24dp) — الحساب: دائرة ring-1
+ *  - النصوص: text-[10px] + gap-1 (4dp)
+ *  - تأثير لمس native-tap (scale-95) + انتقال لون 200ms
+ *  - شارة «الطلبات»: عدد الطلبات النشطة (pending)
+ *  - شارة «حسابي»: عدّاد الإشعارات غير المقروءة
+ *
+ * التبويبات: الرئيسية / العروض / الطلبات / حسابي(أو دخول)
+ */
+export function MobileBottomNav() {
+  const pathname = usePathname();
+  const { accessToken, hydrated } = useCustomerAuth();
+  const me = useMe();
+  const isLoggedIn = hydrated && !!accessToken;
+  const fullName = me.data?.full_name;
+
+  /* عدد الطلبات النشطة — للشارة على تبويب «الطلبات» (مسجَّل فقط) */
+  const { data: ordersData } = useMyOrders(undefined, isLoggedIn);
+  const activeOrdersCount = (ordersData?.items ?? []).filter((o) =>
+    ACTIVE_ORDER_STATUSES.has(o.status)
+  ).length;
+
+  /* عدّاد الإشعارات غير المقروءة — للشارة على تبويب «حسابي» */
+  const { data: unread } = useUnreadCount(isLoggedIn);
+  const unreadCount = unread?.count ?? 0;
+
+  const accountTab = isLoggedIn
+    ? {
+        href: "/account",
+        label: fullName ? fullName.split(" ")[0] : "حسابي",
+        icon: CircleUserRound,
+        match: "prefix" as const,
+      }
+    : {
+        href: "/login",
+        label: "دخول",
+        icon: LogIn,
+        match: "prefix" as const,
+      };
+
+  const NAV_ITEMS = [
+    { href: "/", label: "الرئيسية", icon: Home, match: "exact" as const },
+    { href: "/#offers", label: "العروض", icon: Flame, match: "hash" as const },
+    { href: "/orders", label: "الطلبات", icon: ReceiptText, match: "prefix" as const },
+    accountTab,
+  ] as const;
+
+  const isActive = (item: (typeof NAV_ITEMS)[number]): boolean => {
+    if (item.match === "exact") return pathname === "/";
+    if (item.match === "hash") return pathname === "/";
+    return pathname.startsWith(item.href);
+  };
+
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-lg md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      role="navigation"
+      aria-label="التنقل الرئيسي"
+    >
+      <div className="flex h-14 items-center justify-around px-2">
+        {NAV_ITEMS.map((item) => {
+          const active = isActive(item);
+          const Icon = item.icon;
+          const isAccount = item.href === "/account";
+          const isOrders = item.href === "/orders";
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className="native-tap flex min-w-[64px] flex-col items-center gap-1 py-1"
+            >
+              <span className="relative flex items-center justify-center">
+                {isAccount && isLoggedIn ? (
+                  /* أيقونة الحساب: دائرية بإطار ring-1 — نمط YouTube */
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded-full ring-1 transition-colors duration-200",
+                      active
+                        ? "bg-primary/15 ring-primary text-primary"
+                        : "bg-muted/60 ring-border text-muted-foreground"
+                    )}
+                  >
+                    <Icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
+                  </span>
+                ) : (
+                  <Icon
+                    className={cn(
+                      "h-6 w-6 transition-colors duration-200",
+                      active ? "text-primary" : "text-muted-foreground"
+                    )}
+                    strokeWidth={active ? 2.5 : 2}
+                    aria-hidden="true"
+                  />
+                )}
+                {isOrders && <TabBadge count={activeOrdersCount} label="الطلبات النشطة" />}
+                {isAccount && <TabBadge count={unreadCount} label="الإشعارات غير المقروءة" />}
+              </span>
+              <span
+                className={cn(
+                  "max-w-[72px] truncate text-[10px] font-medium leading-none transition-colors duration-200",
+                  active ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}

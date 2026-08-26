@@ -1,0 +1,1119 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-cairo);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-deep: var(--primary-deep);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* ── Category palette (facility types) ── */
+  --color-cat-restaurant: var(--cat-restaurant);
+  --color-cat-restaurant-soft: var(--cat-restaurant-soft);
+  --color-cat-cafe: var(--cat-cafe);
+  --color-cat-cafe-soft: var(--cat-cafe-soft);
+  --color-cat-facility: var(--cat-facility);
+  --color-cat-facility-soft: var(--cat-facility-soft);
+
+  /* ── Logo brand palette ── */
+  --color-logo-gold: var(--logo-gold);
+  --color-logo-blue: var(--logo-blue);
+  --color-logo-cyan: var(--logo-cyan);
+  --color-logo-white: var(--logo-white);
+
+  /* ── Soft brand shadows ── */
+  --shadow-soft: var(--shadow-soft);
+  --shadow-soft-lg: var(--shadow-soft-lg);
+
+  /* Skeleton shimmer animation */
+  --animate-shimmer: shimmer 2s infinite linear;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Light Mode — Tawfir Ocean Identity
+   Primary: #005B82 (Deep Ocean) → Deep: #003B55
+   Secondary: #00A3E0 (Bright Cyan) | Accent: #FFA800 (Warm Gold)
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --radius: 0.75rem;
+  --background: #F8F9FA;
+  --foreground: #1D2D44;
+  --card: #FFFFFF;
+  --card-foreground: #1D2D44;
+  --popover: #FFFFFF;
+  --popover-foreground: #1D2D44;
+  --primary: #005B82;
+  --primary-foreground: #FFFFFF;
+  --primary-deep: #003B55;
+  --secondary: #00A3E0;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F0F2F5;
+  --muted-foreground: #718096;
+  --accent: #FFA800;
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC2626;
+  --success: #16A34A;
+  --border: #E6EAF0;
+  --input: #E6EAF0;
+  --ring: #005B82;
+
+  /* Charts derived from the ocean palette */
+  --chart-1: #005B82;
+  --chart-2: #00A3E0;
+  --chart-3: #FFA800;
+  --chart-4: #0E7BA6;
+  --chart-5: #8B5CF6;
+
+  /* Sidebar – light */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1D2D44;
+  --sidebar-primary: #005B82;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E5F3F9;
+  --sidebar-accent-foreground: #005B82;
+  --sidebar-border: #E6EAF0;
+  --sidebar-ring: #005B82;
+
+  /* Facility category colors (light alpha) */
+  --cat-restaurant: #FFA800;
+  --cat-restaurant-soft: color-mix(in srgb, #FFA800 13%, transparent);
+  --cat-cafe: #00A3E0;
+  --cat-cafe-soft: color-mix(in srgb, #00A3E0 13%, transparent);
+  --cat-facility: #8B5CF6;
+  --cat-facility-soft: color-mix(in srgb, #8B5CF6 13%, transparent);
+
+  /* Logo brand colors (identity-stable, slight dark adaptation) */
+  --logo-gold: #FFA800;
+  --logo-blue: #005B82;
+  --logo-cyan: #00A3E0;
+  --logo-white: #FFFFFF;
+
+  /* Soft brand shadows */
+  --shadow-soft: 0 4px 10px rgba(29, 45, 68, 0.05);
+  --shadow-soft-lg: 0 8px 24px rgba(29, 45, 68, 0.08);
+}
+
+
+[data-theme="dark"] {
+  --logo-blue: #6BB8E8;
+  /* لون فاتح يظهر على خلفيات داكنة */
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Dark Mode — Tawfir Ocean Identity
+   Primary: #0E7BA6 (brighter ocean for dark bg) → Deep: #062A3D
+   Background: #0F1B2A (deep navy) | Card: #16263B
+   ═══════════════════════════════════════════════════════════════ */
+.dark {
+  --background: #0F1B2A;
+  --foreground: #F1F5F9;
+  --card: #16263B;
+  --card-foreground: #F1F5F9;
+  --popover: #16263B;
+  --popover-foreground: #F1F5F9;
+  --primary: #0E7BA6;
+  --primary-foreground: #FFFFFF;
+  --primary-deep: #062A3D;
+  --secondary: #38B6E8;
+  --secondary-foreground: #062A3D;
+  --muted: #1A2B40;
+  --muted-foreground: #8DA0BC;
+  --accent: #FFB833;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --success: #22C55E;
+  --border: #22354E;
+  --input: #22354E;
+  --ring: #0E7BA6;
+
+  /* Charts – darker-friendly variants */
+  --chart-1: #0E7BA6;
+  --chart-2: #38B6E8;
+  --chart-3: #FFB833;
+  --chart-4: #FFA800;
+  --chart-5: #A78BFA;
+
+  /* Sidebar – dark */
+  --sidebar: #122238;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #0E7BA6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #14304A;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: #22354E;
+  --sidebar-ring: #0E7BA6;
+
+  /* Facility category colors (higher alpha for dark clarity) */
+  --cat-restaurant: #FFA800;
+  --cat-restaurant-soft: color-mix(in srgb, #FFA800 22%, transparent);
+  --cat-cafe: #00A3E0;
+  --cat-cafe-soft: color-mix(in srgb, #00A3E0 22%, transparent);
+  --cat-facility: #8B5CF6;
+  --cat-facility-soft: color-mix(in srgb, #8B5CF6 22%, transparent);
+
+  /* Logo brand colors adapted for dark surfaces */
+  --logo-gold: #FFB833;
+  --logo-blue: #38B6E8;
+  --logo-cyan: #00A3E0;
+  --logo-white: #FFFFFF;
+
+  /* Deeper shadows for dark mode */
+  --shadow-soft: 0 4px 12px rgba(2, 10, 20, 0.35);
+  --shadow-soft-lg: 0 10px 30px rgba(2, 10, 20, 0.45);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "kern";
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--primary);
+    color: #FFFFFF;
+  }
+
+  input:focus,
+  textarea:focus {
+    box-shadow: 0 0 0 3px rgba(0, 91, 130, 0.12);
+  }
+
+  /* Custom scrollbar */
+  .scroll-area-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scroll-area-thin::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 9999px;
+    opacity: 0.4;
+  }
+
+  .scroll-area-thin::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  .scroll-area-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--foreground);
+    opacity: 0.6;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Brand identity gradients & login backdrops (ocean identity)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Membership card / «لماذا توفير» gradient — token-based, present in both modes */
+.gradient-ocean {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+}
+
+/* Admin / Owner login backdrop — deep ocean gradient (identity-stable) */
+.login-ocean-bg {
+  background: linear-gradient(135deg,
+      #062A3D 0%,
+      #003B55 28%,
+      #005B82 50%,
+      #003B55 72%,
+      #062A3D 100%);
+  background-size: 300% 300%;
+}
+
+/* Floating login glow blobs */
+.login-blob-cyan {
+  background: radial-gradient(circle, rgba(56, 182, 232, 0.26) 0%, transparent 70%);
+}
+
+.login-blob-deep {
+  background: radial-gradient(circle, rgba(14, 123, 166, 0.30) 0%, transparent 70%);
+}
+
+.login-blob-gold {
+  background: radial-gradient(circle, rgba(255, 168, 0, 0.14) 0%, transparent 70%);
+}
+
+/* Soft ocean glow (decorative halos) */
+.glow-ocean {
+  background: radial-gradient(circle, rgba(0, 163, 224, 0.12) 0%, transparent 70%);
+}
+
+/* Logo glow on dark backdrops */
+.login-logo-glow {
+  filter: drop-shadow(0 0 24px rgba(0, 163, 224, 0.45));
+}
+
+/* Shimmer sweep across the membership card */
+.card-shimmer-sweep {
+  background: linear-gradient(105deg,
+      transparent 40%,
+      rgba(255, 255, 255, 0.08) 45%,
+      rgba(255, 255, 255, 0.16) 50%,
+      rgba(255, 255, 255, 0.08) 55%,
+      transparent 60%);
+  background-size: 200% 100%;
+  animation: shimmer-sweep 3.2s ease-in-out infinite;
+}
+
+@keyframes shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Animations & keyframes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Skeleton shimmer keyframes */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Hero gradient animation */
+@keyframes hero-gradient {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Pulse glow keyframes */
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+/* CTA pulse keyframes */
+@keyframes cta-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 91, 130, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(0, 91, 130, 0);
+  }
+}
+
+.animate-hero-gradient {
+  background-size: 200% 200%;
+  animation: hero-gradient 8s ease infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-cta-pulse {
+  animation: cta-pulse 2s ease-in-out infinite;
+}
+
+@keyframes card-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Hero pattern drift animation */
+@keyframes hero-pattern-drift {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 40px 40px;
+  }
+}
+
+.hero-pattern-overlay {
+  background-image: radial-gradient(circle, var(--foreground) 0.5px, transparent 0.5px);
+  background-size: 40px 40px;
+  animation: hero-pattern-drift 20s linear infinite;
+  opacity: 0.03;
+}
+
+.dark .hero-pattern-overlay {
+  opacity: 0.04;
+}
+
+/* Skeleton shimmer utility */
+.skeleton-shimmer {
+  background: linear-gradient(90deg,
+      var(--muted) 25%,
+      color-mix(in srgb, var(--muted) 60%, var(--foreground) 10%) 50%,
+      var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Branded skeleton shimmer - uses primary color tint */
+.skeleton-branded {
+  background: linear-gradient(90deg,
+      var(--muted) 25%,
+      color-mix(in srgb, var(--muted) 70%, var(--primary) 15%) 50%,
+      var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite linear;
+}
+
+/* Float animation for decorative elements */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-slower {
+  animation: float 8s ease-in-out infinite;
+}
+
+/* Gradient border animation for card hover effects */
+@keyframes gradient-border-rotate {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-border-animated {
+  position: relative;
+}
+
+.gradient-border-animated::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent), var(--primary));
+  background-size: 300% 300%;
+  animation: gradient-border-rotate 4s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border-animated:hover::before {
+  opacity: 1;
+}
+
+/* Card hover glow effect */
+.card-glow {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.card-glow:hover {
+  box-shadow: 0 0 20px -5px rgba(0, 91, 130, 0.18);
+}
+
+.dark .card-glow:hover {
+  box-shadow: 0 0 24px -5px rgba(56, 182, 232, 0.18);
+}
+
+/* Glass card utility */
+.glass-card {
+  background: color-mix(in srgb, var(--card) 60%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid color-mix(in srgb, var(--border) 30%, transparent);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+/* Text gradient utility */
+.text-gradient {
+  background: linear-gradient(to left, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth page transition fade-in for main content areas */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-page-enter {
+  animation: page-fade-in 0.4s ease-out both;
+}
+
+/* Badge shimmer sweep animation */
+@keyframes badge-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+.animate-badge-shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.25),
+      transparent);
+  animation: badge-shimmer 2.5s ease-in-out infinite;
+}
+
+/* NProgress-style loading bar animation */
+@keyframes nprogress-loading {
+  0% {
+    width: 0%;
+    opacity: 1;
+  }
+
+  80% {
+    width: 80%;
+    opacity: 1;
+  }
+
+  100% {
+    width: 100%;
+    opacity: 0;
+  }
+}
+
+.nprogress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+  border-radius: 0 4px 4px 0;
+  animation: nprogress-loading 0.8s ease-in-out forwards;
+  pointer-events: none;
+  box-shadow: 0 0 12px rgba(0, 91, 130, 0.5), 0 0 4px rgba(0, 91, 130, 0.3);
+}
+
+.nprogress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: nprogress-shimmer 0.6s ease-in-out infinite;
+}
+
+@keyframes nprogress-shimmer {
+  0% {
+    transform: translateX(-80px);
+  }
+
+  100% {
+    transform: translateX(80px);
+  }
+}
+
+/* Text balance utility for better multi-line headings */
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Text clip utility for single-line truncation */
+.text-clip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Subtle noise texture overlay for dark mode background */
+.dark::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Respect reduced motion - extended */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-hero-gradient,
+  .animate-promo-shimmer,
+  .animate-pulse-glow,
+  .animate-cta-pulse,
+  .animate-cta-glow,
+  .animate-float,
+  .animate-float-slow,
+  .animate-float-slower,
+  .animate-badge-shimmer,
+  .animate-page-enter,
+  .animate-marquee,
+  .animate-scroll-reveal,
+  .animate-dot-breathe,
+  .animate-region-pulse,
+  .nprogress-bar,
+  .nprogress-bar::after,
+  .skeleton-shimmer,
+  .skeleton-branded,
+  .hero-pattern-overlay,
+  .hero-grid-pattern,
+  .card-shimmer-sweep,
+  .link-underline::after {
+    animation: none;
+  }
+
+  .gradient-border-animated::before,
+  .login-shimmer-card::before,
+  .login-shimmer-card::after,
+  .login-card-shimmer::before {
+    animation: none;
+  }
+
+  .card-glow {
+    transition: none;
+  }
+
+  .dark::before {
+    display: none;
+  }
+}
+
+/* Grid pattern overlay for hero section */
+.hero-grid-pattern {
+  background-image:
+    linear-gradient(var(--foreground) 1px, transparent 1px),
+    linear-gradient(90deg, var(--foreground) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Marquee animation for testimonial rows */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(calc(-50% - 0.5rem));
+  }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+/* Fade masks for marquee edges */
+.mask-gradient-x {
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+/* CTA glow pulse animation for promo banner */
+@keyframes cta-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 20px 4px rgba(255, 255, 255, 0.15);
+  }
+}
+
+.animate-cta-glow {
+  animation: cta-glow 2s ease-in-out infinite;
+}
+
+/* Newsletter input border glow animation */
+@keyframes input-border-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--border), 0 0 0 0 rgba(0, 91, 130, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 1px var(--primary), 0 0 8px 0 rgba(0, 91, 130, 0.15);
+  }
+}
+
+.animate-newsletter-glow:focus {
+  animation: input-border-glow 2s ease-in-out infinite;
+}
+
+/* Login card shimmer border effect */
+@keyframes login-border-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.login-shimmer-card {
+  position: relative;
+}
+
+.login-shimmer-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary), var(--accent), var(--primary));
+  background-size: 300% 300%;
+  animation: login-border-shimmer 4s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.login-shimmer-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, transparent 40%, rgba(0, 91, 130, 0.03) 50%, transparent 60%);
+  background-size: 200% 200%;
+  animation: login-border-shimmer 3s ease infinite;
+  pointer-events: none;
+}
+
+.login-card-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, rgba(0, 91, 130, 0.15), rgba(0, 163, 224, 0.15), transparent);
+  background-size: 200% 100%;
+  animation: shimmer-border 3s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes shimmer-border {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Smooth scroll reveal utility */
+@keyframes scroll-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scroll-reveal {
+  animation: scroll-reveal 0.5s ease-out both;
+}
+
+/* Subtle breathing/pulsing for notification dots */
+@keyframes dot-breathe {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+.animate-dot-breathe {
+  animation: dot-breathe 2s ease-in-out infinite;
+}
+
+/* Staggered fade-in for list items */
+@keyframes stagger-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Region selector pulse when no region is selected */
+@keyframes region-pulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 91, 130, 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 91, 130, 0);
+  }
+}
+
+.animate-region-pulse {
+  animation: region-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth underline animation for links */
+.link-underline {
+  position: relative;
+}
+
+.link-underline::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  right: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+  transition: width 0.3s ease;
+}
+
+.link-underline:hover::after {
+  width: 100%;
+}
+
+/* Table row hover enhancement */
+tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Focus ring for all interactive elements */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Card press effect */
+.card-press {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-press:active {
+  transform: scale(0.98);
+}
+
+/* Gradient text utility (secondary) */
+.text-gradient-secondary {
+  background: linear-gradient(to left, var(--secondary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Promo shimmer animation (legacy promo banner) */
+@keyframes promo-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-promo-shimmer {
+  background-size: 200% 100%;
+  animation: promo-shimmer 3s linear infinite;
+}
+
+
+
+
+
+/* ── صفحات الدخول — تتكيف فاتح/داكن عبر التوكنات ── */
+.login-page-bg {
+  /* الفاتح: خلفية فاتحة نظيفة مع هالات محيطية ناعمة */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 85% 12%, rgba(0, 91, 130, 0.10), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgba(0, 163, 224, 0.10), transparent 42%);
+  background-size: 300% 300%;
+}
+
+.dark .login-page-bg {
+  /* الداكن: تدرج محيطي عميق من الهوية */
+  background-color: var(--primary-deep);
+  background-image: linear-gradient(135deg,
+      var(--primary) 0%,
+      var(--primary-deep) 55%,
+      #062A3D 100%);
+  background-size: 300% 300%;
+}
+
+/* الأشكال العائمة — توكنات بدل rgba الثابتة */
+.login-shape-primary {
+  background: radial-gradient(circle, rgba(0, 91, 130, 0.16) 0%, transparent 70%);
+}
+
+.login-shape-secondary {
+  background: radial-gradient(circle, rgba(0, 163, 224, 0.14) 0%, transparent 70%);
+}
+
+.login-shape-accent {
+  background: radial-gradient(circle, rgba(255, 168, 0, 0.12) 0%, transparent 70%);
+}
+
+.dark .login-shape-primary {
+  background: radial-gradient(circle, rgba(14, 123, 166, 0.28) 0%, transparent 70%);
+}
+
+.dark .login-shape-secondary {
+  background: radial-gradient(circle, rgba(56, 182, 232, 0.22) 0%, transparent 70%);
+}
+
+.dark .login-shape-accent {
+  background: radial-gradient(circle, rgba(255, 184, 51, 0.16) 0%, transparent 70%);
+}
+
+
+
+
+
+.login-ocean-bg {
+  /* الفاتح: خلفية فاتحة + هالات محيطية ناعمة */
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 88% 10%, rgba(0, 91, 130, 0.10), transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(0, 163, 224, 0.10), transparent 40%);
+  background-size: 300% 300%;
+}
+
+.dark .login-ocean-bg {
+  /* الداكن: تدرج محيطي عميق من الهوية */
+  background-color: var(--primary-deep);
+  background-image: linear-gradient(135deg,
+      var(--primary) 0%,
+      var(--primary-deep) 55%,
+      #062A3D 100%);
+  background-size: 300% 300%;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   وضع Standalone (تطبيق مثبّت على الجوال) — تجربة Native App
+   يخفي الفوتر كلياً (التطبيقات الأصلية بلا فوتر) ويبقى الهيدر
+   بشكله الـ Native (transparent → solid) للوصول للمنطقة والحساب.
+   في المتصفح العادي (غير مثبّت) لا يتغيّر شيء.
+   ملاحظة: display-mode يعمل على أندرويد/كروم وسفاري iOS 15.4+
+   ═══════════════════════════════════════════════════════════════ */
+@media (display-mode: standalone) {
+  .hide-in-standalone {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   الجولة 4 — سلوك Native على اللمس (YouTube / Netflix style)
+   1) قاعدة عامة: كل زر/رابط ينكمش لحظة الضغط (scale) على اللمس فقط
+      — لا تؤثر على الديسكتوب (pointer: fine) إطلاقاً.
+      تُستخدم خاصية scale الحديثة (لا transform) حتى لا تتعارض مع
+      framer-motion أو أدوات translate في Tailwind.
+   2) native-tap: نسخة بانتقال سلس 150ms للأزرار الرئيسية.
+   3) native-tap-card: كبسخة أخف (0.97) للكروت القابلة للنقر.
+   4) bottom-sheet-grip: مقبض السحب أعلى BottomSheet.
+   5) pull-refresh-spin: دوران مؤشر السحب للتحديث.
+   ملاحظة: أدوات Tailwind مثل active:scale-95 (specificity أعلى)
+   تتجاوز القاعدة العامة — لا تراكم تأثير.
+   ═══════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+  button:not(:disabled):active,
+  [role="button"]:not(:disabled):active {
+    scale: 0.96;
+  }
+  a:active {
+    scale: 0.97;
+  }
+
+  .native-tap {
+    transition: scale 150ms ease;
+  }
+  .native-tap:active:not(:disabled) {
+    scale: 0.95;
+  }
+  .native-tap-card {
+    transition: scale 150ms ease;
+  }
+  .native-tap-card:active:not(:disabled) {
+    scale: 0.97;
+  }
+}
+
+/* احترام تفضيل تقليل الحركة: بلا تكبير/تصغير لمس */
+@media (pointer: coarse) and (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  [role="button"]:not(:disabled):active,
+  a:active,
+  .native-tap:active:not(:disabled),
+  .native-tap-card:active:not(:disabled) {
+    scale: none;
+  }
+}
+
+/* مقبض السحب أعلى BottomSheet (نمط iOS/YouTube) */
+.bottom-sheet-grip {
+  width: 3rem;   /* 48px */
+  height: 4px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
+  margin-inline: auto;
+}
+
+/* دوران مؤشر السحب للتحديث عند تجاوز العتبة */
+.pull-refresh-spin {
+  animation: pull-refresh-rotate 0.8s linear infinite;
+}
+@keyframes pull-refresh-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
