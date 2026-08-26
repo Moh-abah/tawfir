@@ -332,7 +332,6 @@ const ROLE_COLORS: Record<UserRole, string> = {
 const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
   cafe: "مقهى",
-  public_facility: "مرفق عام",
 };
 
 const ROLE_ICONS: Record<UserRole, React.ReactNode> = {

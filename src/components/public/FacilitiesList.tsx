@@ -19,14 +19,11 @@ const GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
 const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
   restaurant: "مطعم",
   cafe: "مقهى",
-  public_facility: "مرفق عام",
 };
 
 const FACILITY_TYPE_BADGE_CLASS: Record<FacilityType, string> = {
   restaurant: "bg-cat-restaurant/15 text-cat-restaurant border-cat-restaurant/25 hover:bg-cat-restaurant/15",
   cafe: "bg-cat-cafe/15 text-cat-cafe border-cat-cafe/25 hover:bg-cat-cafe/15",
-  public_facility:
-    "bg-cat-facility/15 text-cat-facility border-cat-facility/25 hover:bg-cat-facility/15",
 };
 
 export function FacilitiesList() {

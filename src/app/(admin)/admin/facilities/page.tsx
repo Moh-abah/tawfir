@@ -37,7 +37,6 @@ import type { Facility, FacilityType } from "@/types/api.generated";
 const TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
   cafe: "مقهى",
-  public_facility: "مرفق عام",
 };
 
 type FilterType = FacilityType | "all";
