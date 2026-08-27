@@ -5,9 +5,9 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "PLACEHOLDER_CUSTOMER_PACKAGE",
+      "package_name": "com.tawfir.app",
       "sha256_cert_fingerprints": [
-        "PLACEHOLDER_SHA256_CUSTOMER"
+        "3F07592415B7AC0C96246799376FB7244EEF22A2CE1EEA949E358037C6EA6635"
       ]
     }
   },
@@ -17,9 +17,9 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "PLACEHOLDER_OWNER_PACKAGE",
+      "package_name": "com.tawfir.owner",
       "sha256_cert_fingerprints": [
-        "PLACEHOLDER_SHA256_OWNER"
+        "3F07592415B7AC0C96246799376FB7244EEF22A2CE1EEA949E358037C6EA6635"
       ]
     }
   }
