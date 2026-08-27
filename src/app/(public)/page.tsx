@@ -19,11 +19,13 @@ import {
   Navigation,
   Phone,
   PiggyBank,
+  Search,
   ShieldCheck,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Accordion,
@@ -46,6 +48,7 @@ import { useFacilities } from "@/hooks/useFacilities";
 import { useNearbyProducts } from "@/hooks/useNearbyProducts";
 import { useProducts } from "@/hooks/useProducts";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useRegionStore } from "@/store/region.store";
 import { toast } from "@/hooks/use-toast";
 import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
@@ -57,6 +60,9 @@ import { cn } from "@/lib/utils";
 /* ------------------------------------------------------------------ */
 /*  التصنيفات الدائرية — فقط مطاعم وكافيهات                            */
 /* ------------------------------------------------------------------ */
+/* خيارات نطاق البحث «الأقرب إليك» — radius_km (الجولة 5) */
+const RADIUS_OPTIONS = [3, 5, 10, 25] as const;
+
 const CATEGORIES: ReadonlyArray<{
   key: FacilityType;
   label: string;
@@ -175,9 +181,12 @@ function HeroSection() {
 /* ------------------------------------------------------------------ */
 function OffersSection() {
   const [activeType, setActiveType] = useState<FacilityType | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput.trim(), 350);
   const { data, isLoading, error, refetch } = useProducts({
     only_available: true,
     type: activeType ?? undefined,
+    search: debouncedSearch || undefined,
   });
 
   const products = data?.items ?? [];
@@ -195,15 +204,32 @@ function OffersSection() {
             اكتشف أحدث الوجبات من مطاعمنا وكافيهاتنا المشتركة
           </p>
         </div>
-        {activeType && (
+        {(activeType || debouncedSearch) && (
           <button
             type="button"
-            onClick={() => setActiveType(null)}
+            onClick={() => {
+              setActiveType(null);
+              setSearchInput("");
+            }}
             className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/60 px-4 text-xs font-bold text-muted-foreground transition-colors hover:text-foreground"
           >
-            {TYPE_LABEL[activeType]} ({filteredCount}) — إلغاء التصفية
+            إلغاء التصفية
           </button>
         )}
+      </div>
+
+      {/* بحث الوجبات — بارامتر search في GET /products (الجولة 5) */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <Input
+          type="search"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="ابحث عن وجبة بالاسم..."
+          aria-label="البحث في الوجبات"
+          className="min-h-[44px] rounded-full pr-10"
+          inputMode="search"
+        />
       </div>
 
       <CategoryCircles active={activeType} onChange={setActiveType} />
@@ -226,20 +252,25 @@ function OffersSection() {
       ) : filteredCount === 0 ? (
         <EmptyState
           icon={UtensilsCrossed}
-          title="لا توجد وجبات متاحة حالياً"
+          title="لا توجد وجبات مطابقة"
           description={
-            activeType
-              ? `لا توجد ${TYPE_LABEL[activeType]} متاحة الآن. جرّب فئة أخرى أو عُد لاحقاً.`
-              : "ترقّب المزيد من الوجبات قريباً من مطاعمنا المشتركة."
+            debouncedSearch
+              ? `لا توجد وجبات تطابق «${debouncedSearch}»${activeType ? ` في ${TYPE_LABEL[activeType]}` : ""}. جرّب كلمة أخرى.`
+              : activeType
+                ? `لا توجد ${TYPE_LABEL[activeType]} متاحة الآن. جرّب فئة أخرى أو عُد لاحقاً.`
+                : "ترقّب المزيد من الوجبات قريباً من مطاعمنا المشتركة."
           }
           action={
-            activeType ? (
+            activeType || debouncedSearch ? (
               <Button
                 variant="outline"
                 className="rounded-full min-h-[44px]"
-                onClick={() => setActiveType(null)}
+                onClick={() => {
+                  setActiveType(null);
+                  setSearchInput("");
+                }}
               >
-                عرض كل الفئات
+                عرض كل الوجبات
               </Button>
             ) : undefined
           }
@@ -265,11 +296,13 @@ function NearbySection() {
   } | null>(null);
   const [locating, setLocating] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  // نطاق البحث — بارامتر radius_km في GET /products/nearby (الجولة 5)
+  const [radiusKm, setRadiusKm] = useState(10);
 
   const { data, isLoading, error, refetch } = useNearbyProducts(
     coords?.lat ?? null,
     coords?.lng ?? null,
-    10,
+    radiusKm,
     enabled
   );
 
@@ -340,6 +373,32 @@ function NearbySection() {
         </Button>
       </div>
 
+      {/* منتقي نطاق البحث — يظهر بعد تحديد الموقع */}
+      {enabled && (
+        <div
+          className="flex items-center gap-2 overflow-x-auto pb-1"
+          role="group"
+          aria-label="نطاق البحث بالكيلومتر"
+        >
+          {RADIUS_OPTIONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRadiusKm(r)}
+              aria-pressed={radiusKm === r}
+              className={cn(
+                "min-h-[36px] shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-colors",
+                radiusKm === r
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border/60 bg-card text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {r} كم
+            </button>
+          ))}
+        </div>
+      )}
+
       {!enabled ? (
         <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center">
           <MapPinned
@@ -369,7 +428,7 @@ function NearbySection() {
         <EmptyState
           icon={MapPinned}
           title="لا توجد وجبات قريبة"
-          description="لا توجد وجبات متاحة في نطاق 10 كم من موقعك حالياً."
+          description={`لا توجد وجبات متاحة في نطاق ${radiusKm} كم من موقعك حالياً — جرّب توسيع النطاق.`}
         />
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">

@@ -37,7 +37,6 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 const TYPE_BADGE_CLASS: Record<FacilityType, string> = {
   restaurant: "bg-secondary/15 text-secondary border-secondary/20",
   cafe: "bg-accent/15 text-accent border-accent/20",
-  public_facility: "bg-secondary/15 text-secondary border-secondary/20",
 };
 
 /* ------------------------------------------------------------------ */
@@ -295,7 +294,7 @@ function FacilitiesGrid() {
       await Promise.all(
         filtered.slice(0, 9).map(async (f) => {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/facilities/${f.id}/products`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/facilities/${f.id}/products`);
             if (res.ok) {
               const data = await res.json();
               counts[f.id] = Array.isArray(data) ? data.length : 0;

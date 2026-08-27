@@ -20,8 +20,6 @@ import {
   Filter,
   X,
   PieChart,
-  TrendingUp,
-  TrendingDown,
   Hourglass,
   ShoppingBag,
   type LucideIcon,
@@ -45,6 +43,9 @@ import { useAdminAuditLogs } from "@/hooks/useAdminAuditLogs";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useAdminFacilities } from "@/hooks/useAdminFacilities";
 import { useAdminCards } from "@/hooks/useAdminCards";
+import { useAdminMembershipRequests } from "@/hooks/useAdminMembershipRequests";
+import { useAdminPendingFacilities } from "@/hooks/useAdminPendingFacilities";
+import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import type { DashboardStats, FacilityType, UserRole } from "@/types/api.generated";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -173,6 +174,8 @@ function ActionStatCard({ config, isLoading, value }: ActionStatCardProps) {
 }
 
 /* ─── Stat config with color themes ────────────────── */
+/* الجولة 6: حُذفت اتجاهات النسبة الوهمية (+8%...) — لا endpoint
+   للاتجاهات؛ الأرقام فقط حقيقية من GET /admin/dashboard. */
 interface StatConfig {
   key: keyof DashboardStats;
   label: string;
@@ -180,18 +183,17 @@ interface StatConfig {
   color: string;
   bg: string;
   border: string;
-  trend: { value: string; positive: boolean };
 }
 
 const STAT_CONFIGS: StatConfig[] = [
-  { key: "regions", label: "المناطق", icon: Map, color: "text-primary", bg: "bg-primary/15", border: "border-l-primary", trend: { value: "+8%", positive: true } },
-  { key: "cards", label: "البطاقات", icon: CreditCard, color: "text-secondary", bg: "bg-secondary/15", border: "border-l-secondary", trend: { value: "+12%", positive: true } },
-  { key: "published_cards", label: "البطاقات المنشورة", icon: Eye, color: "text-success", bg: "bg-success/15", border: "border-l-success", trend: { value: "+5%", positive: true } },
-  { key: "facilities", label: "المنشآت", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent", trend: { value: "+15%", positive: true } },
-  { key: "customers", label: "العملاء", icon: Users, color: "text-cat-facility", bg: "bg-cat-facility/15", border: "border-l-cat-facility", trend: { value: "+22%", positive: true } },
-  { key: "owners", label: "المالكون", icon: UserCog, color: "text-chart-4", bg: "bg-chart-4/15", border: "border-l-chart-4", trend: { value: "-3%", positive: false } },
-  { key: "products", label: "المنتجات", icon: Package, color: "text-cat-restaurant", bg: "bg-cat-restaurant/15", border: "border-l-cat-restaurant", trend: { value: "+9%", positive: true } },
-  { key: "available_products", label: "المنتجات المتاحة", icon: PackageCheck, color: "text-cat-cafe", bg: "bg-cat-cafe/15", border: "border-l-cat-cafe", trend: { value: "+4%", positive: true } },
+  { key: "regions", label: "المناطق", icon: Map, color: "text-primary", bg: "bg-primary/15", border: "border-l-primary" },
+  { key: "cards", label: "البطاقات", icon: CreditCard, color: "text-secondary", bg: "bg-secondary/15", border: "border-l-secondary" },
+  { key: "published_cards", label: "البطاقات المنشورة", icon: Eye, color: "text-success", bg: "bg-success/15", border: "border-l-success" },
+  { key: "facilities", label: "المنشآت", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent" },
+  { key: "customers", label: "العملاء", icon: Users, color: "text-cat-facility", bg: "bg-cat-facility/15", border: "border-l-cat-facility" },
+  { key: "owners", label: "المالكون", icon: UserCog, color: "text-chart-4", bg: "bg-chart-4/15", border: "border-l-chart-4" },
+  { key: "products", label: "المنتجات", icon: Package, color: "text-cat-restaurant", bg: "bg-cat-restaurant/15", border: "border-l-cat-restaurant" },
+  { key: "available_products", label: "المنتجات المتاحة", icon: PackageCheck, color: "text-cat-cafe", bg: "bg-cat-cafe/15", border: "border-l-cat-cafe" },
 ];
 
 const STAT_GRADIENTS = [
@@ -210,7 +212,6 @@ interface StatCardProps {
 
 function StatCard({ config, isLoading, value, index }: StatCardProps) {
   const Icon = config.icon;
-  const TrendIcon = config.trend.positive ? TrendingUp : TrendingDown;
   return (
     <Card className={cn(
       "border-l-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
@@ -238,13 +239,6 @@ function StatCard({ config, isLoading, value, index }: StatCardProps) {
               </span>
             )}
           </div>
-          <span className={cn(
-            "flex items-center gap-0.5 text-xs font-medium",
-            config.trend.positive ? "text-success" : "text-destructive"
-          )}>
-            <TrendIcon className="h-3.5 w-3.5" />
-            {config.trend.value}
-          </span>
         </div>
       </CardContent>
     </Card>
@@ -483,6 +477,37 @@ const prefersReduced = usePrefersReducedMotion();
   const { data: cardsData, isLoading: cardsLoading } = useAdminCards();
   const allCards = cardsData?.items ?? [];
 
+  /* ─── الجولة 6: أرقام حقيقية للبطاقات الإجرائية ─────────
+     الباك إند لا يرجع pending_membership_requests/pending_facilities/orders_today
+     في GET /admin/dashboard — نجلبها من نقاطها الفعلية. */
+  const { data: pendingMembershipData, isLoading: pendingMembershipLoading } =
+    useAdminMembershipRequests("pending", 1, 1);
+  const { data: pendingFacilitiesData, isLoading: pendingFacilitiesLoading } =
+    useAdminPendingFacilities(1, 1);
+  const { data: ordersData, isLoading: ordersLoading } = useAdminOrders({
+    page: 1,
+    page_size: 100,
+  });
+
+  /** طلبات اليوم — تُحسب عملياً من تاريخ الإنشاء (خادم UTC، العميل محلي). */
+  const ordersToday = useMemo(() => {
+    const items = ordersData?.items ?? [];
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    return items.filter((o) => new Date(o.created_at) >= startOfDay).length;
+  }, [ordersData]);
+
+  const actionValues: Record<ActionStatConfig["key"], number> = {
+    pending_membership_requests: pendingMembershipData?.total ?? 0,
+    pending_facilities: pendingFacilitiesData?.total ?? 0,
+    orders_today: ordersToday,
+  };
+  const actionLoading: Record<ActionStatConfig["key"], boolean> = {
+    pending_membership_requests: pendingMembershipLoading,
+    pending_facilities: pendingFacilitiesLoading,
+    orders_today: ordersLoading,
+  };
+
   const greeting = useMemo(() => getGreeting(), []);
   const todayStr = useMemo(() => getFormattedToday(), []);
 
@@ -511,9 +536,6 @@ const prefersReduced = usePrefersReducedMotion();
     owners: 0,
     products: 0,
     available_products: 0,
-    pending_facilities: 0,
-    pending_membership_requests: 0,
-    orders_today: 0,
   };
 
   const staggerVariants = prefersReduced
@@ -597,8 +619,8 @@ const prefersReduced = usePrefersReducedMotion();
           <motion.div key={config.key} variants={itemVariants}>
             <ActionStatCard
               config={config}
-              isLoading={dashLoading}
-              value={stats[config.key]}
+              isLoading={actionLoading[config.key]}
+              value={actionValues[config.key]}
             />
           </motion.div>
         ))}

@@ -13,12 +13,14 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
-function writeCookie(name: string, value: string, maxAge: number) {
+function writeCookie(name: string, value: string, maxAge: number | null) {
   if (typeof document === "undefined") return;
   const secure = typeof window !== "undefined" && window.location.protocol === "https:" ? "; Secure" : "";
+  // maxAge=null → كوكي جلسة فقط (يُمسح عند إغلاق المتصفح)
+  const maxAgeAttr = maxAge === null ? "" : `; Max-Age=${maxAge}`;
   document.cookie = `${name}=${encodeURIComponent(
     value
-  )}; Path=/; Max-Age=${maxAge}; SameSite=Lax${secure}`;
+  )}; Path=/${maxAgeAttr}; SameSite=Lax${secure}`;
 }
 
 function eraseCookie(name: string) {
@@ -30,7 +32,8 @@ interface AuthState {
   accessToken: string | null;
   /** True until we've checked the cookie on the client. */
   hydrated: boolean;
-  setAuth: (token: string) => void;
+  /** remember=true (افتراضي) → كوكي 7 أيام | false → كوكي جلسة فقط */
+  setAuth: (token: string, remember?: boolean) => void;
   clearAuth: () => void;
   hydrate: () => void;
 }
@@ -38,8 +41,8 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
   hydrated: false,
-  setAuth: (token) => {
-    writeCookie(COOKIE_NAME, token, COOKIE_MAX_AGE);
+  setAuth: (token, remember = true) => {
+    writeCookie(COOKIE_NAME, token, remember ? COOKIE_MAX_AGE : null);
     set({ accessToken: token, hydrated: true });
   },
   clearAuth: () => {

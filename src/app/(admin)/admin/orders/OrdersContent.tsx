@@ -45,8 +45,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useAdminOrders } from "@/hooks/useAdminOrders";
-import { useOrderDetail } from "@/hooks/useOrderDetail";
+import { useAdminOrders, useAdminOrderDetail } from "@/hooks/useAdminOrders";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -159,7 +158,7 @@ function OrderDetailsDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
-  const { data: order, isLoading, isError, error } = useOrderDetail(orderId);
+  const { data: order, isLoading, isError, error } = useAdminOrderDetail(orderId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

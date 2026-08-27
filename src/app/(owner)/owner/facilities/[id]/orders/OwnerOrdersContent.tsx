@@ -387,6 +387,7 @@ export default function OwnerOrdersContent() {
 
   const currentFacility = facility ?? facilityDetail;
 
+  // استعلام أساسي بلا فلترة (للإحصائيات وشارات العدّادات) — الجولة 5
   const {
     data: orders,
     isLoading: ordersLoading,
@@ -397,13 +398,20 @@ export default function OwnerOrdersContent() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
 
-  // فلترة محلية على الطلبات
+  // استعلام مفلتر من الباك إند عند اختيار حالة محددة (بدل الفلترة
+  // المحلية التي كانت تفقد الطلبات خارج أول 20 طلباً)
+  const filteredQuery = useOwnerOrders(
+    facilityId,
+    statusFilter === "all" ? null : statusFilter
+  );
+  const activeOrders = statusFilter === "all" ? orders : filteredQuery.data;
+  const activeLoading =
+    statusFilter === "all" ? ordersLoading : filteredQuery.isLoading;
+
+  // البحث المحلي (بالباق رقم/اسم العميل) — الباك إند لا يدعم بحثاً للطلبات
   const filteredOrders = useMemo(() => {
-    const all = orders?.items ?? [];
+    const all = activeOrders?.items ?? [];
     let list = all;
-    if (statusFilter !== "all") {
-      list = list.filter((o) => o.status === statusFilter);
-    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -417,7 +425,7 @@ export default function OwnerOrdersContent() {
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
-  }, [orders, statusFilter, search]);
+  }, [activeOrders, search]);
 
   const pageAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -642,7 +650,7 @@ export default function OwnerOrdersContent() {
       </div>
 
       {/* Content */}
-      {ordersLoading ? (
+      {activeLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-44 rounded-2xl" />

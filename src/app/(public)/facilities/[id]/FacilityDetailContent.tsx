@@ -36,7 +36,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
-import { PriceTag } from "@/components/shared/PriceTag";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useFacilityProducts, useAllFacilityProducts } from "@/hooks/useFacilityProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
@@ -54,13 +53,6 @@ import {
   type CheckoutProduct,
   PLACEHOLDER_CHECKOUT_PRODUCT,
 } from "@/components/public/CheckoutSheet";
-
-const PRICE_FMT = new Intl.NumberFormat("ar-SA", {
-  style: "currency",
-  currency: "SAR",
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
 
 function fallbackCopy(text: string, toastFn: (opts: { title: string; variant?: "destructive" }) => void) {
   try {

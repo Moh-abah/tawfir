@@ -23,13 +23,22 @@ export function useModerateMembershipRequest() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-membership-requests"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
+      // الجولة 6: كان المفتاح ["admin-dashboard"] بينما اللوحة تستخدم
+      // ["admin", "dashboard"] — الإبطال لم يكن يصل أبداً.
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
       toast({ title: "تم", description: "تم تحديث طلب العضوية" });
     },
     onError: (err) => {
+      // الجولة 6: رسائل الخادم الإنجليزية (Internal server error) تُستبدل
+      // بعربية مفهومة — التفاصيل التقنية تبقى في الكونسول.
+      const raw = err.message || "";
+      const friendly = /internal server error|server error|5\d{2}/i.test(raw)
+        ? "خطأ في الخادم أثناء تنفيذ العملية — حاول مرة أخرى"
+        : raw || "تعذّر تحديث الطلب";
       toast({
         title: "خطأ",
-        description: err.message || "تعذّر تحديث الطلب",
+        description: friendly,
         variant: "destructive",
       });
     },

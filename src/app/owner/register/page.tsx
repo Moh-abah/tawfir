@@ -43,6 +43,7 @@ import {
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { ImageUrlField } from "@/components/shared/ImageUrlField";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { useOwnerRegister, parseRegisterError } from "@/hooks/useOwnerRegister";
 import type { OwnerRegisterResult } from "@/services/owner.service";
@@ -110,8 +111,7 @@ const registerSchema = z
       .number()
       .int()
       .min(10, { message: "النسبة يجب أن تكون 10 على الأقل" })
-      .max(30, { message: "النسبة يجب أن تكون 30 على الأكثر" })
-      .default(30),
+      .max(30, { message: "النسبة يجب أن تكون 30 على الأكثر" }),
   })
   .refine((d) => d.password === d.password_confirm, {
     message: "كلمتا المرور غير متطابقتين",
@@ -609,7 +609,7 @@ export default function OwnerRegisterPage() {
                           <Skeleton className="h-[44px] w-full" />
                         ) : (
                           <Select
-                            value={field.value ? String(field.value) : undefined}
+                            value={field.value ? String(field.value) : ""}
                             onValueChange={(v) => field.onChange(Number(v))}
                             disabled={register.isPending}
                           >
@@ -711,26 +711,26 @@ export default function OwnerRegisterPage() {
                         message={formState.errors.working_hours?.message}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="image_url">
-                        رابط صورة المنشأة{" "}
-                        <span className="text-muted-foreground">(اختياري)</span>
-                      </Label>
-                      <Input
-                        id="image_url"
-                        type="url"
-                        dir="ltr"
-                        inputMode="url"
-                        disabled={register.isPending}
-                        placeholder="https://..."
-                        className="min-h-[44px]"
-                        {...registerField("image_url")}
-                      />
-                      <FieldError
-                        message={formState.errors.image_url?.message}
-                      />
-                    </div>
+                  <div>
+                    <Controller
+                      name="image_url"
+                      control={control}
+                      render={({ field }) => (
+                        <ImageUrlField
+                          id="image_url"
+                          label="صورة المنشأة"
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          disabled={register.isPending}
+                        />
+                      )}
+                    />
+                    <FieldError
+                      message={formState.errors.image_url?.message}
+                    />
                   </div>
+                </div>
 
                   {/* نسبة الخصم لتوفير — شريط تمرير 10-30 */}
                   <Controller

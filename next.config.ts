@@ -22,8 +22,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Type",
-  
-            value: "application/json"
+            value: "application/vnd.android.package.archive+json",
           },
           {
             key: "Cache-Control",

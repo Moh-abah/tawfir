@@ -60,12 +60,7 @@ export const ownerService = {
    */
   ownerRegister: (data: OwnerRegisterInput) =>
     ownerApiClient.post<OwnerRegisterResult>("/owner/register", data),
-  /**
-   * BLOCKER: This endpoint does NOT exist in the OpenAPI spec.
-   * POST /api/v1/owner/login → TokenOut
-   * Request body: { identifier: string; password: string }
-   * Backend needs to implement this endpoint.
-   */
+  /** تسجيل دخول المالك. POST /owner/login → TokenOut (موجود في OpenAPI). */
   ownerLogin: (data: { identifier: string; password: string }) =>
     ownerApiClient.post<TokenOut>("/owner/login", data),
 
@@ -120,9 +115,23 @@ export const ownerService = {
 
   /* ─── طلبات المنشأة (للمالك) ─────────────────────────── */
 
-  /** طلبات منشأتي. GET /owner/{facilityId}/orders → Paginated<OrderListOut>. */
-  getOwnerOrders: (facilityId: number) =>
-    ownerApiClient.get<Paginated<OrderListOut>>(`/owner/${facilityId}/orders`),
+  /**
+   * طلبات منشأتي. GET /owner/{facilityId}/orders → Paginated<OrderListOut>.
+   * الجولة 5: دعم فلترة الحالة وترقيم من الباك إند (كانت الفلترة محلية
+   * على أول 20 طلباً فقط — تفقد الطلبات الأقدم).
+   */
+  getOwnerOrders: (
+    facilityId: number,
+    params?: { status?: string | null; page?: number; page_size?: number }
+  ) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    q.set("page", String(params?.page ?? 1));
+    q.set("page_size", String(params?.page_size ?? 100));
+    return ownerApiClient.get<Paginated<OrderListOut>>(
+      `/owner/${facilityId}/orders?${q.toString()}`
+    );
+  },
 
   /** تحديث حالة طلب. PATCH /orders/{id}/status (مالك/مشرف). */
   updateOrderStatus: (orderId: number, status: string) =>

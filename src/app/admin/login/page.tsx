@@ -22,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useAdminAuth, useAdminLogin } from "@/hooks/useAdminAuth";
-import { useToast } from "@/hooks/use-toast";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { TawfirLogo } from "@/components/shared/TawfirLogo"; // ✅ استيراد الشعار الجديد
 import { PasswordInput } from "@/components/shared/PasswordInput";
@@ -38,8 +37,7 @@ export default function AdminLoginPage() {
   const { accessToken, hydrated } = useAdminAuth();
   const login = useAdminLogin();
   const prefersReduced = usePrefersReducedMotion();
-  const { toast } = useToast();
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
   useEffect(() => {
     if (hydrated && accessToken) {
@@ -54,11 +52,7 @@ export default function AdminLoginPage() {
   const { register, handleSubmit, formState } = form;
 
   function onSubmit(values: FormValues) {
-    login.mutate(values);
-  }
-
-  function handleForgotPassword() {
-    toast({ title: "ستتوصل برابط إعادة التعيين قريبًا" });
+    login.mutate({ ...values, remember: rememberMe });
   }
 
   const cardAnimation = prefersReduced
@@ -189,20 +183,15 @@ export default function AdminLoginPage() {
                 </motion.div>
 
                 <motion.div
-                  className="flex items-center justify-between"
+                  className="flex items-center"
                   variants={formFieldVariants}
                 >
                   <label className="flex items-center gap-2 min-h-[44px] cursor-pointer">
                     <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(v) => setRememberMe(v === true)} />
-                    <span className="text-sm text-muted-foreground">تذكرني</span>
+                    <span className="text-sm text-muted-foreground">تذكرني (7 أيام)</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors min-h-[44px]"
-                  >
-                    نسيت كلمة المرور؟
-                  </button>
+                  {/* لا توجد ميزة «نسيت كلمة المرور» — الباك إند لا يوفّر
+                      endpoint لإعادة التعيين (موثّق في BLOCKERS.md). */}
                 </motion.div>
 
                 <motion.div variants={formFieldVariants}>

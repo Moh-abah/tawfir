@@ -1,0 +1,769 @@
+     1→"use client";
+     2→
+     3→import { useState } from "react";
+     4→import Link from "next/link";
+     5→import { useForm, Controller } from "react-hook-form";
+     6→import { zodResolver } from "@hookform/resolvers/zod";
+     7→import { z } from "zod";
+     8→import { motion } from "framer-motion";
+     9→import {
+    10→  ArrowRight,
+    11→  Loader2,
+    12→  UserRound,
+    13→  Store,
+    14→  CheckCircle2,
+    15→  LogIn,
+    16→  Home,
+    17→  Hourglass,
+    18→  type LucideIcon,
+    19→} from "lucide-react";
+    20→import { cn } from "@/lib/utils";
+    21→import {
+    22→  Card,
+    23→  CardContent,
+    24→  CardDescription,
+    25→  CardHeader,
+    26→  CardTitle,
+    27→} from "@/components/ui/card";
+    28→import { Input } from "@/components/ui/input";
+    29→import { Label } from "@/components/ui/label";
+    30→import { Button } from "@/components/ui/button";
+    31→import { Textarea } from "@/components/ui/textarea";
+    32→import { Separator } from "@/components/ui/separator";
+    33→import { Skeleton } from "@/components/ui/skeleton";
+    34→import {
+    35→  Select,
+    36→  SelectContent,
+    37→  SelectItem,
+    38→  SelectTrigger,
+    39→  SelectValue,
+    40→} from "@/components/ui/select";
+    41→import { ThemeToggle } from "@/components/theme/ThemeToggle";
+    42→import { TawfirLogo } from "@/components/shared/TawfirLogo";
+    43→import { PasswordInput } from "@/components/shared/PasswordInput";
+    44→import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
+    45→import { useOwnerRegister, parseRegisterError } from "@/hooks/useOwnerRegister";
+    46→import type { OwnerRegisterResult } from "@/services/owner.service";
+    47→import { useRegions } from "@/hooks/useRegions";
+    48→import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
+    49→import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+    50→import type { FacilityType } from "@/types/api.generated";
+    51→
+    52→/* ════════════════════════════════════════════════════════════════ */
+    53→/*  مخطط التحقق — عربي كامل (يمني — لا سعودي)                        */
+    54→/* ════════════════════════════════════════════════════════════════ */
+    55→/**
+    56→ * صيغة الجوال اليمني:
+    57→ *  - محلي: 7XXXXXXXX (9 خانات تبدأ بـ 7)
+    58→ *  - دولي: +967 7XXXXXXXX أو 9677XXXXXXXX
+    59→ */
+    60→const YEMENI_PHONE = /^(?:\+?967)?0?7\d{8}$/u;
+    61→
+    62→const registerSchema = z
+    63→  .object({
+    64→    full_name: z
+    65→      .string()
+    66→      .min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" }),
+    67→    email: z
+    68→      .string()
+    69→      .min(1, { message: "البريد الإلكتروني مطلوب" })
+    70→      .email({ message: "صيغة البريد الإلكتروني غير صحيحة" }),
+    71→    phone: z
+    72→      .string()
+    73→      .min(9, { message: "رقم الجوال يجب أن يكون 9 أرقام على الأقل" })
+    74→      .regex(YEMENI_PHONE, {
+    75→        message: "أدخل رقم جوال يمني صحيح (مثال: 7XXXXXXXX)",
+    76→      }),
+    77→    password: z
+    78→      .string()
+    79→      .min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }),
+    80→    password_confirm: z
+    81→      .string()
+    82→      .min(1, { message: "تأكيد كلمة المرور مطلوب" }),
+    83→    facility_name: z
+    84→      .string()
+    85→      .min(2, { message: "اسم المنشأة يجب أن يكون حرفين على الأقل" }),
+    86→    facility_type: z.enum(["restaurant", "cafe"], {
+    87→      message: "اختر نوع المنشأة",
+    88→    }),
+    89→    region_id: z.number().positive({ message: "اختر منطقة المنشأة" }),
+    90→    description: z.string().trim().optional(),
+    91→    address: z.string().trim().optional(),
+    92→    phone_facility: z
+    93→      .string()
+    94→      .trim()
+    95→      .optional()
+    96→      .refine((v) => !v || YEMENI_PHONE.test(v), {
+    97→        message: "أدخل رقم جوال يمني صحيح (مثال: 7XXXXXXXX)",
+    98→      }),
+    99→    working_hours: z.string().trim().optional(),
+   100→    image_url: z
+   101→      .string()
+   102→      .trim()
+   103→      .optional()
+   104→      .refine((v) => !v || /^https?:\/\/.+/u.test(v), {
+   105→        message: "أدخل رابطاً صالحاً يبدأ بـ http",
+   106→      }),
+   107→  })
+   108→  .refine((d) => d.password === d.password_confirm, {
+   109→    message: "كلمتا المرور غير متطابقتين",
+   110→    path: ["password_confirm"],
+   111→  });
+   112→
+   113→type FormValues = z.infer<typeof registerSchema>;
+   114→
+   115→/* ════════════════════════════════════════════════════════════════ */
+   116→/*  أنماط أزرار نوع المنشأة — مطاعم ومقاهي فقط                       */
+   117→/* ════════════════════════════════════════════════════════════════ */
+   118→const TYPE_CIRCLES: Record<FacilityType, { active: string; idle: string }> = {
+   119→  restaurant: {
+   120→    active: "bg-cat-restaurant text-white shadow-soft",
+   121→    idle: "bg-cat-restaurant-soft text-cat-restaurant",
+   122→  },
+   123→  cafe: {
+   124→    active: "bg-cat-cafe text-white shadow-soft",
+   125→    idle: "bg-cat-cafe-soft text-cat-cafe",
+   126→  },
+   127→};
+   128→
+   129→const FACILITY_TYPES: ReadonlyArray<{ key: FacilityType; icon: LucideIcon }> = [
+   130→  { key: "restaurant", icon: TYPE_ICON.restaurant },
+   131→  { key: "cafe", icon: TYPE_ICON.cafe },
+   132→];
+   133→
+   134→/* ════════════════════════════════════════════════════════════════ */
+   135→/*  مكوّنات مساعدة                                                   */
+   136→/* ════════════════════════════════════════════════════════════════ */
+   137→function FieldError({ message }: { message?: string }) {
+   138→  if (!message) return null;
+   139→  return (
+   140→    <p className="text-xs text-destructive" role="alert">
+   141→      {message}
+   142→    </p>
+   143→  );
+   144→}
+   145→
+   146→function SectionTitle({
+   147→  icon: Icon,
+   148→  title,
+   149→  hint,
+   150→}: {
+   151→  icon: LucideIcon;
+   152→  title: string;
+   153→  hint: string;
+   154→}) {
+   155→  return (
+   156→    <div className="flex items-center gap-3">
+   157→      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+   158→        <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+   159→      </span>
+   160→      <div>
+   161→        <h2 className="text-sm font-bold text-foreground">{title}</h2>
+   162→        <p className="text-xs text-muted-foreground">{hint}</p>
+   163→      </div>
+   164→    </div>
+   165→  );
+   166→}
+   167→
+   168→/* ════════════════════════════════════════════════════════════════ */
+   169→/*  شاشة النجاح — «بانتظار موافقة المشرف»                            */
+   170→/* ════════════════════════════════════════════════════════════════ */
+   171→function SuccessScreen({ result }: { result: OwnerRegisterResult }) {
+   172→  const prefersReduced = usePrefersReducedMotion();
+   173→  const anim = prefersReduced
+   174→    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
+   175→    : {
+   176→        initial: { opacity: 0, y: 20, scale: 0.97 },
+   177→        animate: { opacity: 1, y: 0, scale: 1 },
+   178→      };
+   179→
+   180→  return (
+   181→    <motion.div
+   182→      {...anim}
+   183→      transition={{ duration: 0.4, ease: "easeOut" }}
+   184→      className="relative z-10 w-full max-w-md space-y-6 text-center"
+   185→    >
+   186→      <Card className="rounded-2xl border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl">
+   187→        <CardContent className="flex flex-col items-center gap-5 p-8 sm:p-10">
+   188→          <motion.span
+   189→            initial={prefersReduced ? false : { scale: 0 }}
+   190→            animate={{ scale: 1 }}
+   191→            transition={{
+   192→              type: "spring",
+   193→              stiffness: 300,
+   194→              damping: 18,
+   195→              delay: 0.15,
+   196→            }}
+   197→            className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/15"
+   198→          >
+   199→            <Hourglass
+   200→              className="h-10 w-10"
+   201→              style={{ color: "var(--accent)" }}
+   202→              aria-hidden="true"
+   203→            />
+   204→          </motion.span>
+   205→
+   206→          <div className="space-y-2">
+   207→            <h1 className="text-2xl font-extrabold text-foreground">
+   208→              بانتظار موافقة المشرف
+   209→            </h1>
+   210→            <p className="text-sm leading-relaxed text-muted-foreground">
+   211→              تم استلام طلب تسجيل منشأتك بنجاح وحالتها الآن:{" "}
+   212→              <span className="font-bold text-foreground">{result.status}</span>
+   213→            </p>
+   214→            <p className="text-xs text-muted-foreground">
+   215→              سجّل دخولك لمتابعة حالة المنشأة ومراجعة طلباتها عند الموافقة
+   216→            </p>
+   217→          </div>
+   218→
+   219→          <div className="flex w-full flex-col gap-3">
+   220→            <Button asChild className="min-h-[44px] w-full gap-2 rounded-full">
+   221→              <Link href="/owner/login">
+   222→                <LogIn className="h-4 w-4" aria-hidden="true" />
+   223→                تسجيل الدخول
+   224→              </Link>
+   225→            </Button>
+   226→            <Button
+   227→              asChild
+   228→              variant="outline"
+   229→              className="min-h-[44px] w-full gap-2 rounded-full"
+   230→            >
+   231→              <Link href="/">
+   232→                <Home className="h-4 w-4" aria-hidden="true" />
+   233→                الرئيسية
+   234→              </Link>
+   235→            </Button>
+   236→          </div>
+   237→        </CardContent>
+   238→      </Card>
+   239→    </motion.div>
+   240→  );
+   241→}
+   242→
+   243→/* ════════════════════════════════════════════════════════════════ */
+   244→/*  الصفحة                                                           */
+   245→/* ════════════════════════════════════════════════════════════════ */
+   246→export default function OwnerRegisterPage() {
+   247→  const prefersReduced = usePrefersReducedMotion();
+   248→  const register = useOwnerRegister();
+   249→  const [successResult, setSuccessResult] =
+   250→    useState<OwnerRegisterResult | null>(null);
+   251→  const [serverGeneralError, setServerGeneralError] = useState<string | null>(
+   252→    null
+   253→  );
+   254→
+   255→  /* قائمة المناطق — عبر useRegions (يشارك الكاش عبر المفتاح الموحّد) */
+   256→  const { data: regions, isLoading: regionsLoading } = useRegions(false);
+   257→
+   258→  const form = useForm<FormValues>({
+   259→    resolver: zodResolver(registerSchema),
+   260→    defaultValues: {
+   261→      full_name: "",
+   262→      email: "",
+   263→      phone: "",
+   264→      password: "",
+   265→      password_confirm: "",
+   266→      facility_name: "",
+   267→      facility_type: undefined,
+   268→      region_id: undefined,
+   269→      description: "",
+   270→      address: "",
+   271→      phone_facility: "",
+   272→      working_hours: "",
+   273→      image_url: "",
+   274→    },
+   275→  });
+   276→  const { register: registerField, handleSubmit, control, formState } = form;
+   277→
+   278→  function onSubmit(values: FormValues) {
+   279→    setServerGeneralError(null);
+   280→    register.mutate(
+   281→      {
+   282→        ...values,
+   283→        /* الحقول الاختيارية: النص الفارغ يتحول إلى null كما يتوقع الـ API */
+   284→        description: values.description?.trim() || null,
+   285→        address: values.address?.trim() || null,
+   286→        phone_facility: values.phone_facility?.trim() || null,
+   287→        working_hours: values.working_hours?.trim() || null,
+   288→        image_url: values.image_url?.trim() || null,
+   289→      },
+   290→      {
+   291→        onSuccess: (result) => {
+   292→          setSuccessResult(result);
+   293→        },
+   294→        onError: (error) => {
+   295→          const parsed = parseRegisterError(error);
+   296→          for (const [fieldName, message] of Object.entries(parsed.fields)) {
+   297→            form.setError(fieldName as keyof FormValues, { message });
+   298→          }
+   299→          setServerGeneralError(parsed.general);
+   300→        },
+   301→      }
+   302→    );
+   303→  }
+   304→
+   305→  const cardAnimation = prefersReduced
+   306→    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
+   307→    : {
+   308→        initial: { opacity: 0, y: 24, scale: 0.97 },
+   309→        animate: { opacity: 1, y: 0, scale: 1 },
+   310→      };
+   311→
+   312→  const floatVariants = prefersReduced
+   313→    ? { initial: { opacity: 0.15 }, animate: { opacity: 0.15 } }
+   314→    : { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 0.15, scale: 1 } };
+   315→
+   316→  /* ─── شاشة النجاح تحل محل النموذج — لا توجيه تلقائي ─── */
+   317→  if (successResult) {
+   318→    return (
+   319→      <div
+   320→        className={cn(
+   321→          "login-ocean-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4",
+   322→          !prefersReduced && "animate-hero-gradient"
+   323→        )}
+   324→      >
+   325→        <div
+   326→          className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0"
+   327→          aria-hidden="true"
+   328→        />
+   329→        <div className="absolute left-4 top-4 z-10">
+   330→          <ThemeToggle />
+   331→        </div>
+   332→        <SuccessScreen result={successResult} />
+   333→      </div>
+   334→    );
+   335→  }
+   336→
+   337→  return (
+   338→    <div
+   339→      className={cn(
+   340→        "login-ocean-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4",
+   341→        !prefersReduced && "animate-hero-gradient"
+   342→      )}
+   343→    >
+   344→      {/* زخرفة النقش */}
+   345→      <div
+   346→        className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0"
+   347→        aria-hidden="true"
+   348→      />
+   349→
+   350→      {/* الأشكال العائمة */}
+   351→      <motion.div
+   352→        className="login-blob-cyan pointer-events-none absolute -top-20 right-1/4 h-72 w-72 rounded-full"
+   353→        variants={floatVariants}
+   354→        initial="initial"
+   355→        animate="animate"
+   356→        transition={{ duration: 2, delay: 0.2 }}
+   357→        aria-hidden="true"
+   358→      />
+   359→      <motion.div
+   360→        className="login-blob-deep pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full"
+   361→        variants={floatVariants}
+   362→        initial="initial"
+   363→        animate="animate"
+   364→        transition={{ duration: 2, delay: 0.5 }}
+   365→        aria-hidden="true"
+   366→      />
+   367→      <motion.div
+   368→        className="login-blob-gold pointer-events-none absolute top-1/3 left-[10%] h-48 w-48 rounded-full"
+   369→        variants={floatVariants}
+   370→        initial="initial"
+   371→        animate="animate"
+   372→        transition={{ duration: 2, delay: 0.8 }}
+   373→        aria-hidden="true"
+   374→      />
+   375→
+   376→      <div className="absolute left-4 top-4 z-10">
+   377→        <ThemeToggle />
+   378→      </div>
+   379→
+   380→      <div className="relative z-10 my-8 w-full max-w-md space-y-6">
+   381→        {/* الشعار — نسخة الجوال */}
+   382→        <div className="flex flex-col items-center gap-3 text-center md:hidden">
+   383→          <div className="login-logo-glow">
+   384→            <TawfirLogo variant="mark" className="h-20 w-auto" />
+   385→          </div>
+   386→          <div className="flex flex-col items-center gap-1">
+   387→            <span className="text-2xl font-bold text-foreground">توفير</span>
+   388→            <span className="text-sm text-muted-foreground">
+   389→              سجّل منشأتك وانضم لشركاء توفير
+   390→            </span>
+   391→          </div>
+   392→        </div>
+   393→
+   394→        {/* زر تثبيت تطبيق المالك — يعمل على صفحة التسجيل أيضاً */}
+   395→        <PWAInstallButton portal="owner" variant="full" />
+   396→
+   397→        {/* النموذج */}
+   398→        <motion.div
+   399→          {...cardAnimation}
+   400→          transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+   401→        >
+   402→          <Card className="login-card-shimmer border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl">
+   403→            <CardHeader className="text-center">
+   404→              <CardTitle>تسجيل منشأة جديدة</CardTitle>
+   405→              <CardDescription>
+   406→                أنشئ حساب مالك وأضف منشأتك — تُراجع الإدارة طلبك قبل الظهور
+   407→                للعملاء
+   408→              </CardDescription>
+   409→            </CardHeader>
+   410→            <CardContent>
+   411→              <form
+   412→                onSubmit={handleSubmit(onSubmit)}
+   413→                className="space-y-6"
+   414→                noValidate
+   415→              >
+   416→                {/* ─── القسم أ: بيانات الحساب ─── */}
+   417→                <div className="space-y-4">
+   418→                  <SectionTitle
+   419→                    icon={UserRound}
+   420→                    title="بيانات الحساب"
+   421→                    hint="حساب المالك الذي ستدير به منشأتك"
+   422→                  />
+   423→
+   424→                  <div className="space-y-2">
+   425→                    <Label htmlFor="full_name">الاسم الكامل</Label>
+   426→                    <Input
+   427→                      id="full_name"
+   428→                      autoComplete="name"
+   429→                      disabled={register.isPending}
+   430→                      aria-invalid={!!formState.errors.full_name}
+   431→                      className="min-h-[44px]"
+   432→                      {...registerField("full_name")}
+   433→                    />
+   434→                    <FieldError message={formState.errors.full_name?.message} />
+   435→                  </div>
+   436→
+   437→                  <div className="grid gap-4 sm:grid-cols-2">
+   438→                    <div className="space-y-2">
+   439→                      <Label htmlFor="email">البريد الإلكتروني</Label>
+   440→                      <Input
+   441→                        id="email"
+   442→                        type="email"
+   443→                        dir="ltr"
+   444→                        autoComplete="email"
+   445→                        disabled={register.isPending}
+   446→                        aria-invalid={!!formState.errors.email}
+   447→                        className="min-h-[44px]"
+   448→                        {...registerField("email")}
+   449→                      />
+   450→                      <FieldError message={formState.errors.email?.message} />
+   451→                    </div>
+   452→                    <div className="space-y-2">
+   453→                      <Label htmlFor="phone">رقم الجوال</Label>
+   454→                      <Input
+   455→                        id="phone"
+   456→                        type="tel"
+   457→                        inputMode="tel"
+   458→                        dir="ltr"
+   459→                        autoComplete="tel"
+   460→                        disabled={register.isPending}
+   461→                        aria-invalid={!!formState.errors.phone}
+   462→                        className="min-h-[44px]"
+   463→                        placeholder="7XXXXXXXX"
+   464→                        {...registerField("phone")}
+   465→                      />
+   466→                      <FieldError message={formState.errors.phone?.message} />
+   467→                    </div>
+   468→                  </div>
+   469→
+   470→                  <div className="grid gap-4 sm:grid-cols-2">
+   471→                    <div className="space-y-2">
+   472→                      <Label htmlFor="password">كلمة المرور</Label>
+   473→                      <PasswordInput
+   474→                        id="password"
+   475→                        dir="ltr"
+   476→                        autoComplete="new-password"
+   477→                        disabled={register.isPending}
+   478→                        aria-invalid={!!formState.errors.password}
+   479→                        className="min-h-[44px]"
+   480→                        {...registerField("password")}
+   481→                      />
+   482→                      <FieldError message={formState.errors.password?.message} />
+   483→                    </div>
+   484→                    <div className="space-y-2">
+   485→                      <Label htmlFor="password_confirm">
+   486→                        تأكيد كلمة المرور
+   487→                      </Label>
+   488→                      <PasswordInput
+   489→                        id="password_confirm"
+   490→                        dir="ltr"
+   491→                        autoComplete="new-password"
+   492→                        disabled={register.isPending}
+   493→                        aria-invalid={!!formState.errors.password_confirm}
+   494→                        className="min-h-[44px]"
+   495→                        {...registerField("password_confirm")}
+   496→                      />
+   497→                      <FieldError
+   498→                        message={formState.errors.password_confirm?.message}
+   499→                      />
+   500→                    </div>
+   501→                  </div>
+   502→                </div>
+   503→
+   504→                <Separator />
+   505→
+   506→                {/* ─── القسم ب: بيانات المنشأة ─── */}
+   507→                <div className="space-y-4">
+   508→                  <SectionTitle
+   509→                    icon={Store}
+   510→                    title="بيانات المنشأة"
+   511→                    hint="تظهر للعملاء بعد موافقة الإدارة"
+   512→                  />
+   513→
+   514→                  <div className="space-y-2">
+   515→                    <Label htmlFor="facility_name">اسم المنشأة</Label>
+   516→                    <Input
+   517→                      id="facility_name"
+   518→                      autoComplete="organization"
+   519→                      disabled={register.isPending}
+   520→                      aria-invalid={!!formState.errors.facility_name}
+   521→                      className="min-h-[44px]"
+   522→                      {...registerField("facility_name")}
+   523→                    />
+   524→                    <FieldError
+   525→                      message={formState.errors.facility_name?.message}
+   526→                    />
+   527→                  </div>
+   528→
+   529→                  {/* نوع المنشأة — اختيار بصري بالدوائر الملونة (مطاعم ومقاهي فقط) */}
+   530→                  <Controller
+   531→                    name="facility_type"
+   532→                    control={control}
+   533→                    render={({ field }) => (
+   534→                      <div className="space-y-2">
+   535→                        <Label>نوع المنشأة</Label>
+   536→                        <div
+   537→                          className="grid grid-cols-2 gap-2"
+   538→                          role="radiogroup"
+   539→                          aria-label="نوع المنشأة"
+   540→                        >
+   541→                          {FACILITY_TYPES.map((type) => {
+   542→                            const Icon = type.icon;
+   543→                            const isActive = field.value === type.key;
+   544→                            return (
+   545→                              <button
+   546→                                key={type.key}
+   547→                                type="button"
+   548→                                role="radio"
+   549→                                aria-checked={isActive}
+   550→                                disabled={register.isPending}
+   551→                                onClick={() =>
+   552→                                  field.onChange(isActive ? undefined : type.key)
+   553→                                }
+   554→                                className="flex min-h-[44px] flex-col items-center gap-2 rounded-2xl border border-border/50 bg-card p-3 transition-all duration-150 hover:border-primary/30 active:scale-95 disabled:opacity-60"
+   555→                              >
+   556→                                <span
+   557→                                  className={cn(
+   558→                                    "flex h-12 w-12 items-center justify-center rounded-full transition-all duration-200",
+   559→                                    isActive
+   560→                                      ? TYPE_CIRCLES[type.key].active
+   561→                                      : TYPE_CIRCLES[type.key].idle
+   562→                                  )}
+   563→                                >
+   564→                                  <Icon
+   565→                                    className="h-6 w-6"
+   566→                                    strokeWidth={2}
+   567→                                    aria-hidden="true"
+   568→                                  />
+   569→                                </span>
+   570→                                <span
+   571→                                  className={cn(
+   572→                                    "text-xs leading-tight",
+   573→                                    isActive
+   574→                                      ? "font-bold text-foreground"
+   575→                                      : "font-medium text-muted-foreground"
+   576→                                  )}
+   577→                                >
+   578→                                  {TYPE_LABEL[type.key]}
+   579→                                </span>
+   580→                              </button>
+   581→                            );
+   582→                          })}
+   583→                        </div>
+   584→                        <FieldError
+   585→                          message={formState.errors.facility_type?.message}
+   586→                        />
+   587→                      </div>
+   588→                    )}
+   589→                  />
+   590→
+   591→                  {/* المنطقة */}
+   592→                  <Controller
+   593→                    name="region_id"
+   594→                    control={control}
+   595→                    render={({ field }) => (
+   596→                      <div className="space-y-2">
+   597→                        <Label htmlFor="region_id">المنطقة</Label>
+   598→                        {regionsLoading ? (
+   599→                          <Skeleton className="h-[44px] w-full" />
+   600→                        ) : (
+   601→                          <Select
+   602→                            value={field.value ? String(field.value) : undefined}
+   603→                            onValueChange={(v) => field.onChange(Number(v))}
+   604→                            disabled={register.isPending}
+   605→                          >
+   606→                            <SelectTrigger
+   607→                              id="region_id"
+   608→                              className="h-[44px] w-full"
+   609→                              aria-label="اختيار المنطقة"
+   610→                            >
+   611→                              <SelectValue placeholder="اختر منطقة المنشأة" />
+   612→                            </SelectTrigger>
+   613→                            <SelectContent>
+   614→                              {(regions ?? []).map((region) => (
+   615→                                <SelectItem
+   616→                                  key={region.id}
+   617→                                  value={String(region.id)}
+   618→                                >
+   619→                                  {region.name}
+   620→                                </SelectItem>
+   621→                              ))}
+   622→                            </SelectContent>
+   623→                          </Select>
+   624→                        )}
+   625→                        <FieldError
+   626→                          message={formState.errors.region_id?.message}
+   627→                        />
+   628→                      </div>
+   629→                    )}
+   630→                  />
+   631→
+   632→                  {/* وصف المنشأة */}
+   633→                  <div className="space-y-2">
+   634→                    <Label htmlFor="description">
+   635→                      وصف المنشأة{" "}
+   636→                      <span className="text-muted-foreground">(اختياري)</span>
+   637→                    </Label>
+   638→                    <Textarea
+   639→                      id="description"
+   640→                      rows={3}
+   641→                      disabled={register.isPending}
+   642→                      placeholder="نبذة قصيرة عن منشأتك تظهر للعملاء"
+   643→                      {...registerField("description")}
+   644→                    />
+   645→                    <FieldError
+   646→                      message={formState.errors.description?.message}
+   647→                    />
+   648→                  </div>
+   649→
+   650→                  <div className="grid gap-4 sm:grid-cols-2">
+   651→                    <div className="space-y-2">
+   652→                      <Label htmlFor="address">
+   653→                        العنوان{" "}
+   654→                        <span className="text-muted-foreground">(اختياري)</span>
+   655→                      </Label>
+   656→                      <Input
+   657→                        id="address"
+   658→                        autoComplete="street-address"
+   659→                        disabled={register.isPending}
+   660→                        className="min-h-[44px]"
+   661→                        {...registerField("address")}
+   662→                      />
+   663→                      <FieldError message={formState.errors.address?.message} />
+   664→                    </div>
+   665→                    <div className="space-y-2">
+   666→                      <Label htmlFor="phone_facility">
+   667→                        جوال المنشأة{" "}
+   668→                        <span className="text-muted-foreground">(اختياري)</span>
+   669→                      </Label>
+   670→                      <Input
+   671→                        id="phone_facility"
+   672→                        type="tel"
+   673→                        inputMode="tel"
+   674→                        dir="ltr"
+   675→                        disabled={register.isPending}
+   676→                        placeholder="7XXXXXXXX"
+   677→                        className="min-h-[44px]"
+   678→                        {...registerField("phone_facility")}
+   679→                      />
+   680→                      <FieldError
+   681→                        message={formState.errors.phone_facility?.message}
+   682→                      />
+   683→                    </div>
+   684→                  </div>
+   685→
+   686→                  <div className="grid gap-4 sm:grid-cols-2">
+   687→                    <div className="space-y-2">
+   688→                      <Label htmlFor="working_hours">
+   689→                        ساعات العمل{" "}
+   690→                        <span className="text-muted-foreground">(اختياري)</span>
+   691→                      </Label>
+   692→                      <Input
+   693→                        id="working_hours"
+   694→                        dir="ltr"
+   695→                        disabled={register.isPending}
+   696→                        placeholder="08:00 - 23:00"
+   697→                        className="min-h-[44px]"
+   698→                        {...registerField("working_hours")}
+   699→                      />
+   700→                      <FieldError
+   701→                        message={formState.errors.working_hours?.message}
+   702→                      />
+   703→                    </div>
+   704→                    <div className="space-y-2">
+   705→                      <Label htmlFor="image_url">
+   706→                        رابط صورة المنشأة{" "}
+   707→                        <span className="text-muted-foreground">(اختياري)</span>
+   708→                      </Label>
+   709→                      <Input
+   710→                        id="image_url"
+   711→                        type="url"
+   712→                        dir="ltr"
+   713→                        inputMode="url"
+   714→                        disabled={register.isPending}
+   715→                        placeholder="https://..."
+   716→                        className="min-h-[44px]"
+   717→                        {...registerField("image_url")}
+   718→                      />
+   719→                      <FieldError
+   720→                        message={formState.errors.image_url?.message}
+   721→                      />
+   722→                    </div>
+   723→                  </div>
+   724→                </div>
+   725→
+   726→                {/* خطأ عام من الخادم (فوق زر الإرسال) */}
+   727→                {serverGeneralError && (
+   728→                  <p
+   729→                    className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+   730→                    role="alert"
+   731→                  >
+   732→                    {serverGeneralError}
+   733→                  </p>
+   734→                )}
+   735→
+   736→                <Button
+   737→                  type="submit"
+   738→                  className="w-full min-h-[44px] rounded-full"
+   739→                  disabled={register.isPending}
+   740→                >
+   741→                  {register.isPending ? (
+   742→                    <Loader2 className="h-4 w-4 animate-spin" />
+   743→                  ) : null}
+   744→                  {register.isPending
+   745→                    ? "جارٍ إرسال الطلب..."
+   746→                    : "إرسال طلب التسجيل"}
+   747→                </Button>
+   748→              </form>
+   749→            </CardContent>
+   750→          </Card>
+   751→        </motion.div>
+   752→
+   753→        <div className="flex flex-col items-center gap-2">
+   754→          <Link
+   755→            href="/owner/login"
+   756→            className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary hover:underline"
+   757→          >
+   758→            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+   759→            لديك حساب؟ سجّل الدخول
+   760→          </Link>
+   761→          <span className="text-xs text-muted-foreground/70">
+   762→            بوابة أصحاب المنشآت — توفير
+   763→          </span>
+   764→        </div>
+   765→      </div>
+   766→    </div>
+   767→  );
+   768→}
+   769→

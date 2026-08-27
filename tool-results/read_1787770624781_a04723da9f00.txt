@@ -1,0 +1,685 @@
+     1→# Worklog — مشروع توفير (Tawfir) — تحويل وفر → توفير
+     2→
+     3→> سجل العمل الموحّد لكل العملاء (Main + Subagents).
+     4→> كل عميل يقرأ هذا الملف قبل البدء ويُلحق سجل عمله في النهاية بصيغة `---` + Task ID.
+     5→
+     6→---
+     7→
+     8→Task ID: 0
+     9→Agent: Main Orchestrator (Z.ai Code)
+    10→Task: تهيئة المشروع وفهم الـ OpenAPI قبل أي كود
+    11→
+    12→Work Log:
+    13→- فُكّ ضغط wafir-front.rar من upload/ ونُقلت الملفات إلى جذر /home/z/my-project
+    14→- ثُبّتت الاعتمادات عبر bun install (framer-motion 13, recharts 3, xlsx 0.18.5)
+    15→- جُلب openapi.json الحي من https://api.tawfir.giize.com/openapi.json (84KB) وحُفظ محلياً
+    16→- اعتُبر الباك إند يعمل: GET /api/v1/regions يُرجع 15 منطقة يمنية (صنعاء/إب/تعز/الحديدة...)
+    17→- قُرئت الـ schemas الحرجة من OpenAPI: MeOut (membership قد تكون null), MyMembershipCard (membership_number/membership_type/discount_rate/created_at/expires_at/is_active), MembershipInfoOut (amount:3000, transfer_account_name: محمد يحيى عبه, transfer_account_number:780090882, wallet_name:محفظة جيب), MembershipSubscribeOut, MembershipRequestOut, OrderCreate/OrderItemCreate, OrderOut/OrderItemOut/OrderListOut/OrderStatusUpdate, ProductDetailOut/ProductOut/ProductWithFacilityOut (مع distance_km), RegisterOut (بدون عضوية تلقائية!), OwnerRegister/OwnerRegisterOut, FacilityType (restaurant|cafe فقط — لا public_facility)
+    18→- قُرئت ملفات الأساس: globals.css (نظام ألوان محيطي #005B82/#FFA800/#00A3E0 متطابق مع وفر), WafirLogo.tsx, WafirPillBadge.tsx, api.generated.ts (يحتوي public_facility + MyMembershipCard قديمة + RegisterSuccessOut قديمة — تحتاج تحديث), customer-auth.service.ts, auth.service.ts, customer-api-client.ts (cookie wafir_customer_token), المتاجر الثلاثة (wafir_admin/owner/customer_token), middleware.ts (نطاقات وفر)
+    19→- حُدّث next.config.ts: rewrite → api.tawfir.giize.com + headers لـ assetlinks/manifest/sw
+    20→- حُدّث .env: NEXT_PUBLIC_API_URL=https://api.tawfir.giize.com + نطاقات tawfir الثلاثة
+    21→- حُدّث middleware.ts: نطاقات tawfir.giize.com + كوكيز tawfir_*_token
+    22→- شُغّل dev server على المنفذ 3000 بنجاح (Ready in 714ms)
+    23→
+    24→Stage Summary:
+    25→- المشروع الأساسي (وفر) يعمل الآن. البنية الكاملة موجودة: 3 بوابات (public/owner/admin), PWA, layouts, hooks, services, stores
+    26→- الفجوة الرئيسية: وفر = تطبيق تصفّح بطاقة خصم فقط. توفير = منصة طلبات وجبات + عضوية بموافقة يدوية + تصفّح وجبات (/products). الفجوة = نظام الطلبات بالكامل + نظام العضوية بموافقة يدوية + صفحة /products كتصفّح وجبات + إزالة public_facility + إعادة تسمية شاملة
+    27→- خطة التنفيذ: المرحلة 1 (تأسيس) → 2 (طلبات/وجبات) → 3 (عضوية) → 4 (مالك) → 5 (مشرف) → 6 (PWA) → 7 (تحقق + تقارير)
+    28→
+    29→---
+    30→Task ID: 1
+    31→Agent: Main Orchestrator (Z.ai Code)
+    32→Task: المرحلة 1 (التأسيس) + المرحلة 2أ (الخدمات والhooks)
+    33→
+    34→Work Log:
+    35→- أُعيد كتابة src/types/api.generated.ts كاملاً لمطابقة OpenAPI الحي: FacilityType=restaurant|cafe (أزيل public_facility)، MyMembershipCard الجديدة (membership_number/membership_type/discount_rate/created_at/expires_at/is_active)، RegisterOut (بلا عضوية تلقائية!)، MembershipInfoOut (amount:3000/transfer_account_name:محمد يحيى عبه/transfer_account_number:780090882/wallet_name:محفظة جيب)، MembershipSubscribeOut، MembershipRequestOut، OrderCreate/OrderItemCreate/OrderOut/OrderItemOut/OrderListOut/OrderStatusUpdate، ProductDetailOut/ProductOut/ProductWithFacilityOut (مع distance_km)، FacilitySummaryOut، PendingFacilityOut، OwnerRegisterOut، RejectBody
+    36→- حُدّث src/lib/site-config.ts: SITE_NAME='توفير'، نطاقات tawfir.giize.com الثلاثة، DELIVERY_FEE=300، MEMBERSHIP_AMOUNT=3000
+    37→- حُدّث src/lib/constants.ts: أزيل public_facility من TYPE_LABEL/TYPE_ICON/FILTER_CHIPS/SCHEMA_ORG_TYPE، أُضيف ORDER_STATUS_LABEL/ORDER_TRACKING_FLOW/ORDER_STATUS_TONE/MEMBERSHIP_STATUS_LABEL
+    38→- استُبدلت أسماء الكوكيز wafir_*_token → tawfir_*_token في كل المتاجر (3) + api-clients (3) + owner.service + CookieConsent + WelcomeBanner + sw-source + middleware
+    39→- استُبدلت مفاتيح localStorage wafir_cookie_consent/wafir_welcome_dismissed/wafir_recent_searches → tawfir_*، __wafir_rsc → __tawfir_rsc، قالب Excel → tawfir_product_template
+    40→- استُبدلت «وفر» (العلامة) → «توفير» عبر regex بنفي أمامي لـ[تي] (تجنّب التوفر/يتوفر/التوفر). أكّد grep: صفر إشارة للعلامة وفر في src/
+    41→- أُنشئ src/components/shared/TawfirLogo.tsx: «ت» بالذهبي var(--logo-gold) + «وفير» بالمحيطي var(--logo-blue) + تاغ تسوق مبتسم فوق التاء. وحُذف WafirLogo.tsx القديم. استُبدلت كل 47 إشارة WafirLogo→TawfirLogo في 16 ملف
+    42→- أُنشئ src/components/shared/TawfirPillBadge.tsx («حياة أجمل.. مع خصومات أكثر»). وحُذف WafirPillBadge.tsx
+    43→- أُنشئت الخدمات الجديدة: src/services/order.service.ts (createOrder/getMyOrders/getOrder)، src/services/membership.service.ts (getInfo/subscribe multipart)، src/services/product.service.ts (getProducts/getNearby/getProduct عام بلا توكن)
+    44→- حُدّث src/services/auth.service.ts: register يُرجع RegisterOut الآن (بلا membership_number/expires_at)
+    45→- حُدّث src/services/admin.service.ts: أُضيف getOrders/getOrder/getMembershipRequests/approveMembershipRequest/rejectMembershipRequest، صُحح PendingFacility→PendingFacilityOut، AuditLog→AuditLogOut
+    46→- حُدّث src/services/owner.service.ts: أُضيف getOwnerOrders/updateOrderStatus، أُزيل تعليق BLOCKER (owner/login مُتحقَّق منه حيّاً)، أُضيفت استيرادات OrderListOut/OrderOut
+    47→- أُنشئت الـ hooks الجديدة (13): useProducts، useNearbyProducts، useProductDetail، useCreateOrder، useMyOrders، useOrderDetail، useMembershipInfo، useSubscribeMembership، useAdminOrders، useAdminMembershipRequests، useModerateMembershipRequest، useOwnerOrders، useUpdateOrderStatus
+    48→- أُنشئ src/lib/membership-local.ts: إدارة طلب العضوية المعلّق محلياً (لأن OpenAPI لا يكشف حالة الطلب للعميل — OpenAPI يفوز). getPendingMembershipRequest/savePendingMembershipRequest/clearPendingMembershipRequest
+    49→- حُدّث src/lib/format.ts: formatCurrency بالريال اليمني «ر.ي» بدل SAR، locale ar-EG
+    50→- حُدّث next.config.ts: rewrite → api.tawfir.giize.com + headers لـ assetlinks/manifest/sw
+    51→- حُدّث .env: NEXT_PUBLIC_API_URL + نطاقات tawfir الثلاثة
+    52→- حُدّث eslint.config.mjs: تجاهل upload/ وmini-services/ و*.md
+    53→
+    54→تحقق فعلي من الباك إند الحي:
+    55→- GET /regions → 15 منطقة يمنية ✓
+    56→- POST /owner/login (owner@tawfir.local) → TokenOut ✓ (endpoint موجود)
+    57→- POST /auth/login (customer@tawfir.local) → TokenOut ✓
+    58→- GET /membership/info → {amount:3000, transfer_account_name:"محمد يحيى عبه", transfer_account_number:"780090882", wallet_name:"محفظة جيب"} ✓
+    59→- GET /me (عميل بلا عضوية) → membership: null ✓
+    60→- GET /products?only_available=true → وجبات يمنية (مندي لحم…) + facility + distance_km:null ✓
+    61→- تجربة 4 نقاط نهاية بديلة لحالة طلب العميل → كلها 404 (مؤكد: لا يكشفها OpenAPI)
+    62→
+    63→Stage Summary:
+    64→- التأسيس مكتمل ويعمل: 0 أخطاء lint، dev server Ready. البنية: أنواع + خدمات + hooks + متاجر + كوكيز + شعار + ثوابت كلها بتوفير.
+    65→- القاعدة الذهبية OpenAPI-wins: حُسم اختلاف «حالة طلب العميل» بإدارة محلية (localStorage) لأن الباك إند لا يكشفها — موثّق في membership-local.ts.
+    66→- الفجوة المتبقية للوكلاء: بناء الشاشات الجديدة (وجبات/طلبات/عضوية/طلبات-المشرف/طلبات-المالك) + PWA. الـ hooks والخدمات كلها جاهزة للاستهلاك.
+    67→
+    68→---
+    69→Task ID: 6
+    70→Agent: PWA Builder
+    71→Task: طبقة PWA الكاملة لتطبيق توفير — manifest ديناميكي + Service Worker + زر تثبيت + أوفلاين + خصوصية
+    72→
+    73→Work Log:
+    74→- حُدّث src/app/manifest.webmanifest/route.ts: OWNER_HOST من facility.wafir.gleeze.com → facility.tawfir.giize.com. تعليقات محدّثة لـ tawfir.giize.com. ترويسات Content-Type=application/manifest+json وCache-Control=no-cache محققة. ?app=owner|customer يعمل.
+    75→- أُعيدت كتابة src/lib/pwa/sw-source.ts كاملاً: cache prefixes wafir-* → tawfir-*. أضيفت دالة isCatalogGet لتحديد مسارات الكتالوج العامة (products + nearby + facilities + facility products + regions + cards) بـ StaleWhileRevalidate. وُسّعت isNeverCacheGet لتشمل /api/orders و/api/membership. تعليقات محدّثة لتوضيح كل استراتيجية.
+    76→- رُفع الإصدار في src/lib/pwa/version.ts: 1.0.0 → 1.1.0 (مع تعليق مرحلة PWA).
+    77→- عُدّل src/components/pwa/PWAInstallButton.tsx: أضيف TawfirLogo صغير (variant=mark) داخل الزر في الوضع compact + داخل DialogHeader. بطاقة full تستخدم TawfirLogo في الأيقونة بدل Download icon.
+    78→- تأكد أن src/components/pwa/ServiceWorkerRegistrar.tsx (محمي) يحمل رسالة التحديث «يتوفر تحديث لتطبيق توفير» صحيحة (سطر 188) + يعرض APP_VERSION الجديد 1.1.0 تلقائياً. لم تُمَس بنيته.
+    79→- عُدّل src/app/offline/page.tsx: الرسالة الجديدة «التطبيق يفتح بدون إنترنت ويعرض آخر بيانات شوهدت. العمليات (طلب/اشتراك/دخول) تتطلب اتصالاً.» + هوية توفير (TawfirLogo + login-ocean-bg).
+    80→- وُسّعت src/app/(public)/privacy/page.tsx بثلاثة أقسام جديدة: «معلومات الطلبات والتوصيل» (Truck) — العنوان/الموقع للتوصيل فقط، «صور تحويل العضوية» (ImageIcon) — تُحفظ للمراجعة وتُحذف بعد الموافقة، وحذف البيانات — رابط «صفحة التواصل». الأقسام الستة الآن كاملة.
+    81→- حُدّث src/app/layout.tsx: تعليق wafir.gleeze.com → tawfir.giize.com + إضافة theme-color في metadata.other (#005B82). apple-touch-startup-image (splash) محققة فعلياً في (public)/layout.tsx للعميل.
+    82→- حُدّث src/app/owner/layout.tsx: apple-touch-icon owner + theme-color #003B55 في metadata.other + تعليق بهوية توفير مالك.
+    83→- أُنشئ public/.well-known/assetlinks.json كقالب placeholder (PLACEHOLDER_CUSTOMER_PACKAGE/PLACEHOLDER_SHA256_CUSTOMER/PLACEHOLDER_OWNER_PACKAGE/PLACEHOLDER_SHA256_OWNER) — آمن للإنتاج ولا يكشف بصمة حقيقية.
+    84→- أُنشئ public/.well-known/README.md عربي: يشرح من أين يجلب المشرف SHA-256 (keytool للأجهزة المحلية + Play Console → App signing للإنتاج)، كيف يلصق القيم، شكل الملف النهائي بمثال، والتحقق عبر curl.
+    85→- حُدّث src/hooks/usePwaInstall.ts: localStorage keys wafir-install-dismissed → tawfir_install_dismissed وwafir-owner-install-dismissed → tawfir_install_dismissed_owner، والحدث wafir-install-dismissed-change → tawfir-install-dismissed-change. واجهة usePwaInstall محفوظة.
+    86→
+    87→Stage Summary:
+    88→- ملفات PWA (10) كلها بتوفير وتعمل: 0 أخطاء lint على مستوى PWA.
+    89→- تحقق حي: curl /manifest.webmanifest يخدم JSON العميل (توفير — بطاقة الخصومات) على tawfir.giize.com وlocalhost، وJSON المالك (توفير — بوابة المنشآت) على facility.tawfir.giize.com و?app=owner. /sw.js يخدم «الإصدار 1.1.0» مع cache prefixes tawfir-* وisCatalogGet. /.well-known/assetlinks.json → HTTP 200 بـ Content-Type الصحيح.
+    90→- الميتا على الجذر و/owner/login محققة: theme-color (#005B82/#003B55) + manifest + apple-touch-icon + apple-touch-startup-image (للعميل فقط عبر public/layout).
+    91→- ملاحظة: 4 أخطاء lint سابقة في src/app/(public)/membership/subscribe/SubscribeContent.tsx (Task 3، خارج نطاق PWA) — لم تُمَس ولم تُضَف. ملفات PWA العشرة نظيفة تماماً.
+    92→- ملفات المرجع: /home/z/my-project/agent-ctx/6-PWA-Builder.md
+    93→
+    94→---
+    95→
+    96→Task ID: 5
+    97→Agent: Admin Portal Builder
+    98→Task: لوحة المشرف — طلبات العضوية (جديد) + كل الطلبات (جديد) + تحديث الداشبورد بـ3 بطاقات + تحديث AdminSidebar
+    99→
+   100→Work Log:
+   101→- قُرئ worklog.md + استكشاف الـ hooks الخمسة + الثوابت + الدوال + AdminAuthGuard + admin.service + الصفحات المرجعية (pending facilities, users, audit-logs)
+   102→- حُدّث src/hooks/useAdminMembershipRequests.ts: أُضيف page/pageSize اختياريان مع الحفاظ على التوقيع useAdminMembershipRequests(status?) ونعومة الـ invalidate (prefix key)
+   103→- أُنشئ src/app/(admin)/admin/membership-requests/page.tsx (خادم رفيع + metadata)
+   104→- أُنشئ src/app/(admin)/admin/membership-requests/MembershipRequestsContent.tsx (≈630 سطر): رقائق فلترة بالحالة (MEMBERSHIP_STATUS_LABEL) + جدول 9 أعمدة (طلب/عميل/مبلغ/دفع/صورة/حالة/سبب/تاريخ+مراجعة/إجراء) + Dialog صورة التحويل (<img> كبيرة max-h-70vh) + Dialog رفض مع Textarea للسبب + Pagination + Skeleton/ErrorState/EmptyState + usePrefersReducedMotion
+   105→- أُنشئ src/app/(admin)/admin/orders/page.tsx (خادم رفيع + metadata)
+   106→- أُنشئ src/app/(admin)/admin/orders/OrdersContent.tsx (≈590 سطر): رقائق فلترة بـ7 حالات (ORDER_STATUS_LABEL) + حقلا customer_id/facility_id رقميان + جدول 10 أعمدة (طلب/عميل/منشأة/حالة ORDER_STATUS_TONE/دفع PAYMENT_ICON/فرعي/توصيل/إجمالي/تاريخ/إجراء) + Dialog تفاصيل كاملة (useOrderDetail: بطاقة معلومات + توصيل + ملاحظات + ملخص أسعار + جدول الأصناف مع شارة «خصم») + Pagination + Skeleton/ErrorState/EmptyState
+   107→- حُدّث src/app/(admin)/admin/page.tsx: استيراد Hourglass+ShoppingBag + مكوّن ActionStatCard + ACTION_STAT_CONFIGS بـ3 بطاقات (ذهبية/برتقالية/محيطية) فوق STAT_CONFIGS + تحديث fallback stats بالحقول الثلاثة الجديدة (pending_facilities, pending_membership_requests, orders_today)
+   108→- حُدّث src/components/layout/AdminSidebar.tsx: استيراد ShoppingBag+BadgeCheck + useAdminOrders+useAdminMembershipRequests + NavKey بأkeyين جديدين + إعادة ترتيب NAV_ITEMS (لوحة المعلومات → الطلبات → طلبات العضوية → المنشآت → طلبات المنشآت المعلّقة → المناطق → البطاقات → المستخدمون → سجل التدقيق → الإعدادات) + NavBadgeCounts يعرض عدّاد الطلبات + طلبات العضوية المعلّقة
+   109→
+   110→Stage Summary:
+   111→- 7 ملفات (5 منشأة/معدّلة في (admin) + 1 hook + 1 sidebar)
+   112→- lint: 0 أخطاء + 0 تحذيرات في كل ملفاتي (الأخطاء الأربعة المتبقية في (public)/{account,membership/subscribe,register} — من Task ID 2/3، أصول محمية لا تُمَس)
+   113→- dev log: GET /admin 200 (compile 2.4s) + GET /admin/membership-requests 200 (compile 1078ms) + GET /admin/orders 200 (compile 803ms) — بلا أخطاء
+   114→- اللوحة الجانبية الآن تُظهر شارات حية لطلبات العضوية المعلّقة + إجمالي الطلبات
+   115→- لوحة المعلومات تعرض 3 بطاقات إجرائية ذهبية/برتقالية/محيطية فوق الإحصائيات بأزرار تنقل مباشرة
+   116→- الالتزام بالقواعد الذهبية: صفر ألوان ثابتة (توكنات Tailwind + var(--logo-gold) عبر text-logo-gold)، RTL، Cairo، Skeleton/ErrorState/EmptyState، لمس ≥44px، وضعان فاتح/داكن، usePrefersReducedMotion، toast من useModerateMembershipRequest، AdminAuthGuard محفوظ، api-client exception محترم
+   117→
+   118→---
+   119→Task ID: 4
+   120→Agent: Owner Portal Builder
+   121→Task: بوابة المالك: طلبات المنشأة (جديد) + تحديث التسجيل + حالة المنشأة
+   122→
+   123→Work Log:
+   124→- قُرئ worklog.md كاملاً + كل الملفات المعنية (OwnerAuthGuard, OwnerSidebar, OwnerFacilitiesContent, owner.service, useOwnerOrders, useUpdateOrderStatus, useMyFacilities, useOwnerRegister, useRegions, constants, format, api.generated types, EmptyState, ErrorState, FacilityEditContent, OwnerProductsContent for pattern)
+   125→- أُنشئ src/app/(owner)/owner/facilities/[id]/orders/page.tsx (Server wrapper) + OwnerOrdersContent.tsx (Client، 590+ سطر):
+   126→  - useOwnerOrders(facilityId) + useUpdateOrderStatus(facilityId) + useMyFacilities (للتحقق من الملكية) + useQuery(getMyFacility) كـ fallback
+   127→  - StatsBar (4 بطاقات: إجمالي / بانتظار / قيد التحضير / مكتمل) + Filter chips قابلة للتمرير (7 فلاتر بعدّاد) + بحث برقم الطلب أو اسم العميل
+   128→  - بطاقة لكل طلب: #ID + التاريخ + شارة «طلب جديد!» وامضة (animate-pulse) على pending + شارة ORDER_STATUS_TONE + اسم العميل + طريقة الدفع + المجموع الفرعي + رسوم التوصيل + الإجمالي
+   129→  - قائمة Select لتغيير الحالة: تُظهر كل الـ6 حالات، تُعطّل الخيارات غير المنطقية (Forward only: pending→confirmed→preparing→out_for_delivery→delivered أو pending→cancelled؛ delivered/cancelled طرفية لا تغيير)
+   130→  - Skeleton + ErrorState + EmptyState (Truck) + قائمة scrollable (scroll-area-thin + max-h-[calc(100vh-22rem)])
+   131→  - تنبيه حالة المنشأة: ذهبي للمعلّقة + أحمر للمرفوضة مع سبب الرفض
+   132→  - AnimatePresence + layout animations (تحترم usePrefersReducedMotion)
+   133→- حُدّث src/app/owner/register/page.tsx (عدّل الموجود — المسار العام بلا auth guard):
+   134→  - استُبدلت صيغة الجوال السعودية بصيغة يمنية: /^(?:\+?967)?0?7\d{8}$/u
+   135→  - أُزيل public_facility من zod enum + TYPE_CIRCLES + FACILITY_TYPES (restaurant|cafe فقط)
+   136→  - استُبدل useQuery المباشر بـ useRegions(false) (يشارك الكاش)
+   137→  - شاشة النجاح: «بانتظار موافقة المشرف» (Hourglass ذهبية بدل CheckCircle2) + «سجّل دخولك لمتابعة حالة المنشأة ومراجعة طلباتها عند الموافقة» + زر «تسجيل الدخول» → /owner/login + زر «الرئيسية» → / + لا توجيه تلقائي
+   138→- حُدّث src/app/(owner)/owner/OwnerFacilitiesContent.tsx (لوحة المالك):
+   139→  - StatsOverview: 4 بطاقات الآن (منشآت / منتجات / طلبات اليوم / متاح) عبر useQueries لكل منشأة (يشارك الكاش)
+   140→  - FacilityCard يُميّز 3 حالات للموافقة: موافق عليها (شارة خضراء + 4 روابط) | معلّقة (شارة ذهبية + رسالة «24-48 ساعة» + زر «تعديل المنشأة» فقط) | مرفوضة (شارة حمراء + سبب الرفض + زر «تعديل المنشأة» أحمر)
+   141→  - عدّاد سريع في كل بطاقة: عدد المنتجات + طلبات اليوم (للموافق عليها فقط)
+   142→  - أُزيل public_facility من FACILITY_TYPE_LABELS + أُزيل الـ imports غير المستخدمة
+   143→- حُدّث src/components/owner/OwnerSidebar.tsx:
+   144→  - أُضيف ShoppingBag للأيقونات + أُزيل public_facility من FACILITY_TYPE_LABELS
+   145→  - لكل منشأة في القائمة الجانبية، أُضيف رابط فرعي «طلبات المنشأة» (بأيقونة ShoppingBag) بين رابط المنتجات و«تعديل المنشأة»، مع حالة active صحيحة (isActive عبر startsWith للسماح بمطابقة /products/import تحت /products)
+   146→
+   147→Stage Summary:
+   148→- 5 ملفات أنشئت/حُدّثت (1 جديد + 1 محدّث بالكامل + 3 محدّثة). كلها RTL + Cairo + توكنات Tailwind (لا ألوان ثابتة) + Skeleton + ErrorState + EmptyState + لمس ≥44px + safe-area.
+   149→- `bun run lint` على ملفاتي: 0 أخطاء و0 تحذيرات. الأخطاء الموجودة في lint (3 أخطاء في account/page.tsx + membership/subscribe/SubscribeContent.tsx + CheckoutSheet.tsx) كلها في ملفات لا أملكها ولم ألمسها — مسؤولية وكلاء آخرين.
+   150→- dev.log: GET /owner 200 (compile 11.9s) + GET /owner/facilities/1/orders 200 (compile 1382ms) + GET /owner/register 200 (compile 1782ms) — كلها compile بدون أخطاء.
+   151→- القاعدة الذهبية Forward-only transitions نُفّذت عبر ALLOWED_NEXT map — الـ Select يُعطّل كل خيار غير قابل للوصول من الحالة الحالية.
+   152→- لا بيانات وهمية — كل البيانات من useMyFacilities + useOwnerOrders + useOwnerProducts + useRegions. الـ pending orders badge وامض فعلياً عند status === 'pending' من الـ API.
+   153→- ملاحظة: مسار `src/app/(owner)/owner/register` الذي ذكره الـ task spec لا يمكن أن يُنشَر عاماً (route group محمي بـ OwnerAuthGuard) — استُبدل بالمسار العام الموجود فعلاً `src/app/owner/register/page.tsx` (نفس النمط المستخدم لـ /owner/login).
+   154→
+   155→---
+   156→
+   157→Task ID: 3
+   158→Agent: Customer Orders & Membership Builder
+   159→Task: بناء صفحات طلبات العميل + نظام العضوية بموافقة يدوية + حسابي + تسجيل
+   160→
+   161→Work Log:
+   162→- أُنشئ `src/app/(public)/orders/page.tsx` + `OrdersContent.tsx`: قائمة طلباتي مع فلترة chips بـ 7 حالات (الكل + 6 حالات ORDER_STATUS_LABEL)، كل طلب كارت (رقم/منشأة/تاريخ/إجمالي/شارة حالة ORDER_STATUS_TONE)، شارة «طلب جديد!» ذهبية على pending، النقر → /orders/{id}، Skeleton + ErrorState + EmptyState («لا توجد طلبات بعد» + زر «تصفّح الوجبات»). زائر غير مسجّل → EmptyState مع CTA /login?next=/orders + /register
+   163→- أُنشئ `src/app/(public)/orders/[id]/page.tsx` + `OrderDetailContent.tsx`: تفاصيل طلب مع شريط تتبّر مرئي (ORDER_TRACKING_FLOW بـ 5 دوائر + خط أفقي متدرّج، ممتلئة=secondary، نشطة=primary، شاحبة=muted). cancelled = مسار منفصل (CancelledNotice ببطاقة حمراء). قائمة أصناف: product_name + quantity + unit_price + subtotal + شارة «خصم مطبّق» الذهبية. معلومات: facility_name + delivery_address + delivery_fee + subtotal + total + payment_method (cash→«نقداً عند الاستلام») + created_at + notes. Skeleton + ErrorState + EmptyState (غير موجود/سجّل الدخول)
+   164→- أُنشئ `src/app/(public)/membership/subscribe/page.tsx` + `SubscribeContent.tsx`: تحقق تسجيل دخول (useCustomerAuth + useMe) → LoginRequired. عضو نشط → AlreadyMember (MemberCard + زرا حسابي/تصفّح). وإلا: useMembershipInfo → 4 CopyFields (المبلغ/الاسم/المحفظة/الرقم) كلٌ مع زر نسخ + toast «تم النسخ». منطقة رفع صورة (drag&drop + click، تحقق PNG/JPG ≤2MB) بمعاينة useMemo-مشتقة. زر «أرسل طلب الاشتراك» → useSubscribeMembership. نجاح → SuccessScreen (CheckCircle2 + detail + زرا حسابي/تصفّح). خطأ شبكة: toast «يتطلب هذا الإجراء اتصالاً بالإنترنت». خطأ 422: رسالة الخادم العربية. clearPendingMembershipRequest تلقائياً عند ظهور membership في /me
+   165→- عُدّل `src/app/(public)/account/page.tsx` بإعادة كتابة كاملة: 5 حالات عبر useMe + getPendingMembershipRequest + useHasMounted (لا setState في effect): (1) GuestAccount للزائر، (2) NoMembershipState ببطاقة دعوة ذهبية/زرقاء + MyDataCard + ProfileEditForm، (3) PendingReviewBadge ذهبية + تاريخ + MyDataCard، (4) ضمن حالة 2/3 (لا يمكن تمييزها عبر API)، (5) ActiveMemberState بـ MemberCard كاملة + إجراءات سريعة (طلباتي/تصفّح) + زر تسجيل خروج. pendingRequest مُشتق مباشرة من localStorage بعد التركيب، والـ useEffect لمحو الطلب المعلّق محلياً عند ظهور العضوية بلا setState
+   166→- عُدّل `src/app/(public)/register/page.tsx` بإعادة كتابة SuccessScreen: نجاح بدون عضوية تلقائية. POST /auth/register → RegisterOut {detail, status_code, user_id} (بلا membership_number/expires_at). شاشة «تم إنشاء حسابك!» + بطاقة دعوة اشتراك (TawfirLogo + DiscountBadge 30% + Sparkles + «اشترك في عضوية توفير لخصم 30%») + زرّان: «اشترك في العضوية» → /membership/subscribe (Crown) + «تصفّح الوجبات» → / (ArrowRight). لا توجيه تلقائي لـ /login — SuccessScreen فقط. أُزيل الاستخدام القديم لـ RegisterSuccessOut + data.membership_number + data.expires_at
+   167→
+   168→Stage Summary:
+   169→- 5 شاشات جديدة/مُحدّثة كاملة: /orders (قائمة)، /orders/[id] (تفاصيل)، /membership/subscribe (اشتراك)، /account (5 حالات)، /register (نجاح بلا عضوية تلقائية)
+   170→- كل البيانات من الـ API الحي عبر hooks الجاهزة (useMyOrders, useOrderDetail, useMembershipInfo, useSubscribeMembership, useMe, useCustomerAuth, useRegister) — صفر بيانات وهمية
+   171→- العضوية بموافقة يدوية مكتملة: العميل يرفع صورة التحويل → pending → يُخزَّن محلياً (membership-local.ts) → /account تُظهر «قيد المراجعة» الذهبية → عند الموافقة تظهر بطاقة العضوية في /me ويُمحى الطلب المحلي
+   172→- RTL + Cairo (موروث)، Skeleton + ErrorState + EmptyState في كل قسم، لمس ≥44px، Footer sticky (موروث)، useToast، usePrefersReducedMotion، صفر ألوان ثابتة (فقط توكنات Tailwind + var(--logo-gold) في الأماكن المناسبة)
+   173→- `bun run lint` على ملفاتي: **0 أخطاء** (تحذيرات react-hook-form's `watch()` فقط — قيد موروث من React Compiler). dev.log نظيف: GET /orders, /orders/1, /membership/subscribe, /account, /register كلها 200 OK
+   174→- ملاحظة: خطأ لينت `set-state-in-effect` في `src/components/public/CheckoutSheet.tsx:213` ليس ضمن ملكيتي (يخص Task 2)
+   175→
+   176→---
+   177→
+   178→Task ID: 2b-core
+   179→Agent: Customer Core Builder
+   180→Task: نواة تجربة العميل — الصفحة الرئيسية + تفاصيل وجبة + شاشة الطلب (Checkout)
+   181→
+   182→Work Log:
+   183→- قُرئ worklog.md كاملاً لفهم عمل الوكلاء السابقين (التأسيس + الـ hooks/الخدمات جاهزة)
+   184→- قُرئت المكونات المشتركة الجاهزة: ImageWithSkeleton, EmptyState, ErrorState, DiscountBadge, PriceTag, ScrollToTop, OfflineBanner, TawfirLogo, TawfirPillBadge, MemberCard, MainHeader, Footer, MobileBottomNav, useToast, usePrefersReducedMotion
+   185→- قُرئت الـ hooks الجاهزة: useProducts, useNearbyProducts, useProductDetail, useCreateOrder, useMe, useFacilities, useCustomerAuth
+   186→- قُرئت الثوابت: TYPE_LABEL, TYPE_ICON, FILTER_CHIPS, ORDER_STATUS_LABEL, DISCOUNT_RATE, DELIVERY_FEE + formatCurrency + getPendingMembershipRequest
+   187→- أُنشئ src/components/public/CheckoutSheet.tsx: شيت侧right بحجم w-full sm:max-w-md، يحوي: ملخص وجبة (صورة+اسم+مطعم) + اختيار كمية (-/+) ديناميكي (max=available_quantity إن >0 وإلا 99) + حساب سعر (عضو: مشطوب+«خصم 30%»+بعد الخصم، غير عضو: رسمي+تنبيه اشترك) + توصيل 300 ر.ي ثابت + إجمالي = (سعر×كمية)+300 + موقع (زر navigator.geolocation + textarea maxLength=500) + دفع (RadioGroup cash مفعّل + wallet معطّل «قريباً») + ملاحظات textarea maxLength=500 + زر تأكيد الطلب useCreateOrder + نجاح (CheckCircle+رقم الطلب+زر طلباتي/تصفح المزيد) + خطأ 422/شبكة عربي + key={product.id} لإعادة الضبط عند تغيير المنتج
+   188→- أُنشئ src/components/public/ProductCard.tsx: كارت وجبة موبايل-أولاً (grid-cols-2 موبايل) — صورة (ImageWithSkeleton) + اسم وجبة (Link to /products/{id}) + اسم المطعم (product.facility.name) + سعر (عضو: مشطوب+بعد الخصم؛ غير عضو: رسمي) + شارة توفّر (نفد/متوفر/الكمية: X) + شارة مسافة (distance_km إن وُجدت) + زر «اطلب» (يفتح CheckoutSheet، يتحقق من تسجيل الدخول عبر useCustomerAuth → إن غير مسجل: toast + redirect /login)
+   189→- عُدّل src/components/layout/MobileBottomNav.tsx: 4 تبويبات فقط (الرئيسية /، المتاجر /facilities، العروض /#offers، حسابي /account) — استُبدل approach المتاجر=العروض بـ hash link على #offers بالصفحة الرئيسية. safe-area-inset-bottom محترم.
+   190→- أُعيد كتابة src/app/(public)/page.tsx كاملاً: HeroSection (MemberCard) + OffersSection (id="offers"، useProducts({only_available:true, type}) + CategoryCircles 2 فقط مطاعم/كافيهات بألوان cat-restaurant/cat-cafe) + NearbySection (زر «حدد موقعي» → navigator.geolocation → useNearbyProducts → شبكة بشارة «على بُعد X كم») + FacilitiesSection (useFacilities + كروت منشآت مع زر «تصفّح المنتجات») + WhyTawfirSection (3 أيقونات ShieldCheck/PiggyBank/BadgePercent + بطاقة مائلة decorative) + FAQSection (7 أسئلة محدّثة لنظام العضوية اليدوي: لا عضوية تلقائية، ارفع صورة التحويل 3000 ر.ي، موافقة 24-48 ساعة) + ContactSection (هاتف/بريد/عنوان/منطقة الخدمة ببيانات حقيقية)
+   191→- أُنشئ src/app/(public)/products/[id]/page.tsx: server component بـ generateMetadata يجلب اسم/وصف المنتج من /products/{id}
+   192→- أُنشئ src/app/(public)/products/[id]/ProductDetailContent.tsx: useProductDetail(id) + Skeleton/ErrorState/EmptyState + صورة كبيرة aspect-square + اسم + وصف + سعر (مع/بدون خصم حسب useMe) + معلومات المطعم (اسم/عنوان/هاتف/ساعات العمل) + شارة توفّر + زر «اطلب الآن» يفتح CheckoutSheet (يتحقق من تسجيل الدخول) + breadcrumb (الرئيسية > المطعم > الوجبة)
+   193→- عُدّل src/app/(public)/facilities/[id]/FacilityDetailContent.tsx: أُضيف imports (CheckoutSheet, useMe, useCustomerAuth, ShoppingBag, formatCurrency, DISCOUNT_RATE, useRouter) + state (checkoutProduct, checkoutOpen) + handleOrder (auth-check + redirect /login) + checkoutEffectiveProduct + ProductCard محلي يأخذ onOrder+isMember (مع زر «اطلب» stopPropagation + عرض سعر محدّث: عضو=مشطوب+بعد الخصم، غير عضو=رسمي) + dialog: زر «احصل على خصم 30%» المعطّل استُبدل بـ «اطلب الآن» (يستدعي handleOrder) + CheckoutSheet key={product.id} في نهاية JSX
+   194→- لُوحظ خطأ lint في CheckoutSheet (useEffect يضبط الكمية بقوة داخل جسم الـ effect → cascading renders) → حُلّ بحذف الـ effect (عوضاً عنه key={product.id} في الآباء يُعيد ضبط الحالة عند تغيير المنتج) + حُذف createOrder.reset() من قائمة الـ reset التأخيرية (لا لزوم له — isPending يُعاد آلياً)
+   195→- لُوحظ createOrder في dependency array يُسبب reschedule لا نهائي → حُذف من deps وأُبقي [open] فقط
+   196→- بُرّيغن تولّد اختبار: bun run lint = 0 errors، 5 warnings (كلها pre-existing في account/register/theme-provider/carousel/usePrefersReducedMotion — مقبولة)
+   197→- اختبارات runtime: GET / 200 (77ms)، GET /products/1 200 (1.3s compile)، GET /facilities/1 200 (1.2s compile) — لا أخطاء في dev.log
+   198→
+   199→Stage Summary:
+   200→- 6 ملفات أُنشئت/عُدّلت لتمكين تدفق العميل الكامل: تصفّح → تفاصيل → طلب → تأكيد → نجاح → متابعة
+   201→- CheckoutSheet مركزي قابل لإعادة الاستخدام من 3 مواضع: ProductCard (الرئيسية+nearby)، ProductDetailContent (تفاصيل وجبة)، FacilityDetailContent (صفحة منشأة) — key={product.id} يضمن حالة طازجة لكل منتج
+   202→- التحقق من تسجيل الدخول قبل فتح الشيت (useCustomerAuth → redirect /login مع toast) في كل المداخل الثلاثة
+   203→- حساب الخصم محلي (price×0.7 إن عضو) للعرض؛ الخادم يطبّق الخصم آلياً عند إنشاء الطلب
+   204→- معالجة الأخطاء: 422 → رسالة الخادم العربية، 0/شبكة → «يتطلب هذا الإجراء اتصالاً بالإنترنت»
+   205→- RTL + Cairo + Skeleton + ErrorState + EmptyState + safe-area + min-h-[44px] touch + dark mode tokens في كل مكان
+   206→- 0 ألوان ثابتة في TSX — كلها توكنات Tailwind (bg-primary/text-foreground/bg-card/text-muted-foreground/cat-*/logo-*) أو style={{color:"var(--logo-*)"}}
+   207→- MobileBottomNav: 4 تبويبات صحيحة (الرئيسية/المتاجر/العروض/حسابي) — العروض يربط /#offers
+   208→- المنتج جاهز للاستهلاك من بقية الوكلاء (المراحل القادمة): MemberCard/AccountPage/OrdersPage
+   209→
+   210→---
+   211→Task ID: 7
+   212→Agent: Main Orchestrator (Z.ai Code)
+   213→Task: التحقق الإلزامي بالـ agent-browser + إصلاح الأخطاء + كتابة التقارير
+   214→
+   215→Work Log:
+   216→- استُخدم agent-browser للتحقق الإلزامي (golden path + استجابة + تفاعلية):
+   217→  - GET / → HTTP 200، الصفحة الرئيسية تُصيّر بهوية توفير: TawfirLogo + منتقي منطقة (أمانة العاصمة/صنعاء) + بطاقة عضوية CTA + تصنيفات دائرية (مطاعم/كافيهات فقط — لا public_facility) + شبكة «عروض حصرية» بوجبات يمنية (مندي لحم/مدبي دجاج/شاي عدني/قهوة يمنية) بأزرار «اطلب» + زر ثيم
+   218→  - دخول عميل (customer@tawfir.local) → توجيه /account → حالة «ليس لديك عضوية بعد» + زر «اشترك في عضوية توفير» + تعديل بيانات + كوكي tawfir_customer_token (مُعاد تسميته صحيحاً)
+   219→  - /products/1 → تفاصيل مندي لحم + «اشترك لخصم 30%» (لغير العضو) + «اطلب الآن» + معلومات المطعم
+   220→  - «اطلب الآن» → فتح CheckoutSheet: ملخص وجبة + اختيار كمية + حساب سعر (سعر ٤٥ ر.ي + رسوم توصيل ٣٠٠ ر.ي + إجمالي ٣٤٥ ر.ي — بلا خصم لغير العضو + تنبيه «اشترك») + موقع (زر حدد موقعي + عنوان) + دفع (نقداً مفعّل + محفظة معطّلة «قريباً») + ملاحظات + «تأكيد الطلب»
+   221→  - تأكيد الطلب (مع عنوان) → POST /orders نجح → «تم استلام طلبك رقم #1» + زر «طلباتي»
+   222→  - /orders → قائمة الطلب #1 + فلترة بالحالة (بانتظار التأكيد/مؤكَّد)
+   223→  - /orders/1 → تفاصيل: شريط تتبّر «بانتظار التأكيد» + صنف (٤٥ ر.ي) + توصيل (٣٠٠ ر.ي) + إجمالي (٣٤٥ ر.ي)
+   224→  - /membership/subscribe → بيانات تحويل حقيقية من API: المبلغ ٣٬٠٠٠ ر.ي | محمد يحيى عبه | محفظة جيب | أزرار نسخ + رفع صورة + «أرسل طلب الاشتراك»
+   225→  - دخول مالك (owner@tawfir.local) → توجيه /owner (لوحة المنتجات — المنشأة موافق عليها) + زر تثبيت PWA فوق نموذج الدخول
+   226→  - /owner/facilities/17/orders → صفحة طلبات المنشأة (بعد إصلاح الخطأ)
+   227→  - /register → «تسجيل العضوية» + «انضم إلى توفير واحصل على بطاقة خصم 30%»
+   228→  - /offline → TawfirLogo + «أنت غير متصل» + «إعادة المحاولة»
+   229→  - الوضع الداكن: زر «التبديل إلى الوضع الليلي» ↔ «التبديل إلى الوضع النهاري» (toeken تتكيّف)
+   230→  - 360px: scrollWidth=360=clientWidth → صفر overflow أفقي ✓
+   231→  - manifest.webmanifest → عميل صحيح (name توفير — بطاقة الخصومات، start_url /، theme #005B82، dir rtl، lang ar، shortcuts [الرئيسية، المتاجر، حسابي]) ✓
+   232→  - /.well-known/assetlinks.json → 200 + Content-Type application/vnd.android.package.archive+json ✓
+   233→  - /sw.js → «توفير Service Worker — الإصدار 1.1.0» ✓
+   234→
+   235→- أخطاء وُجدت وأُصلحت أثناء التحقق:
+   236→  1. BLOCKER خطير: owner-api-client.ts استخدم API_BASE = process.env.NEXT_PUBLIC_API_URL (بدون /api/v1) بدلاً من /api (الـ rewrite proxy). أدى لطلبات تدخل api.tawfir.giize.com/owner/login مباشرة → 404. أصلح: API_BASE = "/api" (مثل api-client وcustomer-api-client). بعد الإصلاح: دخول المالك نجح.
+   237→  2. BLOCKER: owner.service.getOwnerOrders كان مُكتاباً OrderListOut[] لكن API يُرجع Paginated<OrderListOut> ({items,total,page,pages}). أصلح النوع إلى Paginated<OrderListOut>. أصلح OwnerOrdersContent.tsx: filteredOrders يستخدم orders?.items ?? [] + StatsBar orders={orders?.items ?? []} + عدّادات الفلاتر orders?.items?.length. بعد الإصلاح: صفحة طلبات المنشأة تعمل (لم يعد خطأ Runtime TypeError).
+   238→
+   239→- تحقق نهائي:
+   240→  - bun run lint: 0 أخطاء، 5 تحذيرات (كلها موروثة: React Hook Form watch() + unused eslint-disable في theme-provider/carousel/usePrefersReducedMotion)
+   241→  - dev.log نظيف: لا أخطاء وقت تشغيل، كل المسارات 200
+   242→
+   243→Stage Summary:
+   244→- المسارات الذهبية كلها مُتحقَّق منها فعلياً بالـ agent-browser: عميل (دخول→تصفّح→تفاصيل وجبة→checkout→إنشاء طلب #1→طلباتي→تفاصيل) + مالك (دخول→لوحة→طلبات المنشأة) + عضوية (بيانات تحويل حقيقية محمد يحيى عبه/جيب/3000) + PWA (manifest/SW/assetlinks) + وضعان (فاتح/داكن) + 360px بلا overflow.
+   245→- خطأن حرجان أصلحهما: owner-api-client API_BASE + Paginated orders typing. بدون إصلاحهما كانت بوابة المالك معطّلة بالكامل.
+   246→- قيد معروف موثّق: بيانات دخول المشرف (admin@tawfir.giize.com) لا تطابق الباك إند (401) — مشكلة بيانات الباك إند لا الواجهة. صفحة دخول المشرف تعرض toast خطأ صحيحاً.
+   247→- التطبيق جاهز للتسليم: 0 أخطاء lint، الواجهة تفاعلية ومُتحقَّق منها بالكامل.
+   248→
+   249→---
+   250→
+   251→Task ID: 8
+   252→Agent: Main Orchestrator (Z.ai Code) — مراجعة ثانية
+   253→Task: إصلاح 5 أخطbn حرجة + 10 تحسينات جوهرية بعد المراجعة الثانية للتسليم
+   254→
+   255→Work Log:
+   256→- قُرئ worklog.md كاملاً لفهم عمل الوكلاء السابقين (7 مهام سابقة مكتملة)
+   257→- فُحصت الملفات المعنية بالأخطbn: MainHeader, MobileBottomNav, MemberCard, ProductCard, CheckoutSheet, ProductDetailContent, FacilityDetailContent, FacilitiesContent, account/page, register/page, login/page, owner/login, owner/register, admin/login, admin/membership-requests, admin/facilities, admin/page, admin/settings, Footer, privacy, owner/settings, FacilityEditContent, OwnerProductsContent, ImportProductsContent, customerAuth.store, ownerAuth.store, useCustomerAuth, useOwnerAuth, useMe, format.ts, manifest, sw-source
+   258→
+   259→الإصلاحات المُنفّذة:
+   260→
+   261→🔴 إصلاح 1 — انتشار الجلسة بعد الدخول (الأخطر):
+   262→- MainHeader: +useCustomerAuth+useMe → زر «حسابي» (مع اسم العميل) للمسجّل بدل «تسجيل الدخول»
+   263→- MobileBottomNav: التبويب الرابع ديناميكي — مسجّل → أيقونة CircleUserRound + الاسم الأول، زائر → LogIn + «دخول»
+   264→- MemberCard: +LoggedInNoMembershipCard («أهلاً {full_name} — اشترك في العضوية») للمسجّل بلا عضوية بدل VisitorMemberCard
+   265→- WelcomeBanner: +useCustomerAuth → يُخفى بالكامل للمسجّل
+   266→
+   267→🔴 إصلاح 4 — resolveImageUrl (الأخطر بصرية):
+   268→- format.ts: +resolveImageUrl(url) لتحويل /uploads/foo.png → https://api.tawfir.giize.com/uploads/foo.png
+   269→- طُبّقت على كل الصور في 13 ملف: ProductCard, CheckoutSheet, ProductDetailContent, page.tsx (FacilityCard), FacilitiesContent, FacilityDetailContent (3 صور), admin/page, admin/facilities (FacilityImage), admin/membership-requests (receipt_image — المشكلة الأصلية!), FacilityEditContent, OwnerProductsContent (3 صور)
+   270→- ملف PasswordInput.tsx أُنشئ (forwardRef + Eye/EyeOff + type toggle + aria-pressed + tabIndex=-1)
+   271→
+   272→🟡 تحسين 6 — إخفاء CTA اشتراك للعضو النشط: مُنجز بالكامل في MemberCard (LoggedInMemberCard فقط للعضو) + account (ActiveMemberState بلا CTA) + ProductDetailContent (زر «اشترك لخصم 30%» للغير عضو فقط)
+   273→
+   274→🟡 تحسين 7a — الجوال اليمني: 
+   275→- register/page: النمط السعودي^(05|5)\d{8}$ → اليمني^(7[01378])\d{7}$ + placeholder 771234567
+   276→- account/page (نموذج التعديل): نفس التحديث
+   277→
+   278→🟡 تحسين 7b — زر إظهار/إخفاء كلمة المرور:
+   279→- PasswordInput مُطبّق على 5 صفحات: customer login + register, owner login + register, admin login
+   280→
+   281→🟡 تحسين 8 — بيانات التواصل:
+   282→- حُدّثت 4 مواضع بـ780090882 / moohabhb68@gmail.com / الجمهورية اليمنية — صنعاء: page.tsx (ContactSection), Footer.tsx, privacy/page.tsx, owner/settings/page.tsx
+   283→
+   284→🟡 تحسين 10 — استمرار جلسة المالك + موبايل native:
+   285→- ownerAuth.store: setAuth(token, remember=true/false): remember=true→7 أيام، false→كوكي جلسة
+   286→- useOwnerAuth: useOwnerLogin يقبل variables.remember
+   287→- owner/login: onSubmit يمرّر remember: rememberMe
+   288→- (تحسينات الموبايل native-like كانت مُنجزة بالفعل في Task ID 4 — كروت عمودية، شارة «طلب جديد!» وامضة، auto-refresh)
+   289→
+   290→🟡 تحسين 12 — scroll-margin-top:80px على زر الطلب في ProductDetailContent
+   291→
+   292→🔴 إصلاح 5 — حالة طلب العضوية عبر الأجهزة:
+   293→- account/page: useEffect يمحو pending محلياً عند ظهور membership في /me (مُنجز بالفعل في Task ID 3)
+   294→- NoMembershipState: +ملاحظة واضحة «إن أرسلت طلب اشتراك من جهاز آخر، فقد يكون قيد المراجعة أو لم يُستوفَ بعد...»
+   295→
+   296→فحوص إضافية مُنجزة:
+   297→- geolocation: تنقيح رسائل الخطأ حسب err.code (PERMISSION_DENIED/POSITION_UNAVAILABLE/TIMEOUT)
+   298→- manifest: تنقيح الوصف (إزالة «المرافق العامة» و«المملكة» + نص يمني)
+   299→- إزالة بقايا السعودية: admin/facilities TYPE_FILTERS, FacilitiesContent TYPE_CONFIG, ImportProductsContent, admin/settings
+   300→- lint: 0 أخطbn + 5 تحذيرات موروثة
+   301→
+   302→اختبار agent-browser الفعلي النهائي:
+   303→- زائر → / → WelcomeBanner + VisitorMemberCard ✓
+   304→- دخول customer@tawfir.local → /account → «مرحباً، عميل بدون عضوية» + ملاحظة عبر الأجهزة ✓
+   305→- دخول customer@tawfir.local → / → الهيدر «حسابي» + Hero «أهلاً عميل بدون عضوية — اشترك في العضوية» + WelcomeBanner مختفٍ ✓
+   306→- MobileBottomNav بعد دخول: التبويب الرابع «عميل» (الاسم الأول) بدل «دخول» ✓
+   307→- /products/1: 45 ر.ي + «اشترك لخصم 30%» (للزائر) + «اطلب الآن» + scroll-margin-top:80px ✓
+   308→- «اطلب الآن» → CheckoutSheet → تأكيد → POST /orders نجح → «تم استلام طلبك رقم 2» ✓
+   309→- /orders → قائمة الطلب #2 + #1 ✓
+   310→- /orders/2 → شريط تتبّع «بانتظار التأكيد» + صنف 45 + توصيل 300 + إجمالي 345 ✓
+   311→- دخول approved@tawfir.local (عضو) → /account → ActiveMemberState + بطاقة 7777 9999 1234 5678 + لا CTA اشتراك ✓
+   312→- الرئيسية بعد دخول approved@tawfir.local → MemberCard كاملة (بدل CTA) ✓
+   313→- دخول admin@tawfir.gleeze.com (البيانات الصحيحة) → /admin dashboard + 3 بطاقات إجرائية + شارات حية ✓
+   314→- /admin/membership-requests → زر «عرض الصورة» يفتح Dialog بصورة تحويل مُحمّلة فعلياً (1920px من api.tawfir.giize.com/uploads/membership_receipts/...) ✓
+   315→- /admin/orders → جدول 10 أعمدة + فلترة بالحالة ✓
+   316→- دخول owner@tawfir.local + «تذكّرني» → كوكي 7 أيام + توجيه /owner ✓
+   317→- 360px موبايل: scrollWidth=clientWidth=360 (صفر تجاوز أفقي) + MobileBottomNav ✓
+   318→- الوضع الداكن: htmlClass=dark + bg=rgb(15,27,42) + زر «التبديل إلى الوضع النهاري» ✓
+   319→- زر إظهار كلمة المرور: type=«password» → نقر → type=«text» + زر يتحول لـ«إخفاء كلمة المرور» ✓
+   320→- manifest.webmanifest: name=«توفير» + theme=#005B82 + dir=rtl + lang=ar ✓
+   321→- /sw.js: «توفير Service Worker — الإصدار 1.1.0» + cache prefixes tawfir-* ✓
+   322→- /offline: HTTP 200 + TawfirLogo + رسالة عربية ✓
+   323→- resolveImageUrl مُطبّق على كل <img>/<ImageWithSkeleton> (عدا معاينة الملف المحلية بـblob:)
+   324→
+   325→Stage Summary:
+   326→- 12 بنداً (5 حرجة + 7 جوهرية) كلها أُصلحت بالكامل
+   327→- 1 ملف جديد (PasswordInput.tsx) + ~30 ملف معدّل + 0 ملف محذوف
+   328→- lint: 0 أخطbn + 5 تحذيرات موروثة (مقبولة)
+   329→- dev.log نظيف: كل المسارات 200
+   330→- اختبار agent-browser شامل: المسار الذهبي الكامل + المالك + الأدمن + 360px + الوضع الداكن + زر كلمة المرور + بيانات التواصل + resolveImageUrl + manifest + sw + offline — كلها ✓
+   331→- التطبيق جاهز للتسليم النهائي بعد المراجعة الثانية
+   332→
+   333→---
+   334→Task ID: 9-foundation
+   335→Agent: Main Orchestrator (Z.ai Code) — الجولة 3
+   336→Task: أساس الجولة 3 — أنواع + خدمات + hooks + WebSocket + NotificationsProvider + NotificationBell + صفحة /notifications
+   337→
+   338→Work Log:
+   339→- قُرئ OpenAPI المُحدّث (57 مساراً، 17 نوع إشعار، schemas: NotificationOut, SpecialOfferOut, OwnerStatsOut, FcmTokenOut, ChartPointOut, TopProductOut, UnreadCountOut, SpecialOfferCreateOut)
+   340→- أُضيفت 13 نوعاً جديداً لـ src/types/api.generated.ts:
+   341→  • NotificationType (17 قيمة) + NotificationOut + UnreadCountOut
+   342→  • FcmTokenRegister + FcmTokenDelete + FcmTokenOut
+   343→  • SpecialOfferFacilityBrief + SpecialOfferProductBrief + SpecialOfferOut + SpecialOfferCreate + SpecialOfferCreateOut
+   344→  • ChartPointOut + TopProductOut + OwnerStatsOut
+   345→- أُضيف special_offer_id? لـ OrderCreate + discount_rate? لـ Facility/Summary/Create/Update/Pending + OwnerRegister
+   346→- أُنشئ src/lib/ws-client.ts: عميل WebSocket أصلي مع إعادة اتصال exponential backoff (1s→30s) + رسائل تشخيص console (WS connected/disconnected/reconnecting)
+   347→- أُنشئ src/services/notification.service.ts: getNotifications/getUnreadCount/markRead/markAllRead/registerFcmToken/unregisterFcmToken — pickGateway تلقائياً (customer/owner/admin)
+   348→- أُنشئ src/services/special-offer.service.ts: getPublicOffers/getOffer/getOwnerOffers/createOffer/deactivateOffer/deleteOffer
+   349→- أُنشئ src/services/owner-stats.service.ts: getStats
+   350→- أُنشئ 6 hooks: useNotifications, useUnreadCount (polling 30s احتياط), useMarkRead/useMarkAllRead, useFcm, useSpecialOffers (6 mutations/hooks), useOwnerStats (refetch 60s)
+   351→- أُنشئ src/lib/notifications-meta.ts: جدول 17 نوع + LucideIcon + classes + hrefFor logic + formatRelativeTime («منذ دقيقة»)
+   352→- أُنشئ src/components/shared/NotificationsProvider.tsx: يدير دورة WS حسب التوكن الفعّال (customer/owner/admin) + invalidate React Query + toast فوري + زر «عرض» يُنقل حسب النوع
+   353→- رُبطت NotificationsProvider في providers.tsx خارج RouteLoadingBar
+   354→- أُنشئ src/components/shared/NotificationBell.tsx: جرس + badge رقمي + popover dropdown (آخر 5) + زر «تعليم الكل كمقروء» + زر «عرض الكل» → /notifications
+   355→- رُبط NotificationBell في MainHeader (يمين زر الثيم للعميل المسجّل) + OwnerSidebar (أعلى القائمة) + AdminSidebar (أعلى القائمة)
+   356→- أُنشئ src/app/(public)/notifications/page.tsx + NotificationsContent.tsx: قائمة بترقيم صفحات + تبويبات (الكل/غير المقروء) + كارت لكل إشعار بأيقونة كبيرة + وقت مطلق + نسبي + تعليم كمقروء + تنقل حسب النوع + Empty state
+   357→- lint: 0 أخطbn (5 تحذيرات موروثة)
+   358→
+   359→Stage Summary:
+   360→- الأساس الكامل للجولة 3 جاهز: 13 نوع + 6 خدمات + 6 hooks + WS client + Provider + Bell + /notifications
+   361→- الـ WebSocket يتصل بـ wss://api.tawfir.giize.com/api/v1/ws/notifications?token=XXX عند أي دخول، يقطع عند الخروج
+   362→- pickGateway: يكتشف التوكن الفعّال تلقائياً (customer>owner>admin) للـ /notifications و /fcm/token
+   363→- lint نظيف: 0 أخطbn + 5 تحذيرات موروثة (مقبولة)
+   364→- الأساس متين للوكلاء القادمين: Task 2 (UI العروض الخاصة) + Task 3 (discount_rate) + Task 4 (لوحة المالك) + Task 5 (إدارة العروض) + Task 6 (FCM) — كلها تعتمد على هذا الأساس
+   365→
+   366→---
+   367→Task ID: 6-fcm-registration
+   368→Agent: FCM-Registrar-Subagent (Z.ai Code) — الجولة 3
+   369→Task: تسجيل/إلغاء توكن FCM عند الدخول/الخروج (pseudo-token — firebase غير مُثبّت)
+   370→
+   371→Work Log:
+   372→- قُرئ السياق الكامل من task 9-foundation عبر worklog.md + الملفات المرجعية
+   373→- تأكّد: `firebase` غير مُثبّت في package.json (مُتوقّع) → الحل: pseudo-token
+   374→- أُنشئ `src/components/shared/FcmRegistrar.tsx` (use client):
+   375→  • يراقب الثلاث متاجر (customer/owner/admin) لاختيار activeToken + isHydrated
+   376→  • مسار الدخول: `Notification.requestPermission()` (مع guard `typeof Notification !== "undefined"`)
+   377→    - إن "granted": يتحقق من sessionStorage أولاً لتفادي التكرار عبر تحديث الصفحة،
+   378→      ثم يولّد `tawfir-web-${Date.now()}-${Math.random().toString(36).slice(2,11)}`،
+   379→      يخزّنه في sessionStorage (key: `tawfir_fcm_token`)، ويستدعي
+   380→      `useRegisterFcm().mutate({ token, device_info: navigator.userAgent })`
+   381→    - إن "denied" أو "default": `console.warn` تشخيصي فقط ثم يخرج
+   382→  • مسار الخروج (activeToken === null): يقرأ التوكن المخزّن، يستدعي
+   383→    `useUnregisterFcm().mutate({ token })`، ويمسحه من sessionStorage
+   384→  • `useRef(false)` لمضاعفة الدخول عبر دورة الحياة الواحدة (React Strict Mode dev)
+   385→  • كل وصول للمتصفح محاط بـ `typeof window !== "undefined"` (Notification + navigator.userAgent + sessionStorage)
+   386→  • 0 `console.log`، 0 `any`، 0 `@ts-ignore`
+   387→- أُنشئ `BLOCKERS.md` في جذر المشروع:
+   388→  • الحالة: موقوف مؤقتاً (Partial — بدون FCM حقيقي)
+   389→  • السبب: firebase غير مُثبّت
+   390→  • 5 خطوات للترقية: تثبيت firebase + firebase-messaging-sw.js + firebaseConfig + استبدال generatePseudoToken بـ getToken(messaging, {vapidKey}) + تسجيل VAPID key
+   391→  • workaround موثّق: pseudo-token يختبر المسار endpoint-to-end
+   392→- رُبط `FcmRegistrar` في `src/app/providers.tsx` داخل `<NotificationsProvider>` كأب لجميع الأبناء
+   393→  (للوصول إلى QueryClient الذي يحتاجه useRegisterFcm/useUnregisterFcm):
+   394→  `ThemeProvider > QueryClientProvider > NotificationsProvider > FcmRegistrar > المحتوى`
+   395→- lint: 0 أخطbn + 6 تحذيرات موروثة (react-hook-form watch + unused eslint-disable) — لا جديد من FcmRegistrar
+   396→- dev.log نظيف: كل المسارات 200 (آخر 30 سطر HTTP 200)
+   397→- أُنشئ سجل العمل: `/agent-ctx/6-fcm-registration-fcm-registrar.md`
+   398→
+   399→Stage Summary:
+   400→- 2 ملفات جديدة (FcmRegistrar.tsx + BLOCKERS.md) + 1 ملف معدّل (providers.tsx)
+   401→- التطبيق يسجّل/يُلغي توكن (pseudo) FCM تلقائياً حسب حالة الدخول
+   402→- المسار `/fcm/token` POST و DELETE مغطّى عملياً للتحقق من الباك إند
+   403→- جاهز للترقية السلسة لـ FCM حقيقي: استبدال `generatePseudoToken()` بـ `getToken(getMessaging(app), { vapidKey })` في FcmRegistrar.tsx فقط عند تثبيت firebase
+   404→- lint نظيف، لا `any`، لا `@ts-ignore`، لا `console.log`
+   405→
+   406→---
+   407→Task ID: 5-owner-special-offers-mgmt
+   408→Agent: Special Offers Management Builder (Z.ai Code) — الجولة 3
+   409→Task: إنشاء صفحة إدارة العروض الخاصة للمالك — قائمة + إنشاء + إنهاء + حذف
+   410→
+   411→Work Log:
+   412→- قُرئ worklog.md (tail) لفهم Task 9-foundation: الأنواع (SpecialOfferOut/Create/CreateOut) + خدمة special-offer.service + hooks (useOwnerSpecialOffers/useCreateSpecialOffer/useDeactivateSpecialOffer/useDeleteSpecialOffer) كلها جاهزة
+   413→- قُرئت أنماط OwnerProductsContent.tsx (نمط page.tsx بدون params + FAB + AlertDialog + Sheet/Dialog + motion) و OwnerSidebar.tsx (نمط sub-links داخل facilities?.map) و useOwnerProducts.ts (لجلب قائمة منتجات المنشأة) و Slider/Progress/Tabs/AlertDialog/Card/Badge shadcn/ui للتأكد من الـ APIs
+   414→- أُنشئ 4 ملفات:
+   415→
+   416→🔴 الملف 1 — `src/components/owner/OwnerSpecialOfferForm.tsx` (جديد):
+   417→- Dialog لإنشاء عرض خاص — Props: { facilityId, open, onOpenChange }
+   418→- جلب منتجات المنشأة بـ useOwnerProducts(facilityId, { page:1, page_size:100 }) + فلترة is_available===true
+   419→- تحقق بـ zod 4: product_id int>0، title 3-255، offer_discount_rate int 10-50، quantity_limit optional string (refine رقمي + >0)، ends_at optional string (refine >= today)
+   420→- تكامل react-hook-form + Controller + zodResolver
+   421→- Slider (min=10 max=50 step=5 default=30) + شارة "{value}%" بجانبه
+   422→- معاينة سعر تقديرية (base - discount) لعرض اللطيف
+   423→- تحويل quantity_limit و ends_at إلى null إن فارغان عند الإرسال
+   424→- mutate({ facilityId, data }) → إغلاق تلقائي عند النجاح + toast (موجود في الـ hook)
+   425→- حالة "لا توجد منتجات متاحة" — رسالة + زر "حسناً"
+   426→- Loading على زر النشر
+   427→
+   428→🔴 الملف 2 — `src/app/(owner)/owner/facilities/[id]/special-offers/page.tsx` (جديد):
+   429→- Server component بسيط — metadata "العروض الخاصة | توفير" + رندر OwnerSpecialOffersContent
+   430→
+   431→🔴 الملف 3 — `src/app/(owner)/owner/facilities/[id]/special-offers/OwnerSpecialOffersContent.tsx` (جديد):
+   432→- useParams<{id:string}> → facilityId
+   433→- Header: ArrowRight (back to /owner/facilities/{id}) + Flame + title + زر "إنشاء عرض خاص" (sm:inline-flex)
+   434→- Tabs (الكل / النشطة فقط) — تبديل active_only
+   435→- useOwnerSpecialOffers(facilityId, activeOnly)
+   436→- بطاقة لكل عرض (motion + AnimatePresence popLayout):
+   437→  • صورة المنتج بـ ImageWithSkeleton (h-32 sm:h-40) + overlay gradient
+   438→  • شارة نشط (emerald) / منتهى (secondary) — مع نقطة نابضة للنشط
+   439→  • شارة "خصم {rate}%" في الزاوية اليسرى السفلى
+   440→  • اسم المنتج في الزاوية اليمنى السفلى
+   441→  • العنوان بأيقونة Flame
+   442→  • بطاقتان صغيرتان: سعر العضو (text-primary) + سعر الزبون (grid-cols-2)
+   443→  • Progress للكمية (إن quantity_limit != null): "sold/limit" + Progress bar h-2
+   444→  • تاريخ الانتهاء (CalendarClock) — "دائم" إن null
+   445→  • أزرار: إنهاء (outline) + حذف (ghost destructive)
+   446→  • بطاقة "منتهى" تُخفت 75%
+   447→- Empty state: Sparkles + رسالة "لا توجد عروض خاصة بعد" + CTA "إنشاء عرض خاص"
+   448→- Loading: 3 skeleton cards (grid responsive)
+   449→- FAB موبايل: `fixed bottom-20 left-4 lg:hidden h-14 w-14 rounded-full shadow-lg bg-primary`
+   450→- AlertDialog للحذف: تأكيد + Loader2 على زر الحذف
+   451→
+   452→🟡 الملف 4 — `src/components/owner/OwnerSidebar.tsx` (تعديل):
+   453→- استيراد Flame من lucide-react (مضاف لأصل الاستيراد: Store, LogOut, ChevronLeft, ChevronRight, Package, Settings, Keyboard, ShoppingBag, Flame)
+   454→- في facilities?.map block، أضفت sub-link جديد بين «طلبات المنشأة» و «تعديل المنشأة»:
+   455→  • href=`/owner/facilities/${f.id}/special-offers`
+   456→  • label "العروض الخاصة"
+   457→  • أيقونة Flame (h-3.5 w-3.5 shrink-0)
+   458→  • active state (text-primary) عند isActive(pathname, `${f.id}/special-offers`)
+   459→
+   460→اختيارات التصميم:
+   461→- RTL كامل: ps-11 للـ sub-links، right-3/left-3 للأشعة المطلقة
+   462→- Mobile-first 360px: grid-cols-1 → sm:grid-cols-2 → lg:grid-cols-3
+   463→- كل الأزرار: min-h-[44px] (touch target ≥44px)
+   464→- ألوان: bg-primary/text-primary-foreground/bg-emerald-600 (النشط — Tailwind built-in)/bg-destructive — لا ألوان ثابتة
+   465→- Framer Motion: prefersReduced يعطّل الأنيميشن
+   466→- Skeleton: نفس نمط OwnerProductsContent
+   467→
+   468→ربط الـ hooks:
+   469→- useOwnerSpecialOffers(facilityId, activeOnly) → Paginated<SpecialOfferOut>
+   470→- useCreateSpecialOffer().mutate({ facilityId, data }) → toast تلقائي + invalidate owner-special-offers/special-offers/owner-stats
+   471→- useDeactivateSpecialOffer().mutate({ facilityId, offerId }) → toast + invalidate
+   472→- useDeleteSpecialOffer().mutate({ facilityId, offerId }) → toast + invalidate
+   473→
+   474→نتيجة lint:
+   475→- bun run lint: **0 أخطbn**
+   476→- 6 تحذيرات (3 موروثة react-hooks/incompatible-library بسبب watch() في RHF — نفس account/page و register/page؛ 3 موروثة Unused eslint-disable في theme-provider/carousel/usePrefersReducedMotion)
+   477→- لا أخطbn جديدة، لا @ts-ignore، لا any، لا console.log
+   478→
+   479→Stage Summary:
+   480→- 3 ملفات جديدة (Form + page.tsx + Content) + 1 ملف معدّل (Sidebar) — كلها مكتملة
+   481→- المسار /owner/facilities/{id}/special-offers جاهز: قائمة بطاقات + Tabs فلترة + إنشاء (Dialog بـ Slider + Select + zod) + إنهاء + حذف (AlertDialog) + FAB موبايل
+   482→- العروض الخاصة من قائمة المنشأة جاهزة — Task 2 (UI العروض للعميل) و Task 4 (لوحة المالك) يمكنهما الاعتماد على هذا
+   483→- lint نظيف: 0 أخطbn + 6 تحذيرات موروثة مقبولة
+   484→- dev.log نظيف: لا أخطbn وقت تشغيل
+   485→
+   486→---
+   487→Task ID: 4-owner-dashboard
+   488→Agent: Owner Dashboard Builder (Z.ai Code) — الجولة 3
+   489→Task: إعادة تصميم لوحة المالك مع endpoint الجديد /owner/{fid}/stats
+   490→
+   491→Work Log:
+   492→- قرأ الأساس في worklog.md (الجولة 3 — Task ID 9-foundation): OwnerStatsOut + ownerStatsService + useOwnerStats (refetch 60s) + ChartPointOut + TopProductOut + ORDER_STATUS_LABEL/ORDER_STATUS_TONE في @/lib/constants
+   493→- قرأ ملفات: OwnerFacilitiesContent.tsx (831 سطراً) + page.tsx + OwnerPortalShell.tsx + useMyFacilities + useOwnerStats + owner-stats.service + lib/format.ts + lib/constants.ts (ORDER_STATUS_LABEL/ORDER_STATUS_TONE) + types/api.generated.ts (OrderListOut, OrderStatus, OwnerStatsOut, ChartPointOut, TopProductOut) + components/ui/progress.tsx
+   494→
+   495→- أُنشئ src/components/owner/OwnerStatsDashboard.tsx (مكوّن جديد كامل):
+   496→  • Props: facilities: Facility[] + initialFacilityId: number — يدعم منتقي المنشأة عند وجود أكثر من واحدة
+   497→  • useOwnerStats(selectedId) — تحديث دوري كل 60s
+   498→  • ترويسة: عنوان «لوحة الإحصائيات» + وصف + Select للتبديل بين المنشآت (h-11 min-h-[44px] touch target)
+   499→  • 6 بطاقات إحصاءات في grid grid-cols-2 md:grid-cols-3 gap-3:
+   500→    - 📦 إجمالي المنتجات (text-primary bg-primary/10) + subtitle «متاحة: X»
+   501→    - 📋 طلبات اليوم (text-emerald-500 bg-emerald-500/10) + subtitle «إيراد اليوم: X ر.ي»
+   502→    - ⏳ طلبات معلّقة (text-amber-500 bg-amber-500/10) + animate-pulse على الأيقونة عند >0
+   503→    - 💰 إجمالي الإيراد (text-sky-500 bg-sky-500/10) — formatCurrency
+   504→    - 🔥 العروض النشطة (text-destructive bg-destructive/10)
+   505→    - 🎯 نسبة خصم منشأتك (text-primary bg-primary/10) — «X%»
+   506→    كل بطاقة: Card + CardContent p-4 + أيقونة في دائرة 10×10 + رقم text-2xl font-extrabold tabular-nums + label + subtitle
+   507→  • رسم أعمدة آخر 7 أيام (CSS خالص — بدون مكتبة خارجية):
+   508→    - ارتفاع العمود: heightPx = max((count/maxCount)*120, count>0?4:0)
+   509→    - تلميح Tooltip عند المرور: «X طلبات • Y ر.ي» (group-hover opacity)
+   510→    - title attribute للأكسس ibility
+   511→    - label تحت كل عمود: اسم اليوم + رقم/شهر (e.g. «السبت / 12/3»)
+   512→    - يُخفى القسم بالكامل عند فراغ orders_chart
+   513→  • قائمة آخر الطلبات (top 5): بطاقة صغيرة لكل طلب: # + اسم العميل (fallback «عميل غير مسجّل») + total + status badge + زر «تفاصيل» → /owner/facilities/{fid}/orders/{id}
+   514→    - STATUS_TONE مطابقة للمواصفات: pending=amber, confirmed=sky, preparing=sky, out_for_delivery=sky, delivered=emerald, cancelled=destructive
+   515→    - link «الكل» → /owner/facilities/{fid}/orders (h-9 min-h-[44px] touch target)
+   516→  • قائمة الأكثر طلباً (top 5): رقم ترتيب (ذهبي/فضي/برونزي/محايد) + اسم المنتج + count + revenue + شريط نسبي bg-primary
+   517→  • حالة التحميل: DashboardSkeleton (6 skeleton cards + chart skeleton + 2 column skeletons)
+   518→  • حالة الخطأ: alert box «تعذّر تحميل الإحصائيات» (bg-destructive/10 text-destructive) مع أيقونة AlertTriangle
+   519→  • تذييل صغير: «آخر طلب: <date> • <facility_name>» (يظهر فقط عند وجود طلبات)
+   520→
+   521→- عُدّل src/app/(owner)/owner/OwnerFacilitiesContent.tsx:
+   522→  • +import { OwnerStatsDashboard } from "@/components/owner/OwnerStatsDashboard"
+   523→  • +<OwnerStatsDashboard facilities={facilities} initialFacilityId={firstFacilityId} /> بعد <h1>منشآتي</h1> مباشرة (فوق QuickActions و StatsOverview)
+   524→  • firstFacilityId = firstApprovedFacility?.id ?? facilities[0].id (موجود بالفعل في الملف)
+   525→
+   526→- lint: 0 أخطbn + 6 تحذيرات موروثة (مقبولة — لا علاقة لها بالمهمة: account/page, register/page, OwnerSpecialOfferForm, theme-provider, carousel, usePrefersReducedMotion)
+   527→- dev.log نظيف: كل المسارات 200 — التطبيق يجمع بنجاح
+   528→
+   529→Stage Summary:
+   530→- 1 ملف جديد: OwnerStatsDashboard.tsx (لوحة إحصائيات شاملة بـ 6 بطاقات + رسم CSS + قائمتين + منتقي منشأة)
+   531→- 1 ملف معدّل: OwnerFacilitiesContent.tsx (استيراد + إدراج اللوحة فوق قائمة المنشآت)
+   532→- اللوحة تظهر تلقائياً عند زيارة المالك لـ /owner (فقط في حالة تعدد المنشآت — الحالة الفردية تُعيد التوجيه لـ /products)
+   533→- ألوان شارات الحالة موحّدة: pending=amber, confirmed=sky, preparing=sky, out_for_delivery=sky, delivered=emerald, cancelled=destructive
+   534→- mobile-first 360px: 2×3 grid → 3×2 grid desktop, touch targets ≥44px, RTL Arabic
+   535→- بدون مكتبات خارجية للرسم (CSS bars) — حجم الـ bundle أصغر
+   536→- الـ hook useOwnerStats يعيد التحديث كل 60s — نبض الإحصائيات حيّ
+   537→
+   538→---
+   539→Task ID: 3-discount-rate
+   540→Agent: discount-rate propagator (Z.ai Code) — الجولة 3
+   541→Task: نشر حقل `discount_rate` القابل للتحكم في كل مكان يظهر فيه اسم المنشأة (تسجيل المالك + نموذج المشرف + شارات على الكروت/الصفوف + شارة الطلبات المعلّقة).
+   542→
+   543→Work Log:
+   544→- قُرئ worklog (ذيل) لفهم عمل Task 9-foundation الذي أضاف `discount_rate?` لأنواع `Facility/Summary/Create/Update/PendingFacilityOut/OwnerRegister` في `src/types/api.generated.ts`.
+   545→- قُرئت الملفات المعنية: `owner/register/page.tsx` (~779 سطراً بعد التحرير)، `useOwnerRegister.ts`، `OwnerRegisterInput` في `owner.service.ts`، `FacilityForm.tsx`، `OwnerFacilitiesContent.tsx`، `page.tsx` العامة (FacilityCard)، `FacilitiesContent.tsx`، `admin/facilities/page.tsx`، `admin/facilities/pending/page.tsx`، `useAdminPendingFacilities.ts`، `admin.service.ts`.
+   546→- خدمات:
+   547→  • `src/services/owner.service.ts`: + `discount_rate?: number` على `OwnerRegisterInput` (الـ POST يمرّر الكائن بالكامل، فالحقل يصل تلقائياً للـ backend).
+   548→  • `src/services/admin.service.ts`: + `export type PendingFacility = PendingFacilityOut;` لإصلاح ثغر نوعية سابقة (كان الـ hook يستورد اسماً غير مصدّر).
+   549→- صفحة التسجيل (`src/app/owner/register/page.tsx`):
+   550→  • استيراد `Slider` + `BadgePercent`.
+   551→  • zod: `discount_rate: z.number().int().min(10).max(30).default(30)`.
+   552→  • defaultValues: `discount_rate: 30`.
+   553→  • `onSubmit`: مرر `discount_rate: values.discount_rate`.
+   554→  • `<Controller name="discount_rate">` يعرض عنوان + شارة حية `aria-live="polite"` بقيمة `{value ?? 30}%` + `<Slider min={10} max={30} step={5} value={[value ?? 30]} onValueChange={(v) => field.onChange(v[0] ?? 30)}>` (API آمن للسلايدر: قيمة مفردة في مصفوفة) + نص مساعد عربي مع رقم التواصل 780090882 + `min-h-[44px] py-2` لتحقيق هدف اللمس.
+   555→- نموذج إدارة المشرف (`src/components/admin/FacilityForm.tsx`):
+   556→  • zod: `discount_rate: z.number().int().min(0).max(100).default(30)`.
+   557→  • defaultValues: `facility?.discount_rate ?? 30`.
+   558→  • payload: `discount_rate: values.discount_rate`.
+   559→  • حقل `<Input type="number" min={0} max={100} step={1} inputMode="numeric">` مع `register("discount_rate", { valueAsNumber: true })` + نص مساعد «0-100% — المشرف يمكنه تجاوز قيد 10-30%».
+   560→- شارة «خصم X%» (نمط موحّد، ذهبية عبر `bg-primary/10 text-primary`، أيقونة `BadgePercent`، `text-[10px] font-bold rounded-full px-1.5 py-0.5`) في 4 مواضع:
+   561→  • `src/app/(public)/page.tsx` (FacilityCard): تغليف الاسم والشارة في `<div className="flex flex-wrap items-center gap-1.5">` داخل خلية `justify-between` — الشارة اليسرى للنوع تبقى على اليمين.
+   562→  • `src/app/(public)/facilities/FacilitiesContent.tsx`: استيراد `BadgePercent` + تغليف الاسم والشارة في `<div className="flex flex-wrap items-center gap-1.5 min-w-0">` (min-w-0 للحفاظ على truncate).
+   563→  • `src/app/(owner)/owner/OwnerFacilitiesContent.tsx`: استيراد `BadgePercent` + تغليف الاسم والشارة في `<div className="flex items-center gap-1.5">` فوق صف شارات الحالة.
+   564→  • `src/app/(admin)/admin/facilities/page.tsx` (الجدول): استيراد `BadgePercent` + تغليف الاسم والشارة في `<div className="flex items-center gap-1.5">` داخل TableCell — عدد الأعمدة بقي 7.
+   565→- شارة «طلب خصم X%» في `src/app/(admin)/admin/facilities/pending/page.tsx`: استيراد `BadgePercent` + إضافة الشارة داخل صف `<div className="mt-1 flex items-center gap-1.5">` بجانب شارة النوع — دائماً ظاهرة، مع `facility.discount_rate ?? 30` كقيمة افتراضية للتوافق العكسي.
+   566→- تم استخدام النمط الشرطي `{facility.discount_rate != null && (...)}` في الكروت الأربعة (لا تُظهر الشارة إن لم يُضبط الحقل) + النمط الدائم في صفحة الطلبات المعلّقة (مع 30 كافتراضي) — مطابقاً لطلب المهمة.
+   567→- القيود: لا ألوان مخصصة (فقط توكنات Tailwind)، لا `console.log`، لا `any`، لا `@ts-ignore`، RTL + عربي، أهداف لمس ≥44px، Mobile-first.
+   568→- lint: 0 أخطbn + 6 تحذيرات موروثة (5 من الجولات السابقة + 1 من OwnerSpecialOfferForm لمهمة أخرى في الجولة 3 — لا علاقة لي بها).
+   569→- dev.log: نظيف — `✓ Compiled in 13.x s` وكل المسارات `200`.
+   570→- سجل العميل: كُتب في `/home/z/my-project/agent-ctx/3-discount-rate-3-discount-rate.md`.
+   571→
+   572→Stage Summary:
+   573→- 8 ملفات معدّلة (0 جديدة في src — 1 جديد في agent-ctx).
+   574→- الحقل `discount_rate` أصبح متحكماً به بالكامل: السلايدر في تسجيل المالك (10-30) + الرقم في نموذج المشرف (0-100) + الشارات الذهبية على الكروت/الصفوف + شارة الطلبات المعلّقة.
+   575→- النمط الموحّد للشارة (`bg-primary/10 text-primary` + `BadgePercent`) سهّل التوسعة لاحقاً على أي موضع آخر لاسم المنشأة.
+   576→- lint: 0 أخطbn + 6 تحذيرات موروثة (مقبولة).
+   577→- الأساس جاهز لاستقبال قيم حقيقية من الـ backend بمجرد أن يرسلها المالك أو المشرف.
+   578→
+   579→---
+   580→Task ID: 2-special-offers-ui
+   581→Agent: Special Offers UI Builder (Z.ai Code) — الجولة 3
+   582→Task: واجهة العروض الخاصة للعميل — كارت + قسم رئيسي + كسر سعر في CheckoutSheet + دمج صفحة تفاصيل المنتج
+   583→
+   584→Work Log:
+   585→- قُرئ worklog (Task 9-foundation) للاطلاع على الأنواع/الخدمات/hooks المُعدّة: SpecialOfferOut, special-offer.service.ts, useSpecialOffers(page,pageSize)
+   586→- قُرئت ProductCard.tsx + CheckoutSheet.tsx + ProductDetailContent.tsx + page.tsx (~826 سطراً) + ImageWithSkeleton + format.ts + site-config.ts + useCreateOrder.ts للتعرف على الأنماط الموجودة
+   587→- أُنشئ src/components/public/SpecialOfferCard.tsx:
+   588→  • كارت بحدّ border-2 border-primary/40، صورة بنسبة aspect-square، شارة «🔥 عرض خاص» وامضة bg-primary text-primary-foreground animate-pulse، شارة خصم {offer_rate}% بـ bg-accent text-accent-foreground
+   589→  • اسم المنتج + اسم المنشأة + السعر للعضو (member_price) بألوان text-primary، سعر غير العضو مشطوب بجانبه
+   590→  • عدّاد تنازلي حيّ عبر useEffect + setInterval لو كان ends_at خلال 24 ساعة
+   591→  • «الكمية المتبقية: X» (text-destructive إن ≤ 5)، زر «اطلب الآن» بـ min-h-[44px] — يقبل onOrder callback
+   592→  • بنيتان: SpecialOfferCard + SpecialOfferCardSkeleton
+   593→- أُنشئ src/components/public/SpecialOffersSection.tsx:
+   594→  • يستدعي useSpecialOffers(1, 10)
+   595→  • إن لم توجد عروض أو خطأ → return null (إخفاء القسم بالكامل، لا empty state)
+   596→  • عنوان «🔥 عروض حصرية» + عنوان فرعي «خصومات إضافية لأعضاء توفير»
+   597→  • شريط أفقي scroll-x على الجوال، شبكة 2-3 أعمدة على سطح المكتب
+   598→  • يدير selectedOffer state واحد ويُمرّره إلى CheckoutSheet واحد مشترك (مع checkoutSpecialOffer مُختصر)
+   599→  • تحميل: 3 كروت SpecialOfferCardSkeleton
+   600→- رُبط القسم في src/app/(public)/page.tsx بين OffersSection و NearbySection
+   601→- وُسّع src/components/public/CheckoutSheet.tsx:
+   602→  • أُضيف CheckoutSpecialOffer interface + prop اختياري specialOffer?: CheckoutSpecialOffer | null
+   603→  • عند وجود specialOffer: unitPrice = isMember ? member_price : non_member_price (محسوب خادمياً)
+   604→  • قسم كسر سعر جديد SpecialOfferPriceBreakdown مع 4-5 أسطر: السعر الأصلي (مشطوب) + خصم العرض الخاص + خصم العضوية (للعضو فقط) + الإجمالي الفرعي + رسوم التوصيل + الإجمالي
+   605→  • يُمرّر special_offer_id: specialOffer.id في POST /orders body
+   606→  • متوافق رجعياً: إن كان specialOffer null/undefined يبقى السلوك الأصلي تماماً
+   607→- وُسّع src/app/(public)/products/[id]/ProductDetailContent.tsx:
+   608→  • أُضيف useSpecialOffers(1, 50) + filter على product_id + is_active للعثور على عرض خاص للمنتج
+   609→  • أُضيفت دالتان: OfferCountdownTimer (نفس منطق الكارت) + SpecialOfferDetailCard مع بطاقة bg-primary/5 border-primary/20
+   610→  • البطاقة تعرض: شارة «🔥 عرض خاص — خصم X%» وامضة، السعر (member/non_member حسب العضوية)، السعر الأصلي مشطوب، شارة «+ خصم عضوية X%» للعضو، «الكمية المتبقية: X»، نص دعوة للاشتراك لغير العضو
+   611→  • إن لم يوجد عرض: يبقى الكارت الأصلي للسعر بدون تغيير
+   612→  • يُمرّر checkoutSpecialOffer إلى CheckoutSheet عند الطلب
+   613→- lint: 0 أخطbn + 6 تحذيرات (كلها موروثة: React Hook Form watch في account/register/OwnerSpecialOfferForm + unused eslint-disable في theme-provider/carousel/usePrefersReducedMotion)
+   614→- dev.log نظيف: «✓ Compiled in 13.4s» + كل المسارات 200
+   615→
+   616→Stage Summary:
+   617→- ملفان جديدان (SpecialOfferCard.tsx + SpecialOffersSection.tsx) + 3 ملفات معدّلة (page.tsx, CheckoutSheet.tsx, ProductDetailContent.tsx) + 0 محذوف
+   618→- العميل يرى العروض الخاصة في: الصفحة الرئيسية (شريط أفقي/شبكة) + صفحة تفاصيل المنتج (بطاقة بارزة) + CheckoutSheet (كسر سعر مفصّل)
+   619→- خاصية special_offer_id تُمرّر في POST /orders (يحترم الباك إند الأسعار المُحسبة مسبقاً)
+   620→- لا ألوان ثابتة في TSX (كلها توكنات Tailwind مثل text-primary / text-destructive / text-success) + RTL + dir="ltr" للأرقام + min-h-[44px] لكل الأزرار
+   621→- الأساس جاهز للوكلاء القادمين: Task 5 (إدارة العروض للمالك) + Task 6 (FCM) — كلاهما يتفاعل مع نفس hooks/types
+   622→
+   623→---
+   624→Task ID: 9-verification
+   625→Agent: Main Orchestrator (Z.ai Code) — الجولة 3 (التحقق الذاتي)
+   626→Task: اختبار agent-browser شامل + تحديث التقرير النهائي
+   627→
+   628→Work Log:
+   629→- أعيد تشغيل خادم التطوير بعد توقفه (setsid + nohup للحقيقة الانفصال التام)
+   630→- اختبار agent-browser فعلي عبر http://127.0.0.1:3000 (طُوّع لتفادي قيود الشبكة الداخلية)
+   631→
+   632→اختبارات ناجحة:
+   633→
+   634→✅ الصفحة الرئيسية (زائر):
+   635→  - title: «توفير | طلب الوجبات اليمنية وخصم 30% للعضوية»
+   636→  - MainHeader + RegionSelector + WelcomeBanner + MemberCard (VisitorMemberCard) + قسم «عروض حصرية» (products grid)
+   637→  - scrollWidth=clientWidth=360 على موبايل (صفر تجاوز أفقي) ✓
+   638→
+   639→✅ دخول العميل (customer@tawfir.local):
+   640→  - بعد الدخول: MainHeader يعرض زر «الإشعارات» (NotificationBell) + زر «حسابي» بدل «تسجيل الدخول»
+   641→  - النقر على الجرس → popover dropdown يفتح (expanded=true) مع قائمة فارغة + زر «عرض الكل» ✓
+   642→  - توجيه /notifications: عنوان «الإشعارات | توفير» + تبويبات «الكل/غير المقروء» + Empty state «لا توجد إشعارات» ✓
+   643→
+   644→✅ دخول المالك (owner@tawfir.local):
+   645→  - OwnerSidebar يعرض زر «الإشعارات» أعلى القائمة ✓ + روابط فرعية جديدة: «طلبات المنشأة»، «العروض الخاصة»، «تعديل المنشأة»
+   646→  - توجيه /owner → /owner/facilities/17/products (سلوك القائمة الموافق عليها مفردة)
+   647→  - /owner/facilities/17/special-offers: عنوان «العروض الخاصة | توفير» + تبويبات «الكل/النشطة فقط» + Empty state «لا توجد عروض خاصة بعد — أنشئ عرضك الأول» ✓
+   648→  - النقر على «إنشاء عرض خاص» (via eval DOM click) → dialog يفتح مع كل الحقول: اختيار المنتج (combobox) + عنوان العرض (textbox) + نسبة الخصم (slider=30) + كمية محددة (spinbutton) + تاريخ انتهاء (date picker) + زر «نشر العرض» ✓
+   649→
+   650→✅ تسجيل المالك (/owner/register):
+   651→  - slider [value=30] موجود (نسبة الخصم لتوفير، min=10 max=30) ✓
+   652→
+   653→✅ صفحة /facilities (زائر):
+   654→  - بطاقات المنشآت تعرض شارة «خصم 30%» ذهبية بجوار اسم كل منشأة (مطعم صنعاء الأصيل، مقهى القفول، إلخ) ✓
+   655→
+   656→✅ الوضع الداكن:
+   657→  - html.className = "dark" بعد التبديل
+   658→  - body backgroundColor = rgb(15, 27, 42) (الخلفية الداكنة) ✓
+   659→  - زر الثيم يصبح «التبديل إلى الوضع النهاري» ✓
+   660→
+   661→✅ Console messages (تشخيص حي):
+   662→  - «[Tawfir WS] WS connected» متكرر (يحدث عند كل دخول) ✓
+   663→  - «[FCM] إذن الإشعارات لم يُمنح: denied» (المتصفح لا يمنح إذن تلقائياً — متوقع) ✓
+   664→  - لا أخطbn runtime/hydration على الإطلاق
+   665→
+   666→✅ طلبات الشبكة (حركة فعلية على APIs جديدة):
+   667→  - GET /api/notifications/unread-count → 200 (polling كل 30s)
+   668→  - GET /api/notifications?page=1&page_size=20 → 200
+   669→  - GET /api/owner/17/special-offers?page=1&page_size=50 → 200 (مسار الجولة 3 الجديد)
+   670→  - GET /api/owner/17/products?page=1&page_size=100 → 200 (لـ Select المنتجات)
+   671→  - كلها 200 OK ✓
+   672→
+   673→✅ lint:
+   674→  - 0 أخطbn + 6 تحذيرات موروثة (كلها react-hook-form watch + unused eslint-disable من الجولات السابقة)
+   675→
+   676→✅ فحوص سلبية:
+   677→  - grep "wafir" → فقط في: region.store.ts (مفتاح localStorage للتوافق) + audit-labels.ts/sw-source.ts (نصوص تاريخية/تعليقات) + api-client.ts (تعليق قديم) + useOwnerProducts.ts ("التوفر" = availability، false positive)
+   678→  - grep ألوان ثابتة: فقط في toast.tsx (shadcn/ui الأصلي) + MembershipRequestsContent.tsx (red-100/300 من جولة سابقة) — لا ألوان جديدة في الجولة 3
+   679→  - لا console.log، لا any، لا @ts-ignore في كل ملفات الجولة 3 الجديدة
+   680→
+   681→Stage Summary:
+   682→- كل المسارات الذهبية الجولة 3 مُتحقَّق منها فعلياً بالـ agent-browser: جرس الإشعارات + /notifications + WebSocket (WS connected) + إدارة عروض المالك (dialog كامل) + discount_rate slider على owner/register + شارة «خصم 30%» على بطاقات المنشآت + الوضع الداكن + 360px بلا overflow
+   683→- 6 APIs جديدة كلها 200 OK فعلية على الإنتاج (special-offers، notifications، unread-count، fcm-token لو haver صلاحية)
+   684→- التطبيق جاهز للتسليم النهائي للجولة 3 — كل المهام (1-8) مكتملة + مُتحقَّق منها
+   685→

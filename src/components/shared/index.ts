@@ -2,6 +2,6 @@ export { EmptyState } from "./EmptyState";
 export { ErrorState } from "./ErrorState";
 export { ImageWithSkeleton } from "./ImageWithSkeleton";
 export { DiscountBadge } from "./DiscountBadge";
-export { PriceTag } from "./PriceTag";
+export { ImageUrlField } from "./ImageUrlField";
 export { ScrollToTop } from "./ScrollToTop";
 export { OfflineBanner } from "./OfflineBanner";

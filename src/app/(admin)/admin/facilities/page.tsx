@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Pencil, Trash2, RefreshCcw, Search, ImageOff, MapPin, Download, BadgePercent } from "lucide-react";
+import { Plus, Pencil, Trash2, RefreshCcw, Search, ImageOff, BadgePercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -30,7 +30,6 @@ import {
 import { useRegions } from "@/hooks/useRegions";
 import { FacilityForm } from "@/components/admin/FacilityForm";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
 import { resolveImageUrl } from "@/lib/format";
 import type { Facility, FacilityType } from "@/types/api.generated";
 
@@ -41,11 +40,30 @@ const TYPE_LABELS: Record<FacilityType, string> = {
 
 type FilterType = FacilityType | "all";
 
+type StatusFilter = "all" | "approved" | "pending" | "rejected";
+
 const TYPE_FILTERS: { value: FilterType; label: string }[] = [
   { value: "all", label: "الكل" },
   { value: "restaurant", label: "مطاعم" },
   { value: "cafe", label: "كافيهات" },
 ];
+
+/* الجولة 6: فلترة الحالة من الخادم — status param في GET /admin/facilities */
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "كل الحالات" },
+  { value: "approved", label: "موافق عليها" },
+  { value: "pending", label: "معلّقة" },
+  { value: "rejected", label: "مرفوضة" },
+];
+
+const STATUS_API_MAP: Record<
+  Exclude<StatusFilter, "all">,
+  "approved" | "pending" | "rejected"
+> = {
+  approved: "approved",
+  pending: "pending",
+  rejected: "rejected",
+};
 
 function TableSkeleton() {
   return (
@@ -98,8 +116,12 @@ function FacilityImage({ src, name }: { src: string | null; name: string }) {
 }
 
 export default function AdminFacilitiesPage() {
-  const { toast } = useToast();
-  const { data, isLoading, error, refetch } = useAdminFacilities();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const { data, isLoading, error, refetch } = useAdminFacilities(
+    1,
+    50,
+    statusFilter === "all" ? null : STATUS_API_MAP[statusFilter]
+  );
   const deleteFacility = useDeleteFacility();
   const { data: regions } = useRegions(false);
 
@@ -154,7 +176,7 @@ export default function AdminFacilitiesPage() {
     setFormOpen(true);
   }
 
-  const hasActiveFilter = typeFilter !== "all" || debounced !== "";
+  const hasActiveFilter = typeFilter !== "all" || debounced !== "" || statusFilter !== "all";
   const showEmptyForFilter = !isLoading && !error && allFacilities.length > 0 && filtered.length === 0;
 
   return (
@@ -172,7 +194,7 @@ export default function AdminFacilitiesPage() {
         </Button>
       </div>
 
-      {/* Search + Action Buttons */}
+      {/* Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1 max-w-md">
           <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -184,28 +206,10 @@ export default function AdminFacilitiesPage() {
             aria-label="بحث"
           />
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="gap-2 min-h-[44px]"
-            onClick={() => toast({ title: "قريبًا" })}
-          >
-            <MapPin className="h-4 w-4" />
-            عرض الخريطة
-          </Button>
-          <Button
-            variant="outline"
-            className="gap-2 min-h-[44px]"
-            onClick={() => toast({ title: "قريبًا" })}
-          >
-            <Download className="h-4 w-4" />
-            تصدير
-          </Button>
-        </div>
       </div>
 
       {/* Type filter chips */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {TYPE_FILTERS.map((tf) => (
           <button
             key={tf.value}
@@ -218,6 +222,22 @@ export default function AdminFacilitiesPage() {
             )}
           >
             {tf.label}
+          </button>
+        ))}
+        <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden="true" />
+        {STATUS_FILTERS.map((sf) => (
+          <button
+            key={sf.value}
+            onClick={() => setStatusFilter(sf.value)}
+            aria-pressed={statusFilter === sf.value}
+            className={cn(
+              "min-h-[44px] rounded-full border px-4 text-sm font-medium transition-colors",
+              statusFilter === sf.value
+                ? "border-secondary bg-secondary text-secondary-foreground"
+                : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            )}
+          >
+            {sf.label}
           </button>
         ))}
       </div>
@@ -238,7 +258,8 @@ export default function AdminFacilitiesPage() {
               <TableHead>النوع</TableHead>
               <TableHead>المنطقة</TableHead>
               <TableHead>الترتيب</TableHead>
-              <TableHead>الحالة</TableHead>
+              <TableHead>الظهور</TableHead>
+              <TableHead>الموافقة</TableHead>
               <TableHead className="text-left">إجراءات</TableHead>
             </TableRow>
           </TableHeader>
@@ -247,7 +268,7 @@ export default function AdminFacilitiesPage() {
           ) : error ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center">
+                <TableCell colSpan={8} className="py-10 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-sm text-destructive">
                       تعذّر تحميل المنشآت.
@@ -268,7 +289,7 @@ export default function AdminFacilitiesPage() {
           ) : showEmptyForFilter ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={7} className="py-16 text-center">
+                <TableCell colSpan={8} className="py-16 text-center">
                   <div className="flex flex-col items-center gap-2">
                     <Search className="h-10 w-10 text-muted-foreground/40" />
                     <p className="text-sm text-muted-foreground">
@@ -282,7 +303,7 @@ export default function AdminFacilitiesPage() {
             <TableBody>
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="py-16 text-center"
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -329,6 +350,19 @@ export default function AdminFacilitiesPage() {
                       <Badge>ظاهرة</Badge>
                     ) : (
                       <Badge variant="secondary">مخفية</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {facility.is_approved ? (
+                      <Badge className="bg-success/15 text-success hover:bg-success/15">
+                        موافق عليها
+                      </Badge>
+                    ) : facility.rejection_reason ? (
+                      <Badge variant="destructive">مرفوضة</Badge>
+                    ) : (
+                      <Badge className="bg-logo-gold/15 text-logo-gold hover:bg-logo-gold/15">
+                        معلّقة
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>

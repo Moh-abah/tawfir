@@ -26,10 +26,11 @@ export function useAdminLogin() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (data: { identifier: string; password: string }) =>
+    mutationFn: (data: { identifier: string; password: string; remember?: boolean }) =>
       authService.adminLogin(data),
-    onSuccess: (data) => {
-      setAuth(data.access_token);
+    onSuccess: (data, variables) => {
+      // remember=true (افتراضي) → كوكي 7 أيام | false → كوكي جلسة فقط
+      setAuth(data.access_token, variables.remember ?? true);
       toast({ title: "تم تسجيل الدخول", description: "مرحبًا بك في لوحة التحكم" });
       router.push("/admin");
     },

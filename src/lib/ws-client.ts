@@ -8,7 +8,6 @@
  *
  * الميزات:
  *  - إعادة اتصال تلقائية: exponential backoff (1s → 2s → 4s → max 30s)
- *  - رسائل تشخيص في console: «WS connected» / «WS disconnected» / «WS reconnected»
  *  - لا يستخدم socket.io — WebSocket أصلي (الخادم يدعمه مباشرة).
  *  - يدعم role token (customer/owner/admin) — أي توكن Bearer صالح.
  */
@@ -45,11 +44,25 @@ class NotificationWebSocketClient {
     return () => this.statusHandlers.delete(handler);
   }
 
-  /** يفتح الاتصال بالتوكن الحالي. إن كان مفتوحاً يقطعه أولاً. */
+  /**
+   * يفتح الاتصال بالتوكن الحالي. إن كان مفتوحاً (أو قيد الفتح) بنفس
+   * التوكن لا يفعل شيئاً.
+   *
+   * الجولة 6 — إصلاح جذري: كان الاتصال "قيد الفتح" يُقطع ويُعاد إنشاؤه
+   * عند أي استدعاء ثانٍ (يحدث مع StrictMode في dev ودورات إعادة التركيب)،
+   * وبعض الخوادم تلغي تسجيل المستخدم كلياً عند قطع أي مقبس له — فتتوقف
+   * الإشعارات الفورية حتى اتصال جديد. جعلنا CONNECTING مطابقاً لـ OPEN:
+   * نفس التوكن + قيد الفتح → لا قطع ولا اتصال جديد.
+   */
   connect(token: string): void {
     if (typeof window === "undefined") return;
-    if (this.currentToken === token && this.socket?.readyState === WebSocket.OPEN) {
-      return; // مفتوح بالفعل بنفس التوكن
+    if (
+      this.currentToken === token &&
+      this.socket &&
+      (this.socket.readyState === WebSocket.OPEN ||
+        this.socket.readyState === WebSocket.CONNECTING)
+    ) {
+      return; // مفتوح (أو قيد الفتح) بالفعل بنفس التوكن
     }
     this.disconnect();
     this.intentionallyClosed = false;
@@ -67,7 +80,6 @@ class NotificationWebSocketClient {
 
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
-      console.log("[Tawfir WS] WS connected");
       this.emitStatus("connected");
     };
 
@@ -81,7 +93,6 @@ class NotificationWebSocketClient {
     };
 
     this.socket.onclose = () => {
-      console.log("[Tawfir WS] WS disconnected");
       this.emitStatus("disconnected");
       if (!this.intentionallyClosed) {
         this.scheduleReconnect();
@@ -142,14 +153,10 @@ class NotificationWebSocketClient {
       MIN_BACKOFF_MS * Math.pow(2, attempt),
       MAX_BACKOFF_MS
     );
-    console.log(
-      `[Tawfir WS] WS reconnecting in ${delay}ms (attempt ${attempt + 1})`
-    );
     this.emitStatus("reconnecting");
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => {
       if (this.intentionallyClosed || !this.currentToken) return;
-      console.log("[Tawfir WS] WS reconnected (retry attempt)");
       this.connect(this.currentToken);
     }, delay);
   }

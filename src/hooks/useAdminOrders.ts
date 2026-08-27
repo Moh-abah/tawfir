@@ -19,3 +19,17 @@ export function useAdminOrders(params: {
     placeholderData: (prev) => prev,
   });
 }
+
+/**
+ * GET /admin/orders/{id} — تفاصيل طلب واحد للمشرف.
+ * الجولة 5: كان الحوار يستدعي بوابة العميل (GET /orders/{id} بلا توكن
+ * مشرف → 401) — استُبدلت ببوابة المشرف الصحيحة.
+ */
+export function useAdminOrderDetail(id: number | null) {
+  return useQuery({
+    queryKey: ["admin-order", id],
+    queryFn: () => adminService.getOrder(id as number),
+    enabled: id != null && id > 0,
+    staleTime: 30 * 1000,
+  });
+}

@@ -136,7 +136,7 @@ function PendingFacilityCard({
         <InfoRow
           icon={UserRound}
           label="اسم المالك"
-          value={facility.owner_full_name ?? "—"}
+          value={facility.owner_name ?? "—"}
         />
         <InfoRow
           icon={Mail}

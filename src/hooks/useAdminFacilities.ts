@@ -5,13 +5,26 @@ import { apiClient } from "@/services/api-client";
 import type { Facility, FacilityCreate, FacilityUpdate, Paginated } from "@/types/api.generated";
 import { useToast } from "@/hooks/use-toast";
 
-export function useAdminFacilities(page = 1, pageSize = 50) {
+/** فلترة حالة المنشأة — status param في GET /admin/facilities (الجولة 6). */
+export type AdminFacilityStatusFilter = "approved" | "pending" | "rejected" | null;
+
+export function useAdminFacilities(
+  page = 1,
+  pageSize = 50,
+  status: AdminFacilityStatusFilter = null
+) {
   return useQuery({
-    queryKey: ["admin", "facilities", page, pageSize],
-    queryFn: () =>
-      apiClient.get<Paginated<Facility>>(
-        `/admin/facilities?page=${page}&page_size=${pageSize}`
-      ),
+    queryKey: ["admin", "facilities", page, pageSize, status ?? "all"],
+    queryFn: () => {
+      const q = new URLSearchParams({
+        page: String(page),
+        page_size: String(pageSize),
+      });
+      if (status) q.set("status", status);
+      return apiClient.get<Paginated<Facility>>(
+        `/admin/facilities?${q.toString()}`
+      );
+    },
     staleTime: 0,
   });
 }

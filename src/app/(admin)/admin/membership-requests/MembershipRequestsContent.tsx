@@ -11,6 +11,7 @@ import {
   Loader2,
   Inbox,
   Receipt,
+  ImageOff,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -127,6 +128,14 @@ function ReceiptImageDialog({
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
+  // الجولة 6: صورة التحويل قد تكون مفقودة من الخادم (404) —
+  // نعرض حالة خطأ عربية أنيقة بدل أيقونة صورة مكسورة.
+  // نتابع رابط الصورة الذي فشل (بدل boolean) — فتُعاد المحاولة تلقائياً
+  // لأي طلب آخر بصورة مختلفة دون الحاجة إلى effect.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imgSrc = request ? resolveImageUrl(request.receipt_image_url) : null;
+  const imgFailed = imgSrc !== null && failedSrc === imgSrc;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl rounded-2xl">
@@ -143,12 +152,28 @@ function ReceiptImageDialog({
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center rounded-xl bg-muted/40 p-2">
-              <img
-                src={resolveImageUrl(request.receipt_image_url)}
-                alt={`صورة التحويل للطلب رقم ${request.id}`}
-                className="max-h-[70vh] w-auto rounded-lg object-contain"
-                loading="lazy"
-              />
+              {imgFailed ? (
+                <div className="flex flex-col items-center gap-2 rounded-lg px-10 py-12 text-center">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                    <ImageOff className="h-7 w-7 text-destructive" aria-hidden="true" />
+                  </span>
+                  <p className="text-sm font-bold text-foreground">
+                    تعذّر تحميل صورة التحويل
+                  </p>
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    الصورة غير متوفرة على الخادم حالياً. تواصل مع فريق الباك إند
+                    للتأكد من رفع الإيصال بشكل صحيح.
+                  </p>
+                </div>
+              ) : (
+                <img
+                  src={resolveImageUrl(request.receipt_image_url)}
+                  alt={`صورة التحويل للطلب رقم ${request.id}`}
+                  className="max-h-[70vh] w-auto rounded-lg object-contain"
+                  loading="lazy"
+                  onError={() => setFailedSrc(imgSrc)}
+                />
+              )}
             </div>
           </>
         )}

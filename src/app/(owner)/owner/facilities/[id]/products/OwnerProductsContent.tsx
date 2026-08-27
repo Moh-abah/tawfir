@@ -73,8 +73,10 @@ import {
   useDeleteProduct,
   useToggleProductAvailability,
 } from "@/hooks/useOwnerProducts";
+import { ownerService } from "@/services/owner.service";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
-import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImageUrlField } from "@/components/shared/ImageUrlField";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import type { Product, ProductCreate, ProductUpdate, ValidationError } from "@/types/api.generated";
@@ -214,26 +216,12 @@ function ProductFormFields({
         {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="p-image">رابط الصورة</Label>
-        <Input
-          id="p-image"
-          dir="ltr"
-          value={form.image_url}
-          onChange={(e) => set("image_url", e.target.value)}
-        />
-        {form.image_url && (
-          <div className="overflow-hidden rounded-xl border">
-            <ImageWithSkeleton
-              src={resolveImageUrl(form.image_url)}
-              alt="معاينة الصورة"
-              width={200}
-              height={140}
-              className="mx-auto h-[140px] w-[200px]"
-            />
-          </div>
-        )}
-      </div>
+      <ImageUrlField
+        id="p-image"
+        label="صورة المنتج"
+        value={form.image_url}
+        onChange={(v) => set("image_url", v)}
+      />
 
       <div className="flex items-center justify-between rounded-xl border p-4">
         <div>
@@ -350,6 +338,42 @@ const prefersReduced = usePrefersReducedMotion();
   const updateMutation = useUpdateProduct(facilityId, editingProduct?.id ?? 0);
   const deleteMutation = useDeleteProduct(facilityId);
   const toggleMutation = useToggleProductAvailability(facilityId);
+  const queryClient = useQueryClient();
+  const [batchDisabling, setBatchDisabling] = useState(false);
+
+  /**
+   * الجولة 6: «تعطيل المحدد» كان زراً وهمياً (toast قريبًا) — صار حقيقياً:
+   * حلقة PATCH فعلية على كل منتج محدد (is_available: false) عبر
+   * PUT /owner/{fid}/products/{pid} ثم تحديث القائمة والتحديد.
+   */
+  async function handleBatchDisable() {
+    if (selectedIds.size === 0) return;
+    setBatchDisabling(true);
+    const results = await Promise.allSettled(
+      [...selectedIds].map((id) =>
+        ownerService.toggleProductAvailability(facilityId, id, {
+          is_available: false,
+        })
+      )
+    );
+    setBatchDisabling(false);
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.length - ok;
+    queryClient.invalidateQueries({ queryKey: ["owner-products", facilityId] });
+    clearSelection();
+    if (failed === 0) {
+      toast({
+        title: "تم تعطيل المنتجات",
+        description: "عُطّلت " + ok + " منتجاً بنجاح — لن تظهر للعملاء حتى تفعيلها.",
+      });
+    } else {
+      toast({
+        title: "تعطيل جزئي",
+        description: `عُطّلت ${ok} منتجاً وفشل ${failed} — حاول تحديث الصفحة وإعادة المحاولة.`,
+        variant: "destructive",
+      });
+    }
+  }
 
   // Batch selection helpers (after data is available)
   const selectAll = useCallback(() => {
@@ -1063,10 +1087,15 @@ const prefersReduced = usePrefersReducedMotion();
                   variant="outline"
                   size="sm"
                   className="gap-1.5 rounded-full min-h-[44px]"
-                  onClick={() => toast({ title: "قريبًا" })}
+                  onClick={handleBatchDisable}
+                  disabled={batchDisabling}
                 >
-                  <EyeOff className="h-3.5 w-3.5" />
-                  تعطيل المحدد
+                  {batchDisabling ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <EyeOff className="h-3.5 w-3.5" aria-hidden="true" />
+                  )}
+                  {batchDisabling ? "جارٍ التعطيل..." : "تعطيل المحدد"}
                 </Button>
                 <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
                   <AlertDialogTrigger asChild>

@@ -11,7 +11,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = React.createContext<ThemeContextValue | null>(null);
-const STORAGE_KEY = "tawfir-theme";
+const STORAGE_KEY = "wafir-theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
  const [theme, setThemeState] = React.useState<Theme>("light");
@@ -19,7 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
  React.useEffect(() => {
   const stored = window.localStorage.getItem(STORAGE_KEY);
   const initial: Theme = stored === "dark" ? "dark" : "light";
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- قراءة الثيم المحفوظ بعد التركيب (نمط SSR/الترطيب القياسي)
+   
   setThemeState(initial);
   document.documentElement.classList.toggle("dark", initial === "dark");
  }, []);

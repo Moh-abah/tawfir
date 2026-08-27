@@ -88,9 +88,8 @@ function StatsOverview({ facilityIds }: { facilityIds: number[] }) {
   // طلبات كل منشأة — لاستخراج «طلبات اليوم» عبر فلترة محلية
   const ordersQueries = useQueries({
     queries: facilityIds.map((id) => ({
-      queryKey: ["owner-orders", id],
-      queryFn: (): Promise<OrderListOut[]> =>
-        ownerService.getOwnerOrders(id),
+      queryKey: ["owner-orders", id, "all"],
+      queryFn: () => ownerService.getOwnerOrders(id),
       staleTime: 30_000,
     })),
   });
@@ -111,13 +110,13 @@ function StatsOverview({ facilityIds }: { facilityIds: number[] }) {
   // طلبات اليوم (محلياً عبر created_at)
   const todayStart = startOfToday();
   const todayOrders = ordersQueries.reduce((sum, q) => {
-    const todays = (q.data ?? []).filter(
+    const todays = (q.data?.items ?? []).filter(
       (o) => new Date(o.created_at).getTime() >= todayStart
     ).length;
     return sum + todays;
   }, 0);
   const totalOrders = ordersQueries.reduce(
-    (sum, q) => sum + (q.data?.length ?? 0),
+    (sum, q) => sum + (q.data?.total ?? 0),
     0
   );
 
@@ -638,7 +637,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
   // طلبات المنشأة — يشارك نفس الكاش (يستخدم اليوم فقط)
   const { data: facilityOrders } = useOwnerOrders(facility.id);
   const todayStart = startOfToday();
-  const todayOrdersCount = (facilityOrders ?? []).filter(
+  const todayOrdersCount = (facilityOrders?.items ?? []).filter(
     (o) => new Date(o.created_at).getTime() >= todayStart
   ).length;
 

@@ -1,0 +1,748 @@
+     1→"use client";
+     2→
+     3→import Link from "next/link";
+     4→import { useMemo, useState } from "react";
+     5→import { motion, useReducedMotion } from "framer-motion";
+     6→import {
+     7→  Map,
+     8→  CreditCard,
+     9→  Eye,
+    10→  Store,
+    11→  Users,
+    12→  UserCog,
+    13→  Package,
+    14→  PackageCheck,
+    15→  Lightbulb,
+    16→  ArrowLeft,
+    17→  ShieldCheck,
+    18→  UserIcon,
+    19→  ImageOff,
+    20→  Filter,
+    21→  X,
+    22→  PieChart,
+    23→  TrendingUp,
+    24→  TrendingDown,
+    25→  type LucideIcon,
+    26→} from "lucide-react";
+    27→import {
+    28→  Card,
+    29→  CardContent,
+    30→  CardHeader,
+    31→  CardTitle,
+    32→} from "@/components/ui/card";
+    33→import { Badge } from "@/components/ui/badge";
+    34→import { Button } from "@/components/ui/button";
+    35→import { Input } from "@/components/ui/input";
+    36→import { Skeleton } from "@/components/ui/skeleton";
+    37→import { apiClient } from "@/services/api-client";
+    38→import { useQuery } from "@tanstack/react-query";
+    39→import { cn } from "@/lib/utils";
+    40→import { getAuditLabel } from "@/lib/audit-labels";
+    41→import { formatDate } from "@/lib/format";
+    42→import { useAdminAuditLogs } from "@/hooks/useAdminAuditLogs";
+    43→import { useAdminUsers } from "@/hooks/useAdminUsers";
+    44→import { useAdminFacilities } from "@/hooks/useAdminFacilities";
+    45→import { useAdminCards } from "@/hooks/useAdminCards";
+    46→import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+    47→import type { DashboardStats, FacilityType, UserRole } from "@/types/api.generated";
+    48→import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+    49→
+    50→/* ─── Time-based greeting ──────────────────────────── */
+    51→function getGreeting(): string {
+    52→  const hour = new Date().getHours();
+    53→  if (hour < 12) return "صباح الخير";
+    54→  return "مساء الخير";
+    55→}
+    56→
+    57→/* ─── Format today's date in Arabic ──────────────────── */
+    58→function getFormattedToday(): string {
+    59→  return new Date().toLocaleDateString("ar-SA", {
+    60→    weekday: "long",
+    61→    day: "numeric",
+    62→    month: "long",
+    63→    year: "numeric",
+    64→  });
+    65→}
+    66→
+    67→/* ─── Stat config with color themes ────────────────── */
+    68→interface StatConfig {
+    69→  key: keyof DashboardStats;
+    70→  label: string;
+    71→  icon: LucideIcon;
+    72→  color: string;
+    73→  bg: string;
+    74→  border: string;
+    75→  trend: { value: string; positive: boolean };
+    76→}
+    77→
+    78→const STAT_CONFIGS: StatConfig[] = [
+    79→  { key: "regions", label: "المناطق", icon: Map, color: "text-primary", bg: "bg-primary/15", border: "border-l-primary", trend: { value: "+8%", positive: true } },
+    80→  { key: "cards", label: "البطاقات", icon: CreditCard, color: "text-secondary", bg: "bg-secondary/15", border: "border-l-secondary", trend: { value: "+12%", positive: true } },
+    81→  { key: "published_cards", label: "البطاقات المنشورة", icon: Eye, color: "text-success", bg: "bg-success/15", border: "border-l-success", trend: { value: "+5%", positive: true } },
+    82→  { key: "facilities", label: "المنشآت", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent", trend: { value: "+15%", positive: true } },
+    83→  { key: "customers", label: "العملاء", icon: Users, color: "text-cat-facility", bg: "bg-cat-facility/15", border: "border-l-cat-facility", trend: { value: "+22%", positive: true } },
+    84→  { key: "owners", label: "المالكون", icon: UserCog, color: "text-chart-4", bg: "bg-chart-4/15", border: "border-l-chart-4", trend: { value: "-3%", positive: false } },
+    85→  { key: "products", label: "المنتجات", icon: Package, color: "text-cat-restaurant", bg: "bg-cat-restaurant/15", border: "border-l-cat-restaurant", trend: { value: "+9%", positive: true } },
+    86→  { key: "available_products", label: "المنتجات المتاحة", icon: PackageCheck, color: "text-cat-cafe", bg: "bg-cat-cafe/15", border: "border-l-cat-cafe", trend: { value: "+4%", positive: true } },
+    87→];
+    88→
+    89→const STAT_GRADIENTS = [
+    90→  "bg-gradient-to-br from-primary/5 to-transparent",
+    91→  "bg-gradient-to-br from-secondary/5 to-transparent",
+    92→  "bg-gradient-to-br from-accent/5 to-transparent",
+    93→  "bg-gradient-to-br from-muted/50 to-transparent",
+    94→];
+    95→
+    96→interface StatCardProps {
+    97→  config: StatConfig;
+    98→  isLoading: boolean;
+    99→  value: number | undefined;
+   100→  index: number;
+   101→}
+   102→
+   103→function StatCard({ config, isLoading, value, index }: StatCardProps) {
+   104→  const Icon = config.icon;
+   105→  const TrendIcon = config.trend.positive ? TrendingUp : TrendingDown;
+   106→  return (
+   107→    <Card className={cn(
+   108→      "border-l-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
+   109→      config.border,
+   110→      STAT_GRADIENTS[index % STAT_GRADIENTS.length],
+   111→    )}>
+   112→      <CardHeader className="pb-2">
+   113→        <div className="flex items-center justify-between">
+   114→          <CardTitle className="text-sm font-medium text-muted-foreground">
+   115→            {config.label}
+   116→          </CardTitle>
+   117→          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", config.bg, config.color)}>
+   118→            <Icon className="h-4.5 w-4.5" />
+   119→          </span>
+   120→        </div>
+   121→      </CardHeader>
+   122→      <CardContent className="pt-0">
+   123→        <div className="flex items-end justify-between">
+   124→          <div>
+   125→            {isLoading ? (
+   126→              <Skeleton className="h-8 w-16" />
+   127→            ) : (
+   128→              <span className="text-3xl font-bold">
+   129→                {value === undefined ? "—" : value}
+   130→              </span>
+   131→            )}
+   132→          </div>
+   133→          <span className={cn(
+   134→            "flex items-center gap-0.5 text-xs font-medium",
+   135→            config.trend.positive ? "text-success" : "text-destructive"
+   136→          )}>
+   137→            <TrendIcon className="h-3.5 w-3.5" />
+   138→            {config.trend.value}
+   139→          </span>
+   140→        </div>
+   141→      </CardContent>
+   142→    </Card>
+   143→  );
+   144→}
+   145→
+   146→/* ─── Mini Bar Chart ───────────────────────────────── */
+   147→interface MiniBarChartProps {
+   148→  label: string;
+   149→  value: number;
+   150→  max: number;
+   151→  color: string;
+   152→  delay?: number;
+   153→  reduced: boolean;
+   154→}
+   155→
+   156→function MiniBarChart({ label, value, max, color, delay = 0, reduced }: MiniBarChartProps) {
+   157→  const pct = max > 0 ? (value / max) * 100 : 0;
+   158→  return (
+   159→    <div className="flex items-center gap-3">
+   160→      <span className="w-28 shrink-0 text-sm text-muted-foreground">{label}</span>
+   161→      <div className="h-7 flex-1 overflow-hidden rounded-full bg-muted/40">
+   162→        <motion.div
+   163→          className={cn("h-full rounded-full", color)}
+   164→          initial={reduced ? { width: `${pct}%` } : { width: 0 }}
+   165→          animate={{ width: `${pct}%` }}
+   166→          transition={{ duration: 0.6, delay: reduced ? 0 : delay, ease: "easeOut" as const }}
+   167→        />
+   168→      </div>
+   169→      <span className="w-10 text-left text-sm font-semibold">{value}</span>
+   170→    </div>
+   171→  );
+   172→}
+   173→
+   174→/* ─── Quick action config ──────────────────────────── */
+   175→interface QuickAction {
+   176→  label: string;
+   177→  subtitle: string;
+   178→  href: string;
+   179→  icon: LucideIcon;
+   180→  color: string;
+   181→  bg: string;
+   182→}
+   183→
+   184→const QUICK_ACTIONS: QuickAction[] = [
+   185→  {
+   186→    label: "إضافة منشأة",
+   187→    subtitle: "إضافة مطعم أو مقهى جديد",
+   188→    href: "/admin/facilities",
+   189→    icon: Store,
+   190→    color: "text-accent",
+   191→    bg: "bg-accent/15",
+   192→  },
+   193→  {
+   194→    label: "إدارة البطاقات",
+   195→    subtitle: "إنشاء وتعديل بطاقات الخصم",
+   196→    href: "/admin/cards",
+   197→    icon: CreditCard,
+   198→    color: "text-cat-facility",
+   199→    bg: "bg-cat-facility/15",
+   200→  },
+   201→  {
+   202→    label: "عرض العملاء",
+   203→    subtitle: "عرض وإدارة حسابات المستخدمين",
+   204→    href: "/admin/users",
+   205→    icon: Users,
+   206→    color: "text-secondary",
+   207→    bg: "bg-secondary/15",
+   208→  },
+   209→];
+   210→
+   211→/* ─── Role badge styles (matching UsersTable) ──────── */
+   212→const ROLE_LABELS: Record<UserRole, string> = {
+   213→  admin: "مشرف",
+   214→  owner: "مالك",
+   215→  customer: "عميل",
+   216→};
+   217→
+   218→const ROLE_COLORS: Record<UserRole, string> = {
+   219→  admin: "bg-primary/15 text-primary border-primary/25 hover:bg-primary/15",
+   220→  owner: "bg-accent/15 text-accent border-accent/25 hover:bg-accent/15",
+   221→  customer: "bg-secondary/15 text-secondary border-secondary/25 hover:bg-secondary/15",
+   222→};
+   223→
+   224→const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
+   225→  restaurant: "مطعم",
+   226→  cafe: "مقهى",
+   227→  public_facility: "مرفق عام",
+   228→};
+   229→
+   230→const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
+   231→  admin: <ShieldCheck className="h-3.5 w-3.5" />,
+   232→  owner: <Store className="h-3.5 w-3.5" />,
+   233→  customer: <UserIcon className="h-3.5 w-3.5" />,
+   234→};
+   235→
+   236→/* ─── Recent activity skeleton ─────────────────────── */
+   237→function ActivitySkeleton() {
+   238→  return (
+   239→    <div className="space-y-3">
+   240→      {Array.from({ length: 5 }).map((_, i) => (
+   241→        <div key={i} className="flex items-center gap-3">
+   242→          <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+   243→          <div className="flex-1 space-y-1.5">
+   244→            <Skeleton className="h-4 w-40" />
+   245→            <Skeleton className="h-3 w-28" />
+   246→          </div>
+   247→          <Skeleton className="h-3 w-20" />
+   248→        </div>
+   249→      ))}
+   250→    </div>
+   251→  );
+   252→}
+   253→
+   254→/* ─── Donut / Ring Chart for card status ────────── */
+   255→const RING_RADIUS = 60;
+   256→const RING_STROKE = 18;
+   257→const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+   258→
+   259→interface RingSegment {
+   260→  label: string;
+   261→  count: number;
+   262→  color: string;
+   263→  bgColor: string;
+   264→}
+   265→
+   266→function CardStatusRingChart({ segments, total, reduced }: { segments: RingSegment[]; total: number; reduced: boolean }) {
+   267→  const segmentData = useMemo(() => {
+   268→    const result: (RingSegment & { pct: number; dashLength: number; offset: number })[] = [];
+   269→    let runningOffset = 0;
+   270→    for (const s of segments) {
+   271→      if (s.count <= 0) continue;
+   272→      const pct = total > 0 ? s.count / total : 0;
+   273→      const dashLength = pct * RING_CIRCUMFERENCE;
+   274→      result.push({ ...s, pct, dashLength, offset: runningOffset });
+   275→      runningOffset += dashLength;
+   276→    }
+   277→    return result;
+   278→  }, [segments, total]);
+   279→
+   280→  return (
+   281→    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+   282→      {/* SVG Ring */}
+   283→      <div className="relative flex h-40 w-40 shrink-0 items-center justify-center">
+   284→        <svg
+   285→          width={RING_RADIUS * 2 + RING_STROKE * 2}
+   286→          height={RING_RADIUS * 2 + RING_STROKE * 2}
+   287→          viewBox={`0 0 ${RING_RADIUS * 2 + RING_STROKE * 2} ${RING_RADIUS * 2 + RING_STROKE * 2}`}
+   288→          className="-rotate-90"
+   289→        >
+   290→          {/* Background track */}
+   291→          <circle
+   292→            cx={RING_RADIUS + RING_STROKE}
+   293→            cy={RING_RADIUS + RING_STROKE}
+   294→            r={RING_RADIUS}
+   295→            fill="none"
+   296→            stroke="currentColor"
+   297→            strokeWidth={RING_STROKE}
+   298→            className="text-muted/30"
+   299→          />
+   300→          {/* Segments */}
+   301→          {segmentData.map((seg) => (
+   302→            <motion.circle
+   303→              key={seg.label}
+   304→              cx={RING_RADIUS + RING_STROKE}
+   305→              cy={RING_RADIUS + RING_STROKE}
+   306→              r={RING_RADIUS}
+   307→              fill="none"
+   308→              stroke={seg.color}
+   309→              strokeWidth={RING_STROKE}
+   310→              strokeLinecap="round"
+   311→              strokeDasharray={`${seg.dashLength} ${RING_CIRCUMFERENCE - seg.dashLength}`}
+   312→              initial={reduced ? { strokeDashoffset: -seg.offset } : { strokeDashoffset: RING_CIRCUMFERENCE }}
+   313→              animate={{ strokeDashoffset: -seg.offset }}
+   314→              transition={{ duration: reduced ? 0 : 0.8, ease: "easeOut" as const }}
+   315→            />
+   316→          ))}
+   317→        </svg>
+   318→        {/* Center text */}
+   319→        <div className="absolute inset-0 flex flex-col items-center justify-center">
+   320→          <span className="text-2xl font-bold">{total}</span>
+   321→          <span className="text-xs text-muted-foreground">إجمالي البطاقات</span>
+   322→        </div>
+   323→      </div>
+   324→
+   325→      {/* Legend */}
+   326→      <div className="flex flex-col gap-3">
+   327→        {segments.map((seg) => (
+   328→          <div key={seg.label} className="flex items-center gap-3 min-h-[44px]">
+   329→            <span
+   330→              className="h-3 w-3 shrink-0 rounded-full"
+   331→              style={{ backgroundColor: seg.color }}
+   332→            />
+   333→            <span className="text-sm text-muted-foreground">{seg.label}</span>
+   334→            <span className="mr-auto text-sm font-semibold">{seg.count}</span>
+   335→          </div>
+   336→        ))}
+   337→      </div>
+   338→    </div>
+   339→  );
+   340→}
+   341→
+   342→function CardStatusSkeleton() {
+   343→  return (
+   344→    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+   345→      <Skeleton className="h-40 w-40 shrink-0 rounded-full" />
+   346→      <div className="flex flex-col gap-3">
+   347→        {Array.from({ length: 3 }).map((_, i) => (
+   348→          <div key={i} className="flex items-center gap-3">
+   349→            <Skeleton className="h-3 w-3 rounded-full" />
+   350→            <Skeleton className="h-4 w-20" />
+   351→            <Skeleton className="h-4 w-8" />
+   352→          </div>
+   353→        ))}
+   354→      </div>
+   355→    </div>
+   356→  );
+   357→}
+   358→
+   359→export default function AdminDashboardPage() {
+   360→const prefersReduced = usePrefersReducedMotion();
+   361→  const { data: dashData, isLoading: dashLoading } = useQuery({
+   362→    queryKey: ["admin", "dashboard"],
+   363→    queryFn: () => apiClient.get<DashboardStats>("/admin/dashboard"),
+   364→    staleTime: 0,
+   365→  });
+   366→
+   367→  const { data: auditData, isLoading: auditLoading } = useAdminAuditLogs(1, 5);
+   368→  const recentLogs = auditData?.items ?? [];
+   369→
+   370→  const { data: usersData, isLoading: usersLoading } = useAdminUsers(undefined, 1, 5);
+   371→  const recentUsers = usersData?.items ?? [];
+   372→
+   373→  const { data: facilitiesData, isLoading: facilitiesLoading } = useAdminFacilities(1, 5);
+   374→  const recentFacilities = facilitiesData?.items ?? [];
+   375→
+   376→  const { data: cardsData, isLoading: cardsLoading } = useAdminCards();
+   377→  const allCards = cardsData?.items ?? [];
+   378→
+   379→  const greeting = useMemo(() => getGreeting(), []);
+   380→  const todayStr = useMemo(() => getFormattedToday(), []);
+   381→
+   382→  /* ─── Card status distribution for ring chart ──── */
+   383→  const cardStatusSegments = useMemo((): RingSegment[] => {
+   384→    const published = allCards.filter((c) => c.is_published).length;
+   385→    const draft = allCards.filter((c) => !c.is_published).length;
+   386→    return [
+   387→      { label: "منشورة", count: published, color: "var(--success)", bgColor: "bg-success/15" },
+   388→      { label: "مسودة", count: draft, color: "var(--muted-foreground)", bgColor: "bg-muted" },
+   389→      { label: "منتهية", count: 0, color: "var(--destructive)", bgColor: "bg-destructive/15" },
+   390→    ];
+   391→  }, [allCards]);
+   392→  const cardTotal = allCards.length;
+   393→
+   394→  /* ─── Date range filter state ───────────────────────── */
+   395→  const [dateFrom, setDateFrom] = useState("");
+   396→  const [dateTo, setDateTo] = useState("");
+   397→
+   398→  const stats = dashData ?? {
+   399→    regions: 0,
+   400→    cards: 0,
+   401→    published_cards: 0,
+   402→    facilities: 0,
+   403→    customers: 0,
+   404→    owners: 0,
+   405→    products: 0,
+   406→    available_products: 0,
+   407→  };
+   408→
+   409→  const staggerVariants = prefersReduced
+   410→    ? { hidden: {}, visible: { transition: { staggerChildren: 0 } } }
+   411→    : { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
+   412→
+   413→  const itemVariants = prefersReduced
+   414→    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
+   415→    : { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } } };
+   416→
+   417→  return (
+   418→    <div className="space-y-6">
+   419→      <div>
+   420→        <h1 className="bg-gradient-to-l from-primary to-secondary bg-clip-text text-transparent font-black text-2xl sm:text-3xl">
+   421→          {greeting}
+   422→        </h1>
+   423→        <p className="mt-1 text-sm text-muted-foreground">
+   424→          {todayStr}
+   425→        </p>
+   426→      </div>
+   427→
+   428→      {/* Date range filter */}
+   429→      <div className="flex flex-wrap items-end gap-3">
+   430→        <div className="space-y-1.5">
+   431→          <label htmlFor="date-from" className="text-sm text-muted-foreground">
+   432→            من تاريخ
+   433→          </label>
+   434→          <Input
+   435→            id="date-from"
+   436→            type="date"
+   437→            value={dateFrom}
+   438→            onChange={(e) => setDateFrom(e.target.value)}
+   439→            className="min-h-[44px] w-44"
+   440→          />
+   441→        </div>
+   442→        <div className="space-y-1.5">
+   443→          <label htmlFor="date-to" className="text-sm text-muted-foreground">
+   444→            إلى تاريخ
+   445→          </label>
+   446→          <Input
+   447→            id="date-to"
+   448→            type="date"
+   449→            value={dateTo}
+   450→            onChange={(e) => setDateTo(e.target.value)}
+   451→            className="min-h-[44px] w-44"
+   452→          />
+   453→        </div>
+   454→        <Button
+   455→          variant="outline"
+   456→          className="min-h-[44px] gap-2"
+   457→          onClick={() => {
+   458→            /* visual-only: no API call */
+   459→          }}
+   460→        >
+   461→          <Filter className="h-4 w-4" />
+   462→          تطبيق
+   463→        </Button>
+   464→        {(dateFrom || dateTo) && (
+   465→          <button
+   466→            type="button"
+   467→            onClick={() => {
+   468→              setDateFrom("");
+   469→              setDateTo("");
+   470→            }}
+   471→            className="min-h-[44px] inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+   472→          >
+   473→            <X className="h-3.5 w-3.5" />
+   474→            مسح الفلتر
+   475→          </button>
+   476→        )}
+   477→      </div>
+   478→
+   479→      <motion.div
+   480→        initial="hidden"
+   481→        animate="visible"
+   482→        variants={staggerVariants}
+   483→        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+   484→      >
+   485→        {STAT_CONFIGS.map((config, index) => (
+   486→          <motion.div key={config.key} variants={itemVariants}>
+   487→            <StatCard
+   488→              config={config}
+   489→              isLoading={dashLoading}
+   490→              value={stats[config.key]}
+   491→              index={index}
+   492→            />
+   493→          </motion.div>
+   494→        ))}
+   495→      </motion.div>
+   496→
+   497→      {/* Quick Glance Bar Chart */}
+   498→      <Card>
+   499→        <CardHeader className="pb-3">
+   500→          <CardTitle className="text-lg font-semibold">نظرة سريعة</CardTitle>
+   501→        </CardHeader>
+   502→        <CardContent className="space-y-3">
+   503→          <MiniBarChart label="المنشآت" value={stats.facilities} max={50} color="bg-accent" delay={0.1} reduced={prefersReduced ?? false} />
+   504→          <MiniBarChart label="البطاقات المنشورة" value={stats.published_cards} max={20} color="bg-success" delay={0.2} reduced={prefersReduced ?? false} />
+   505→          <MiniBarChart label="العملاء" value={stats.customers} max={200} color="bg-secondary" delay={0.3} reduced={prefersReduced ?? false} />
+   506→          <MiniBarChart label="المنتجات المتاحة" value={stats.available_products} max={100} color="bg-cat-cafe" delay={0.4} reduced={prefersReduced ?? false} />
+   507→        </CardContent>
+   508→      </Card>
+   509→
+   510→      {/* Card Status Ring Chart */}
+   511→      <Card>
+   512→        <CardHeader className="pb-3">
+   513→          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+   514→            <PieChart className="h-5 w-5 text-primary" />
+   515→            توزيع حالة البطاقات
+   516→          </CardTitle>
+   517→        </CardHeader>
+   518→        <CardContent>
+   519→          {cardsLoading ? (
+   520→            <CardStatusSkeleton />
+   521→          ) : cardTotal === 0 ? (
+   522→            <p className="py-4 text-center text-sm text-muted-foreground">
+   523→              لا توجد بطاقات بعد.
+   524→            </p>
+   525→          ) : (
+   526→            <CardStatusRingChart
+   527→              segments={cardStatusSegments}
+   528→              total={cardTotal}
+   529→              reduced={prefersReduced ?? false}
+   530→            />
+   531→          )}
+   532→        </CardContent>
+   533→      </Card>
+   534→
+   535→      {/* Quick Actions */}
+   536→      <div>
+   537→        <h2 className="mb-3 text-lg font-semibold">إجراءات سريعة</h2>
+   538→        <motion.div
+   539→          initial="hidden"
+   540→          animate="visible"
+   541→          variants={staggerVariants}
+   542→          className="grid gap-4 sm:grid-cols-3"
+   543→        >
+   544→          {QUICK_ACTIONS.map((action) => {
+   545→            const Icon = action.icon;
+   546→            return (
+   547→              <motion.div key={action.href} variants={itemVariants}>
+   548→                <Link href={action.href}>
+   549→                  <Card className="group cursor-pointer transition-transform duration-200 hover:scale-[1.02]">
+   550→                    <CardContent className="flex items-center gap-4 p-4">
+   551→                      <span className={cn(
+   552→                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-110",
+   553→                        action.bg,
+   554→                        action.color
+   555→                      )}>
+   556→                        <Icon className="h-5 w-5" />
+   557→                      </span>
+   558→                      <div className="min-w-0">
+   559→                        <p className="font-semibold leading-tight">{action.label}</p>
+   560→                        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
+   561→                          {action.subtitle}
+   562→                        </p>
+   563→                      </div>
+   564→                      <ArrowLeft className="mr-auto h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+   565→                    </CardContent>
+   566→                  </Card>
+   567→                </Link>
+   568→              </motion.div>
+   569→            );
+   570→          })}
+   571→        </motion.div>
+   572→      </div>
+   573→
+   574→      {/* Tips Card with gradient border */}
+   575→      <div className="relative rounded-xl p-[1.5px] bg-gradient-to-l from-primary via-secondary to-accent">
+   576→        <Card className="rounded-[10px] bg-card border-0">
+   577→          <CardContent className="flex items-start gap-3 p-4 sm:p-5">
+   578→            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+   579→              <Lightbulb className="h-5 w-5" />
+   580→            </span>
+   581→            <div>
+   582→              <p className="font-semibold">نصيحة</p>
+   583→              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+   584→                استخدم القائمة الجانبية للتنقل بين أقسام الإدارة. يمكنك إدارة المناطق والبطاقات والمنشآت والعملاء ومراجعة سجل العمليات.
+   585→              </p>
+   586→            </div>
+   587→          </CardContent>
+   588→        </Card>
+   589→      </div>
+   590→
+   591→      {/* Recent Activity */}
+   592→      <div>
+   593→        <h2 className="mb-3 text-lg font-semibold">آخر الأنشطة</h2>
+   594→        <Card>
+   595→          <CardContent className="p-4 sm:p-5">
+   596→            {auditLoading ? (
+   597→              <ActivitySkeleton />
+   598→            ) : recentLogs.length === 0 ? (
+   599→              <p className="py-4 text-center text-sm text-muted-foreground">
+   600→                لا توجد أنشطة مؤخرة.
+   601→              </p>
+   602→            ) : (
+   603→              <div className="space-y-3">
+   604→                {recentLogs.map((log) => (
+   605→                  <div
+   606→                    key={log.id}
+   607→                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+   608→                  >
+   609→                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+   610→                      <span className="text-xs font-bold">{getAuditLabel(log.action_type).charAt(0)}</span>
+   611→                    </span>
+   612→                    <div className="min-w-0 flex-1">
+   613→                      <p className="text-sm font-medium">{getAuditLabel(log.action_type)}</p>
+   614→                      {log.user_id ? (
+   615→                        <p className="text-xs text-muted-foreground">
+   616→                          مستخدم رقم {log.user_id}
+   617→                        </p>
+   618→                      ) : (
+   619→                        <p className="text-xs text-muted-foreground">نظام</p>
+   620→                      )}
+   621→                    </div>
+   622→                    <span className="shrink-0 text-xs text-muted-foreground">
+   623→                      {formatDate(log.created_at)}
+   624→                    </span>
+   625→                  </div>
+   626→                ))}
+   627→              </div>
+   628→            )}
+   629→          </CardContent>
+   630→        </Card>
+   631→      </div>
+   632→
+   633→      {/* Recent Facilities */}
+   634→      <div>
+   635→        <h2 className="mb-3 text-lg font-semibold">أحدث المنشآت المضافة</h2>
+   636→        <Card>
+   637→          <CardContent className="p-4 sm:p-5">
+   638→            {facilitiesLoading ? (
+   639→              <div className="space-y-3">
+   640→                {Array.from({ length: 5 }).map((_, i) => (
+   641→                  <div key={i} className="flex items-center gap-3">
+   642→                    <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+   643→                    <div className="flex-1 space-y-1.5">
+   644→                      <Skeleton className="h-4 w-32" />
+   645→                      <Skeleton className="h-3 w-20" />
+   646→                    </div>
+   647→                    <Skeleton className="h-3 w-20" />
+   648→                  </div>
+   649→                ))}
+   650→              </div>
+   651→            ) : recentFacilities.length === 0 ? (
+   652→              <p className="py-4 text-center text-sm text-muted-foreground">
+   653→                لا توجد منشآت بعد.
+   654→              </p>
+   655→            ) : (
+   656→              <div className="space-y-3">
+   657→                {recentFacilities.map((facility) => (
+   658→                  <div
+   659→                    key={facility.id}
+   660→                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+   661→                  >
+   662→                    {facility.image_url ? (
+   663→                      <ImageWithSkeleton
+   664→                        src={facility.image_url}
+   665→                        alt={facility.name}
+   666→                        className="h-10 w-10 shrink-0 rounded-lg"
+   667→                      />
+   668→                    ) : (
+   669→                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+   670→                        <ImageOff className="h-4 w-4" />
+   671→                      </div>
+   672→                    )}
+   673→                    <div className="min-w-0 flex-1">
+   674→                      <p className="text-sm font-medium">{facility.name}</p>
+   675→                      <Badge variant="outline" className="mt-1 text-xs">
+   676→                        {FACILITY_TYPE_LABELS[facility.type]}
+   677→                      </Badge>
+   678→                    </div>
+   679→                    <span className="shrink-0 text-xs text-muted-foreground">
+   680→                      {formatDate(facility.created_at)}
+   681→                    </span>
+   682→                  </div>
+   683→                ))}
+   684→              </div>
+   685→            )}
+   686→          </CardContent>
+   687→        </Card>
+   688→      </div>
+   689→
+   690→      {/* Recent Registered Customers */}
+   691→      <div>
+   692→        <h2 className="mb-3 text-lg font-semibold">آخر العملاء المسجلين</h2>
+   693→        <Card>
+   694→          <CardContent className="p-4 sm:p-5">
+   695→            {usersLoading ? (
+   696→              <div className="space-y-3">
+   697→                {Array.from({ length: 5 }).map((_, i) => (
+   698→                  <div key={i} className="flex items-center gap-3">
+   699→                    <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+   700→                    <div className="flex-1 space-y-1.5">
+   701→                      <Skeleton className="h-4 w-32" />
+   702→                      <Skeleton className="h-3 w-40" />
+   703→                    </div>
+   704→                    <Skeleton className="h-5 w-14 rounded-full" />
+   705→                    <Skeleton className="h-3 w-20" />
+   706→                  </div>
+   707→                ))}
+   708→              </div>
+   709→            ) : recentUsers.length === 0 ? (
+   710→              <p className="py-4 text-center text-sm text-muted-foreground">
+   711→                لا يوجد عملاء مسجلين بعد.
+   712→              </p>
+   713→            ) : (
+   714→              <div className="space-y-3">
+   715→                {recentUsers.map((user) => (
+   716→                  <div
+   717→                    key={user.id}
+   718→                    className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+   719→                  >
+   720→                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-secondary">
+   721→                      <Users className="h-4 w-4" />
+   722→                    </span>
+   723→                    <div className="min-w-0 flex-1">
+   724→                      <p className="text-sm font-medium">{user.full_name}</p>
+   725→                      <p className="text-xs text-muted-foreground" dir="ltr">{user.email}</p>
+   726→                    </div>
+   727→                    <Badge
+   728→                      variant="outline"
+   729→                      className={cn("shrink-0", ROLE_COLORS[user.role])}
+   730→                    >
+   731→                      <span className="flex items-center gap-1">
+   732→                        {ROLE_ICONS[user.role]}
+   733→                        {ROLE_LABELS[user.role]}
+   734→                      </span>
+   735→                    </Badge>
+   736→                    <span className="shrink-0 text-xs text-muted-foreground">
+   737→                      {formatDate(user.created_at)}
+   738→                    </span>
+   739→                  </div>
+   740→                ))}
+   741→              </div>
+   742→            )}
+   743→          </CardContent>
+   744→        </Card>
+   745→      </div>
+   746→    </div>
+   747→  );
+   748→}

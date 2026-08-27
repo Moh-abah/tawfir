@@ -1,187 +1,197 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useTheme } from "next-themes";
-import { Save, Lock, Info, Bell, Globe, Camera } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
+import {
+  Info,
+  Bell,
+  Phone,
+  Mail,
+  MessageCircle,
+  MapPin,
+  User,
+  Loader2,
+  ShieldCheck,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  CalendarDays,
+  ChevronLeft,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "@/components/theme/theme-provider";
+import { useAdminAuth, useAdminLogout } from "@/hooks/useAdminAuth";
+import { useAccountMe } from "@/hooks/useAccountMe";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
+import { useWsStatus } from "@/hooks/useWsStatus";
+import { formatDate } from "@/lib/format";
+import { SITE_NAME } from "@/lib/site-config";
+import { APP_VERSION } from "@/lib/pwa/version";
 import { cn } from "@/lib/utils";
 
-/* ─── Password strength calculator ──────────────── */
-function getPasswordStrength(password: string): { level: "weak" | "medium" | "strong"; percent: number } {
-  if (!password) return { level: "weak", percent: 0 };
-  let score = 0;
-  if (password.length >= 6) score += 1;
-  if (password.length >= 10) score += 1;
-  if (/[A-Z]/.test(password)) score += 1;
-  if (/[0-9]/.test(password)) score += 1;
-  if (/[^A-Za-z0-9]/.test(password)) score += 1;
-  if (score <= 2) return { level: "weak", percent: 33 };
-  if (score <= 3) return { level: "medium", percent: 66 };
-  return { level: "strong", percent: 100 };
-}
+/* ─── معلومات التواصل الحقيقية — مواصفة توفير اليمنية ─── */
+const CONTACT_PHONE = "780090882";
+const CONTACT_PHONE_DISPLAY = "780 090 882";
+const CONTACT_WHATSAPP = "https://wa.me/967780090882";
+const CONTACT_EMAIL = "moohabhb68@gmail.com";
 
-const STRENGTH_LABELS: Record<string, string> = {
-  weak: "ضعيفة",
-  medium: "متوسطة",
-  strong: "قوية",
+const ROLE_LABEL: Record<string, string> = {
+  admin: "مشرف",
+  owner: "مالك منشأة",
+  customer: "عميل",
 };
 
-const STRENGTH_COLORS: Record<string, string> = {
-  weak: "bg-destructive",
-  medium: "bg-accent",
-  strong: "bg-success",
-};
-
+/**
+ * إعدادات لوحة المشرف — الجولة 5.
+ *
+ * ميزات حقيقية فقط:
+ *  - بيانات الحساب من GET /me (بالتوكن الأدمن) — لا نص ثابت
+ *  - المظهر عبر المزوّد المخصص (يعمل فعلياً)
+ *  - حالة الإشعارات الحقيقية: WebSocket + عدّاد غير المقروء + زر عرض
+ *  - بطاقة تواصل حقيقية (هاتف/واتساب/بريد + الموقع)
+ *  - الإصدار من lib/pwa/version.ts (مصدره package.json)
+ *
+ * ملاحظة: تغيير كلمة مرور المشرف غير متوفر — الباك إند لا يوفّر
+ * endpoint له (موثّق في BLOCKERS.md).
+ */
 export default function AdminSettingsPage() {
-  const { toast } = useToast();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { accessToken, hydrated } = useAdminAuth();
+  const logout = useAdminLogout();
 
-  const [displayName, setDisplayName] = useState("");
-  const [email] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [notifications, setNotifications] = useState(true);
-  const [emailNotif, setEmailNotif] = useState(true);
-  const [facilityNotif, setFacilityNotif] = useState(true);
-  const [securityNotif, setSecurityNotif] = useState(true);
+  // بيانات الحساب الحقيقية — GET /api/v1/me (توكن المشرف)
+  const me = useAccountMe("admin", hydrated && !!accessToken);
+  // عدّاد الإشعارات الحقيقي — GET /notifications/unread-count
+  const unread = useUnreadCount(!!accessToken);
+  // حالة WebSocket الحقيقية — من ws-client
+  const wsStatus = useWsStatus();
 
-  const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
-
-  function handleSaveProfile() {
-    toast({ title: "تم حفظ الملف الشخصي" });
-  }
-
-  function handleChangePassword() {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast({ title: "يرجى ملء جميع الحقول", variant: "destructive" });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: "كلمة المرور غير متطابقة", variant: "destructive" });
-      return;
-    }
-    toast({ title: "تم تغيير كلمة المرور" });
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-  }
-
-  function handleSaveAll() {
-    toast({ title: "تم حفظ جميع التغييرات" });
-  }
-
-  function handleSaveNotifications() {
-    toast({ title: "تم حفظ إعدادات الإشعارات" });
-  }
-
-  function handleChangeAvatar() {
-    toast({ title: "قريبًا", description: "ستتوفر ميزة تغيير الصورة الشخصية قريبًا" });
-  }
+  const account = me.data;
+  const unreadCount = unread.data?.count ?? 0;
+  const isLoading = me.isLoading && hydrated;
 
   return (
-    <div className="relative space-y-6 pb-24">
+    <div className="relative mx-auto max-w-3xl space-y-6 pb-24">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">الإعدادات</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          إدارة إعدادات الحساب والمنصة.
+          إعدادات حساب المشرف — بيانات حقيقية من الخادم.
         </p>
       </div>
 
-      {/* Profile Section with animated gradient border */}
-      <div className="gradient-border-animated rounded-xl">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Globe className="h-5 w-5 text-primary" />
-              الملف الشخصي
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Avatar section */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-2xl font-bold text-primary-foreground">
-                  م
-                </div>
-                <button
-                  type="button"
-                  onClick={handleChangeAvatar}
-                  className="absolute bottom-0 left-0 flex h-8 w-8 items-center justify-center rounded-full bg-card border border-border text-muted-foreground hover:text-foreground transition-colors min-h-[44px] min-w-[44px]"
-                  aria-label="تغيير الصورة"
-                >
-                  <Camera className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="flex flex-col gap-1">
-                <p className="font-semibold">المشرف</p>
-                <p className="text-sm text-muted-foreground">admin@wafir.gleeze.com</p>
-                <button
-                  type="button"
-                  onClick={handleChangeAvatar}
-                  className="text-sm text-primary hover:text-primary/80 transition-colors min-h-[44px] inline-flex items-center"
-                >
-                  <Camera className="ml-1 h-3.5 w-3.5" />
-                  تغيير الصورة
-                </button>
-              </div>
-            </div>
-
-            <Separator />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="display-name">الاسم المعروض</Label>
-                <Input
-                  id="display-name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="المشرف"
-                  className="min-h-[44px]"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
-                <Input
-                  id="email"
-                  value={email}
-                  disabled
-                  dir="ltr"
-                  className="min-h-[44px]"
-                />
-              </div>
-            </div>
-            <Button className="gap-2" onClick={handleSaveProfile}>
-              <Save className="h-4 w-4" />
-              حفظ
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Animated gradient divider */}
-      <div className="h-[2px] w-full bg-gradient-to-l from-transparent via-primary/30 to-transparent" />
-
-      {/* General Settings */}
+      {/* ─── معلومات الحساب — GET /me ─── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="h-5 w-5 text-secondary" />
-            الإعدادات العامة
+            <User className="h-5 w-5 text-primary" aria-hidden="true" />
+            معلومات الحساب
           </CardTitle>
+          <CardDescription>بيانات حسابك كما هي مسجّلة في المنصة.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-14 w-14 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-56" />
+                </div>
+              </div>
+              <Skeleton className="h-3 w-32" />
+            </div>
+          ) : account ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-xl font-bold text-primary-foreground">
+                  {account.full_name?.trim().charAt(0) || "م"}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{account.full_name}</p>
+                  <p dir="ltr" className="truncate text-sm text-muted-foreground">
+                    {account.email}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+                <div className="flex items-center gap-2">
+                  <dt className="text-muted-foreground">الدور:</dt>
+                  <dd>
+                    <Badge variant="secondary" className="gap-1 rounded-full">
+                      <ShieldCheck className="h-3 w-3" aria-hidden="true" />
+                      {ROLE_LABEL[account.role] ?? account.role}
+                    </Badge>
+                  </dd>
+                </div>
+                <div className="flex items-center gap-2">
+                  <dt className="text-muted-foreground">الجوال:</dt>
+                  <dd dir="ltr" className="tabular-nums">
+                    {account.phone}
+                  </dd>
+                </div>
+                <div className="col-span-full flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <dt className="text-muted-foreground">تاريخ الإنشاء:</dt>
+                  <dd>{formatDate(account.created_at)}</dd>
+                </div>
+              </dl>
+            </div>
+          ) : (
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                تعذّر تحميل بيانات الحساب الآن.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-full"
+                onClick={() => me.refetch()}
+                disabled={me.isFetching}
+              >
+                {me.isFetching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
+                )}
+                إعادة المحاولة
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
+
+      {/* ─── المظهر — يعمل فعلياً عبر المزوّد المخصص ─── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Info className="h-5 w-5 text-secondary" aria-hidden="true" />
+            المظهر
+          </CardTitle>
+          <CardDescription>تبديل الوضع الفاتح/الداكن للوحة التحكم.</CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">المظهر</p>
+              <p className="text-sm font-medium">الوضع الداكن</p>
               <p className="text-xs text-muted-foreground">
-                {theme === "dark" ? "داكن" : "فاتح"}
+                {theme === "dark" ? "مفعّل" : "غير مفعّل"}
               </p>
             </div>
             <Switch
@@ -190,187 +200,216 @@ export default function AdminSettingsPage() {
               aria-label="تبديل المظهر"
             />
           </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">اللغة</p>
-              <p className="text-xs text-muted-foreground">العربية - ثابت</p>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">الإشعارات</p>
-              <p className="text-xs text-muted-foreground">تفعيل إشعارات النظام</p>
-            </div>
-            <Switch
-              checked={notifications}
-              onCheckedChange={setNotifications}
-              aria-label="تبديل الإشعارات"
-            />
-          </div>
         </CardContent>
       </Card>
 
-      {/* Animated gradient divider */}
-      <div className="h-[2px] w-full bg-gradient-to-l from-transparent via-secondary/30 to-transparent" />
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
 
-      {/* Account Security */}
+      {/* ─── الإشعارات — حالة حقيقية ─── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Lock className="h-5 w-5 text-accent" />
-            أمان الحساب
+            <Bell className="h-5 w-5 text-accent" aria-hidden="true" />
+            الإشعارات
           </CardTitle>
+          <CardDescription>
+            حالة الإشعارات الفورية لحسابك الآن — مباشرة من الخادم.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">كلمة المرور الحالية</Label>
-              <Input
-                id="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="**********"
-                className="min-h-[44px]"
-              />
+          {/* حالة WebSocket */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2">
+              {wsStatus === "connected" ? (
+                <Wifi className="h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+              ) : (
+                <WifiOff className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">الاتصال الفوري</p>
+                <p className="text-xs text-muted-foreground">
+                  {wsStatus === "connected" && "متصل — الإشعارات تصلك لحظياً"}
+                  {wsStatus === "reconnecting" && "يعيد الاتصال..."}
+                  {wsStatus === "disconnected" && "غير متصل حالياً"}
+                  {wsStatus === "error" && "خطأ في الاتصال"}
+                  {wsStatus === "idle" && "بانتظار الاتصال..."}
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
-              <Input
-                id="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="**********"
-                className="min-h-[44px]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirm-password">تأكيد كلمة المرور</Label>
-              <Input
-                id="confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="**********"
-                className="min-h-[44px]"
-              />
-            </div>
+            <span
+              role="status"
+              aria-live="polite"
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1 text-xs font-bold",
+                wsStatus === "connected"
+                  ? "bg-success/15 text-success"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {wsStatus === "connected" ? "متصل" : "غير متصل"}
+            </span>
           </div>
 
-          {/* Password strength meter */}
-          {newPassword.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">قوة كلمة المرور</span>
-                <span className={cn(
-                  "text-xs font-medium",
-                  passwordStrength.level === "weak" && "text-destructive",
-                  passwordStrength.level === "medium" && "text-accent",
-                  passwordStrength.level === "strong" && "text-success",
-                )}>
-                  {STRENGTH_LABELS[passwordStrength.level]}
-                </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted/40">
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all duration-300",
-                    STRENGTH_COLORS[passwordStrength.level],
-                  )}
-                  style={{ width: `${passwordStrength.percent}%` }}
-                />
-              </div>
-            </div>
-          )}
+          <Separator />
 
-          <Button className="gap-2" onClick={handleChangePassword}>
-            <Save className="h-4 w-4" />
-            حفظ كلمة المرور
+          {/* عدد غير المقروء */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">غير المقروء</p>
+              <p className="text-xs text-muted-foreground">
+                عدد الإشعارات التي لم تقرأها بعد
+              </p>
+            </div>
+            {unread.isLoading ? (
+              <Skeleton className="h-7 w-14 rounded-full" />
+            ) : (
+              <Badge
+                variant={unreadCount > 0 ? "default" : "secondary"}
+                className="min-w-9 justify-center rounded-full tabular-nums"
+                aria-live="polite"
+              >
+                {unreadCount}
+              </Badge>
+            )}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full gap-2 rounded-full"
+            onClick={() => router.push("/notifications")}
+          >
+            <Bell className="h-4 w-4" aria-hidden="true" />
+            عرض الإشعارات
+            <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
         </CardContent>
       </Card>
 
-      {/* Animated gradient divider */}
-      <div className="h-[2px] w-full bg-gradient-to-l from-transparent via-accent/30 to-transparent" />
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
 
-      {/* Notification Preferences */}
+      {/* ─── الدعم والتواصل — حقيقي ─── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="h-5 w-5 text-primary" />
-            إعدادات الإشعارات
+            <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
+            معلومات الاتصال
           </CardTitle>
+          <CardDescription>للاستفسارات والدعم الفني تواصل معنا مباشرة:</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">إشعارات البريد الإلكتروني</p>
-              <p className="text-xs text-muted-foreground">استلام إشعارات عبر البريد الإلكتروني</p>
+        <CardContent className="space-y-3">
+          <a
+            href={`tel:${CONTACT_PHONE}`}
+            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/15">
+              <Phone className="h-4 w-4 text-secondary" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">الهاتف</p>
+              <p dir="ltr" className="mt-0.5 text-sm text-muted-foreground tabular-nums">
+                {CONTACT_PHONE_DISPLAY}
+              </p>
             </div>
-            <Switch
-              checked={emailNotif}
-              onCheckedChange={setEmailNotif}
-              aria-label="إشعارات البريد الإلكتروني"
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">إشعارات المنشآت الجديدة</p>
-              <p className="text-xs text-muted-foreground">تنبيه عند إضافة منشآت جديدة</p>
+          </a>
+          <a
+            href={CONTACT_WHATSAPP}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15">
+              <MessageCircle className="h-4 w-4 text-success" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">واتساب</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                محادثة مباشرة مع فريق {SITE_NAME}
+              </p>
             </div>
-            <Switch
-              checked={facilityNotif}
-              onCheckedChange={setFacilityNotif}
-              aria-label="إشعارات المنشآت الجديدة"
-            />
-          </div>
-          <Separator />
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-sm font-medium">تنبيهات الأمان</p>
-              <p className="text-xs text-muted-foreground">إشعارات تسجيل الدخول والنشاط المشبوه</p>
+          </a>
+          <a
+            href={`mailto:${CONTACT_EMAIL}`}
+            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+              <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">البريد الإلكتروني</p>
+              <p dir="ltr" className="mt-0.5 text-sm text-muted-foreground">
+                {CONTACT_EMAIL}
+              </p>
             </div>
-            <Switch
-              checked={securityNotif}
-              onCheckedChange={setSecurityNotif}
-              aria-label="تنبيهات الأمان"
-            />
+          </a>
+          <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15">
+              <MapPin className="h-4 w-4 text-accent" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="text-sm font-medium text-foreground">الموقع</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                الجمهورية اليمنية — صنعاء
+              </p>
+            </div>
           </div>
-          <Button className="gap-2" onClick={handleSaveNotifications}>
-            <Save className="h-4 w-4" />
-            حفظ إعدادات الإشعارات
-          </Button>
         </CardContent>
       </Card>
 
-      {/* About */}
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
+
+      {/* ─── عن المنصة ─── */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Info className="h-5 w-5 text-muted-foreground" />
+            <Info className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             عن المنصة
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>توفير - منصة الخصومات وطلب الوجبات اليمنية</p>
-          <p>الإصدار: 1.0.0</p>
+          <p>
+            {SITE_NAME} — منصة الخصومات وطلب الوجبات اليمنية
+          </p>
+          <p>
+            الإصدار: <span dir="ltr">{APP_VERSION}</span>
+          </p>
         </CardContent>
       </Card>
 
-      {/* Sticky save all button */}
-      <div className="sticky bottom-4 z-30 flex justify-center">
-        <Button
-          onClick={handleSaveAll}
-          className="min-h-[44px] gap-2 bg-gradient-to-l from-primary to-secondary px-8 font-semibold text-white hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
-        >
-          <Save className="h-4 w-4" />
-          حفظ جميع التغييرات
-        </Button>
-      </div>
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
+
+      {/* ─── الحساب ─── */}
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg text-destructive">
+            <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+            الحساب
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium">تسجيل الخروج</p>
+              <p className="text-xs text-muted-foreground">
+                تسجيل الخروج من لوحة التحكم على هذا الجهاز
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              className="gap-2 min-h-[44px]"
+              onClick={() => logout()}
+            >
+              تسجيل الخروج
+            </Button>
+          </div>
+          <Separator className="my-4" />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            تغيير كلمة مرور المشرف غير متوفر حالياً — يتطلب إضافة endpoint
+            مخصص من الباك إند. لتعديل بيانات حسابك تواصل مع فريق {SITE_NAME}{" "}
+            عبر معلومات الاتصال أعلاه.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }

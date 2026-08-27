@@ -112,7 +112,6 @@ function isStaticAsset(pathname) {
     pathname.startsWith("/screenshots/") ||
     pathname === "/logo.svg" ||
     pathname === "/logo-mark.svg" ||
-    pathname === "/logowafir.png" ||
     pathname === "/favicon.ico" ||
     pathname === "/icon.svg"
   );

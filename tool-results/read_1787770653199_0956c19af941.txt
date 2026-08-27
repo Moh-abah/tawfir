@@ -1,0 +1,836 @@
+     1→"use client";
+     2→
+     3→import { useMemo, useState } from "react";
+     4→import Link from "next/link";
+     5→import { motion } from "framer-motion";
+     6→import {
+     7→  ArrowLeft,
+     8→  BadgePercent,
+     9→  CircleHelp,
+    10→  Coffee,
+    11→  CreditCard,
+    12→  Landmark,
+    13→  Loader2,
+    14→  Mail,
+    15→  MapPin,
+    16→  MapPinned,
+    17→  MessageCircle,
+    18→  Navigation,
+    19→  Phone,
+    20→  PiggyBank,
+    21→  ShieldCheck,
+    22→  UtensilsCrossed,
+    23→  type LucideIcon,
+    24→} from "lucide-react";
+    25→import { Button } from "@/components/ui/button";
+    26→import { Skeleton } from "@/components/ui/skeleton";
+    27→import {
+    28→  Accordion,
+    29→  AccordionContent,
+    30→  AccordionItem,
+    31→  AccordionTrigger,
+    32→} from "@/components/ui/accordion";
+    33→import { MemberCard } from "@/components/public/MemberCard";
+    34→import {
+    35→  ProductCard,
+    36→  ProductCardSkeleton,
+    37→} from "@/components/public/ProductCard";
+    38→import { SpecialOffersSection } from "@/components/public/SpecialOffersSection";
+    39→import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+    40→import { ErrorState } from "@/components/shared/ErrorState";
+    41→import { EmptyState } from "@/components/shared/EmptyState";
+    42→import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
+    43→import { useFacilities } from "@/hooks/useFacilities";
+    44→import { useNearbyProducts } from "@/hooks/useNearbyProducts";
+    45→import { useProducts } from "@/hooks/useProducts";
+    46→import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+    47→import { useRegionStore } from "@/store/region.store";
+    48→import { toast } from "@/hooks/use-toast";
+    49→import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
+    50→import { DELIVERY_FEE, DISCOUNT_RATE } from "@/lib/site-config";
+    51→import { resolveImageUrl } from "@/lib/format";
+    52→import type { Facility, FacilityType } from "@/types/api.generated";
+    53→import { cn } from "@/lib/utils";
+    54→
+    55→/* ------------------------------------------------------------------ */
+    56→/*  التصنيفات الدائرية — فقط مطاعم وكافيهات                            */
+    57→/* ------------------------------------------------------------------ */
+    58→const CATEGORIES: ReadonlyArray<{
+    59→  key: FacilityType;
+    60→  label: string;
+    61→  icon: LucideIcon;
+    62→}> = [
+    63→  { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
+    64→  { key: "cafe", label: "كافيهات", icon: Coffee },
+    65→];
+    66→
+    67→const CATEGORY_CIRCLE: Record<
+    68→  FacilityType,
+    69→  { active: string; idle: string }
+    70→> = {
+    71→  restaurant: {
+    72→    active: "bg-cat-restaurant text-white shadow-soft",
+    73→    idle: "bg-cat-restaurant-soft text-cat-restaurant",
+    74→  },
+    75→  cafe: {
+    76→    active: "bg-cat-cafe text-white shadow-soft",
+    77→    idle: "bg-cat-cafe-soft text-cat-cafe",
+    78→  },
+    79→};
+    80→
+    81→function CategoryCircles({
+    82→  active,
+    83→  onChange,
+    84→}: {
+    85→  active: FacilityType | null;
+    86→  onChange: (key: FacilityType | null) => void;
+    87→}) {
+    88→  return (
+    89→    <div
+    90→      className="scroll-area-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+    91→      role="group"
+    92→      aria-label="تصفية العروض حسب الفئة"
+    93→    >
+    94→      <button
+    95→        type="button"
+    96→        onClick={() => onChange(null)}
+    97→        aria-pressed={active === null}
+    98→        className="flex min-h-[44px] w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-2xl p-2 transition-transform duration-150 active:scale-95"
+    99→      >
+   100→        <span
+   101→          className={cn(
+   102→            "flex h-14 w-14 items-center justify-center rounded-full text-xs font-extrabold transition-all duration-200",
+   103→            active === null
+   104→              ? "bg-primary text-primary-foreground shadow-soft"
+   105→              : "bg-muted text-muted-foreground"
+   106→          )}
+   107→        >
+   108→          الكل
+   109→        </span>
+   110→        <span
+   111→          className={cn(
+   112→            "text-xs leading-tight",
+   113→            active === null
+   114→              ? "font-bold text-foreground"
+   115→              : "font-medium text-foreground"
+   116→          )}
+   117→        >
+   118→          الكل
+   119→        </span>
+   120→      </button>
+   121→      {CATEGORIES.map((category) => {
+   122→        const Icon = category.icon;
+   123→        const isActive = active === category.key;
+   124→        return (
+   125→          <button
+   126→            key={category.key}
+   127→            type="button"
+   128→            onClick={() => onChange(isActive ? null : category.key)}
+   129→            aria-pressed={isActive}
+   130→            className="flex min-h-[44px] w-[84px] shrink-0 flex-col items-center gap-1.5 rounded-2xl p-2 transition-transform duration-150 active:scale-95"
+   131→          >
+   132→            <span
+   133→              className={cn(
+   134→                "flex h-14 w-14 items-center justify-center rounded-full transition-all duration-200",
+   135→                isActive
+   136→                  ? CATEGORY_CIRCLE[category.key].active
+   137→                  : CATEGORY_CIRCLE[category.key].idle
+   138→              )}
+   139→            >
+   140→              <Icon className="h-6 w-6" strokeWidth={2} aria-hidden="true" />
+   141→            </span>
+   142→            <span
+   143→              className={cn(
+   144→                "text-xs leading-tight text-foreground",
+   145→                isActive ? "font-bold" : "font-medium"
+   146→              )}
+   147→            >
+   148→              {category.label}
+   149→            </span>
+   150→          </button>
+   151→        );
+   152→      })}
+   153→    </div>
+   154→  );
+   155→}
+   156→
+   157→/* ------------------------------------------------------------------ */
+   158→/*  قسم Hero/CTA — MemberCard يعرض العضوية أو دعوة التسجيل             */
+   159→/* ------------------------------------------------------------------ */
+   160→function HeroSection() {
+   161→  return (
+   162→    <section
+   163→      className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 sm:pt-10"
+   164→      aria-label="بطاقة العضوية"
+   165→    >
+   166→      <MemberCard />
+   167→    </section>
+   168→  );
+   169→}
+   170→
+   171→/* ------------------------------------------------------------------ */
+   172→/*  قسم العروض الحصرية + التصنيفات                                     */
+   173→/* ------------------------------------------------------------------ */
+   174→function OffersSection() {
+   175→  const [activeType, setActiveType] = useState<FacilityType | null>(null);
+   176→  const { data, isLoading, error, refetch } = useProducts({
+   177→    only_available: true,
+   178→    type: activeType ?? undefined,
+   179→  });
+   180→
+   181→  const products = data?.items ?? [];
+   182→  const filteredCount = products.length;
+   183→
+   184→  return (
+   185→    <section id="offers" className="space-y-6" aria-label="عروض حصرية">
+   186→      <div className="flex flex-wrap items-end justify-between gap-3">
+   187→        <div className="space-y-1">
+   188→          <TawfirPillBadge />
+   189→          <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+   190→            عروض حصرية
+   191→          </h2>
+   192→          <p className="text-sm text-muted-foreground">
+   193→            اكتشف أحدث الوجبات من مطاعمنا وكافيهاتنا المشتركة
+   194→          </p>
+   195→        </div>
+   196→        {activeType && (
+   197→          <button
+   198→            type="button"
+   199→            onClick={() => setActiveType(null)}
+   200→            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/60 px-4 text-xs font-bold text-muted-foreground transition-colors hover:text-foreground"
+   201→          >
+   202→            {TYPE_LABEL[activeType]} ({filteredCount}) — إلغاء التصفية
+   203→          </button>
+   204→        )}
+   205→      </div>
+   206→
+   207→      <CategoryCircles active={activeType} onChange={setActiveType} />
+   208→
+   209→      {error ? (
+   210→        <ErrorState
+   211→          title="تعذّر تحميل العروض"
+   212→          message="حدث خطأ أثناء جلب الوجبات. حاول مرة أخرى."
+   213→          onRetry={() => refetch()}
+   214→        />
+   215→      ) : isLoading ? (
+   216→        <div
+   217→          className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
+   218→          aria-busy="true"
+   219→        >
+   220→          {Array.from({ length: 8 }).map((_, i) => (
+   221→            <ProductCardSkeleton key={i} />
+   222→          ))}
+   223→        </div>
+   224→      ) : filteredCount === 0 ? (
+   225→        <EmptyState
+   226→          icon={UtensilsCrossed}
+   227→          title="لا توجد وجبات متاحة حالياً"
+   228→          description={
+   229→            activeType
+   230→              ? `لا توجد ${TYPE_LABEL[activeType]} متاحة الآن. جرّب فئة أخرى أو عُد لاحقاً.`
+   231→              : "ترقّب المزيد من الوجبات قريباً من مطاعمنا المشتركة."
+   232→          }
+   233→          action={
+   234→            activeType ? (
+   235→              <Button
+   236→                variant="outline"
+   237→                className="rounded-full min-h-[44px]"
+   238→                onClick={() => setActiveType(null)}
+   239→              >
+   240→                عرض كل الفئات
+   241→              </Button>
+   242→            ) : undefined
+   243→          }
+   244→        />
+   245→      ) : (
+   246→        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+   247→          {products.map((p) => (
+   248→            <ProductCard key={p.id} product={p} />
+   249→          ))}
+   250→        </div>
+   251→      )}
+   252→    </section>
+   253→  );
+   254→}
+   255→
+   256→/* ------------------------------------------------------------------ */
+   257→/*  قسم الأقرب إليك — زر جيو + شبكة بالمسافة                            */
+   258→/* ------------------------------------------------------------------ */
+   259→function NearbySection() {
+   260→  const [coords, setCoords] = useState<{
+   261→    lat: number;
+   262→    lng: number;
+   263→  } | null>(null);
+   264→  const [locating, setLocating] = useState(false);
+   265→  const [enabled, setEnabled] = useState(false);
+   266→
+   267→  const { data, isLoading, error, refetch } = useNearbyProducts(
+   268→    coords?.lat ?? null,
+   269→    coords?.lng ?? null,
+   270→    10,
+   271→    enabled
+   272→  );
+   273→
+   274→  const products = data?.items ?? [];
+   275→
+   276→  const handleLocate = () => {
+   277→    if (typeof navigator === "undefined" || !navigator.geolocation) {
+   278→      toast({
+   279→        title: "غير مدعوم",
+   280→        description: "متصفحك لا يدعم تحديد الموقع.",
+   281→        variant: "destructive",
+   282→      });
+   283→      return;
+   284→    }
+   285→    setLocating(true);
+   286→    navigator.geolocation.getCurrentPosition(
+   287→      (pos) => {
+   288→        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+   289→        setEnabled(true);
+   290→        setLocating(false);
+   291→        toast({ title: "تم تحديد موقعك" });
+   292→      },
+   293→      (err) => {
+   294→        setLocating(false);
+   295→        // err.PERMISSION_DENIED = 1, err.POSITION_UNAVAILABLE = 2, err.TIMEOUT = 3
+   296→        const friendly =
+   297→          err.code === err.PERMISSION_DENIED
+   298→            ? "لم نتمكن من تحديد موقعك — يرجى السماح بالوصول إلى الموقع من إعدادات المتصفح."
+   299→            : err.code === err.POSITION_UNAVAILABLE
+   300→              ? "الموقع غير متاح حالياً — تحقّق من اتصالك بالشبكة أو حاول لاحقاً."
+   301→              : err.code === err.TIMEOUT
+   302→                ? "انتهت مهلة تحديد الموقع — حاول مرة أخرى."
+   303→                : "تعذّر تحديد موقعك. حاول مرة أخرى.";
+   304→        toast({
+   305→          title: "تعذّر تحديد موقعك",
+   306→          description: friendly,
+   307→          variant: "destructive",
+   308→        });
+   309→      },
+   310→      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
+   311→    );
+   312→  };
+   313→
+   314→  return (
+   315→    <section className="space-y-6" aria-label="الأقرب إليك">
+   316→      <div className="flex flex-wrap items-end justify-between gap-3">
+   317→        <div className="space-y-1">
+   318→          <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+   319→            الأقرب إليك
+   320→          </h2>
+   321→          <p className="text-sm text-muted-foreground">
+   322→            وجبات على بُعد بضعة كيلومترات من موقعك الحالي
+   323→          </p>
+   324→        </div>
+   325→        <Button
+   326→          type="button"
+   327→          variant={enabled ? "outline" : "default"}
+   328→          onClick={handleLocate}
+   329→          disabled={locating}
+   330→          className="min-h-[44px] shrink-0 gap-2 rounded-full"
+   331→        >
+   332→          {locating ? (
+   333→            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+   334→          ) : (
+   335→            <Navigation className="h-4 w-4" aria-hidden="true" />
+   336→          )}
+   337→          {enabled ? "إعادة تحديد الموقع" : "حدد موقعي"}
+   338→        </Button>
+   339→      </div>
+   340→
+   341→      {!enabled ? (
+   342→        <div className="rounded-2xl border border-dashed border-border/60 bg-card p-8 text-center">
+   343→          <MapPinned
+   344→            className="mx-auto h-10 w-10 text-muted-foreground/50"
+   345→            aria-hidden="true"
+   346→          />
+   347→          <p className="mt-3 text-sm text-muted-foreground">
+   348→            اضغط «حدد موقعي» لعرض الوجبات الأقرب إليك مرتبة بالمسافة.
+   349→          </p>
+   350→        </div>
+   351→      ) : error ? (
+   352→        <ErrorState
+   353→          title="تعذّر تحميل الوجبات القريبة"
+   354→          message="حدث خطأ أثناء جلب الوجبات من حولك. حاول مرة أخرى."
+   355→          onRetry={() => refetch()}
+   356→        />
+   357→      ) : isLoading ? (
+   358→        <div
+   359→          className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4"
+   360→          aria-busy="true"
+   361→        >
+   362→          {Array.from({ length: 4 }).map((_, i) => (
+   363→            <ProductCardSkeleton key={i} />
+   364→          ))}
+   365→        </div>
+   366→      ) : products.length === 0 ? (
+   367→        <EmptyState
+   368→          icon={MapPinned}
+   369→          title="لا توجد وجبات قريبة"
+   370→          description="لا توجد وجبات متاحة في نطاق 10 كم من موقعك حالياً."
+   371→        />
+   372→      ) : (
+   373→        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+   374→          {products.map((p) => (
+   375→            <ProductCard key={p.id} product={p} />
+   376→          ))}
+   377→        </div>
+   378→      )}
+   379→    </section>
+   380→  );
+   381→}
+   382→
+   383→/* ------------------------------------------------------------------ */
+   384→/*  قسم المتاجر — كروت منشآت                                            */
+   385→/* ------------------------------------------------------------------ */
+   386→function FacilityCard({ facility }: { facility: Facility }) {
+   387→  const PlaceholderIcon = TYPE_ICON[facility.type];
+   388→  const maxDiscount = facility.cards.length
+   389→    ? Math.max(...facility.cards.map((c) => c.discount_rate))
+   390→    : DISCOUNT_RATE;
+   391→
+   392→  return (
+   393→    <article className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-soft-lg">
+   394→      <div className="relative aspect-video">
+   395→        {facility.image_url ? (
+   396→          <ImageWithSkeleton
+   397→            src={resolveImageUrl(facility.image_url)}
+   398→            alt={facility.name}
+   399→            fill
+   400→            className="h-full w-full"
+   401→            skeletonClassName="rounded-none"
+   402→          />
+   403→        ) : (
+   404→          <div
+   405→            className="flex h-full w-full items-center justify-center bg-muted"
+   406→            role="img"
+   407→            aria-label={facility.name}
+   408→          >
+   409→            <PlaceholderIcon
+   410→              className="h-12 w-12 text-muted-foreground/40"
+   411→              aria-hidden="true"
+   412→            />
+   413→          </div>
+   414→        )}
+   415→        {maxDiscount > 0 && (
+   416→          <span className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground shadow-soft">
+   417→            خصم حتى {maxDiscount}%
+   418→          </span>
+   419→        )}
+   420→      </div>
+   421→      <div className="flex flex-1 flex-col gap-3 p-4">
+   422→        <div className="flex items-start justify-between gap-2">
+   423→          <div className="flex flex-wrap items-center gap-1.5">
+   424→            <h3 className="font-bold leading-snug text-foreground">
+   425→              {facility.name}
+   426→            </h3>
+   427→            {facility.discount_rate != null && (
+   428→              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+   429→                <BadgePercent className="h-3 w-3" aria-hidden="true" />
+   430→                خصم {facility.discount_rate}%
+   431→              </span>
+   432→            )}
+   433→          </div>
+   434→          <span className="shrink-0 rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold text-secondary">
+   435→            {TYPE_LABEL[facility.type]}
+   436→          </span>
+   437→        </div>
+   438→        {facility.address && (
+   439→          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+   440→            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+   441→            <span className="line-clamp-2">{facility.address}</span>
+   442→          </p>
+   443→        )}
+   444→        <Button
+   445→          asChild
+   446→          variant="outline"
+   447→          className="mt-auto min-h-[44px] w-full rounded-full"
+   448→        >
+   449→          <Link href={`/facilities/${facility.id}`}>
+   450→            تصفّح المنتجات
+   451→            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+   452→          </Link>
+   453→        </Button>
+   454→      </div>
+   455→    </article>
+   456→  );
+   457→}
+   458→
+   459→function FacilityCardSkeleton() {
+   460→  return (
+   461→    <div className="flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-soft">
+   462→      <Skeleton className="aspect-video w-full rounded-none" />
+   463→      <div className="flex flex-1 flex-col gap-3 p-4">
+   464→        <div className="flex items-start justify-between gap-2">
+   465→          <Skeleton className="h-5 w-2/3" />
+   466→          <Skeleton className="h-6 w-16 rounded-full" />
+   467→        </div>
+   468→        <Skeleton className="h-3 w-full" />
+   469→        <Skeleton className="mt-auto h-11 w-full rounded-full" />
+   470→      </div>
+   471→    </div>
+   472→  );
+   473→}
+   474→
+   475→function FacilitiesSection() {
+   476→  const { data, isLoading, error, refetch } = useFacilities();
+   477→  const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
+   478→  const facilities = useMemo(
+   479→    () => [...(data ?? [])].sort((a, b) => a.display_order - b.display_order || a.id - b.id),
+   480→    [data]
+   481→  );
+   482→
+   483→  return (
+   484→    <section className="space-y-6" aria-label="المتاجر">
+   485→      <div className="flex items-end justify-between gap-3">
+   486→        <div className="space-y-1">
+   487→          <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+   488→            المتاجر المشتركة
+   489→          </h2>
+   490→          <p className="text-sm text-muted-foreground">
+   491→            استعرض المطاعم والكافيهات المشتركة في منطقتك
+   492→          </p>
+   493→        </div>
+   494→        <Button
+   495→          asChild
+   496→          variant="ghost"
+   497→          className="min-h-[44px] shrink-0 gap-1 rounded-full text-secondary"
+   498→        >
+   499→          <Link href="/facilities">
+   500→            عرض الكل
+   501→            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+   502→          </Link>
+   503→        </Button>
+   504→      </div>
+   505→
+   506→      {error ? (
+   507→        <ErrorState
+   508→          title="تعذّر تحميل المتاجر"
+   509→          message="حدث خطأ أثناء جلب المنشآت. حاول مرة أخرى."
+   510→          onRetry={() => refetch()}
+   511→        />
+   512→      ) : isLoading ? (
+   513→        <div
+   514→          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+   515→          aria-busy="true"
+   516→        >
+   517→          {Array.from({ length: 6 }).map((_, i) => (
+   518→            <FacilityCardSkeleton key={i} />
+   519→          ))}
+   520→        </div>
+   521→      ) : !selectedRegionId ? (
+   522→        <EmptyState
+   523→          icon={Landmark}
+   524→          title="اختر منطقتك لعرض المتاجر"
+   525→          description="حدد منطقتك من القائمة في الأعلى لاستعراض المتاجر المشتركة قربك."
+   526→        />
+   527→      ) : facilities.length === 0 ? (
+   528→        <EmptyState
+   529→          icon={Landmark}
+   530→          title="لا توجد متاجر في منطقتك بعد"
+   531→          description="جرّب منطقة أخرى أو عُد لاحقاً — نضيف متاجر جديدة باستمرار."
+   532→        />
+   533→      ) : (
+   534→        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   535→          {facilities.slice(0, 9).map((f) => (
+   536→            <FacilityCard key={f.id} facility={f} />
+   537→          ))}
+   538→        </div>
+   539→      )}
+   540→    </section>
+   541→  );
+   542→}
+   543→
+   544→/* ------------------------------------------------------------------ */
+   545→/*  قسم لماذا توفير؟ — 3 أيقونات + بطاقة عضوية مائلة                   */
+   546→/* ------------------------------------------------------------------ */
+   547→const WHY_POINTS: ReadonlyArray<{
+   548→  icon: LucideIcon;
+   549→  title: string;
+   550→  desc: string;
+   551→}> = [
+   552→  {
+   553→    icon: ShieldCheck,
+   554→    title: "آمنة وسهلة",
+   555→    desc: "اطلب وجباتك المفضلة بضغطة زر — دفع آمن نقداً عند الاستلام",
+   556→  },
+   557→  {
+   558→    icon: PiggyBank,
+   559→    title: "توفير مستمر",
+   560→    desc: `خصم ${DISCOUNT_RATE}% على كل طلباتك من المطاعم والكافيهات المشتركة`,
+   561→  },
+   562→  {
+   563→    icon: BadgePercent,
+   564→    title: "خصومات حصرية",
+   565→    desc: "عضوية توفير تمنحك خصماً حقيقياً ينطبق تلقائياً عند الطلب",
+   566→  },
+   567→];
+   568→
+   569→function WhyTawfirSection() {
+   570→  const prefersReduced = usePrefersReducedMotion();
+   571→
+   572→  return (
+   573→    <section aria-label="لماذا توفير؟">
+   574→      <div className="gradient-ocean relative overflow-hidden rounded-2xl p-6 text-white shadow-soft-lg sm:p-10">
+   575→        <div
+   576→          className="pointer-events-none absolute inset-0 overflow-hidden"
+   577→          aria-hidden="true"
+   578→        >
+   579→          <span className="absolute right-[6%] top-[12%] h-3 w-3 rounded-full bg-accent/60" />
+   580→          <span className="absolute left-[8%] bottom-[20%] h-2.5 w-2.5 rotate-45 bg-secondary/50" />
+   581→          <span className="absolute left-[30%] top-[8%] h-2 w-2 [clip-path:polygon(50%_0,100%_100%,0_100%)] bg-accent/50" />
+   582→          <span className="animate-float-slow absolute right-[16%] bottom-[12%] h-2 w-2 rounded-full bg-accent/50" />
+   583→        </div>
+   584→
+   585→        <div className="relative z-10 grid items-center gap-10 lg:grid-cols-5">
+   586→          <div className="space-y-7 lg:col-span-3">
+   587→            <div className="space-y-3">
+   588→              <TawfirPillBadge className="ring-1 ring-white/25" />
+   589→              <h2 className="text-2xl font-extrabold text-white sm:text-3xl">
+   590→                لماذا توفير؟
+   591→              </h2>
+   592→              <p className="text-sm text-white/80 sm:text-base">
+   593→                وجبة واحدة في كل مرة.. توفير حقيقي في كل طلب
+   594→              </p>
+   595→            </div>
+   596→
+   597→            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+   598→              {WHY_POINTS.map((point) => {
+   599→                const Icon = point.icon;
+   600→                return (
+   601→                  <div
+   602→                    key={point.title}
+   603→                    className="flex flex-col items-center gap-3 text-center"
+   604→                  >
+   605→                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
+   606→                      <Icon className="h-6 w-6 text-accent" aria-hidden="true" />
+   607→                    </span>
+   608→                    <div>
+   609→                      <h3 className="text-sm font-bold text-white">
+   610→                        {point.title}
+   611→                      </h3>
+   612→                      <p className="mt-1 text-xs leading-relaxed text-white/70">
+   613→                        {point.desc}
+   614→                      </p>
+   615→                    </div>
+   616→                  </div>
+   617→                );
+   618→              })}
+   619→            </div>
+   620→          </div>
+   621→
+   622→          {/* بطاقة عضوية مائلة (تصور زخرفي) */}
+   623→          <div className="hidden justify-center lg:col-span-2 lg:flex">
+   624→            <motion.div
+   625→              initial={
+   626→                prefersReduced ? false : { opacity: 0, y: 24, rotate: 12 }
+   627→              }
+   628→              whileInView={
+   629→                prefersReduced
+   630→                  ? { opacity: 1, y: 0, rotate: 8 }
+   631→                  : { opacity: 1, y: 0, rotate: 8 }
+   632→              }
+   633→              viewport={{ once: true, margin: "-60px" }}
+   634→              transition={{ duration: 0.6, ease: "easeOut" }}
+   635→              whileHover={prefersReduced ? undefined : { rotate: 3, scale: 1.03 }}
+   636→              className="w-64 rounded-2xl border border-white/20 bg-primary-deep/80 p-5 shadow-2xl backdrop-blur-sm"
+   637→              aria-hidden="true"
+   638→            >
+   639→              <div className="flex items-center justify-between">
+   640→                <span className="text-lg font-black text-white">توفير</span>
+   641→                <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold text-accent-foreground">
+   642→                  خصم {DISCOUNT_RATE}%
+   643→                </span>
+   644→              </div>
+   645→              <div className="my-4 h-px bg-white/15" />
+   646→              <p className="flex items-center gap-1.5 text-xs font-bold text-white/90">
+   647→                <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+   648→                بطاقة العضوية الذكية
+   649→              </p>
+   650→              <p
+   651→                className="mt-2 text-sm font-black tracking-[0.12em] text-white/50"
+   652→                dir="ltr"
+   653→              >
+   654→                •••• •••• •••• ••••
+   655→              </p>
+   656→              <div className="mt-4 flex items-end justify-between border-t border-white/10 pt-3">
+   657→                <span className="text-[10px] text-white/50">عضوية سنوية</span>
+   658→                <span className="text-[10px] text-white/50" dir="ltr">
+   659→                  MM/YY
+   660→                </span>
+   661→              </div>
+   662→            </motion.div>
+   663→          </div>
+   664→        </div>
+   665→      </div>
+   666→    </section>
+   667→  );
+   668→}
+   669→
+   670→/* ------------------------------------------------------------------ */
+   671→/*  الأسئلة الشائعة (محدّثة لنظام العضوية اليدوي)                       */
+   672→/* ------------------------------------------------------------------ */
+   673→const FAQ_ITEMS = [
+   674→  {
+   675→    q: "ما هي منصة توفير؟",
+   676→    a: `منصة توفير تتيح لك طلب وجباتك من المطاعم والكافيهات المشتركة، مع إمكانية الاشتراك في عضوية سنوية تمنحك خصم ${DISCOUNT_RATE}% على كل طلباتك.`,
+   677→  },
+   678→  {
+   679→    q: "كيف أشترك في العضوية؟",
+   680→    a: "بعد تسجيل حساب جديد، ارفع صورة تحويل بقيمة 3000 ر.ي إلى حساب توفير (محمد يحيى عبه، حساب رقم 780090882، محفظة جيب) من صفحة حسابي. سيُراجع المشرف طلبك خلال 24-48 ساعة.",
+   681→  },
+   682→  {
+   683→    q: `كم نسبة الخصم؟`,
+   684→    a: `خصم ${DISCOUNT_RATE}% على كل طلباتك من المطاعم والكافيهات المشتركة طوال فترة عضويتك السنوية. يُطبّق الخصم تلقائياً عند الطلب إن كانت عضويتك مفعّلة.`,
+   685→  },
+   686→  {
+   687→    q: "هل يمكنني الطلب بدون عضوية؟",
+   688→    a: "نعم، يمكنك تصفّح الوجبات والطلب بدون عضوية بسعر رسمي بلا خصم. للاستفادة من خصم 30% اشترك في عضوية توفير.",
+   689→  },
+   690→  {
+   691→    q: "متى تُفعّل عضويتي؟",
+   692→    a: "بعد رفع صورة التحويل، يراجع المشرف طلبك خلال 24-48 ساعة. تُفعّل العضوية فور الموافقة وتظهر بطاقتك في حسابك تلقائياً.",
+   693→  },
+   694→  {
+   695→    q: `كم تكلفة التوصيل؟`,
+   696→    a: `رسوم توصيل ثابتة قدرها ${DELIVERY_FEE} ر.ي لكل طلب، تُضاف لإجمالي الطلب عند تأكيده.`,
+   697→  },
+   698→  {
+   699→    q: "كيف أتحكم في بياناتي؟",
+   700→    a: "سجّل دخولك من تبويب حسابي وعدّل بياناتك (الاسم، الجوال) مباشرة. البريد الإلكتروني ثابت ولا يمكن تغييره.",
+   701→  },
+   702→] as const;
+   703→
+   704→function FAQSection() {
+   705→  return (
+   706→    <section className="space-y-6" aria-label="الأسئلة الشائعة">
+   707→      <div className="flex items-center gap-2">
+   708→        <CircleHelp className="h-5 w-5 text-secondary" aria-hidden="true" />
+   709→        <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+   710→          الأسئلة الشائعة
+   711→        </h2>
+   712→      </div>
+   713→      <div className="max-w-2xl">
+   714→        <Accordion type="single" collapsible className="rounded-2xl border bg-card">
+   715→          {FAQ_ITEMS.map((item, i) => (
+   716→            <AccordionItem key={i} value={`faq-${i}`} className="px-4 sm:px-6">
+   717→              <AccordionTrigger className="min-h-[44px] text-right text-sm font-bold text-foreground hover:no-underline sm:text-base">
+   718→                {item.q}
+   719→              </AccordionTrigger>
+   720→              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+   721→                {item.a}
+   722→              </AccordionContent>
+   723→            </AccordionItem>
+   724→          ))}
+   725→        </Accordion>
+   726→      </div>
+   727→    </section>
+   728→  );
+   729→}
+   730→
+   731→/* ------------------------------------------------------------------ */
+   732→/*  تواصل معنا — بيانات حقيقية حصراً                                    */
+   733→/* ------------------------------------------------------------------ */
+   734→const CONTACT_PHONE = "780090882";
+   735→const CONTACT_PHONE_DISPLAY = "780 090 882";
+   736→const CONTACT_WHATSAPP = "https://wa.me/967780090882";
+   737→const CONTACT_EMAIL = "moohabhb68@gmail.com";
+   738→const CONTACT_ADDRESS = "الجمهورية اليمنية — صنعاء";
+   739→
+   740→function ContactSection() {
+   741→  return (
+   742→    <section className="space-y-6" aria-label="تواصل معنا">
+   743→      <div className="flex items-center gap-2">
+   744→        <Mail className="h-5 w-5 text-secondary" aria-hidden="true" />
+   745→        <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+   746→          تواصل معنا
+   747→        </h2>
+   748→      </div>
+   749→
+   750→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   751→        <div className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card p-5 shadow-soft transition-all duration-200 hover:shadow-soft-lg">
+   752→          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-secondary/15">
+   753→            <Phone className="h-5 w-5 text-secondary" aria-hidden="true" />
+   754→          </div>
+   755→          <div className="min-w-0 flex-1">
+   756→            <p className="text-sm font-bold text-foreground">الهاتف</p>
+   757→            <a
+   758→              href={`tel:${CONTACT_PHONE}`}
+   759→              dir="ltr"
+   760→              className="mt-0.5 block truncate text-sm text-muted-foreground transition-colors hover:text-foreground"
+   761→            >
+   762→              {CONTACT_PHONE_DISPLAY}
+   763→            </a>
+   764→          </div>
+   765→          <a
+   766→            href={CONTACT_WHATSAPP}
+   767→            target="_blank"
+   768→            rel="noopener noreferrer"
+   769→            aria-label="تواصل معنا عبر واتساب"
+   770→            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-secondary transition-colors hover:bg-secondary hover:text-secondary-foreground"
+   771→          >
+   772→            <MessageCircle className="h-5 w-5" aria-hidden="true" />
+   773→          </a>
+   774→        </div>
+   775→
+   776→        <a
+   777→          href={`mailto:${CONTACT_EMAIL}`}
+   778→          className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card p-5 shadow-soft transition-all duration-200 hover:shadow-soft-lg"
+   779→        >
+   780→          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
+   781→            <Mail className="h-5 w-5 text-primary" aria-hidden="true" />
+   782→          </div>
+   783→          <div className="min-w-0">
+   784→            <p className="text-sm font-bold text-foreground">البريد الإلكتروني</p>
+   785→            <p dir="ltr" className="mt-0.5 truncate text-sm text-muted-foreground">
+   786→              {CONTACT_EMAIL}
+   787→            </p>
+   788→          </div>
+   789→        </a>
+   790→
+   791→        <div className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card p-5 shadow-soft transition-all duration-200 hover:shadow-soft-lg">
+   792→          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cat-restaurant-soft">
+   793→            <MapPin className="h-5 w-5 text-cat-restaurant" aria-hidden="true" />
+   794→          </div>
+   795→          <div>
+   796→            <p className="text-sm font-bold text-foreground">العنوان</p>
+   797→            <p className="mt-0.5 text-sm text-muted-foreground">{CONTACT_ADDRESS}</p>
+   798→          </div>
+   799→        </div>
+   800→
+   801→        <div className="flex items-center gap-4 rounded-2xl border border-border/50 bg-card p-5 shadow-soft transition-all duration-200 hover:shadow-soft-lg">
+   802→          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cat-cafe-soft">
+   803→            <MapPinned className="h-5 w-5 text-cat-cafe" aria-hidden="true" />
+   804→          </div>
+   805→          <div>
+   806→            <p className="text-sm font-bold text-foreground">منطقة الخدمة</p>
+   807→            <p className="mt-0.5 text-sm text-muted-foreground">
+   808→              جميع مناطق الجمهورية اليمنية
+   809→            </p>
+   810→          </div>
+   811→        </div>
+   812→      </div>
+   813→    </section>
+   814→  );
+   815→}
+   816→
+   817→/* ------------------------------------------------------------------ */
+   818→/*  الصفحة الرئيسية                                                    */
+   819→/* ------------------------------------------------------------------ */
+   820→export default function HomePage() {
+   821→  return (
+   822→    <div className="w-full">
+   823→      <HeroSection />
+   824→      <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-14">
+   825→        <OffersSection />
+   826→        <SpecialOffersSection />
+   827→        <NearbySection />
+   828→        <FacilitiesSection />
+   829→        <WhyTawfirSection />
+   830→        <FAQSection />
+   831→        <ContactSection />
+   832→      </div>
+   833→    </div>
+   834→  );
+   835→}
+   836→

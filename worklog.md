@@ -725,3 +725,75 @@ Stage Summary:
 - 4 مكونات أُعيدت كتابتها بالكامل (MobileBottomNav، OfflineBanner، SpecialOfferCard، ProductCard) + 12 معدّلاً + 3 جديدة (PageTransition، PullToRefresh، ResponsiveOfferShell) + utilities CSS
 - كل قياسات YouTube/Netflix مطبقة وموثقة بأرقام فعلية على 360px في تقرير_توفير.md (قسم الجولة 4) + 12 لقطة شاشة في screenshots/round4-*.png
 - قرارات ذاتية موثقة: إبقاء الهيدر في standalone، شريحة استعادة الاتصال، قاعدة لمس CSS scale العامة، فصل تسمية القسمين، زر طلب دائري 44px، safe-area لكل العناصر الثابتة
+
+---
+Task ID: 5
+Agent: Main Orchestrator (Z.ai Code) + Subagents (round5-openapi-audit, round5-honesty-audit)
+Task: الجولة 5 — التدقيق الشامل النهائي: صيد كل البقايا + إصلاح رفع الصور + إعادة بناء صفحتي الإعدادات + ضمان جودة 100% قبل النشر
+
+Work Log:
+- حُمّل OpenAPI الحي من الإنتاج (57 مساراً) وحُدّث النسخة المحلية (كانت 46 قديمة)
+- فُحص دعم رفع الصور: لا يوجد POST /uploads — الـ multipart الوحيدان membership/subscribe وproducts/import (كلاهما مُستخدَم فعلاً) → وُثّق عائق حرج + بُني ImageUrlField (تحقق+معاينة+حذف) وطُبّق في 4 نماذج
+- أُعيد بناء admin/settings كاملاً: useAccountMe("admin") + useWsStatus + useUnreadCount + تواصل حقيقي + APP_VERSION — حُذفت كل الأزرار الوهمية وقسم كلمة المرور
+- رُقّيت owner/settings: GET /me + بطاقة منشآتي بحالة حقيقية (is_approved/rejection_reason) + إصلاح next-themes
+- اكتُشف وأُصلح جرس أدمن وهمي في admin/layout.tsx (NOTIFICATIONS ثابتة + عدّاد «3» ×2 + toast قريباً) → NotificationBell حقيقي
+- اكتُشف وأُصلح عطل SEO حرج: جلب SSR metadata كان بلا /api/v1 → كل عناوين المنتجات/المنشآت كانت «غير موجود»
+- اكتُشف وأُصلح: تفاصيل طلب الأدمن كانت عبر بوابة العميل (401) → useAdminOrderDetail عبر /admin/orders/{id}
+- اكتُشف وأُصلح: «تذكرني» للأدمن كانت غير مفعّلة (لا تُمرَّر) + أُصلح store (جلسة/7 أيام)
+- فلترة طلبات المالك صارت من الخادم (status param) بدل فلترة محلية على أول 20
+- أُضيف بحث الوجبات في الرئيسية (search param + debounce) + رقائق نطاق الأقرب إليك (radius_km)
+- تنظيف كامل: PriceTag(ر.س)+sonner حُذفا، next-themes أزيلت من dependencies، sitemap/robots → PUBLIC_URL، public_facility من 6 ملفات، 4 console.log، يمننة FacilityForm، 265 سطر كود ميت من owner/login، زرا «نسيت كلمة المرور» الوهميان
+- أُصلحت 6 عائلات أخطاء TypeScript كامنة (أول tsc نظيف في المشروع) + تحذير Select uncontrolled + نوع toast title
+- Subagent 1 (round5-openapi-audit): فحص عكسي لكل الـ 57 مساراً → 39 مكتمل / 13 ناقص / 5 غير مستهلك (جداول كاملة في agent-ctx/round5-openapi-audit.md)
+- Subagent 2 (round5-honesty-audit): محاسبة 48 ادعاءً من التقارير السابقة → 33 مؤكد / 10 كاذب (9 أُصلح) / 5 غير قابل للتحقق (agent-ctx/round5-honesty-audit.md)
+- تحقق فعلي بالمتصفح: دخول مالك (GET /me=200 + منشأة «موافق عليها» من الخادم + تبديل المظهر يعمل)، دخول عضو (جرس «1 غير مقروء» + PATCH read=200)، بحث «مندي» (search=مندي → كلها مندي لحم)، WebSocket يُفتح فعلياً من المتصفح بتوكن صالح (curl فشل بسبب HTTP/2 — المتصفح ينجح)، 360px صفر overflow، دخول الأدمن 401 من الباك إند نفسه (موثّق)
+- كُتبت التقارير: قسم الجولة 5 في تقرير_توفير.md + BLOCKERS.md معاد الهيكلة + مطلوب_من_الباك_ند.md جديد + سجل_التغييرات.md
+
+Stage Summary:
+- 24 ملفاً معدّلاً + 3 ملفات جديدة (ImageUrlField, useAccountMe, useWsStatus)
+- lint: 0 أخطاء | tsc --noEmit: 0 أخطاء (أول مرة) | كونسول نظيف | grep wafir/gleeze/next-themes/console.log/public_facility: صفر فعلي
+- 9/10 ادعاءات كاذبة سابقة أُصلحت فعلياً + 3 أعطال حرجة خفية (SEO/بوابة طلب الأدمن/تذكرني) اكتُشفت وأُصلحت
+- عائق رفع الصور موثّق بمواصفة endpoint كاملة (POST /api/v1/uploads) جاهزة لوكيل الباك إند
+- بيانات دخول الأدمن مرفوضة من الباك إند (401) — موثّقة BLOCKERS §2 بانتظار بيانات صالحة
+
+---
+Task ID: round-6
+Agent: Main Orchestrator (Z.ai Code) — الجولة 6 (التحقق الختامي ببيانات الأدمن)
+Task: جولة تحقق ختامية مركزة ببيانات الأدمن الحقيقية (admin@tawfir.giize.com): اختبار بوابة المشرف كاملةً بالنقر + Network + مطابقة ادعاءات التقارير + اختبار فلترة طلبات المالك بأكثر من 20 طلباً + تتبّع الإشعار الفوري من طرف إلى طرف + إصلاح كل عطل يُكتشف
+
+Work Log:
+- حُسمت بيانات الأدمن: POST /admin/login بـ admin@tawfir.giize.com → 200 (access_token فعلي). كُذّب ادعاء الجولة 2 «gleeze نجح» (البند 11 في جدول الأمانة).
+- اختُبر الدخول + «تذكرني»: كوكي tawfir_admin_token بمدة 7.0 أيام فعلية (SameSite=Lax) عند التفعيل، وكوكي جلسة عند الإلغاء — السلوكان متمايزان.
+- لوحة المعلومات: الأرقام الثمانية حقيقية من GET /admin/dashboard (15/15/15/19/5/3/103/86). **اكتُشف عطلان:** البطاقات الإجرائية الثلاث فارغة دائماً (الباك إند لا يرجع pending_membership_requests/pending_facilities/orders_today) + 8 شارات اتجاه وهمية (+8%...+22%). **أُصلحا:** أرقام من 3 نقاط فعلية (عضوية معلّقة=1/منشآت=0/طلبات اليوم=26) + حذف الاتجاهات.
+- /admin/membership-requests: القائمة تعمل + حوار صورة التحويل يفتح — **لكن الصورة 404 من الخادم** (ملفات seed مفقودة). **أُصلح:** حالة خطأ عربية (onError → failedSrc tracking بلا effect). حوار الرفض يطلب سبباً إلزامياً — لكن **PATCH approve/reject يرجع 500 من الخادم نفسه** (مُختبر بـ curl بجسم صحيح) — وُثّق BLOCKERS §3 + أُصلحت رسالة الخطأ للعربية.
+- /admin/orders: فلترة الحالة من الخادم (status param → pending=3/confirmed=0+empty state) + **فتح تفاصيل الطلب (إصلاح ج5 الحرج) يعمل فعلاً**: GET /admin/orders/3 → 200 + حوار كامل (عميل/منشأة/توصيل/أصناف).
+- /admin/facilities: تعديل discount_rate يعمل (30→25→30 عبر PUT + الشارة تتحدث). **اكتُشف:** لا فلترة حالة رغم دعم API (status) + زرا «عرض الخريطة/تصدير» وهميان (toast قريباً). **أُصلح:** رقائق فلترة من الخادم (موافق=17/معلّق=0/مرفوض=2) + عمود «الموافقة» + حذف الزرين. useAdminFacilities صار يقبل status.
+- /admin/settings: كل بيانات /me حقيقية (Site Administrator + البريد الصحيح + الجوال + WS متصل + إصدار 1.1.0).
+- أُنشئ 20 طلباً فعلياً كعميل لمنشأة المالك (17) عبر API (نقص مخزون مندي لحم أوقف عند 20 — تحقق مخزون 422 بالعربية «نفد المخزون»)، وأُكد 6 منها كأدمن → اختُبرت تبويبات طلبات المالك: أعداد من الخادم (الكل 20/بانتظار 14/مؤكد 6) + الفلترة تعمل (14 بطاقة pending). القيد: page_size=100 بلا ترقيم (موثّق).
+- **الاكتشاف الأكبر — الإشعارات الفورية لم تكن تعمل إطلاقاً:** تتبّع من طرف إلى طرف (أدمن يغيّر حالة طلب عميل ↔ متصفح العميل) كشف سببين: (1) المعالج يتوقع صيغة مغلّفة بينما الخادم يدفع كائن الإشعار مباشرة → كل إشعار يُتجاهل صامتاً؛ (2) StrictMode يسبب connect→disconnect→connect والخادم يلغي تسجيل المستخدم عند قطع أي مقبس → الدفع يموت بعد أول تحميل. **أُصلحا:** extractNotification (يدعم الصيغتين) + connect خامل أثناء CONNECTING. **التحقق النهائي:** toast «✅ تم تأكيد طلبك — طلبك #11...» + زر «عرض» ظهر خلال ~2 ثانية + العدّاد تحدّث لحظياً (لقطة round6-live-ws-toast.png).
+- وُثّقت سلوكيات خادم: الدفع الفوري للعميل فقط عند تغيير حالة طلبه؛ المالك: صف DB بلا دفع (استطلاع ≤30s)؛ الأدمن: لا إشعارات إطلاقاً. آلة حالات الطلب صارمة (422 عربي عند القفز). JWT 15 دقيقة بلا refresh (انقطعت جلسات الاختبار فعلياً).
+- تعامل مع 4 انهيارات OOM لخادم التطوير (dmesg: oom-kill لـ next-server عند ~2GB مع متصفحات متوازية) — الحل: إغلاق المتصفحات غير اللازمة + تشغيل واحد فقط + اختبار تتابعي.
+- lint: 0 أخطاء (3 تحذيرات موروثة) | tsc --noEmit: 0 أخطاء | آثار التصحيح أزيلت كلها (grep G6 = 0).
+
+Stage Summary:
+- 7 ملفات واجهة معدّلة (NotificationsProvider، ws-client، admin/page، useModerateMembershipRequest، admin/facilities/page + useAdminFacilities، MembershipRequestsContent) — كل إصلاح مُتحقَّق فعلياً بالنقر بعد إصلاحه
+- 3 أعطال واجهة كاذبة كُشِفت وأُصلحت (بطاقات فارغة/اتجاهات وهمية/زرا قريباً) + عطلان جذريان في الإشعارات الفورية (الصيغة + الازدواج) — الإشعار الفوري يعمل الآن من طرف إلى طرف
+- 5 أعطال/قيود خادم وُثّقت في BLOCKERS.md المُعاد هيكلته (approve/reject 500، صور seed 404، JWT 15 دقيقة، لا إشعارات أدمن، علة تسجيل WS)
+- مطلوب_من_الباك_ند.md حُدّث (4 بنود جديدة أولها عطل 500) + تقرير_توفير.md (قسم الجولة 6 كامل + جدول 21 صفاً للإجراء|الطلب|النتيجة + بند أمانة 11 + تصحيح §8.5 و§8.7) + سجل_التغييرات.md
+- لقطات: round6-admin-dashboard-real.png، round6-facilities-status-filter.png، round6-live-ws-toast.png، round6-receipt-image-error-state.png
+
+---
+Task ID: round-6-addendum
+Agent: Main Orchestrator (Z.ai Code) — الجولة 6 (إضافة)
+Task: فحص grep النهائي «قريباً» + إصلاح آخر زر وهمي متبقٍ
+
+Work Log:
+- grep «قريباً/قريبًا» في src: 5 مطابقات — 4 نصوص empty-state/شارة مشروعة + **زر وهمي واحد فعلي**: «تعطيل المحدد» في OwnerProductsContent (toast «قريبًا» بلا طلب شبكة).
+- بُني الزر حقيقياً بدل حذفه (API موجود): handleBatchDisable بحلقة Promise.allSettled على PATCH /owner/{fid}/products/{id}/availability (is_available: false) + عدّاد تحميل (Loader2 + «جارٍ التعطيل...») + إبطال الاستعلام + مسح التحديد + toast نجاح كامل/فشل جزئي.
+- مُتحقَّق فعلياً بالنقر: تحديد منتجين (مندي لحم + مدبي دجاج) → «تعطيل المحدد» → **PATCH products/97/availability + products/98/availability → 200** + toast «عُطّلت 2 منتجاً بنجاح» → أُعيد تفعيلهما عبر API (200/200).
+- أُصلح خطأ parsing سببه تعديل MultiEdit (backtick افتتاحي مع اقتباس إغلاقي في سطر toast) — lint عاد 0 أخطاء.
+- كونسول صفحة منتجات المالك: نظيف. لقطة: round6-batch-disable-real.png.
+
+Stage Summary:
+- آخر زر وهمي في التطبيق (حسب grep قريباً) صار ميزة حقيقية كاملة — التطبيق الآن **صفر أزرار toast-قريباً** (تحقق grep نهائي)
+- lint: 0 أخطاء | tsc: 0 أخطاء

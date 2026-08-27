@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { ImageUrlField } from "@/components/shared/ImageUrlField";
 import {
   useCreateFacility,
   useUpdateFacility,
@@ -40,7 +41,6 @@ import type { HTTPValidationError, Facility, FacilityType } from "@/types/api.ge
 const TYPE_OPTIONS: { value: FacilityType; label: string }[] = [
   { value: "restaurant", label: "مطعم" },
   { value: "cafe", label: "مقهى" },
-  { value: "public_facility", label: "مرفق عام" },
 ];
 
 const schema = z.object({
@@ -55,15 +55,20 @@ const schema = z.object({
   address: z.string(),
   latitude: z.number().nullable(),
   longitude: z.number().nullable(),
-  phone: z.string(),
+  phone: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^7[01378]\d{7}$/u.test(v), {
+      message: "أدخل رقم جوال يمني صحيح (مثال: 7XXXXXXXX)",
+    }),
   working_hours: z.string(),
   image_url: z.string(),
   discount_rate: z
     .number()
     .int("يجب أن يكون عدداً صحيحاً")
     .min(0, "النسبة لا يمكن أن تكون أقل من 0")
-    .max(100, "النسبة لا يمكن أن تتجاوز 100")
-    .default(30),
+    .max(100, "النسبة لا يمكن أن تتجاوز 100"),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -402,7 +407,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
               <Label htmlFor="fac-address">العنوان</Label>
               <Input
                 id="fac-address"
-                placeholder="مثال: شارع الملك فهد"
+                placeholder="مثال: شارع حدة - صنعاء"
                 {...register("address")}
               />
               {formState.errors.address && (
@@ -419,7 +424,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                   id="fac-lat"
                   type="number"
                   step="any"
-                  placeholder="24.7136"
+                  placeholder="15.3694"
                   {...register("latitude", {
                     valueAsNumber: true,
                     setValueAs: (v: string) =>
@@ -439,7 +444,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                   id="fac-lng"
                   type="number"
                   step="any"
-                  placeholder="46.6753"
+                  placeholder="44.1910"
                   {...register("longitude", {
                     valueAsNumber: true,
                     setValueAs: (v: string) =>
@@ -459,7 +464,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                 <Label htmlFor="fac-phone">الهاتف</Label>
                 <Input
                   id="fac-phone"
-                  placeholder="05XXXXXXXX"
+                  placeholder="7XXXXXXXX"
                   dir="ltr"
                   {...register("phone")}
                 />
@@ -485,20 +490,19 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="fac-image">رابط الصورة</Label>
-              <Input
-                id="fac-image"
-                placeholder="https://example.com/image.jpg"
-                dir="ltr"
-                {...register("image_url")}
-              />
-              {formState.errors.image_url && (
-                <p className="text-xs text-destructive">
-                  {formState.errors.image_url.message}
-                </p>
+            <Controller
+              name="image_url"
+              control={form.control}
+              render={({ field }) => (
+                <ImageUrlField
+                  id="fac-image"
+                  label="صورة المنشأة"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                />
               )}
-            </div>
+            />
 
             <Separator />
 

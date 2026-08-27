@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck, ExternalLink } from "lucide-react";
+import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/format";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImageUrlField } from "@/components/shared/ImageUrlField";
 import { ownerService } from "@/services/owner.service";
 import { useUpdateMyFacility } from "@/hooks/useUpdateMyFacility";
 import { useOwnerProducts } from "@/hooks/useOwnerProducts";
@@ -214,23 +215,20 @@ const prefersReduced = usePrefersReducedMotion();
                   </div>
                 )}
 
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="image_url">رابط الصورة</Label>
-                  <div className="flex gap-2">
-                    <Input id="image_url" dir="ltr" className="flex-1" {...register("image_url")} />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="shrink-0 gap-2 rounded-full min-h-[44px]"
-                      onClick={() => {
-                        const url = form.getValues("image_url");
-                        if (url) window.open(url, "_blank");
-                      }}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      <span className="hidden sm:inline">معاينة الرابط</span>
-                    </Button>
-                  </div>
+                <div className="sm:col-span-2">
+                  <Controller
+                    name="image_url"
+                    control={control}
+                    render={({ field }) => (
+                      <ImageUrlField
+                        id="image_url"
+                        label="صورة المنشأة"
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between rounded-xl border p-4 sm:col-span-2">

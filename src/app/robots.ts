@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { PUBLIC_URL } from '@/lib/site-config';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
       },
     ],
-    sitemap: 'https://tawfir.giize.com/sitemap.xml',
+    sitemap: `${PUBLIC_URL}/sitemap.xml`,
   };
 }

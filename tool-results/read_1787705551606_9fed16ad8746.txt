@@ -1,0 +1,1251 @@
+     1→"use client";
+     2→
+     3→import { useParams, useRouter } from "next/navigation";
+     4→import { useState, useCallback, useRef, useMemo } from "react";
+     5→import {
+     6→  Plus,
+     7→  Search,
+     8→  Pencil,
+     9→  Trash2,
+    10→  Upload,
+    11→  Loader2,
+    12→  ImageOff,
+    13→  ChevronLeft,
+    14→  ChevronRight,
+    15→  Filter,
+    16→  Package,
+    17→  CheckCircle2,
+    18→  Tags,
+    19→  X,
+    20→  RotateCcw,
+    21→  EyeOff,
+    22→  LayoutGrid,
+    23→  List,
+    24→  Image as ImageIcon,
+    25→} from "lucide-react";
+    26→import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+    27→import { Button } from "@/components/ui/button";
+    28→import { Input } from "@/components/ui/input";
+    29→import { Badge } from "@/components/ui/badge";
+    30→import { Skeleton } from "@/components/ui/skeleton";
+    31→import { Switch } from "@/components/ui/switch";
+    32→import {
+    33→  Table,
+    34→  TableBody,
+    35→  TableCell,
+    36→  TableHead,
+    37→  TableHeader,
+    38→  TableRow,
+    39→} from "@/components/ui/table";
+    40→import {
+    41→  Dialog,
+    42→  DialogContent,
+    43→  DialogHeader,
+    44→  DialogTitle,
+    45→  DialogFooter,
+    46→} from "@/components/ui/dialog";
+    47→import {
+    48→  Sheet,
+    49→  SheetContent,
+    50→  SheetHeader,
+    51→  SheetTitle,
+    52→  SheetFooter,
+    53→} from "@/components/ui/sheet";
+    54→import {
+    55→  AlertDialog,
+    56→  AlertDialogAction,
+    57→  AlertDialogCancel,
+    58→  AlertDialogContent,
+    59→  AlertDialogDescription,
+    60→  AlertDialogFooter,
+    61→  AlertDialogHeader,
+    62→  AlertDialogTitle,
+    63→  AlertDialogTrigger,
+    64→} from "@/components/ui/alert-dialog";
+    65→import { Label } from "@/components/ui/label";
+    66→import { Textarea } from "@/components/ui/textarea";
+    67→import { Checkbox } from "@/components/ui/checkbox";
+    68→import { cn } from "@/lib/utils";
+    69→import {
+    70→  useOwnerProducts,
+    71→  useCreateProduct,
+    72→  useUpdateProduct,
+    73→  useDeleteProduct,
+    74→  useToggleProductAvailability,
+    75→} from "@/hooks/useOwnerProducts";
+    76→import { formatCurrency, resolveImageUrl } from "@/lib/format";
+    77→import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+    78→import { useIsMobile } from "@/hooks/use-mobile";
+    79→import { useToast } from "@/hooks/use-toast";
+    80→import type { Product, ProductCreate, ProductUpdate, ValidationError } from "@/types/api.generated";
+    81→import type { OwnerApiError } from "@/services/owner-api-client";
+    82→import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+    83→
+    84→// ─── Types ───
+    85→interface ProductFormValues {
+    86→  name: string;
+    87→  price: string;
+    88→  category: string;
+    89→  description: string;
+    90→  image_url: string;
+    91→  is_available: boolean;
+    92→  display_order: number;
+    93→}
+    94→
+    95→const EMPTY_FORM: ProductFormValues = {
+    96→  name: "",
+    97→  price: "",
+    98→  category: "",
+    99→  description: "",
+   100→  image_url: "",
+   101→  is_available: true,
+   102→  display_order: 0,
+   103→};
+   104→
+   105→// ─── Helpers ───
+   106→function extractFieldErrors(body: unknown): Record<string, string> {
+   107→  const record: Record<string, string> = {};
+   108→  const data = body as Record<string, unknown> | null;
+   109→  if (!data || !Array.isArray(data.detail)) return record;
+   110→  const details = data.detail as ValidationError[];
+   111→  for (const v of details) {
+   112→    const fieldName = v.loc[v.loc.length - 1];
+   113→    if (typeof fieldName === "string") {
+   114→      record[fieldName] = v.msg;
+   115→    }
+   116→  }
+   117→  return record;
+   118→}
+   119→
+   120→function productToForm(p: Product): ProductFormValues {
+   121→  return {
+   122→    name: p.name,
+   123→    price: p.price,
+   124→    category: p.category,
+   125→    description: p.description ?? "",
+   126→    image_url: p.image_url ?? "",
+   127→    is_available: p.is_available,
+   128→    display_order: p.display_order,
+   129→  };
+   130→}
+   131→
+   132→// ─── Product Form Fields ───
+   133→function ProductFormFields({
+   134→  form,
+   135→  setForm,
+   136→  errors,
+   137→  onClearFields,
+   138→}: {
+   139→  form: ProductFormValues;
+   140→  setForm: (f: ProductFormValues) => void;
+   141→  errors: Record<string, string>;
+   142→  onClearFields?: () => void;
+   143→}) {
+   144→  const set = (key: keyof ProductFormValues, value: string | number | boolean) => {
+   145→    setForm({ ...form, [key]: value });
+   146→  };
+   147→
+   148→  return (
+   149→    <div className="space-y-4">
+   150→      <div className="space-y-2">
+   151→        <div className="flex items-center justify-between">
+   152→          <Label htmlFor="p-name">اسم المنتج *</Label>
+   153→          <span className={cn("text-xs", form.name.length > 100 ? "text-destructive" : "text-muted-foreground")}>
+   154→            {form.name.length}/100
+   155→          </span>
+   156→        </div>
+   157→        <Input
+   158→          id="p-name"
+   159→          value={form.name}
+   160→          onChange={(e) => set("name", e.target.value)}
+   161→        />
+   162→        {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
+   163→      </div>
+   164→
+   165→      <div className="grid grid-cols-2 gap-4">
+   166→        <div className="space-y-2">
+   167→          <Label htmlFor="p-price">السعر *</Label>
+   168→          <Input
+   169→            id="p-price"
+   170→            type="number"
+   171→            step="0.01"
+   172→            min="0"
+   173→            dir="ltr"
+   174→            value={form.price}
+   175→            onChange={(e) => set("price", e.target.value)}
+   176→          />
+   177→          {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
+   178→        </div>
+   179→        <div className="space-y-2">
+   180→          <Label htmlFor="p-order">الترتيب</Label>
+   181→          <Input
+   182→            id="p-order"
+   183→            type="number"
+   184→            dir="ltr"
+   185→            value={form.display_order}
+   186→            onChange={(e) => set("display_order", parseInt(e.target.value) || 0)}
+   187→          />
+   188→        </div>
+   189→      </div>
+   190→
+   191→      <div className="space-y-2">
+   192→        <Label htmlFor="p-category">التصنيف *</Label>
+   193→        <Input
+   194→          id="p-category"
+   195→          value={form.category}
+   196→          onChange={(e) => set("category", e.target.value)}
+   197→        />
+   198→        {errors.category && <p className="text-xs text-destructive">{errors.category}</p>}
+   199→      </div>
+   200→
+   201→      <div className="space-y-2">
+   202→        <div className="flex items-center justify-between">
+   203→          <Label htmlFor="p-desc">الوصف</Label>
+   204→          <span className={cn("text-xs", form.description.length > 500 ? "text-destructive" : "text-muted-foreground")}>
+   205→            {form.description.length}/500
+   206→          </span>
+   207→        </div>
+   208→        <Textarea
+   209→          id="p-desc"
+   210→          rows={3}
+   211→          value={form.description}
+   212→          onChange={(e) => set("description", e.target.value)}
+   213→        />
+   214→        {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
+   215→      </div>
+   216→
+   217→      <div className="space-y-2">
+   218→        <Label htmlFor="p-image">رابط الصورة</Label>
+   219→        <Input
+   220→          id="p-image"
+   221→          dir="ltr"
+   222→          value={form.image_url}
+   223→          onChange={(e) => set("image_url", e.target.value)}
+   224→        />
+   225→        {form.image_url && (
+   226→          <div className="overflow-hidden rounded-xl border">
+   227→            <ImageWithSkeleton
+   228→              src={resolveImageUrl(form.image_url)}
+   229→              alt="معاينة الصورة"
+   230→              width={200}
+   231→              height={140}
+   232→              className="mx-auto h-[140px] w-[200px]"
+   233→            />
+   234→          </div>
+   235→        )}
+   236→      </div>
+   237→
+   238→      <div className="flex items-center justify-between rounded-xl border p-4">
+   239→        <div>
+   240→          <Label htmlFor="p-available">متاح للعرض</Label>
+   241→          <p className="text-xs text-muted-foreground">عند التعطيل لن يظهر للعملاء</p>
+   242→        </div>
+   243→        <Switch
+   244→          id="p-available"
+   245→          checked={form.is_available}
+   246→          onCheckedChange={(v) => set("is_available", v)}
+   247→        />
+   248→      </div>
+   249→
+   250→      {onClearFields && (
+   251→        <Button
+   252→          type="button"
+   253→          variant="ghost"
+   254→          className="w-full gap-2 text-muted-foreground hover:text-foreground"
+   255→          onClick={onClearFields}
+   256→        >
+   257→          <RotateCcw className="h-4 w-4" />
+   258→          تفريغ الحقول
+   259→        </Button>
+   260→      )}
+   261→    </div>
+   262→  );
+   263→}
+   264→
+   265→// ─── Main Page ───
+   266→export default function OwnerProductsContent() {
+   267→  const params = useParams<{ id: string }>();
+   268→  const facilityId = Number(params.id);
+   269→  const router = useRouter();
+   270→  const isMobile = useIsMobile();
+   271→  const { toast } = useToast();
+   272→const prefersReduced = usePrefersReducedMotion();
+   273→
+   274→  // Search with debounce
+   275→  const [search, setSearch] = useState("");
+   276→  const [debouncedSearch, setDebouncedSearch] = useState("");
+   277→  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+   278→
+   279→  const [categoryFilter, setCategoryFilter] = useState("");
+   280→  const [onlyAvailable, setOnlyAvailable] = useState(false);
+   281→  const [page, setPage] = useState(1);
+   282→  const PAGE_SIZE = 20;
+   283→
+   284→  // Dialog/Sheet state
+   285→  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+   286→  const [formOpen, setFormOpen] = useState(false);
+   287→  const [form, setForm] = useState<ProductFormValues>(EMPTY_FORM);
+   288→  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+   289→
+   290→  // Delete confirmation
+   291→  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+   292→
+   293→  // Image lightbox
+   294→  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+   295→  const [selectedImageName, setSelectedImageName] = useState<string | null>(null);
+   296→
+   297→  // View mode
+   298→  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+   299→
+   300→  // Batch selection
+   301→  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+   302→  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+   303→
+   304→  const toggleSelect = useCallback((id: number) => {
+   305→    setSelectedIds((prev) => {
+   306→      const next = new Set(prev);
+   307→      if (next.has(id)) {
+   308→        next.delete(id);
+   309→      } else {
+   310→        next.add(id);
+   311→      }
+   312→      return next;
+   313→    });
+   314→  }, []);
+   315→
+   316→  // Debounce search
+   317→  const updateSearch = useCallback((val: string) => {
+   318→    setSearch(val);
+   319→    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+   320→    debounceTimer.current = setTimeout(() => {
+   321→      setDebouncedSearch(val);
+   322→      setPage(1);
+   323→    }, 300);
+   324→  }, []);
+   325→
+   326→  // Queries & mutations
+   327→  const { data, isLoading, isError } = useOwnerProducts(facilityId, {
+   328→    search: debouncedSearch || undefined,
+   329→    category: categoryFilter || undefined,
+   330→    only_available: onlyAvailable || undefined,
+   331→    page,
+   332→    page_size: PAGE_SIZE,
+   333→  });
+   334→
+   335→  // Stats queries (page_size=1 to just get total)
+   336→  const { data: totalStatsData } = useOwnerProducts(facilityId, { page: 1, page_size: 1 });
+   337→  const { data: availableStatsData } = useOwnerProducts(facilityId, { page: 1, page_size: 1, only_available: true });
+   338→
+   339→  // Unique categories from current page
+   340→  const categories = data?.items
+   341→    ? [...new Set(data.items.map((p) => p.category))]
+   342→    : [];
+   343→
+   344→  const categoryCount = useMemo(() => {
+   345→    if (!data || !data.items) return 0;
+   346→    return new Set(data.items.map((p) => p.category)).size;
+   347→  }, [data]);
+   348→
+   349→  const createMutation = useCreateProduct(facilityId);
+   350→  const updateMutation = useUpdateProduct(facilityId, editingProduct?.id ?? 0);
+   351→  const deleteMutation = useDeleteProduct(facilityId);
+   352→  const toggleMutation = useToggleProductAvailability(facilityId);
+   353→
+   354→  // Batch selection helpers (after data is available)
+   355→  const selectAll = useCallback(() => {
+   356→    if (!data) return;
+   357→    const allIds = data.items.map((p) => p.id);
+   358→    const allSelected = allIds.every((id) => selectedIds.has(id));
+   359→    if (allSelected) {
+   360→      setSelectedIds(new Set());
+   361→    } else {
+   362→      setSelectedIds(new Set(allIds));
+   363→    }
+   364→  }, [data, selectedIds]);
+   365→
+   366→  const clearSelection = useCallback(() => {
+   367→    setSelectedIds(new Set());
+   368→  }, []);
+   369→
+   370→  // ─── Form handlers ───
+   371→  function openCreate() {
+   372→    setEditingProduct(null);
+   373→    setForm(EMPTY_FORM);
+   374→    setFormErrors({});
+   375→    setFormOpen(true);
+   376→  }
+   377→
+   378→  function openEdit(product: Product) {
+   379→    setEditingProduct(product);
+   380→    setForm(productToForm(product));
+   381→    setFormErrors({});
+   382→    setFormOpen(true);
+   383→  }
+   384→
+   385→  async function handleSave() {
+   386→    setFormErrors({});
+   387→    const payload: ProductCreate = {
+   388→      name: form.name,
+   389→      price: parseFloat(form.price) || 0,
+   390→      category: form.category,
+   391→      description: form.description || null,
+   392→      image_url: form.image_url || null,
+   393→      is_available: form.is_available,
+   394→      display_order: form.display_order,
+   395→    };
+   396→
+   397→    try {
+   398→      if (editingProduct) {
+   399→        const updatePayload: ProductUpdate = { ...payload };
+   400→        await updateMutation.mutateAsync(updatePayload);
+   401→      } else {
+   402→        await createMutation.mutateAsync(payload);
+   403→      }
+   404→      setFormOpen(false);
+   405→    } catch (err) {
+   406→      const apiErr = err as unknown as OwnerApiError;
+   407→      if (apiErr.status === 422 && apiErr.body) {
+   408→        const fieldErrors = extractFieldErrors(apiErr.body);
+   409→        if (Object.keys(fieldErrors).length > 0) {
+   410→          setFormErrors(fieldErrors);
+   411→        }
+   412→        const msg = (apiErr.body as Record<string, unknown>).detail;
+   413→        if (typeof msg === "string" && msg.includes("already exists")) {
+   414→          setFormErrors((prev) => ({ ...prev, name: "اسم المنتج موجود مسبقا" }));
+   415→          toast({ title: "اسم مكرر", description: "اسم المنتج موجود مسبقا", variant: "destructive" });
+   416→        }
+   417→      }
+   418→    }
+   419→  }
+   420→
+   421→  function handleDelete() {
+   422→    if (!deletingProduct) return;
+   423→    deleteMutation.mutate(deletingProduct.id, {
+   424→      onSuccess: () => setDeletingProduct(null),
+   425→    });
+   426→  }
+   427→
+   428→  function handleToggleAvailability(product: Product) {
+   429→    toggleMutation.mutate({
+   430→      productId: product.id,
+   431→      data: { is_available: !product.is_available },
+   432→    });
+   433→  }
+   434→
+   435→  const emptyAnimation = prefersReduced
+   436→    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
+   437→    : { initial: { opacity: 0, y: 20, scale: 0.95 }, animate: { opacity: 1, y: 0, scale: 1 } };
+   438→
+   439→  // ─── Loading ───
+   440→  if (isLoading) {
+   441→    return (
+   442→      <div className="space-y-6">
+   443→        <div className="flex items-center justify-between">
+   444→          <Skeleton className="h-8 w-48" />
+   445→          <Skeleton className="h-10 w-36" />
+   446→        </div>
+   447→        <div className="flex gap-3">
+   448→          <Skeleton className="h-8 w-24 rounded-full" />
+   449→          <Skeleton className="h-8 w-28 rounded-full" />
+   450→          <Skeleton className="h-8 w-28 rounded-full" />
+   451→        </div>
+   452→        <Skeleton className="h-12 rounded-2xl" />
+   453→        <div className="space-y-3">
+   454→          {[1, 2, 3].map((i) => (
+   455→            <Skeleton key={i} className="h-16 rounded-2xl" />
+   456→          ))}
+   457→        </div>
+   458→      </div>
+   459→    );
+   460→  }
+   461→
+   462→  // ─── Error ───
+   463→  if (isError) {
+   464→    return (
+   465→      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+   466→        <p className="text-lg font-medium text-destructive">
+   467→          حدث خطأ أثناء تحميل المنتجات
+   468→        </p>
+   469→        <Button variant="outline" className="rounded-full" onClick={() => window.location.reload()}>
+   470→          إعادة المحاولة
+   471→        </Button>
+   472→      </div>
+   473→    );
+   474→  }
+   475→
+   476→  const hasActiveFilters = !!(debouncedSearch || categoryFilter || onlyAvailable);
+   477→
+   478→  // ─── Empty (no products at all) ───
+   479→  if (!data || (data.items.length === 0 && !hasActiveFilters)) {
+   480→    return (
+   481→      <div className="space-y-6">
+   482→        <div className="flex items-center justify-between">
+   483→          <h1 className="text-2xl font-bold">المنتجات</h1>
+   484→          <div className="flex gap-2">
+   485→            <Button
+   486→              variant="outline"
+   487→              className="gap-2 rounded-full"
+   488→              onClick={() => router.push(`/owner/facilities/${facilityId}/products/import`)}
+   489→            >
+   490→              <Upload className="h-4 w-4" />
+   491→              استيراد
+   492→            </Button>
+   493→          </div>
+   494→        </div>
+   495→
+   496→        {/* Enhanced empty state */}
+   497→        <motion.div
+   498→          className="flex flex-col items-center justify-center gap-6 py-20 text-center"
+   499→          variants={emptyAnimation}
+   500→          initial="initial"
+   501→          animate="animate"
+   502→          transition={{ duration: 0.4, ease: "easeOut" }}
+   503→        >
+   504→          {/* Large faded illustration */}
+   505→          <div className="relative">
+   506→            <div className="absolute inset-0 flex items-center justify-center">
+   507→              <div className="h-32 w-32 rounded-full bg-primary/5" />
+   508→            </div>
+   509→            <Package className="relative h-24 w-24 text-muted-foreground/30" />
+   510→          </div>
+   511→          <div>
+   512→            <p className="text-lg font-semibold">لا توجد منتجات بعد</p>
+   513→            <p className="mt-1 text-sm text-muted-foreground">
+   514→              ابدأ بإضافة أول منتج أو استوردها من ملف Excel
+   515→            </p>
+   516→          </div>
+   517→          <motion.div
+   518→            className="flex gap-3"
+   519→            initial={prefersReduced ? { opacity: 1 } : { opacity: 0, y: 10 }}
+   520→            animate={{ opacity: 1, y: 0 }}
+   521→            transition={{ duration: 0.3, delay: 0.2 }}
+   522→          >
+   523→            <Button
+   524→              className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px]"
+   525→              onClick={openCreate}
+   526→            >
+   527→              <Plus className="h-5 w-5" />
+   528→              إضافة أول منتج
+   529→            </Button>
+   530→            <Button
+   531→              variant="outline"
+   532→              className="gap-2 rounded-full min-h-[44px]"
+   533→              onClick={() => router.push(`/owner/facilities/${facilityId}/products/import`)}
+   534→            >
+   535→              <Upload className="h-5 w-5" />
+   536→              استيراد من Excel
+   537→            </Button>
+   538→          </motion.div>
+   539→        </motion.div>
+   540→      </div>
+   541→    );
+   542→  }
+   543→
+   544→  // ─── No matching results ───
+   545→  if (data.items.length === 0 && hasActiveFilters) {
+   546→    return (
+   547→      <div className="space-y-6">
+   548→        <div className="flex items-center justify-between">
+   549→          <h1 className="text-2xl font-bold">المنتجات</h1>
+   550→          <div className="flex gap-2">
+   551→            <Button
+   552→              variant="outline"
+   553→              className="gap-2 rounded-full"
+   554→              onClick={() => router.push(`/owner/facilities/${facilityId}/products/import`)}
+   555→            >
+   556→              <Upload className="h-4 w-4" />
+   557→              <span className="hidden sm:inline">استيراد</span>
+   558→            </Button>
+   559→            <Button
+   560→              className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+   561→              onClick={openCreate}
+   562→            >
+   563→              <Plus className="h-4 w-4" />
+   564→              إضافة منتج
+   565→            </Button>
+   566→          </div>
+   567→        </div>
+   568→
+   569→        {/* Filters (repeated for context) */}
+   570→        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   571→          <div className="relative flex-1">
+   572→            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   573→            <Input
+   574→              placeholder="ابحث عن منتج..."
+   575→              className="rounded-full ps-4 pe-10"
+   576→              value={search}
+   577→              onChange={(e) => updateSearch(e.target.value)}
+   578→            />
+   579→            {search && (
+   580→              <button
+   581→                type="button"
+   582→                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+   583→                onClick={() => updateSearch("")}
+   584→                aria-label="مسح البحث"
+   585→              >
+   586→                <X className="h-4 w-4" />
+   587→              </button>
+   588→            )}
+   589→          </div>
+   590→        </div>
+   591→
+   592→        <motion.div
+   593→          className="flex flex-col items-center justify-center gap-4 py-16 text-center"
+   594→          variants={emptyAnimation}
+   595→          initial="initial"
+   596→          animate="animate"
+   597→          transition={{ duration: 0.4, ease: "easeOut" }}
+   598→        >
+   599→          <div className="relative">
+   600→            <div className="absolute inset-0 flex items-center justify-center">
+   601→              <div className="h-32 w-32 rounded-full bg-muted/30" />
+   602→            </div>
+   603→            <Search className="relative h-24 w-24 text-muted-foreground/30" />
+   604→          </div>
+   605→          <div>
+   606→            <p className="text-lg font-semibold">
+   607→              لا توجد منتجات تطابق &quot;{debouncedSearch}&quot;
+   608→            </p>
+   609→            <p className="mt-1 text-sm text-muted-foreground">
+   610→              جرب تغيير كلمات البحث أو إزالة الفلاتر
+   611→            </p>
+   612→          </div>
+   613→          <Button
+   614→            variant="outline"
+   615→            className="rounded-full min-h-[44px]"
+   616→            onClick={() => {
+   617→              updateSearch("");
+   618→              setCategoryFilter("");
+   619→              setOnlyAvailable(false);
+   620→            }}
+   621→          >
+   622→            مسح الفلاتر
+   623→          </Button>
+   624→        </motion.div>
+   625→      </div>
+   626→    );
+   627→  }
+   628→
+   629→  // ─── Data ───
+   630→  return (
+   631→    <div className="space-y-6">
+   632→      {/* Header */}
+   633→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+   634→        <h1 className="text-2xl font-bold">المنتجات</h1>
+   635→        <div className="flex gap-2">
+   636→          <Button
+   637→            variant="outline"
+   638→            className="gap-2 rounded-full"
+   639→            onClick={() => router.push(`/owner/facilities/${facilityId}/products/import`)}
+   640→          >
+   641→            <Upload className="h-4 w-4" />
+   642→            <span className="hidden sm:inline">استيراد</span>
+   643→          </Button>
+   644→          <Button
+   645→            className="gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
+   646→            onClick={openCreate}
+   647→          >
+   648→            <Plus className="h-4 w-4" />
+   649→            إضافة منتج
+   650→          </Button>
+   651→        </div>
+   652→      </div>
+   653→
+   654→      {/* Stats bar */}
+   655→      <div className="flex flex-wrap gap-2">
+   656→        <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-sm">
+   657→          <Package className="h-3.5 w-3.5 text-primary" />
+   658→          <span className="text-muted-foreground">الإجمالي:</span>
+   659→          <span className="font-semibold">{totalStatsData?.total ?? 0}</span>
+   660→        </div>
+   661→        <div className="flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-sm">
+   662→          <CheckCircle2 className="h-3.5 w-3.5 text-secondary" />
+   663→          <span className="text-muted-foreground">متاح:</span>
+   664→          <span className="font-semibold">{availableStatsData?.total ?? 0}</span>
+   665→        </div>
+   666→        <div className="flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-sm">
+   667→          <Tags className="h-3.5 w-3.5 text-secondary" />
+   668→          <span className="text-muted-foreground">التصنيفات:</span>
+   669→          <span className="font-semibold">{categoryCount}</span>
+   670→        </div>
+   671→      </div>
+   672→
+   673→      {/* Filters */}
+   674→      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+   675→        <div className="relative flex-1">
+   676→          <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   677→          <Input
+   678→            placeholder="ابحث عن منتج..."
+   679→            className={cn("rounded-full", search ? "pe-10 ps-4" : "ps-4 pe-10")}
+   680→            value={search}
+   681→            onChange={(e) => updateSearch(e.target.value)}
+   682→          />
+   683→          {search && (
+   684→            <button
+   685→              type="button"
+   686→              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
+   687→              onClick={() => updateSearch("")}
+   688→              aria-label="مسح البحث"
+   689→            >
+   690→              <X className="h-4 w-4" />
+   691→            </button>
+   692→          )}
+   693→        </div>
+   694→        <div className="flex gap-2">
+   695→          {categories.length > 1 && (
+   696→            <select
+   697→              className="h-10 rounded-full border bg-background px-3 text-sm"
+   698→              value={categoryFilter}
+   699→              onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+   700→            >
+   701→              <option value="">كل التصنيفات</option>
+   702→              {categories.map((c) => (
+   703→                <option key={c} value={c}>{c}</option>
+   704→              ))}
+   705→            </select>
+   706→          )}
+   707→          <Button
+   708→            variant={onlyAvailable ? "default" : "outline"}
+   709→            className="gap-1.5 rounded-full"
+   710→            onClick={() => { setOnlyAvailable(!onlyAvailable); setPage(1); }}
+   711→          >
+   712→            <Filter className="h-3.5 w-3.5" />
+   713→            {onlyAvailable ? "متاح فقط" : "الكل"}
+   714→          </Button>
+   715→          <div className="flex rounded-lg border">
+   716→            <button
+   717→              type="button"
+   718→              className={cn(
+   719→                "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-r-lg px-3 transition-colors",
+   720→                viewMode === "grid"
+   721→                  ? "bg-primary text-primary-foreground"
+   722→                  : "text-muted-foreground hover:bg-muted/50"
+   723→              )}
+   724→              onClick={() => setViewMode("grid")}
+   725→              aria-label="عرض شبكي"
+   726→            >
+   727→              <LayoutGrid className="h-4 w-4" />
+   728→            </button>
+   729→            <button
+   730→              type="button"
+   731→              className={cn(
+   732→                "flex min-h-[44px] min-w-[44px] items-center justify-center rounded-l-lg px-3 transition-colors border-e",
+   733→                viewMode === "list"
+   734→                  ? "bg-primary text-primary-foreground"
+   735→                  : "text-muted-foreground hover:bg-muted/50"
+   736→              )}
+   737→              onClick={() => setViewMode("list")}
+   738→              aria-label="عرض قائمة"
+   739→            >
+   740→              <List className="h-4 w-4" />
+   741→            </button>
+   742→          </div>
+   743→        </div>
+   744→      </div>
+   745→
+   746→      {/* Filtered count */}
+   747→      {(debouncedSearch || categoryFilter || onlyAvailable) && (
+   748→        <p className="text-sm text-muted-foreground">
+   749→          عرض <span className="font-semibold text-foreground">{data.total}</span> من <span className="font-semibold text-foreground">{totalStatsData?.total ?? 0}</span> منتج
+   750→        </p>
+   751→      )}
+   752→
+   753→      {/* Grid View: Desktop Table */}
+   754→      {viewMode === "grid" && !isMobile && (
+   755→        <div className="rounded-2xl border">
+   756→          <Table>
+   757→            <TableHeader>
+   758→              <TableRow>
+   759→                <TableHead className="w-10">
+   760→                  <Checkbox
+   761→                    checked={data.items.length > 0 && data.items.every((p) => selectedIds.has(p.id))}
+   762→                    onCheckedChange={selectAll}
+   763→                    aria-label="تحديد الكل"
+   764→                  />
+   765→                </TableHead>
+   766→                <TableHead className="w-14">صورة</TableHead>
+   767→                <TableHead>الاسم</TableHead>
+   768→                <TableHead>التصنيف</TableHead>
+   769→                <TableHead>السعر</TableHead>
+   770→                <TableHead className="w-16">ترتيب</TableHead>
+   771→                <TableHead className="w-28 text-center">توفر</TableHead>
+   772→                <TableHead className="w-24">إجراءات</TableHead>
+   773→              </TableRow>
+   774→            </TableHeader>
+   775→            <TableBody>
+   776→              {data.items.map((product, idx) => (
+   777→                <TableRow
+   778→                  key={product.id}
+   779→                  className={cn(idx % 2 === 1 && "bg-muted/30")}
+   780→                >
+   781→                  <TableCell>
+   782→                    <Checkbox
+   783→                      checked={selectedIds.has(product.id)}
+   784→                      onCheckedChange={() => toggleSelect(product.id)}
+   785→                      aria-label={`تحديد ${product.name}`}
+   786→                    />
+   787→                  </TableCell>
+   788→                  <TableCell>
+   789→                    {product.image_url ? (
+   790→                      <button
+   791→                        type="button"
+   792→                        className="cursor-zoom-in min-h-[44px] min-w-[44px] flex items-center justify-center"
+   793→                        onClick={() => { setSelectedImage(resolveImageUrl(product.image_url)); setSelectedImageName(product.name); }}
+   794→                        aria-label={`تكبير صورة ${product.name}`}
+   795→                      >
+   796→                        <img
+   797→                          src={resolveImageUrl(product.image_url)}
+   798→                          alt={product.name}
+   799→                          className="h-10 w-10 rounded-lg object-cover"
+   800→                        />
+   801→                      </button>
+   802→                    ) : (
+   803→                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+   804→                        <ImageOff className="h-4 w-4 text-muted-foreground" />
+   805→                      </div>
+   806→                    )}
+   807→                  </TableCell>
+   808→                  <TableCell className="font-medium">{product.name}</TableCell>
+   809→                  <TableCell>
+   810→                    <Badge variant="secondary">{product.category}</Badge>
+   811→                  </TableCell>
+   812→                  <TableCell className="font-mono text-sm">
+   813→                    {formatCurrency(product.price)}
+   814→                  </TableCell>
+   815→                  <TableCell className="text-center text-muted-foreground">
+   816→                    {product.display_order}
+   817→                  </TableCell>
+   818→                  <TableCell className="text-center">
+   819→                    <motion.div
+   820→                      className="flex items-center justify-center gap-2"
+   821→                      whileTap={prefersReduced ? undefined : { scale: 0.95 }}
+   822→                    >
+   823→                      <motion.span
+   824→                        key={product.is_available ? "on" : "off"}
+   825→                        animate={prefersReduced ? undefined : { scale: [1, 1.3, 1] }}
+   826→                        transition={{ duration: 0.3 }}
+   827→                        className={cn(
+   828→                          "inline-block h-2.5 w-2.5 rounded-full",
+   829→                          product.is_available
+   830→                            ? "bg-success"
+   831→                            : "bg-muted-foreground"
+   832→                        )}
+   833→                      />
+   834→                      <Switch
+   835→                        checked={product.is_available}
+   836→                        onCheckedChange={() => handleToggleAvailability(product)}
+   837→                      />
+   838→                    </motion.div>
+   839→                  </TableCell>
+   840→                  <TableCell>
+   841→                    <div className="flex gap-1">
+   842→                      <Button
+   843→                        variant="ghost"
+   844→                        size="icon"
+   845→                        className="h-8 w-8"
+   846→                        onClick={() => openEdit(product)}
+   847→                      >
+   848→                        <Pencil className="h-3.5 w-3.5" />
+   849→                      </Button>
+   850→                      <Button
+   851→                        variant="ghost"
+   852→                        size="icon"
+   853→                        className="h-8 w-8 text-destructive hover:text-destructive"
+   854→                        onClick={() => setDeletingProduct(product)}
+   855→                      >
+   856→                        <Trash2 className="h-3.5 w-3.5" />
+   857→                      </Button>
+   858→                    </div>
+   859→                  </TableCell>
+   860→                </TableRow>
+   861→              ))}
+   862→            </TableBody>
+   863→          </Table>
+   864→        </div>
+   865→      )}
+   866→
+   867→      {/* Grid View: Mobile Cards */}
+   868→      {viewMode === "grid" && isMobile && (
+   869→        <div className="space-y-3">
+   870→          <div className="flex items-center gap-3 min-h-[44px]">
+   871→            <Checkbox
+   872→              checked={data.items.length > 0 && data.items.every((p) => selectedIds.has(p.id))}
+   873→              onCheckedChange={selectAll}
+   874→              aria-label="تحديد الكل"
+   875→            />
+   876→            <span className="text-sm text-muted-foreground">تحديد الكل</span>
+   877→          </div>
+   878→          {data.items.map((product) => (
+   879→            <div
+   880→              key={product.id}
+   881→              className={cn(
+   882→                "rounded-2xl border border-s-4 p-4",
+   883→                product.is_available
+   884→                  ? "border-s-emerald-500"
+   885→                  : "border-s-muted-foreground/30"
+   886→              )}
+   887→              style={{
+   888→                borderInlineStartWidth: "4px",
+   889→                borderInlineStartColor: product.is_available
+   890→                  ? "var(--color-emerald-500)"
+   891→                  : "color-mix(in srgb, var(--muted-foreground) 30%, transparent)",
+   892→              }}
+   893→            >
+   894→              <div className="flex gap-3">
+   895→                <div className="flex flex-col items-center gap-2">
+   896→                  <Checkbox
+   897→                    checked={selectedIds.has(product.id)}
+   898→                    onCheckedChange={() => toggleSelect(product.id)}
+   899→                    aria-label={`تحديد ${product.name}`}
+   900→                  />
+   901→                  {product.image_url ? (
+   902→                    <button
+   903→                      type="button"
+   904→                      className="cursor-zoom-in min-h-[44px] min-w-[44px] flex items-center justify-center overflow-hidden rounded-xl"
+   905→                      onClick={() => { setSelectedImage(resolveImageUrl(product.image_url)); setSelectedImageName(product.name); }}
+   906→                      aria-label={`تكبير صورة ${product.name}`}
+   907→                    >
+   908→                      <img
+   909→                        src={resolveImageUrl(product.image_url)}
+   910→                        alt={product.name}
+   911→                        className="h-14 w-14 shrink-0 rounded-xl object-cover hover:scale-105 transition-transform duration-300"
+   912→                      />
+   913→                    </button>
+   914→                  ) : (
+   915→                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-muted/30">
+   916→                      <span className="text-3xl font-bold text-muted-foreground/30">
+   917→                        {product.name.charAt(0)}
+   918→                      </span>
+   919→                    </div>
+   920→                  )}
+   921→                </div>
+   922→                <div className="flex-1">
+   923→                  <div className="flex items-start justify-between">
+   924→                    <h3 className="font-semibold leading-tight">{product.name}</h3>
+   925→                    <motion.div
+   926→                      className="flex items-center gap-1.5"
+   927→                      whileTap={prefersReduced ? undefined : { scale: 0.95 }}
+   928→                    >
+   929→                      <motion.span
+   930→                        key={product.is_available ? "on" : "off"}
+   931→                        animate={prefersReduced ? undefined : { scale: [1, 1.3, 1] }}
+   932→                        transition={{ duration: 0.3 }}
+   933→                        className={cn(
+   934→                          "inline-block h-2 w-2 rounded-full",
+   935→                          product.is_available
+   936→                            ? "bg-success"
+   937→                            : "bg-muted-foreground"
+   938→                        )}
+   939→                      />
+   940→                      <Switch
+   941→                        checked={product.is_available}
+   942→                        onCheckedChange={() => handleToggleAvailability(product)}
+   943→                        className="ms-2"
+   944→                      />
+   945→                    </motion.div>
+   946→                  </div>
+   947→                  <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+   948→                    <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+   949→                    <span className="font-mono">{formatCurrency(product.price)}</span>
+   950→                  </div>
+   951→                </div>
+   952→              </div>
+   953→              <div className="mt-3 flex justify-end gap-2 border-t pt-3">
+   954→                <Button
+   955→                  variant="ghost"
+   956→                  size="sm"
+   957→                  className="h-11 gap-1.5 text-xs"
+   958→                  onClick={() => openEdit(product)}
+   959→                >
+   960→                  <Pencil className="h-3.5 w-3.5" />
+   961→                  تعديل
+   962→                </Button>
+   963→                <Button
+   964→                  variant="ghost"
+   965→                  size="sm"
+   966→                  className="h-11 gap-1.5 text-xs text-destructive hover:text-destructive"
+   967→                  onClick={() => setDeletingProduct(product)}
+   968→                >
+   969→                  <Trash2 className="h-3.5 w-3.5" />
+   970→                  حذف
+   971→                </Button>
+   972→              </div>
+   973→            </div>
+   974→          ))}
+   975→        </div>
+   976→      )}
+   977→
+   978→      {/* List View */}
+   979→      {viewMode === "list" && (
+   980→        <div className="rounded-2xl border">
+   981→          {data.items.map((product) => (
+   982→            <div
+   983→              key={product.id}
+   984→              className="flex items-center gap-3 border-b last:border-b-0 px-4 py-3"
+   985→            >
+   986→              <div className="min-w-0 flex-1">
+   987→                <p className="truncate text-sm font-medium">{product.name}</p>
+   988→              </div>
+   989→              <Badge variant="secondary" className="shrink-0 text-xs">
+   990→                {product.category}
+   991→              </Badge>
+   992→              <span className="shrink-0 font-mono text-sm">
+   993→                {formatCurrency(product.price)}
+   994→              </span>
+   995→              <motion.div
+   996→                className="flex items-center gap-2 shrink-0"
+   997→                whileTap={prefersReduced ? undefined : { scale: 0.95 }}
+   998→              >
+   999→                <motion.span
+  1000→                  key={product.is_available ? "on" : "off"}
+  1001→                  animate={prefersReduced ? undefined : { scale: [1, 1.3, 1] }}
+  1002→                  transition={{ duration: 0.3 }}
+  1003→                  className={cn(
+  1004→                    "inline-block h-2.5 w-2.5 rounded-full",
+  1005→                    product.is_available
+  1006→                      ? "bg-success"
+  1007→                      : "bg-muted-foreground"
+  1008→                  )}
+  1009→                />
+  1010→                <Switch
+  1011→                  checked={product.is_available}
+  1012→                  onCheckedChange={() => handleToggleAvailability(product)}
+  1013→                />
+  1014→              </motion.div>
+  1015→              <div className="flex gap-1 shrink-0">
+  1016→                <Button
+  1017→                  variant="ghost"
+  1018→                  size="icon"
+  1019→                  className="h-8 w-8"
+  1020→                  onClick={() => openEdit(product)}
+  1021→                >
+  1022→                  <Pencil className="h-3.5 w-3.5" />
+  1023→                </Button>
+  1024→                <Button
+  1025→                  variant="ghost"
+  1026→                  size="icon"
+  1027→                  className="h-8 w-8 text-destructive hover:text-destructive"
+  1028→                  onClick={() => setDeletingProduct(product)}
+  1029→                >
+  1030→                  <Trash2 className="h-3.5 w-3.5" />
+  1031→                </Button>
+  1032→              </div>
+  1033→            </div>
+  1034→          ))}
+  1035→        </div>
+  1036→      )}
+  1037→
+  1038→      {/* Floating Batch Action Bar */}
+  1039→      <AnimatePresence>
+  1040→        {selectedIds.size > 0 && (
+  1041→          <motion.div
+  1042→            initial={prefersReduced ? { y: 0 } : { y: 80 }}
+  1043→            animate={{ y: 0 }}
+  1044→            exit={prefersReduced ? { y: 0 } : { y: 80 }}
+  1045→            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+  1046→            className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur-sm pb-safe"
+  1047→          >
+  1048→            <div className="mx-auto flex h-[56px] max-w-3xl items-center justify-between px-4">
+  1049→              <span className="text-sm font-medium">
+  1050→                {selectedIds.size} منتج محدد
+  1051→              </span>
+  1052→              <div className="flex gap-2">
+  1053→                <Button
+  1054→                  variant="outline"
+  1055→                  size="sm"
+  1056→                  className="gap-1.5 rounded-full min-h-[44px]"
+  1057→                  onClick={clearSelection}
+  1058→                >
+  1059→                  <X className="h-3.5 w-3.5" />
+  1060→                  إلغاء التحديد
+  1061→                </Button>
+  1062→                <Button
+  1063→                  variant="outline"
+  1064→                  size="sm"
+  1065→                  className="gap-1.5 rounded-full min-h-[44px]"
+  1066→                  onClick={() => toast({ title: "قريبًا" })}
+  1067→                >
+  1068→                  <EyeOff className="h-3.5 w-3.5" />
+  1069→                  تعطيل المحدد
+  1070→                </Button>
+  1071→                <AlertDialog open={batchDeleteOpen} onOpenChange={setBatchDeleteOpen}>
+  1072→                  <AlertDialogTrigger asChild>
+  1073→                    <Button
+  1074→                      variant="destructive"
+  1075→                      size="sm"
+  1076→                      className="gap-1.5 rounded-full min-h-[44px]"
+  1077→                    >
+  1078→                      <Trash2 className="h-3.5 w-3.5" />
+  1079→                      حذف المحدد
+  1080→                    </Button>
+  1081→                  </AlertDialogTrigger>
+  1082→                  <AlertDialogContent className="rounded-2xl">
+  1083→                    <AlertDialogHeader>
+  1084→                      <AlertDialogTitle>حذف المنتجات المحددة</AlertDialogTitle>
+  1085→                      <AlertDialogDescription>
+  1086→                        هل أنت متأكد من حذف {selectedIds.size} منتج؟ لا يمكن التراجع عن هذا الإجراء.
+  1087→                      </AlertDialogDescription>
+  1088→                    </AlertDialogHeader>
+  1089→                    <AlertDialogFooter className="flex-row-reverse gap-2">
+  1090→                      <AlertDialogAction
+  1091→                        className="rounded-full bg-destructive text-white hover:bg-destructive/90 min-h-[44px]"
+  1092→                        onClick={() => {
+  1093→                          toast({ title: "تم حذف المنتجات المحددة" });
+  1094→                          clearSelection();
+  1095→                          setBatchDeleteOpen(false);
+  1096→                        }}
+  1097→                      >
+  1098→                        حذف
+  1099→                      </AlertDialogAction>
+  1100→                      <AlertDialogCancel className="rounded-full outline min-h-[44px]">
+  1101→                        إلغاء
+  1102→                      </AlertDialogCancel>
+  1103→                    </AlertDialogFooter>
+  1104→                  </AlertDialogContent>
+  1105→                </AlertDialog>
+  1106→              </div>
+  1107→            </div>
+  1108→          </motion.div>
+  1109→        )}
+  1110→      </AnimatePresence>
+  1111→
+  1112→      {/* Pagination */}
+  1113→      {data.pages > 1 && (
+  1114→        <div className="flex items-center justify-center gap-2">
+  1115→          <Button
+  1116→            variant="outline"
+  1117→            size="sm"
+  1118→            className="rounded-full"
+  1119→            disabled={page <= 1}
+  1120→            onClick={() => setPage((p) => p - 1)}
+  1121→          >
+  1122→            <ChevronRight className="h-4 w-4" />
+  1123→          </Button>
+  1124→          <span className="text-sm text-muted-foreground">
+  1125→            {page} / {data.pages}
+  1126→          </span>
+  1127→          <Button
+  1128→            variant="outline"
+  1129→            size="sm"
+  1130→            className="rounded-full"
+  1131→            disabled={page >= data.pages}
+  1132→            onClick={() => setPage((p) => p + 1)}
+  1133→          >
+  1134→            <ChevronLeft className="h-4 w-4" />
+  1135→          </Button>
+  1136→        </div>
+  1137→      )}
+  1138→
+  1139→      {/* Create/Edit Dialog (Desktop) */}
+  1140→      {!isMobile && (
+  1141→        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+  1142→          <DialogContent className="rounded-2xl sm:max-w-lg">
+  1143→            <DialogHeader>
+  1144→              <DialogTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
+  1145→            </DialogHeader>
+  1146→            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} />
+  1147→            <DialogFooter className="flex-row-reverse gap-2">
+  1148→              <Button
+  1149→                className="rounded-full bg-primary text-white hover:bg-primary/90"
+  1150→                disabled={createMutation.isPending || updateMutation.isPending}
+  1151→                onClick={handleSave}
+  1152→              >
+  1153→                {(createMutation.isPending || updateMutation.isPending) && (
+  1154→                  <Loader2 className="h-4 w-4 animate-spin" />
+  1155→                )}
+  1156→                {editingProduct ? "حفظ التعديلات" : "إضافة"}
+  1157→              </Button>
+  1158→              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
+  1159→                إلغاء
+  1160→              </Button>
+  1161→            </DialogFooter>
+  1162→          </DialogContent>
+  1163→        </Dialog>
+  1164→      )}
+  1165→
+  1166→      {/* Create/Edit Sheet (Mobile) */}
+  1167→      {isMobile && (
+  1168→        <Sheet open={formOpen} onOpenChange={setFormOpen}>
+  1169→          <SheetContent side="bottom" className="rounded-t-2xl">
+  1170→            <SheetHeader>
+  1171→              <SheetTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</SheetTitle>
+  1172→            </SheetHeader>
+  1173→            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} />
+  1174→            <SheetFooter className="flex-row-reverse gap-2">
+  1175→              <Button
+  1176→                className="rounded-full bg-primary text-white hover:bg-primary/90"
+  1177→                disabled={createMutation.isPending || updateMutation.isPending}
+  1178→                onClick={handleSave}
+  1179→              >
+  1180→                {(createMutation.isPending || updateMutation.isPending) && (
+  1181→                  <Loader2 className="h-4 w-4 animate-spin" />
+  1182→                )}
+  1183→                {editingProduct ? "حفظ التعديلات" : "إضافة"}
+  1184→              </Button>
+  1185→              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
+  1186→                إلغاء
+  1187→              </Button>
+  1188→            </SheetFooter>
+  1189→          </SheetContent>
+  1190→        </Sheet>
+  1191→      )}
+  1192→
+  1193→      {/* Image Lightbox */}
+  1194→      <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) { setSelectedImage(null); setSelectedImageName(null); } }}>
+  1195→        <DialogContent className="rounded-2xl p-0 overflow-hidden max-w-4xl w-[calc(100%-1rem)] sm:w-full">
+  1196→          <DialogHeader className="sr-only">
+  1197→            <DialogTitle>{selectedImageName ?? "صورة المنتج"}</DialogTitle>
+  1198→          </DialogHeader>
+  1199→          <div className="relative">
+  1200→            {selectedImage && (
+  1201→              <motion.img
+  1202→                src={selectedImage}
+  1203→                alt={selectedImageName ?? "صورة المنتج"}
+  1204→                className="w-full h-64 md:h-96 object-cover"
+  1205→                initial={prefersReduced ? { scale: 1 } : { scale: 0.95 }}
+  1206→                animate={{ scale: 1 }}
+  1207→                transition={{ duration: 0.2, ease: "easeOut" }}
+  1208→              />
+  1209→            )}
+  1210→            <button
+  1211→              type="button"
+  1212→              className="absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+  1213→              onClick={() => { setSelectedImage(null); setSelectedImageName(null); }}
+  1214→              aria-label="إغلاق"
+  1215→            >
+  1216→              <X className="h-5 w-5" />
+  1217→            </button>
+  1218→          </div>
+  1219→          <div className="px-6 pb-4">
+  1220→            <p className="text-sm font-semibold truncate">{selectedImageName}</p>
+  1221→          </div>
+  1222→        </DialogContent>
+  1223→      </Dialog>
+  1224→
+  1225→      {/* Delete Confirmation */}
+  1226→      <AlertDialog open={!!deletingProduct} onOpenChange={(open) => !open && setDeletingProduct(null)}>
+  1227→        <AlertDialogContent className="rounded-2xl">
+  1228→          <AlertDialogHeader>
+  1229→            <AlertDialogTitle>حذف المنتج</AlertDialogTitle>
+  1230→            <AlertDialogDescription>
+  1231→              هل أنت متأكد من حذف &quot;{deletingProduct?.name}&quot;؟ لا يمكن التراجع عن هذا الإجراء.
+  1232→            </AlertDialogDescription>
+  1233→          </AlertDialogHeader>
+  1234→          <AlertDialogFooter className="flex-row-reverse gap-2">
+  1235→            <AlertDialogAction
+  1236→              className="rounded-full bg-destructive text-white hover:bg-destructive/90"
+  1237→              onClick={handleDelete}
+  1238→              disabled={deleteMutation.isPending}
+  1239→            >
+  1240→              {deleteMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+  1241→              حذف
+  1242→            </AlertDialogAction>
+  1243→            <AlertDialogCancel className="rounded-full" disabled={deleteMutation.isPending}>
+  1244→              إلغاء
+  1245→            </AlertDialogCancel>
+  1246→          </AlertDialogFooter>
+  1247→        </AlertDialogContent>
+  1248→      </AlertDialog>
+  1249→    </div>
+  1250→  );
+  1251→}

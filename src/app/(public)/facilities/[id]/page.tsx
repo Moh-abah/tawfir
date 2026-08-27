@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import FacilityDetailContent from "./FacilityDetailContent";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.tawfir.giize.com/api/v1";
+/* قاعدة الـ API للـ SSR — المضيف من البيئة + البادئة القياسية /api/v1
+   (الجولة 5: كانت الجلب يفشل 404 لأن NEXT_PUBLIC_API_URL بلا بادئة) */
+const API_BASE = `${
+  process.env.NEXT_PUBLIC_API_URL || "https://api.tawfir.giize.com"
+}/api/v1`;
 
 interface FacilityMeta {
   id: number;

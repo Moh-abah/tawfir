@@ -128,7 +128,7 @@ export function RegionSelector() {
           </motion.span>
         )}
         <Select
-          value={selectedRegionId != null ? String(selectedRegionId) : undefined}
+          value={selectedRegionId != null ? String(selectedRegionId) : ""}
           onValueChange={(val) => setSelectedRegion(Number(val))}
         >
           <SelectTrigger

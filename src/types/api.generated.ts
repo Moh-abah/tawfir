@@ -217,8 +217,8 @@ export interface PendingFacilityOut {
   region_id: number;
   description: string | null;
   owner_id: number;
+  owner_name: string | null;
   owner_email: string;
-  owner_full_name: string;
   owner_phone: string;
   address: string | null;
   phone: string | null;

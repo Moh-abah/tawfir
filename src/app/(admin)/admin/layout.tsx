@@ -2,31 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Menu,
-  Bell,
-  Store,
-  UserPlus,
-  AlertTriangle,
-  MapPin,
-  Keyboard,
-  type LucideIcon,
-} from "lucide-react";
+import { Menu, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AdminAuthGuard } from "@/components/admin/AdminAuthGuard";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import {
   AdminSidebar,
   AdminMobileSidebar,
 } from "@/components/layout/AdminSidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -35,53 +19,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useUiStore } from "@/store/ui.store";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-
-/* ─── Notification items ────────────────────────── */
-interface NotificationItem {
-  id: string;
-  text: string;
-  time: string;
-  icon: LucideIcon;
-  bgClass: string;
-  iconColorClass: string;
-}
-
-const NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    text: "تم إضافة منشأة جديدة",
-    time: "منذ 5 دقائق",
-    icon: Store,
-    bgClass: "bg-primary/15",
-    iconColorClass: "text-primary",
-  },
-  {
-    id: "2",
-    text: "تسجيل عميل جديد",
-    time: "منذ 15 دقيقة",
-    icon: UserPlus,
-    bgClass: "bg-secondary/15",
-    iconColorClass: "text-secondary",
-  },
-  {
-    id: "3",
-    text: "تم تعليق بطاقة",
-    time: "منذ ساعة",
-    icon: AlertTriangle,
-    bgClass: "bg-accent/15",
-    iconColorClass: "text-accent",
-  },
-  {
-    id: "4",
-    text: "تم تحديث بيانات المنطقة",
-    time: "منذ 3 ساعات",
-    icon: MapPin,
-    bgClass: "bg-success/15",
-    iconColorClass: "text-success",
-  },
-];
 
 /* ─── Keyboard shortcut items ───────────────────── */
 interface ShortcutItem {
@@ -106,7 +43,6 @@ export default function AdminLayout({
 }) {
   const router = useRouter();
   const toggleSidebar = useUiStore((s) => s.toggleAdminSidebar);
-  const { toast } = useToast();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   /* ─── Keyboard shortcut handler ────────────────── */
@@ -162,10 +98,6 @@ export default function AdminLayout({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
-  function handleViewAllNotifications() {
-    toast({ title: "قريبًا" });
-  }
-
   return (
     <AdminAuthGuard>
       <div className="flex min-h-screen flex-col">
@@ -182,116 +114,13 @@ export default function AdminLayout({
           </Button>
           <span className="text-sm font-semibold">توفير — لوحة التحكم</span>
           <div className="flex items-center gap-1">
-            {/* Notification Bell */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="الإشعارات"
-                  className="relative h-9 w-9"
-                >
-                  <Bell className="h-5 w-5" />
-                  <span className="animate-pulse-glow absolute -top-0.5 -left-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                    3
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-72">
-                <DropdownMenuLabel className="text-sm font-semibold">
-                  الإشعارات
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {NOTIFICATIONS.map((notif) => {
-                  const Icon = notif.icon;
-                  return (
-                    <DropdownMenuItem
-                      key={notif.id}
-                      className="flex items-center gap-3 min-h-[44px] cursor-default hover:bg-muted/50"
-                    >
-                      <span
-                        className={cn(
-                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                          notif.bgClass,
-                          notif.iconColorClass,
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="text-sm truncate">{notif.text}</span>
-                        <span className="text-xs text-muted-foreground">{notif.time}</span>
-                      </div>
-                    </DropdownMenuItem>
-                  );
-                })}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="flex items-center justify-center min-h-[44px] text-sm text-primary cursor-pointer hover:bg-muted/50"
-                  onClick={handleViewAllNotifications}
-                >
-                  عرض جميع الإشعارات
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* جرس الإشعارات الحقيقي — GET /notifications/unread-count */}
+            <NotificationBell variant="header" />
             <ThemeToggle />
           </div>
         </header>
 
-        {/* Desktop notification bell (in sidebar area) */}
-        <div className="hidden lg:flex absolute top-2 left-72 z-30">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="الإشعارات"
-                className="relative h-9 w-9"
-              >
-                <Bell className="h-5 w-5" />
-                <span className="animate-pulse-glow absolute -top-0.5 -left-0.5 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-                  3
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72">
-              <DropdownMenuLabel className="text-sm font-semibold">
-                الإشعارات
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {NOTIFICATIONS.map((notif) => {
-                const Icon = notif.icon;
-                return (
-                  <DropdownMenuItem
-                    key={notif.id}
-                    className="flex items-center gap-3 min-h-[44px] cursor-default hover:bg-muted/50"
-                  >
-                    <span
-                      className={cn(
-                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                        notif.bgClass,
-                        notif.iconColorClass,
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <span className="text-sm truncate">{notif.text}</span>
-                      <span className="text-xs text-muted-foreground">{notif.time}</span>
-                    </div>
-                  </DropdownMenuItem>
-                );
-              })}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="flex items-center justify-center min-h-[44px] text-sm text-primary cursor-pointer hover:bg-muted/50"
-                onClick={handleViewAllNotifications}
-              >
-                عرض جميع الإشعارات
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {/* جرس سطح المكتب يوفّره AdminSidebar (جرس حقيقي أعلى القائمة) */}
 
         <div className="flex flex-1">
           <AdminSidebar />

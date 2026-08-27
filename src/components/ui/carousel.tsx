@@ -95,7 +95,7 @@ function Carousel({
 
   React.useEffect(() => {
     if (!api) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- مزامنة حالة Embla (مكتبة خارجية) وفق نمط shadcn الرسمي
+     
     onSelect(api)
     api.on("reInit", onSelect)
     api.on("select", onSelect)
