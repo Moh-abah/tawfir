@@ -43,9 +43,6 @@ import { useAdminAuditLogs } from "@/hooks/useAdminAuditLogs";
 import { useAdminUsers } from "@/hooks/useAdminUsers";
 import { useAdminFacilities } from "@/hooks/useAdminFacilities";
 import { useAdminCards } from "@/hooks/useAdminCards";
-import { useAdminMembershipRequests } from "@/hooks/useAdminMembershipRequests";
-import { useAdminPendingFacilities } from "@/hooks/useAdminPendingFacilities";
-import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import type { DashboardStats, FacilityType, UserRole } from "@/types/api.generated";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -477,35 +474,19 @@ const prefersReduced = usePrefersReducedMotion();
   const { data: cardsData, isLoading: cardsLoading } = useAdminCards();
   const allCards = cardsData?.items ?? [];
 
-  /* ─── الجولة 6: أرقام حقيقية للبطاقات الإجرائية ─────────
-     الباك إند لا يرجع pending_membership_requests/pending_facilities/orders_today
-     في GET /admin/dashboard — نجلبها من نقاطها الفعلية. */
-  const { data: pendingMembershipData, isLoading: pendingMembershipLoading } =
-    useAdminMembershipRequests("pending", 1, 1);
-  const { data: pendingFacilitiesData, isLoading: pendingFacilitiesLoading } =
-    useAdminPendingFacilities(1, 1);
-  const { data: ordersData, isLoading: ordersLoading } = useAdminOrders({
-    page: 1,
-    page_size: 100,
-  });
-
-  /** طلبات اليوم — تُحسب عملياً من تاريخ الإنشاء (خادم UTC، العميل محلي). */
-  const ordersToday = useMemo(() => {
-    const items = ordersData?.items ?? [];
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    return items.filter((o) => new Date(o.created_at) >= startOfDay).length;
-  }, [ordersData]);
-
+  /* ─── الجولة الختامية: الحقول التجميعية من dashboard نفسه ─────────
+     GET /admin/dashboard يرجع الآن pending_membership_requests +
+     pending_facilities + orders_today في نفس الاستجابة — صفر طلبات إضافية
+     (كانت الجولة 6 تجلبها من 3 نقاط منفصلة لأن الباك إند لم يكن يدعمها). */
   const actionValues: Record<ActionStatConfig["key"], number> = {
-    pending_membership_requests: pendingMembershipData?.total ?? 0,
-    pending_facilities: pendingFacilitiesData?.total ?? 0,
-    orders_today: ordersToday,
+    pending_membership_requests: dashData?.pending_membership_requests ?? 0,
+    pending_facilities: dashData?.pending_facilities ?? 0,
+    orders_today: dashData?.orders_today ?? 0,
   };
   const actionLoading: Record<ActionStatConfig["key"], boolean> = {
-    pending_membership_requests: pendingMembershipLoading,
-    pending_facilities: pendingFacilitiesLoading,
-    orders_today: ordersLoading,
+    pending_membership_requests: dashLoading,
+    pending_facilities: dashLoading,
+    orders_today: dashLoading,
   };
 
   const greeting = useMemo(() => getGreeting(), []);

@@ -797,3 +797,63 @@ Work Log:
 Stage Summary:
 - آخر زر وهمي في التطبيق (حسب grep قريباً) صار ميزة حقيقية كاملة — التطبيق الآن **صفر أزرار toast-قريباً** (تحقق grep نهائي)
 - lint: 0 أخطاء | tsc: 0 أخطاء
+
+---
+Task ID: round-7
+Agent: Main Orchestrator (Z.ai Code) — الجولة 7 (الاستهلاكية النهائية)
+Task: دمج كل جديد الباك إند v1.1.0 (63 مساراً) + الإغلاق الكامل للمنصة قبل نشر الإنتاج: Refresh Tokens الشفافة، ImageUploader الحقيقي، إلغاء الطلب، لوحة الأدمن المجمعّة، البحث في 3 شاشات، كلمات المرور كاملة، الشريط السفلي 4 تبويبات، إصلاح لغم شاشة المنشآت، إخفاء السكرول على الموبايل
+
+Work Log:
+- حُدّث openapi.json فعلياً من الإنتاج (57→63 مساراً v1.1.0) + أنواع api.generated.ts (TokenOut.refresh_token، UploadOut، RefreshRequest، ForgotPasswordOut، ResetPasswordRequest، PasswordChangeRequest)
+- **Refresh Tokens (المهمة 1):** متجرات الثلاثة تخزن الزوجين (كوكي refresh 7 أيام + كوكي remember) + token-refresh.ts بقفل لكل دور + دمج التجديد الشفاف في عملاء API الثلاثة (استثناء الدخول + خروج حقيقي بتوست من الصفحات المحمية فقط) + خطاطات الدخول تخزن refresh_token
+- **ImageUploader (المهمة 2):** مكوّن كامل (drag&drop + ضغط canvas 1200px/0.85/webp + تقدم XHR + إعادة محاولة + ImageUrlField قابل للطي) + upload.service (توكن البوابة + تجديد عند 401) + استبدال في المواضع الأربعة (منتج مالك/تعديل منشأة مالك/نموذج أدمن/تسجيل مالك)
+- **إلغاء الطلب (المهمة 3):** زر pending فقط + حوار تأكيد + POST cancel + إعادة رسم شريط التتبّع + useCancelOrder
+- **لوحة الأدمن (المهمة 4):** الحقول الثلاثة التجميعية من dashboard الواحدة (حذف استعلامات الصفحة الثلاثة)
+- **البحث (المهمة 5):** ?search= من الخادم في الشاشات الثلاث (debounce 350ms) — بحث المالك صار خادمياً (كان محلياً)
+- **كلمات المرور (المهمة 6):** PasswordChangeCard في الإعدادات الثلاث + خروج تلقائي 2 ثانية + ForgotPasswordDialog في الدخول الثلاث + صفحة /reset-password?token= + توست ?expired=1
+- **المهمة 7:** تأكيد 20/20 صورة في الرئيسية 360px (و85/85 في API) + إشعارات الأدمن تعمل (جرس زاد 5→6 لحظياً بعد طلب عبر API)
+- **الشريط السفلي (المهمة 8.1):** 4 تبويبات نهائية (الرئيسية/المنشآت/الطلبات/العروض) + حذف حسابي + زر المستخدم 44×44 في الهيدر
+- **لغم المنشآت (المهمة 8.2):** الشريط اللاصق «سجّل الآن» كان يظهر للجميع — أُصلح بثلاث حالات (زائر/مسجل بلا عضوية/عضو نشط=محذوف) + شارات discount_rate الثابتة 30 صارت من نسبة المنشأة الفعلية + سعر العضو في تفاصيل المنشأة بنسبة المنشأة
+- **السكرول (المهمة 8.3):** قاعدة CSS موحدة < 640px (scroll-area-thin + no-mobile-scrollbar + أشرطة Radix) + تطبيق على 15 ملفاً بحاويات تمرير
+- تحقق فعلي شامل بالمتصفح (كل الأدلة في تقرير_توفير.md قسم الجولة 7): تجديد شفاف للعميل والأدمن (8×401→1 refresh→8×200)، رفع فعلي (منتج #105 بصورته)، رفض exe قبل الإرسال، ضغط 2.6MB→163KB، إلغاء #38 كامل، 409 بالعربية، dashboard مطابق للاستجابة الواحدة، بحث الشاشات الثلاث بـ?search=، دورة كلمة المرور كاملة للأدمن والعميل (مع استعادة الأصلية)، لغم المنشآت صفر للأعضاء، 6 شاشات 360px صفر سكرول (أُصلح رقائق المالك + main البوابتين أثناء الفحص)
+- lint: 0 أخطاء | tsc --noEmit: 0 أخطاء | كونسول نظيف | الوضعان يعملان
+
+Stage Summary:
+- 7 ملفات جديدة + 26 معدّلاً + openapi.json محدّث من الإنتاج
+- كل بنود قائمة التحقق الإلزامية منجزة وموثقة بالأدلة الفعلية (جداول + لقطات 12 في screenshots/round7-*)
+- BLOCKERS.md أُعيد: 6 عوائق مغلقة فعلياً (الرفع/refresh/إشعارات الأدمن/كلمات المرور/البحث/dashboard) — المتبقي: approve/reject 500 + صور seed 404 + علة WS متعدد المقابس + FCM
+- كلمات مرور الاختبار أعيدت كلها للأصلية بعد اختبارات التغيير — المشروع جاهز للنشر على Vercel وتغليف APK
+
+---
+Task ID: round-8
+Agent: Main Orchestrator (Z.ai Code) — الجولة 8 (نظام الإشعارات الصوتية + إغلاق التوثيق)
+Task: جولتان: (0) تحديث BLOCKERS.md بمعلومات متقادمة (أُغلق approve/reject 500 + seed 404) (1) نظام أصوات كامل: ملف واحد لكل نوع إشعار قابل للاستبدال بلا كود — 18 صوتاً مولّدة + خدمة + قسم إعدادات في البوابات الثلاث + ربط بأربعة مصادر (WS/استطلاع/توست/فتح الصفحة) + منطق أدوار وأولويات
+
+Work Log:
+- المهمة 0: أُعيدت هيكلة BLOCKERS.md — قسم «مُغلَقة» موحّد بـ8 عوائق (6 من ج7 + approve/reject 500 بأدلة المشرف 200/رقم عضوية 4828176684929838 + seed 404 بتوليد PIL) + المفتوحة (WS متعدد المقابس + FCM + 3 قيود راجُعت وصُحّحت) + ترويسة «بعد الجولة 8 — للأصوات»
+- المولّد scripts/generate-sounds.mjs: محرك PCM (جيبي/مثلثي/مربّعي + توافقية رابعة + مغلف هجوم/تلاشٍ + glide ترددي) → WAV 44.1kHz مونو 16-bit → ffmpeg libmp3lame 96k → 18 ملفاً (15 إشعار + 3 نظام) بمدد 0.31-0.71s وأحجام 4-9KB ودرجة مميزة لكل نوع
+- الخدمة src/lib/sound-service.ts: خريطة الأنواع الـ18 + SOUND_LABELS + BASE_PRIORITY (order_new=10، نجاح إجراء=4…) + OWNER_ORDER_NEW_PRIORITY=100 + الكاش (Map<type, Audio> + preloadAll بعد أول pointerdown/keydown) + الإعدادات (tawfir_sound_enabled/tawfir_sound_volume) + الحراسات الخمسة (SSR/معرّف مكرر/معطّل/خلفية/صوت يعمل بأولوية أدنى) + vibrate للمالك + حدث tawfir:sound-played + playNotification بمنع الأنواع غير المدرجة (membership_received/special_offer_ending توست بلا صوت — موثق)
+- SoundSettingsCard: سويتش (حالة محلية تكتب عبر الخدمة) + منزلق Radix 0-1 + قائمة الـ18 (إشعارات/نظام) بأزرار تجربة 44px بـ data-sound-test + تلميح استبدال + max-h-72 scroll-area-thin — مركّب في admin/settings وowner/settings وaccount بفروعه الثلاثة
+- الربط: NotificationsProvider (playNotification بالدور من أسبقية التوكن + المعرّف قبل invalidate + توست sound:none) + useUnreadCount (useEffect بـ prevCountRef: الزيادة → getNotifications page_size=1 → playNotification بـ detectSoundRole من الكوكيز) + use-toast.ts (resolveActionSound: sound صريح || destructive→error || «تم»/«بنجاح»→success || «خطأ»/«تعذّر»/«فشل»→error + نزع sound قبل dispatch) + NotificationsContent (useEffect مرة واحدة notification_open) + providers (SoundService.init)
+- SW: تأكد أن /sounds/* لا يخزَّن (destination=audio يمرر مباشرة + PRECACHE_URLS لا يشملها) — الاستبدال فوري بعد التحديث
+
+اختبارات agent-browser (بحدث DOM tawfir:sound-played كأداة رصد + الشبكة):
+- درس تعلّم: listener على document لا يلتقط dispatchEvent على window (المسار propagation=window فقط) — صحّحت إعداد الاختبار (وليس الكود)
+- إعدادات الأدمن: 18 زر تجربة → 18 حدثاً بالأنواع الصحيحة + 36 طلب mp3 (18 preload + 18 تشغيل) + منزلق بسهمي لوحة المفاتيح → localStorage 0.6 + aria-valuenow 0.6 + سويتش الإيقاف → tawfir_sound_enabled=false
+- المالك: طلب #40 عبر API → حدث order_new فوري (priority 100, role owner) + توست + لقطة
+- العميل: #40 عبر 3 حالات متباعدة → 3 أحداث مختلفة (order_confirmed/preparing/out_for_delivery بrole customer)
+- تأكيد #41+#42 بالتوازي (bash & + wait) → حدث واحد فقط (إسكات المتتالي)
+- visibilityState=hidden (تعريف خاصية) → إشعار → صفر أحداث؛ العودة → عاد الصوت
+- إيقاف عبر سويتش /account → إشعار → صفر؛ تفعيل → عاد
+- قطع WS عبر network route **/ws/** --abort → تسليم #41 → صوت order_delivered خلال دورة الاستطلاع (35s) — المسار الاحتياطي المسموع يعمل
+- توست مركزي: «تعليم الكل كمقروء» → success_action | دخول خاطئ → error_occurred | إلغاء #44 → order_cancelled (7) أسكت success_action (4) الواصل لاحقاً — سلوك أولويات مقصود
+- notification_open: تنقل SPA من جرس الإشعارات → حدث واحد
+- الاستبدال بلا كود: cp success_action.mp3 فوق order_new.mp3 → تحديث → fetch(cache:reload)=4432B + Audio.duration=0.29 (كانت 4119B/0.275) + زر التجربة شغّله → استعادة الأصل (md5 b52c8836 مطابق + 4119B)
+- إصلاح أثناء الفحص: تلميح الاستبدال كان نصاً مباشراً في p.flex (بنود flex لا تلف) → 374px تجاوز على 360px → span بـ min-w-0 break-words → 360px بالضبط في الصفحات الثلاث
+- كونسول صفر أخطاء | lint: 0 أخطاء (3 تحذيرات موروثة) | tsc: 0
+
+Stage Summary:
+- 7 ملفات جديدة (مولّد + خدمة + بطاقة + 18 mp3 + تقرير_الأصوات.md) و9 معدّلة + BLOCKERS محدّث
+- كل بنود التحقق الإلزامية الـ15 منجزة بأدلة فعلية (جداول + 10 لقطات round8-*)
+- الطلبات المستخدمة: #40 (دورة كاملة) + #41 delivered + #42 out_for_delivery + #43/#44 ملغيان — كلها على منشأة المالك 17 من عميل الاختبار
+- آخر جولة قبل النشر — المشروع جاهز مع أداة المشرف الكاملة لاستبدال الأصوات النهائية (تقرير_الأصوات.md)

@@ -76,7 +76,7 @@ import {
 import { ownerService } from "@/services/owner.service";
 import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
-import { ImageUrlField } from "@/components/shared/ImageUrlField";
+import { ImageUploader } from "@/components/shared/ImageUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import type { Product, ProductCreate, ProductUpdate, ValidationError } from "@/types/api.generated";
@@ -216,9 +216,10 @@ function ProductFormFields({
         {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
       </div>
 
-      <ImageUrlField
+      <ImageUploader
         id="p-image"
         label="صورة المنتج"
+        folder="products"
         value={form.image_url}
         onChange={(v) => set("image_url", v)}
       />

@@ -4,11 +4,12 @@ import { useQuery } from "@tanstack/react-query";
 import { adminService } from "@/services/admin.service";
 import type { OrderStatus } from "@/types/api.generated";
 
-/** GET /admin/orders — كل الطلبات مع فلترة اختيارية. */
+/** GET /admin/orders — كل الطلبات مع فلترة اختيارية + بحث (رقم طلب أو اسم عميل). */
 export function useAdminOrders(params: {
   status?: OrderStatus | null;
   customer_id?: number | null;
   facility_id?: number | null;
+  search?: string | null;
   page?: number;
   page_size?: number;
 } = {}) {

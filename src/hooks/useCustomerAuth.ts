@@ -29,7 +29,8 @@ export function useCustomerLogin() {
     mutationFn: (data: { identifier: string; password: string }) =>
       customerAuthService.login(data),
     onSuccess: (data) => {
-      setAuth(data.access_token);
+      // خزّن الزوجين: access (15 دقيقة) + refresh (7 أيام) — الجلسة تعيش بالتجديد الشفاف
+      setAuth(data.access_token, data.refresh_token ?? null);
       toast({ title: "تم تسجيل الدخول", description: "مرحبًا بك في توفير" });
     },
     onError: (e: Error) =>

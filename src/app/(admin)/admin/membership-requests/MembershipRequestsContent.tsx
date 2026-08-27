@@ -90,7 +90,7 @@ function paymentMethodLabel(method: string): string {
 function TableSkeleton() {
   return (
     <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-mobile-scrollbar">
         <Table>
           <TableHeader>
             <TableRow>
@@ -518,7 +518,7 @@ export default function MembershipRequestsContent() {
               !prefersReduced && "transition-shadow"
             )}
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto no-mobile-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">

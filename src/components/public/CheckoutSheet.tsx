@@ -129,7 +129,7 @@ function SuccessView({
   onClose: () => void;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
       <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
         <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
       </span>
@@ -446,7 +446,7 @@ export function CheckoutSheet({
         {successOrder ? (
           <SuccessView order={successOrder} onClose={handleClose} />
         ) : (
-          <div className="flex flex-1 flex-col overflow-y-auto">
+          <div className="flex flex-1 flex-col overflow-y-auto no-mobile-scrollbar">
             {/* ملخص الوجبة */}
             <section className="flex gap-3 border-b p-4" aria-label="ملخص الوجبة">
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">

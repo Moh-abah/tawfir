@@ -7,6 +7,7 @@ import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
+import { SoundService } from "@/lib/sound-service"
 
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
@@ -140,10 +141,56 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+type Toast = Omit<ToasterToast, "id"> & {
+  /**
+   * صوت الإجراء المركزي (الجولة 8):
+   *  - "success" → success_action.mp3   (نجاح إجراء)
+   *  - "error"   → error_occurred.mp3   (فشل إجراء)
+   *  - "none"    → بلا صوت (توستات الإشعارات — صوتها من نوعها الخاص)
+   *  - محذوف     → كشف تلقائي: variant destructive = خطأ، والعناوين
+   *                التي تبدأ بـ«تم» أو تحوي «بنجاح» = نجاح
+   */
+  sound?: "success" | "error" | "none"
+}
+
+/** كشف صوت الإجراء تلقائياً من شكل التوست (بلا sound صريح). */
+function resolveActionSound(
+  props: Toast
+): "success_action" | "error_occurred" | null {
+  if (props.sound === "none") return null
+  if (props.sound === "success") return "success_action"
+  if (props.sound === "error") return "error_occurred"
+  // توستات الأخطاء في المنصة كلها destructive
+  if (props.variant === "destructive") return "error_occurred"
+  const title = typeof props.title === "string" ? props.title : ""
+  const description = typeof props.description === "string" ? props.description : ""
+  if (
+    title.startsWith("تم") ||
+    description.startsWith("تم") ||
+    title.includes("بنجاح") ||
+    description.includes("بنجاح")
+  ) {
+    return "success_action"
+  }
+  if (
+    title.startsWith("خطأ") ||
+    title.startsWith("تعذّر") ||
+    title.includes("فشل") ||
+    description.includes("فشل")
+  ) {
+    return "error_occurred"
+  }
+  return null
+}
 
 function toast({ ...props }: Toast) {
   const id = genId()
+
+  // صوت الإجراء المركزي (الجولة 8) — يُبث مرة واحدة هنا لكل توست
+  const actionSound = resolveActionSound(props)
+  if (actionSound) SoundService.play(actionSound)
+  // يُنزع حقل sound قبل الإرسال — لا علاقة له بالعرض
+  const { sound: _sound, ...toastProps } = props
 
   const update = (props: ToasterToast) =>
     dispatch({
@@ -155,7 +202,7 @@ function toast({ ...props }: Toast) {
   dispatch({
     type: "ADD_TOAST",
     toast: {
-      ...props,
+      ...toastProps,
       id,
       open: true,
       onOpenChange: (open) => {

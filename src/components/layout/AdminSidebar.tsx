@@ -266,7 +266,7 @@ export function AdminMobileSidebar() {
             <SidebarBrand collapsed={false} />
           </SheetTitle>
         </SheetHeader>
-        <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="flex flex-1 flex-col overflow-y-auto no-mobile-scrollbar">
           <NavLinks onNavigate={() => setOpen(false)} collapsed={false} />
         </div>
         <SidebarFooter collapsed={false} />

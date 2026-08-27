@@ -54,7 +54,7 @@ export function MainHeader() {
           <RegionSelector />
         </div>
 
-        {/* حسابي / دخول + الإشعارات + الثيم */}
+        {/* حسابي / دخول + الإشعارات + الثيم — زر المستخدم 44px قابلة للمس (الوصول للحساب من هنا بعد إزالة تبويبه من الشريط السفلي) */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
           {isLoggedIn && <NotificationBell variant="header" />}
           {isLoggedIn ? (
@@ -62,7 +62,7 @@ export function MainHeader() {
               asChild
               variant="ghost"
               size="sm"
-              className="native-tap h-10 gap-1.5 rounded-full px-2.5 sm:px-3"
+              className="native-tap h-11 min-w-11 gap-1.5 rounded-full px-2.5 sm:px-3"
             >
               <Link href="/account" aria-label="حسابي">
                 <CircleUserRound className="h-5 w-5" aria-hidden="true" />
@@ -76,7 +76,7 @@ export function MainHeader() {
               asChild
               variant="ghost"
               size="sm"
-              className="native-tap h-10 gap-1.5 rounded-full px-2.5 sm:px-3"
+              className="native-tap h-11 min-w-11 gap-1.5 rounded-full px-2.5 sm:px-3"
             >
               <Link href="/login" aria-label="تسجيل الدخول">
                 <LogIn className="h-5 w-5" aria-hidden="true" />

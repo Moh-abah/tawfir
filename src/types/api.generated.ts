@@ -31,12 +31,48 @@ export type PaymentMethod = 'cash' | 'wallet';
 // ─── Shared / Common ──────────────────────────────────
 export interface TokenOut {
   access_token: string;
+  /** رمز تحديث صالح 7 أيام (الجولة 5) — يُستخدم مع POST /auth/refresh */
+  refresh_token?: string | null;
   token_type: string;
 }
 
 export interface MessageOut {
   detail: string;
   status_code?: number;
+}
+
+// ─── Auth — Refresh & Password Reset (الجولة الختامية) ─
+/** جسم POST /auth/refresh */
+export interface RefreshRequest {
+  refresh_token: string;
+}
+
+/** استجابة POST /auth/forgot-password — reset_token يُرجع فقط خارج الإنتاج */
+export interface ForgotPasswordOut {
+  detail: string;
+  status_code?: number;
+  reset_token?: string | null;
+}
+
+/** جسم PUT /auth/reset-password */
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+/** جسم PUT /me/password */
+export interface PasswordChangeRequest {
+  current_password: string;
+  new_password: string;
+}
+
+// ─── Uploads (الجولة الختامية) ─────────────────────────
+/** استجابة POST /uploads — المالك/الأدمن فقط */
+export interface UploadOut {
+  /** مسار نسبي مثل /uploads/products/x.webp — يُعرض عبر resolveImageUrl */
+  url: string;
+  folder: string;
+  size_bytes: number;
 }
 
 export interface ValidationError {

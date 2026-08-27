@@ -1,4 +1,7 @@
 import { useCustomerAuthStore } from "@/store/customerAuth.store";
+import { attemptRefresh } from "@/services/token-refresh";
+import { toast } from "@/hooks/use-toast";
+import type { TokenOut } from "@/types/api.generated";
 
 const API_BASE = "/api";
 
@@ -15,10 +18,34 @@ export class CustomerApiError extends Error {
 
 /**
  * مسارات الدخول: أخطاء 401/403 تُعرض فيها رسالة الخادم العربية
- * مباشرة (detail) — ولا تُعدّ «انتهت الجلسة» ولا تمسح التوكن.
+ * مباشرة (detail) — ولا تُعدّ «انتهت الجلسة» ولا تمسح التوكنات.
+ * يشمل ذلك طلب التجديد نفسه (لا يدخل منطق refresh أبداً).
  */
 function isAuthEndpoint(url: string): boolean {
-  return url.startsWith("/auth/login");
+  return (
+    url.startsWith("/auth/login") ||
+    url.startsWith("/auth/refresh") ||
+    url.startsWith("/auth/forgot-password") ||
+    url.startsWith("/auth/reset-password")
+  );
+}
+
+/** صفحات تتطلب جلسة عميل — انتهاء الجلسة فيها يوجّه لصفحة الدخول */
+const PROTECTED_PREFIXES = ["/orders", "/account", "/membership", "/notifications"];
+
+function isOnProtectedPage(): boolean {
+  if (typeof window === "undefined") return false;
+  return PROTECTED_PREFIXES.some((p) => window.location.pathname.startsWith(p));
+}
+
+function readCustomerRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const fromStore = useCustomerAuthStore.getState().refreshToken;
+  if (fromStore) return fromStore;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("tawfir_customer_refresh="));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
 function getCustomerToken(): string | null {
@@ -31,10 +58,26 @@ function getCustomerToken(): string | null {
   return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
+/**
+ * خروج حقيقي عند فشل التجديد: مسح الزوجين + توست + توجيه لصفحة الدخول
+ * (التوجيه فقط إن كان المستخدم في صفحة محمية — لا نقتلعه من التصفح العام).
+ */
+function forceLogout(hadSession: boolean): void {
+  if (typeof window === "undefined") return;
+  useCustomerAuthStore.getState().clearAuth();
+  if (hadSession) {
+    toast({ title: "انتهت الجلسة", description: "يرجى تسجيل الدخول من جديد" });
+    if (isOnProtectedPage()) {
+      window.location.assign("/login?expired=1");
+    }
+  }
+}
+
 async function fetchWithCustomerAuth<T>(
   method: string,
   url: string,
-  body?: unknown
+  body?: unknown,
+  retried = false
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -69,9 +112,19 @@ async function fetchWithCustomerAuth<T>(
   const authEndpoint = isAuthEndpoint(url);
 
   if (response.status === 401 && !authEndpoint) {
-    if (typeof window !== "undefined") {
-      useCustomerAuthStore.getState().clearAuth();
+    // تجديد شفاف: 401 → POST /auth/refresh → إعادة الطلب الأصلي بالتوكن الجديد
+    if (!retried) {
+      const tokens = await attemptRefresh("customer", readCustomerRefreshToken);
+      if (tokens?.access_token) {
+        // استبدال الزوجين — التدوير في الخادم يُبطل القديم فوراً
+        const newRefresh = tokens.refresh_token ?? readCustomerRefreshToken();
+        if (newRefresh) {
+          useCustomerAuthStore.getState().updateTokens(tokens.access_token, newRefresh);
+          return fetchWithCustomerAuth<T>(method, url, body, true);
+        }
+      }
     }
+    forceLogout(Boolean(token));
     throw new CustomerApiError("انتهت الجلسة. يرجى تسجيل الدخول مجددًا.", 401, null);
   }
 

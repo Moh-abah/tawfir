@@ -2,12 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Flame, ReceiptText, CircleUserRound, LogIn } from "lucide-react";
+import { Home, Flame, ReceiptText, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
-import { useMe } from "@/hooks/useMe";
 import { useMyOrders } from "@/hooks/useMyOrders";
-import { useUnreadCount } from "@/hooks/useUnreadCount";
 import type { OrderListOut } from "@/types/api.generated";
 
 /** الحالات التي تُعد «طلب نشط» (لم يُسلَّم ولم يُلغَ). */
@@ -32,22 +30,19 @@ function TabBadge({ count, label }: { count: number; label: string }) {
 }
 
 /**
- * شريط التنقل السفلي — قياسات YouTube الرسمية (الجولة 4):
- *  - ارتفاع الشريط: h-14 (56dp) + env(safe-area-inset-bottom)
- *  - الأيقونات: h-6 w-6 (24dp) — الحساب: دائرة ring-1
- *  - النصوص: text-[10px] + gap-1 (4dp)
- *  - تأثير لمس native-tap (scale-95) + انتقال لون 200ms
- *  - شارة «الطلبات»: عدد الطلبات النشطة (pending)
- *  - شارة «حسابي»: عدّاد الإشعارات غير المقروءة
+ * شريط التنقل السفلي — الجولة الختامية (قرار نهائي: 4 تبويبات):
+ *  الرئيسية (/) · المنشآت (/facilities) · الطلبات (/orders) · العروض
  *
- * التبويبات: الرئيسية / العروض / الطلبات / حسابي(أو دخول)
+ *  - تبويب «حسابي» أُزيل نهائياً — الوصول للحساب من زر المستخدم
+ *    في أعلى الهيدر (MainHeader → /account، لمسة ≥44px)
+ *  - شارة الطلبات تبقى (عدد الطلبات النشطة)
+ *  - شارة الإشعارات في الهيدر (جرس NotificationBell مع عدّاد غير المقروء)
+ *  - قياسات YouTube الرسمية: h-14 (56dp) + safe-area + أيقونات 24dp + نص 10px
  */
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { accessToken, hydrated } = useCustomerAuth();
-  const me = useMe();
   const isLoggedIn = hydrated && !!accessToken;
-  const fullName = me.data?.full_name;
 
   /* عدد الطلبات النشطة — للشارة على تبويب «الطلبات» (مسجَّل فقط) */
   const { data: ordersData } = useMyOrders(undefined, isLoggedIn);
@@ -55,29 +50,11 @@ export function MobileBottomNav() {
     ACTIVE_ORDER_STATUSES.has(o.status)
   ).length;
 
-  /* عدّاد الإشعارات غير المقروءة — للشارة على تبويب «حسابي» */
-  const { data: unread } = useUnreadCount(isLoggedIn);
-  const unreadCount = unread?.count ?? 0;
-
-  const accountTab = isLoggedIn
-    ? {
-        href: "/account",
-        label: fullName ? fullName.split(" ")[0] : "حسابي",
-        icon: CircleUserRound,
-        match: "prefix" as const,
-      }
-    : {
-        href: "/login",
-        label: "دخول",
-        icon: LogIn,
-        match: "prefix" as const,
-      };
-
   const NAV_ITEMS = [
     { href: "/", label: "الرئيسية", icon: Home, match: "exact" as const },
-    { href: "/#offers", label: "العروض", icon: Flame, match: "hash" as const },
+    { href: "/facilities", label: "المنشآت", icon: Store, match: "prefix" as const },
     { href: "/orders", label: "الطلبات", icon: ReceiptText, match: "prefix" as const },
-    accountTab,
+    { href: "/#offers", label: "العروض", icon: Flame, match: "hash" as const },
   ] as const;
 
   const isActive = (item: (typeof NAV_ITEMS)[number]): boolean => {
@@ -97,7 +74,6 @@ export function MobileBottomNav() {
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
-          const isAccount = item.href === "/account";
           const isOrders = item.href === "/orders";
           return (
             <Link
@@ -107,30 +83,15 @@ export function MobileBottomNav() {
               className="native-tap flex min-w-[64px] flex-col items-center gap-1 py-1"
             >
               <span className="relative flex items-center justify-center">
-                {isAccount && isLoggedIn ? (
-                  /* أيقونة الحساب: دائرية بإطار ring-1 — نمط YouTube */
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full ring-1 transition-colors duration-200",
-                      active
-                        ? "bg-primary/15 ring-primary text-primary"
-                        : "bg-muted/60 ring-border text-muted-foreground"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
-                  </span>
-                ) : (
-                  <Icon
-                    className={cn(
-                      "h-6 w-6 transition-colors duration-200",
-                      active ? "text-primary" : "text-muted-foreground"
-                    )}
-                    strokeWidth={active ? 2.5 : 2}
-                    aria-hidden="true"
-                  />
-                )}
+                <Icon
+                  className={cn(
+                    "h-6 w-6 transition-colors duration-200",
+                    active ? "text-primary" : "text-muted-foreground"
+                  )}
+                  strokeWidth={active ? 2.5 : 2}
+                  aria-hidden="true"
+                />
                 {isOrders && <TabBadge count={activeOrdersCount} label="الطلبات النشطة" />}
-                {isAccount && <TabBadge count={unreadCount} label="الإشعارات غير المقروءة" />}
               </span>
               <span
                 className={cn(

@@ -14,6 +14,8 @@ import {
   Receipt,
   Calendar,
   Package,
+  Search,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAdminOrders, useAdminOrderDetail } from "@/hooks/useAdminOrders";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useDebounce } from "@/hooks/useDebounce";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -86,7 +89,7 @@ const PAGE_SIZE = 10;
 function TableSkeleton() {
   return (
     <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto no-mobile-scrollbar">
         <Table>
           <TableHeader>
             <TableRow>
@@ -162,7 +165,7 @@ function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto no-mobile-scrollbar">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-primary" aria-hidden="true" />
@@ -284,7 +287,7 @@ function OrderDetailsDialog({
               <p className="mb-2 text-xs font-semibold text-muted-foreground">
                 الأصناف ({order.items.length})
               </p>
-              <div className="max-h-64 overflow-y-auto rounded-xl border">
+              <div className="max-h-64 overflow-y-auto no-mobile-scrollbar rounded-xl border">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
@@ -408,6 +411,9 @@ export default function OrdersContent() {
   const [facilityIdInput, setFacilityIdInput] = useState("");
   const [appliedCustomerId, setAppliedCustomerId] = useState<number | null>(null);
   const [appliedFacilityId, setAppliedFacilityId] = useState<number | null>(null);
+  /* الجولة الختامية: بحث من الخادم (search — رقم طلب أو اسم عميل) */
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 350);
   const [page, setPage] = useState(1);
   const [detailsId, setDetailsId] = useState<number | null>(null);
 
@@ -418,6 +424,7 @@ export default function OrdersContent() {
     status: queryStatus,
     customer_id: appliedCustomerId,
     facility_id: appliedFacilityId,
+    search: debouncedSearch,
     page,
     page_size: PAGE_SIZE,
   });
@@ -444,6 +451,7 @@ export default function OrdersContent() {
     setFacilityIdInput("");
     setAppliedCustomerId(null);
     setAppliedFacilityId(null);
+    setSearchInput("");
     setPage(1);
   }
 
@@ -453,7 +461,9 @@ export default function OrdersContent() {
   }
 
   const hasActiveFilters =
-    appliedCustomerId !== null || appliedFacilityId !== null;
+    appliedCustomerId !== null ||
+    appliedFacilityId !== null ||
+    searchInput.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -497,6 +507,35 @@ export default function OrdersContent() {
             {f.label}
           </button>
         ))}
+      </div>
+
+      {/* البحث — رقم طلب أو اسم عميل (من الخادم) */}
+      <div className="relative max-w-md">
+        <Search
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          type="search"
+          value={searchInput}
+          onChange={(e) => {
+            setSearchInput(e.target.value);
+            setPage(1);
+          }}
+          placeholder="ابحث برقم الطلب أو اسم العميل..."
+          aria-label="البحث في الطلبات"
+          className="min-h-[44px] rounded-full pr-9 pl-10"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={() => setSearchInput("")}
+            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="مسح البحث"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       {/* حقول فلترة رقمية اختيارية */}
@@ -586,7 +625,7 @@ export default function OrdersContent() {
               !prefersReduced && "transition-shadow"
             )}
           >
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto no-mobile-scrollbar">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40">

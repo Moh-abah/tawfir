@@ -8,6 +8,7 @@ import { useOwnerAuth } from "@/hooks/useOwnerAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getNotificationMeta, getNotificationHref } from "@/lib/notifications-meta";
+import { SoundService, type SoundRole } from "@/lib/sound-service";
 import { useRouter } from "next/navigation";
 import type { NotificationOut } from "@/types/api.generated";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const activeToken =
     customerAuth.accessToken ?? ownerAuth.accessToken ?? adminAuth.accessToken ?? null;
 
+  // دور المستمع = مالك التوكن الفعّال (لأولوية «طلب جديد» للمالك + الاهتزاز)
+  const activeRole: SoundRole = customerAuth.accessToken
+    ? "customer"
+    : ownerAuth.accessToken
+      ? "owner"
+      : "admin";
+
   const isHydrated =
     customerAuth.hydrated && ownerAuth.hydrated && adminAuth.hydrated;
 
@@ -86,6 +94,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const offMessage = notificationWs.onMessage((raw) => {
       const n = extractNotification(raw);
       if (!n) return;
+      // 0) صوت الإشعار — قبل كل شيء (الجولة 8): يجري إسكاته إن كانت
+      //    الأصوات موقوفة/التطبيق بالخلفية/صوت آخر يعمل من داخل الخدمة
+      SoundService.playNotification(n, activeRole);
       // 1) حدّث React Query cache (invalidate كلا الاستعلامين)
       qc.invalidateQueries({ queryKey: ["notifications"] });
       // 2) اعرض toast فوري بالعنوان + المحتوى + زر «عرض» يُنقل حسب النوع
@@ -93,6 +104,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const Icon = meta.icon;
       const href = getNotificationHref(n.notification_type, n.data ?? null);
       toast({
+        // صوت الإشعار صدر أعلاه — التوست هنا بلا صوت مركزي (منع الازدواج)
+        sound: "none",
         title: (
           <span className="flex items-center gap-2">
             <Icon
@@ -120,7 +133,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     return () => {
       offMessage();
     };
-  }, [activeToken, isHydrated, qc, toast, router]);
+  }, [activeToken, activeRole, isHydrated, qc, toast, router]);
 
   return <>{children}</>;
 }

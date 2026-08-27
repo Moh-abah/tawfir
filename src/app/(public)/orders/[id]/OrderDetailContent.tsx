@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -17,13 +17,27 @@ import {
   XCircle,
   Clock,
   Soup,
+  Loader2,
+  Ban,
   type LucideIcon,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useOrderDetail } from "@/hooks/useOrderDetail";
+import { useCancelOrder } from "@/hooks/useCancelOrder";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import {
@@ -253,6 +267,8 @@ function OrderDetailSkeleton() {
 /* ─── العرض الكامل لطلب ──────────────────────────────── */
 function OrderView({ order }: { order: OrderOut }) {
   const prefersReduced = usePrefersReducedMotion();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const cancelMutation = useCancelOrder(order.id);
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
@@ -293,7 +309,55 @@ function OrderView({ order }: { order: OrderOut }) {
         ) : (
           <TrackingFlow currentStatus={order.status} />
         )}
+
+        {/* زر الإلغاء — يظهر فقط أثناء انتظار تأكيد المنشأة (pending) */}
+        {order.status === "pending" && (
+          <div className="mt-5 border-t border-border/40 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full min-h-[44px] gap-2 rounded-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setConfirmOpen(true)}
+              disabled={cancelMutation.isPending}
+            >
+              {cancelMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Ban className="h-4 w-4" aria-hidden="true" />
+              )}
+              {cancelMutation.isPending ? "جارٍ الإلغاء..." : "إلغاء الطلب"}
+            </Button>
+          </div>
+        )}
       </section>
+
+      {/* حوار تأكيد الإلغاء */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من إلغاء طلبك؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيُلغى الطلب #{order.id} من {order.facility_name ?? "المنشأة"} وتُسترجع
+              الكميات للمخزون. لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction
+              className="min-h-[44px] flex-1 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() =>
+                cancelMutation.mutate(undefined, {
+                  onSettled: () => setConfirmOpen(false),
+                })
+              }
+            >
+              نعم، إلغاء الطلب
+            </AlertDialogAction>
+            <AlertDialogCancel className="min-h-[44px] flex-1 rounded-full">
+              إبقاء الطلب
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* الأصناف */}
       <section

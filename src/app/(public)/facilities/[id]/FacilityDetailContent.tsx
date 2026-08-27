@@ -76,14 +76,17 @@ function ProductCard({
   onClick, 
   onOrder,
   isMember,
-}: { 
-  product: Product; 
+  facilityRate,
+}: {
+  product: Product;
   onClick: () => void;
   onOrder: () => void;
   isMember: boolean;
+  /** نسبة خصم المنشأة الفعلية (admin قابلة للتعديل 10-30) */
+  facilityRate: number;
 }) {
   const price = parseFloat(product.price);
-  const memberRate = isMember ? DISCOUNT_RATE : 0;
+  const memberRate = isMember ? facilityRate : 0;
   const finalPrice = isMember ? price * (1 - memberRate / 100) : price;
   return (
     <motion.div
@@ -595,7 +598,7 @@ const prefersReduced = usePrefersReducedMotion();
                   {TYPE_LABEL[facility.type]}
                 </span>
               </div>
-              <DiscountBadge percentage={30} />
+              <DiscountBadge percentage={facility.discount_rate ?? DISCOUNT_RATE} />
             </div>
           </div>
         </div>
@@ -831,6 +834,7 @@ const prefersReduced = usePrefersReducedMotion();
                     onClick={() => setSelectedProduct(p)}
                     onOrder={() => handleOrder(p)}
                     isMember={isMember}
+                    facilityRate={facility?.discount_rate ?? DISCOUNT_RATE}
                   />
                 ))}
               </motion.div>
@@ -846,18 +850,31 @@ const prefersReduced = usePrefersReducedMotion();
         </div>
       </div>
 
-      {/* Sticky Bottom Bar - Mobile */}
-      <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md px-4 py-3 md:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-bold text-foreground">احصل على خصم 30%</p>
-            <p className="text-xs text-muted-foreground">سجّل الآن واستمتع بالخصم الفوري</p>
+      {/* Sticky Bottom Bar - Mobile — ثلاث حالات صحيحة (إصلاح لغم الجولة الختامية):
+          زائر: دعوة لطيفة للتسجيل | مسجل بلا عضوية: دعوة اشتراك | عضو نشط: لا شريط إطلاقاً */}
+      {!(hydrated && accessToken && isMember) && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 border-t bg-card/95 backdrop-blur-md px-4 py-3 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground">
+                {hydrated && accessToken
+                  ? "خصم حتى 30% مع عضوية توفير"
+                  : "سجّل واحصل على خصم حتى 30%"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hydrated && accessToken
+                  ? "اشترك في العضوية واستمتع بالخصم الفوري على طلباتك"
+                  : "أنشئ حساباً مجاناً واستمتع بالخصم الفوري"}
+              </p>
+            </div>
+            <Button asChild size="sm" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 min-h-[44px] shrink-0">
+              <Link href={hydrated && accessToken ? "/membership/subscribe" : "/register"}>
+                {hydrated && accessToken ? "اشترك الآن" : "تسجيل"}
+              </Link>
+            </Button>
           </div>
-          <Button asChild size="sm" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 min-h-[44px] shrink-0">
-            <Link href="/register">تسجيل</Link>
-          </Button>
         </div>
-      </div>
+      )}
 
       {/* شاشة الطلب — تُفتح من زر «اطلب» على أي منتج */}
       <CheckoutSheet

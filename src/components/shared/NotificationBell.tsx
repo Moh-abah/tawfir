@@ -108,7 +108,7 @@ export function NotificationBell({ variant = "header", className }: Notification
           )}
         </div>
 
-        <div className="max-h-96 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto no-mobile-scrollbar">
           {notifsLoading ? (
             <div className="space-y-2 p-3">
               {Array.from({ length: 4 }).map((_, i) => (

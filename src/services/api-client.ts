@@ -1,5 +1,7 @@
 import { useAuthStore } from "@/store/auth.store";
 import { useOwnerAuthStore } from "@/store/ownerAuth.store";
+import { attemptRefresh, type PortalRole } from "@/services/token-refresh";
+import { toast } from "@/hooks/use-toast";
 
 const API_BASE = "/api";
 
@@ -19,29 +21,91 @@ type TokenCookieName = "tawfir_admin_token" | "tawfir_owner_token";
 /**
  * مسارات الدخول: أخطاء 401/403 تُعرض فيها رسالة الخادم (detail)
  * مباشرة — ولا تُعدّ «انتهت الجلسة» ولا تمسح التوكنات.
+ * يشمل ذلك طلب التجديد نفسه (لا يدخل منطق refresh أبداً).
  */
 function isAuthEndpoint(url: string): boolean {
-  return url.startsWith("/admin/login");
+  return (
+    url.startsWith("/admin/login") ||
+    url.startsWith("/owner/login") ||
+    url.startsWith("/owner/register") ||
+    url.startsWith("/auth/refresh") ||
+    url.startsWith("/auth/forgot-password") ||
+    url.startsWith("/auth/reset-password")
+  );
+}
+
+function readCookieValue(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
+/**
+ * تحديد البوابة صاحبة الجلسة الحالية (مشرف أو مالك) بنفس أولوية اختيار التوكن:
+ * متجر الأدمن ← متجر المالك ← كوكي الأدمن ← كوكي المالك.
+ */
+function resolveRole(): "admin" | "owner" | null {
+  if (useAuthStore.getState().accessToken) return "admin";
+  if (useOwnerAuthStore.getState().accessToken) return "owner";
+  if (typeof document !== "undefined") {
+    if (readCookieValue("tawfir_admin_token")) return "admin";
+    if (readCookieValue("tawfir_owner_token")) return "owner";
+  }
+  return null;
 }
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  const fromStore = useAuthStore.getState().accessToken;
-  if (fromStore) return fromStore;
-  for (const name of ["tawfir_admin_token", "tawfir_owner_token"] as TokenCookieName[]) {
-    const match = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith(`${name}=`));
-    if (match) return decodeURIComponent(match.split("=")[1]);
+  const role = resolveRole();
+  if (role === "admin") {
+    return useAuthStore.getState().accessToken ?? readCookieValue("tawfir_admin_token");
+  }
+  if (role === "owner") {
+    return useOwnerAuthStore.getState().accessToken ?? readCookieValue("tawfir_owner_token");
   }
   return null;
+}
+
+function readRefreshToken(role: "admin" | "owner"): string | null {
+  if (typeof window === "undefined") return null;
+  if (role === "admin") {
+    return (
+      useAuthStore.getState().refreshToken ?? readCookieValue("tawfir_admin_refresh")
+    );
+  }
+  return (
+    useOwnerAuthStore.getState().refreshToken ?? readCookieValue("tawfir_owner_refresh")
+  );
+}
+
+/** خروج حقيقي عند فشل التجديد: مسح + توست + توجيه لصفحة دخول البوابة نفسها */
+function forceLogout(role: "admin" | "owner" | null, hadSession: boolean): void {
+  if (typeof window === "undefined") return;
+  if (role === "admin") useAuthStore.getState().clearAuth();
+  else if (role === "owner") useOwnerAuthStore.getState().clearAuth();
+  else {
+    useAuthStore.getState().clearAuth();
+    useOwnerAuthStore.getState().clearAuth();
+  }
+  if (hadSession) {
+    toast({ title: "انتهت الجلسة", description: "يرجى تسجيل الدخول من جديد" });
+    const path = window.location.pathname;
+    if (role === "admin" && path.startsWith("/admin")) {
+      window.location.assign("/admin/login?expired=1");
+    } else if (role === "owner" && path.startsWith("/owner")) {
+      window.location.assign("/owner/login?expired=1");
+    }
+  }
 }
 
 async function fetchWithAuth<T>(
   method: string,
   url: string,
   body?: unknown,
-  options?: { headers?: Record<string, string> }
+  options?: { headers?: Record<string, string> },
+  retried = false
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -52,6 +116,7 @@ async function fetchWithAuth<T>(
     headers["Content-Type"] = "application/json";
   }
 
+  const role = resolveRole();
   const token = getToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -77,10 +142,23 @@ async function fetchWithAuth<T>(
   const authEndpoint = isAuthEndpoint(url);
 
   if (response.status === 401 && !authEndpoint) {
-    if (typeof window !== "undefined") {
-      useAuthStore.getState().clearAuth();
-      useOwnerAuthStore.getState().clearAuth();
+    // تجديد شفاف: 401 → POST /auth/refresh → إعادة الطلب الأصلي بالتوكن الجديد
+    if (!retried && role) {
+      const portalRole: PortalRole = role;
+      const tokens = await attemptRefresh(portalRole, () => readRefreshToken(role));
+      if (tokens?.access_token) {
+        const newRefresh = tokens.refresh_token ?? readRefreshToken(role);
+        if (newRefresh) {
+          if (role === "admin") {
+            useAuthStore.getState().updateTokens(tokens.access_token, newRefresh);
+          } else {
+            useOwnerAuthStore.getState().updateTokens(tokens.access_token, newRefresh);
+          }
+          return fetchWithAuth<T>(method, url, body, options, true);
+        }
+      }
     }
+    forceLogout(role, Boolean(token));
     throw new ApiError("انتهت الجلسة. يرجى تسجيل الدخول مجددًا.", 401, null);
   }
 

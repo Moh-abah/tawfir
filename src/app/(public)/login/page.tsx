@@ -21,8 +21,10 @@ import { Button } from "@/components/ui/button";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
 import { useCustomerAuth, useCustomerLogin } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useToast } from "@/hooks/use-toast";
 
 const schema = z.object({
   identifier: z.string().min(1, "البريد الإلكتروني أو رقم الجوال مطلوب"),
@@ -47,9 +49,24 @@ function CustomerLoginForm() {
   const { accessToken, hydrated } = useCustomerAuth();
   const login = useCustomerLogin();
   const prefersReduced = usePrefersReducedMotion();
+  const { toast } = useToast();
   const [formError, setFormError] = useState<string | null>(null);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const nextUrl = sanitizeNext(searchParams.get("next"));
+
+  /* وصل المستخدم هنا بعد انتهاء جلسته (refresh فشل) — أبلغه بلطف */
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      toast({
+        title: "انتهت الجلسة",
+        description: "يرجى تسجيل الدخول من جديد",
+        variant: "destructive",
+      });
+      /* نظّف الباراميتر حتى لا يتكرر التوست عند إعادة التحميل */
+      router.replace("/login");
+    }
+  }, [searchParams, toast, router]);
 
   useEffect(() => {
     if (hydrated && accessToken) {
@@ -122,7 +139,16 @@ function CustomerLoginForm() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">كلمة المرور</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">كلمة المرور</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
+                  >
+                    نسيت كلمة المرور؟
+                  </button>
+                </div>
                 <PasswordInput
                   id="password"
                   autoComplete="current-password"
@@ -138,6 +164,9 @@ function CustomerLoginForm() {
                   </p>
                 )}
               </div>
+
+              {/* حوار استعادة كلمة المرور — POST /auth/forgot-password */}
+              <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
 
               {/* خطأ الخادم — رسالة عربية من detail مباشرة */}
               {formError && (

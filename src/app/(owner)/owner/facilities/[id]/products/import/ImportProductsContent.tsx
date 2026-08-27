@@ -309,7 +309,7 @@ const prefersReduced = usePrefersReducedMotion();
                     <span>تصدير التقرير ({result.errors.length} أخطاء)</span>
                   </Button>
                 </div>
-                <div className="overflow-x-auto rounded-xl border">
+                <div className="overflow-x-auto no-mobile-scrollbar rounded-xl border">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
                       <tr>

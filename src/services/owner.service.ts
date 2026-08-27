@@ -119,13 +119,20 @@ export const ownerService = {
    * طلبات منشأتي. GET /owner/{facilityId}/orders → Paginated<OrderListOut>.
    * الجولة 5: دعم فلترة الحالة وترقيم من الباك إند (كانت الفلترة محلية
    * على أول 20 طلباً فقط — تفقد الطلبات الأقدم).
+   * الجولة الختامية: بحث من الخادم (search — رقم طلب أو اسم عميل).
    */
   getOwnerOrders: (
     facilityId: number,
-    params?: { status?: string | null; page?: number; page_size?: number }
+    params?: {
+      status?: string | null;
+      search?: string | null;
+      page?: number;
+      page_size?: number;
+    }
   ) => {
     const q = new URLSearchParams();
     if (params?.status) q.set("status", params.status);
+    if (params?.search && params.search.trim()) q.set("search", params.search.trim());
     q.set("page", String(params?.page ?? 1));
     q.set("page_size", String(params?.page_size ?? 100));
     return ownerApiClient.get<Paginated<OrderListOut>>(

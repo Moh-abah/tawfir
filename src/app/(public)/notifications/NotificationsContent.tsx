@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   getNotificationHref,
 } from "@/lib/notifications-meta";
 import { formatDate } from "@/lib/format";
+import { SoundService } from "@/lib/sound-service";
 import { cn } from "@/lib/utils";
 import type { NotificationOut } from "@/types/api.generated";
 
@@ -28,6 +29,11 @@ export function NotificationsContent() {
   const [tab, setTab] = useState<TabKey>("all");
   const [page, setPage] = useState(1);
   const unreadOnly = tab === "unread";
+
+  // صوت فتح الإشعارات — مرة واحدة عند فتح الصفحة (الجولة 8)
+  useEffect(() => {
+    SoundService.play("notification_open");
+  }, []);
 
   const { data: unreadData } = useUnreadCount();
   const { data, isLoading, isFetching, isError } = useNotifications(page, unreadOnly);

@@ -52,11 +52,12 @@ export const adminService = {
 
   /* ─── الطلبات ──────────────────────────────────────────── */
 
-  /** كل الطلبات مع فلترة اختيارية. GET /admin/orders. */
+  /** كل الطلبات مع فلترة اختيارية + بحث (رقم طلب أو اسم عميل — من الخادم). */
   getOrders: (params: {
     status?: OrderStatus | null;
     customer_id?: number | null;
     facility_id?: number | null;
+    search?: string | null;
     page?: number;
     page_size?: number;
   } = {}) => {
@@ -66,6 +67,7 @@ export const adminService = {
       q.set("customer_id", String(params.customer_id));
     if (params.facility_id != null)
       q.set("facility_id", String(params.facility_id));
+    if (params.search && params.search.trim()) q.set("search", params.search.trim());
     q.set("page", String(params.page ?? 1));
     q.set("page_size", String(params.page_size ?? 20));
     return apiClient.get<Paginated<OrderListOut>>(

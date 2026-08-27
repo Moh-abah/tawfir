@@ -9,6 +9,7 @@ import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 import { NotificationsProvider } from "@/components/shared/NotificationsProvider";
 import { FcmRegistrar } from "@/components/shared/FcmRegistrar";
+import { SoundService } from "@/lib/sound-service";
 
 /* ------------------------------------------------------------------ */
 /*  NProgress-style Top Loading Bar (CSS keyframes only, no state)      */
@@ -44,6 +45,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   );
+
+  // نظام الأصوات (الجولة 8): تهيئة الكاش المسبق بعد أول تفاعل
+  React.useEffect(() => {
+    SoundService.init();
+  }, []);
 
   return (
     <ThemeProvider>

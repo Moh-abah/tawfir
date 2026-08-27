@@ -1,4 +1,6 @@
 import { useOwnerAuthStore } from "@/store/ownerAuth.store";
+import { attemptRefresh } from "@/services/token-refresh";
+import { toast } from "@/hooks/use-toast";
 
 const API_BASE = "/api";
 
@@ -23,19 +25,49 @@ function getOwnerToken(): string | null {
   return match ? decodeURIComponent(match.split("=")[1]) : null;
 }
 
+function readOwnerRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const fromStore = useOwnerAuthStore.getState().refreshToken;
+  if (fromStore) return fromStore;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("tawfir_owner_refresh="));
+  return match ? decodeURIComponent(match.split("=")[1]) : null;
+}
+
 /**
  * مسارات الدخول: أخطاء 401/403 تُعرض فيها رسالة الخادم (detail)
- * مباشرة — ولا تُعدّ «انتهت الجلسة» ولا تمسح التوكن.
+ * مباشرة — ولا تُعدّ «انتهت الجلسة» ولا تمسح التوكنات.
+ * يشمل ذلك طلب التجديد نفسه (لا يدخل منطق refresh أبداً).
  */
 function isAuthEndpoint(url: string): boolean {
-  return url.startsWith("/owner/login");
+  return (
+    url.startsWith("/owner/login") ||
+    url.startsWith("/owner/register") ||
+    url.startsWith("/auth/refresh") ||
+    url.startsWith("/auth/forgot-password") ||
+    url.startsWith("/auth/reset-password")
+  );
+}
+
+/** خروج حقيقي عند فشل التجديد: مسح الزوجين + توست + توجيه لصفحة الدخول */
+function forceLogout(hadSession: boolean): void {
+  if (typeof window === "undefined") return;
+  useOwnerAuthStore.getState().clearAuth();
+  if (hadSession) {
+    toast({ title: "انتهت الجلسة", description: "يرجى تسجيل الدخول من جديد" });
+    if (window.location.pathname.startsWith("/owner")) {
+      window.location.assign("/owner/login?expired=1");
+    }
+  }
 }
 
 async function fetchWithOwnerAuth<T>(
   method: string,
   url: string,
   body?: unknown,
-  options?: { headers?: Record<string, string> }
+  options?: { headers?: Record<string, string> },
+  retried = false
 ): Promise<T> {
   const headers: Record<string, string> = {
     Accept: "application/json",
@@ -71,9 +103,18 @@ async function fetchWithOwnerAuth<T>(
   const authEndpoint = isAuthEndpoint(url);
 
   if (response.status === 401 && !authEndpoint) {
-    if (typeof window !== "undefined") {
-      useOwnerAuthStore.getState().clearAuth();
+    // تجديد شفاف: 401 → POST /auth/refresh → إعادة الطلب الأصلي بالتوكن الجديد
+    if (!retried) {
+      const tokens = await attemptRefresh("owner", readOwnerRefreshToken);
+      if (tokens?.access_token) {
+        const newRefresh = tokens.refresh_token ?? readOwnerRefreshToken();
+        if (newRefresh) {
+          useOwnerAuthStore.getState().updateTokens(tokens.access_token, newRefresh);
+          return fetchWithOwnerAuth<T>(method, url, body, options, true);
+        }
+      }
     }
+    forceLogout(Boolean(token));
     throw new OwnerApiError("انتهت الجلسة. يرجى تسجيل الدخول مجددًا.", 401, null);
   }
 

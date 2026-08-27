@@ -3,6 +3,7 @@
 import { create } from "zustand";
 
 const COOKIE_NAME = "tawfir_customer_token";
+const REFRESH_COOKIE_NAME = "tawfir_customer_refresh";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
 function readCookie(name: string): string | null {
@@ -28,26 +29,41 @@ function eraseCookie(name: string) {
 
 interface CustomerAuthState {
   accessToken: string | null;
+  /** رمز التحديث (7 أيام) — يجعل الجلسة تعيش بعد انتهاء الـ access (15 دقيقة). */
+  refreshToken: string | null;
   /** True until we've checked the cookie on the client. */
   hydrated: boolean;
-  setAuth: (token: string) => void;
+  /** تسجيل الدخول — يخزّن الزوجين معاً. */
+  setAuth: (token: string, refreshToken?: string | null) => void;
+  /** بعد تجديد ناجح — استبدال الزوجين (التدوير يُبطل القديم فوراً). */
+  updateTokens: (token: string, refreshToken: string) => void;
   clearAuth: () => void;
   hydrate: () => void;
 }
 
 export const useCustomerAuthStore = create<CustomerAuthState>((set) => ({
   accessToken: null,
+  refreshToken: null,
   hydrated: false,
-  setAuth: (token) => {
+  setAuth: (token, refreshToken = null) => {
     writeCookie(COOKIE_NAME, token, COOKIE_MAX_AGE);
-    set({ accessToken: token, hydrated: true });
+    if (refreshToken) writeCookie(REFRESH_COOKIE_NAME, refreshToken, COOKIE_MAX_AGE);
+    else eraseCookie(REFRESH_COOKIE_NAME);
+    set({ accessToken: token, refreshToken, hydrated: true });
+  },
+  updateTokens: (token, refreshToken) => {
+    writeCookie(COOKIE_NAME, token, COOKIE_MAX_AGE);
+    writeCookie(REFRESH_COOKIE_NAME, refreshToken, COOKIE_MAX_AGE);
+    set({ accessToken: token, refreshToken, hydrated: true });
   },
   clearAuth: () => {
     eraseCookie(COOKIE_NAME);
-    set({ accessToken: null });
+    eraseCookie(REFRESH_COOKIE_NAME);
+    set({ accessToken: null, refreshToken: null });
   },
   hydrate: () => {
     const token = readCookie(COOKIE_NAME);
-    set({ accessToken: token, hydrated: true });
+    const refreshToken = readCookie(REFRESH_COOKIE_NAME);
+    set({ accessToken: token, refreshToken, hydrated: true });
   },
 }));

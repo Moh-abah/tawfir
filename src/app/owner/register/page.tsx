@@ -43,7 +43,7 @@ import {
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { PasswordInput } from "@/components/shared/PasswordInput";
-import { ImageUrlField } from "@/components/shared/ImageUrlField";
+import { ImageUploader } from "@/components/shared/ImageUploader";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { useOwnerRegister, parseRegisterError } from "@/hooks/useOwnerRegister";
 import type { OwnerRegisterResult } from "@/services/owner.service";
@@ -716,12 +716,12 @@ export default function OwnerRegisterPage() {
                       name="image_url"
                       control={control}
                       render={({ field }) => (
-                        <ImageUrlField
+                        <ImageUploader
                           id="image_url"
                           label="صورة المنشأة"
+                          folder="facilities"
                           value={field.value ?? ""}
                           onChange={field.onChange}
-                          onBlur={field.onBlur}
                           disabled={register.isPending}
                         />
                       )}

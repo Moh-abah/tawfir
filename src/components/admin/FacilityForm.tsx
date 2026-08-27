@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ImageUrlField } from "@/components/shared/ImageUrlField";
+import { ImageUploader } from "@/components/shared/ImageUploader";
 import {
   useCreateFacility,
   useUpdateFacility,
@@ -339,7 +339,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
             {/* ─── البطاقات (متعدد اختيار) ─── */}
             <div className="space-y-2">
               <Label>البطاقات المرتبطة</Label>
-              <div className="max-h-36 overflow-y-auto rounded-md border p-3 space-y-2">
+              <div className="max-h-36 overflow-y-auto no-mobile-scrollbar rounded-md border p-3 space-y-2">
                 {cards.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     لا توجد بطاقات متاحة.
@@ -494,12 +494,13 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
               name="image_url"
               control={form.control}
               render={({ field }) => (
-                <ImageUrlField
+                <ImageUploader
                   id="fac-image"
                   label="صورة المنشأة"
+                  folder="facilities"
                   value={field.value ?? ""}
                   onChange={field.onChange}
-                  onBlur={field.onBlur}
+                  disabled={isPending}
                 />
               )}
             />

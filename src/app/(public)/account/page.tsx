@@ -38,6 +38,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MemberCard } from "@/components/public/MemberCard";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
+import { PasswordChangeCard } from "@/components/shared/PasswordChangeCard";
+import { SoundSettingsCard } from "@/components/shared/SoundSettingsCard";
 import { useCustomerAuth, useCustomerLogout } from "@/hooks/useCustomerAuth";
 import { useMe, useInvalidateMe } from "@/hooks/useMe";
 import { useHasMounted } from "@/hooks/useHasMounted";
@@ -452,6 +454,12 @@ function NoMembershipState({ me }: { me: MeOut }) {
 
       {/* بياناتي */}
       <MyDataCard me={me} />
+
+      {/* أمان الحساب — تغيير كلمة المرور */}
+      <PasswordChangeCard role="customer" />
+
+        {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+        <SoundSettingsCard />
     </motion.div>
   );
 }
@@ -524,6 +532,12 @@ function ActiveMemberState({ me }: { me: MeOut }) {
 
       {/* بياناتي + التعديل */}
       <MyDataCard me={me} />
+
+      {/* أمان الحساب — تغيير كلمة المرور */}
+      <PasswordChangeCard role="customer" />
+
+        {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+        <SoundSettingsCard />
     </motion.div>
   );
 }
@@ -611,6 +625,12 @@ export default function AccountPage() {
 
         {/* بياناتي */}
         <MyDataCard me={me.data} />
+
+        {/* أمان الحساب — تغيير كلمة المرور */}
+        <PasswordChangeCard role="customer" />
+
+        {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+        <SoundSettingsCard />
       </motion.div>
     );
   }

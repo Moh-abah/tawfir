@@ -41,6 +41,7 @@ import { useOwnerOrders } from "@/hooks/useOwnerOrders";
 import { useUpdateOrderStatus } from "@/hooks/useUpdateOrderStatus";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import {
@@ -397,35 +398,31 @@ export default function OwnerOrdersContent() {
 
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [search, setSearch] = useState("");
+  /* الجولة الختامية: البحث صار من الخادم (search — رقم طلب أو اسم عميل)
+     debounce 350ms — لا فلترة محلية (كانت تفقد الطلبات خارج الصفحة الأولى) */
+  const debouncedSearch = useDebounce(search, 350);
 
-  // استعلام مفلتر من الباك إند عند اختيار حالة محددة (بدل الفلترة
-  // المحلية التي كانت تفقد الطلبات خارج أول 20 طلباً)
+  // استعلام مفلتر من الباك إند عند اختيار حالة محددة أو البحث
   const filteredQuery = useOwnerOrders(
     facilityId,
-    statusFilter === "all" ? null : statusFilter
+    statusFilter === "all" ? null : statusFilter,
+    debouncedSearch
   );
-  const activeOrders = statusFilter === "all" ? orders : filteredQuery.data;
-  const activeLoading =
-    statusFilter === "all" ? ordersLoading : filteredQuery.isLoading;
+  const hasActiveFilter =
+    statusFilter !== "all" || debouncedSearch.trim().length > 0;
+  const activeOrders = hasActiveFilter ? filteredQuery.data : orders;
+  const activeLoading = hasActiveFilter
+    ? filteredQuery.isLoading
+    : ordersLoading;
 
-  // البحث المحلي (بالباق رقم/اسم العميل) — الباك إند لا يدعم بحثاً للطلبات
+  // الأحدث أولاً — الفلترة والبحث يتمان في الخادم الآن
   const filteredOrders = useMemo(() => {
-    const all = activeOrders?.items ?? [];
-    let list = all;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      list = list.filter(
-        (o) =>
-          String(o.id).includes(q) ||
-          (o.customer_name ?? "").toLowerCase().includes(q)
-      );
-    }
-    // الأحدث أولاً
+    const list = activeOrders?.items ?? [];
     return [...list].sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
-  }, [activeOrders, search]);
+  }, [activeOrders]);
 
   const pageAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -583,7 +580,7 @@ export default function OwnerOrdersContent() {
       <div className="flex flex-col gap-3">
         {/* Filter chips — horizontally scrollable on mobile */}
         <div
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          className="scroll-area-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
           role="tablist"
           aria-label="تصفية الطلبات حسب الحالة"
         >

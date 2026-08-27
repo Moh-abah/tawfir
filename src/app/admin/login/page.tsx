@@ -25,6 +25,8 @@ import { useAdminAuth, useAdminLogin } from "@/hooks/useAdminAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { TawfirLogo } from "@/components/shared/TawfirLogo"; // ✅ استيراد الشعار الجديد
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const schema = z.object({
   identifier: z.string().min(1, "اسم المستخدم مطلوب"),
@@ -38,6 +40,20 @@ export default function AdminLoginPage() {
   const login = useAdminLogin();
   const prefersReduced = usePrefersReducedMotion();
   const [rememberMe, setRememberMe] = useState(true);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const { toast } = useToast();
+
+  /* وصل المستخدم هنا بعد انتهاء جلسته (refresh فشل) — أبلغه بلطف */
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("expired=1")) {
+      toast({
+        title: "انتهت الجلسة",
+        description: "يرجى تسجيل الدخول من جديد",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/admin/login");
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (hydrated && accessToken) {
@@ -169,7 +185,16 @@ export default function AdminLoginPage() {
                 </motion.div>
 
                 <motion.div className="space-y-2" variants={formFieldVariants}>
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">كلمة المرور</Label>
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(true)}
+                      className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
+                    >
+                      نسيت كلمة المرور؟
+                    </button>
+                  </div>
                   <PasswordInput
                     id="password"
                     autoComplete="current-password"
@@ -182,6 +207,9 @@ export default function AdminLoginPage() {
                   )}
                 </motion.div>
 
+                {/* حوار استعادة كلمة المرور — POST /auth/forgot-password */}
+                <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
+
                 <motion.div
                   className="flex items-center"
                   variants={formFieldVariants}
@@ -190,8 +218,6 @@ export default function AdminLoginPage() {
                     <Checkbox id="remember-me" checked={rememberMe} onCheckedChange={(v) => setRememberMe(v === true)} />
                     <span className="text-sm text-muted-foreground">تذكرني (7 أيام)</span>
                   </label>
-                  {/* لا توجد ميزة «نسيت كلمة المرور» — الباك إند لا يوفّر
-                      endpoint لإعادة التعيين (موثّق في BLOCKERS.md). */}
                 </motion.div>
 
                 <motion.div variants={formFieldVariants}>

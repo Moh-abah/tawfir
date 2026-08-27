@@ -23,9 +23,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { PasswordInput } from "@/components/shared/PasswordInput";
+import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { useOwnerAuth, useOwnerLogin } from "@/hooks/useOwnerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useToast } from "@/hooks/use-toast";
 
 const schema = z.object({
   identifier: z.string().min(1, "اسم المستخدم أو البريد الإلكتروني مطلوب"),
@@ -47,6 +49,20 @@ function OwnerLoginForm() {
   })();
   const prefersReduced = usePrefersReducedMotion();
   const [rememberMe, setRememberMe] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const { toast } = useToast();
+
+  /* وصل المستخدم هنا بعد انتهاء جلسته (refresh فشل) — أبلغه بلطف */
+  useEffect(() => {
+    if (searchParams.get("expired") === "1") {
+      toast({
+        title: "انتهت الجلسة",
+        description: "يرجى تسجيل الدخول من جديد",
+        variant: "destructive",
+      });
+      router.replace("/owner/login");
+    }
+  }, [searchParams, toast, router]);
 
   useEffect(() => {
     if (hydrated && accessToken) {
@@ -181,7 +197,16 @@ function OwnerLoginForm() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">كلمة المرور</Label>
+                    <button
+                      type="button"
+                      onClick={() => setForgotOpen(true)}
+                      className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
+                    >
+                      نسيت كلمة المرور؟
+                    </button>
+                  </div>
                   <PasswordInput
                     id="password"
                     autoComplete="current-password"
@@ -195,6 +220,9 @@ function OwnerLoginForm() {
                   )}
                 </div>
 
+                {/* حوار استعادة كلمة المرور — POST /auth/forgot-password */}
+                <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
+
                 {/* Remember Me Checkbox */}
                 <div className="flex items-center gap-2">
                   <Checkbox
@@ -207,8 +235,6 @@ function OwnerLoginForm() {
                     تذكرني (7 أيام)
                   </Label>
                 </div>
-                {/* لا توجد ميزة «نسيت كلمة المرور» — الباك إند لا يوفّر
-                    endpoint لإعادة التعيين (موثّق في BLOCKERS.md). */}
 
                 <Button
                   type="submit"

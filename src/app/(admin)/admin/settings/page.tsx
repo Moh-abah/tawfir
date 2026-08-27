@@ -32,6 +32,8 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/components/theme/theme-provider";
 import { useAdminAuth, useAdminLogout } from "@/hooks/useAdminAuth";
 import { useAccountMe } from "@/hooks/useAccountMe";
+import { PasswordChangeCard } from "@/components/shared/PasswordChangeCard";
+import { SoundSettingsCard } from "@/components/shared/SoundSettingsCard";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { useWsStatus } from "@/hooks/useWsStatus";
 import { formatDate } from "@/lib/format";
@@ -61,8 +63,8 @@ const ROLE_LABEL: Record<string, string> = {
  *  - بطاقة تواصل حقيقية (هاتف/واتساب/بريد + الموقع)
  *  - الإصدار من lib/pwa/version.ts (مصدره package.json)
  *
- * ملاحظة: تغيير كلمة مرور المشرف غير متوفر — الباك إند لا يوفّر
- * endpoint له (موثّق في BLOCKERS.md).
+ *  - أمان الحساب: تغيير كلمة المرور (PUT /me/password — الجولة 7)
+ *  - قسم الأصوات: تشغيل/مستوى/تجربة كل صوت من الـ18 (الجولة 8)
  */
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -402,14 +404,14 @@ export default function AdminSettingsPage() {
               تسجيل الخروج
             </Button>
           </div>
-          <Separator className="my-4" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            تغيير كلمة مرور المشرف غير متوفر حالياً — يتطلب إضافة endpoint
-            مخصص من الباك إند. لتعديل بيانات حسابك تواصل مع فريق {SITE_NAME}{" "}
-            عبر معلومات الاتصال أعلاه.
-          </p>
         </CardContent>
       </Card>
+
+      {/* أمان الحساب — تغيير كلمة المرور (الجولة الختامية: PUT /me/password) */}
+      <PasswordChangeCard role="admin" />
+
+      {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+      <SoundSettingsCard />
     </div>
   );
 }

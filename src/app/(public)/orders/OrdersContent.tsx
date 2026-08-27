@@ -9,14 +9,18 @@ import {
   Package,
   Sparkles,
   UtensilsCrossed,
+  Search,
+  X,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { PullToRefresh } from "@/components/shared/PullToRefresh";
 import { useMyOrders } from "@/hooks/useMyOrders";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
@@ -167,13 +171,18 @@ function OrdersSkeleton() {
 }
 
 /* ─── شبكة الطلبات ──────────────────────────────────── */
-function OrdersGrid({ status }: { status: FilterKey }) {
+function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
   const prefersReduced = usePrefersReducedMotion();
 
   const queryStatus = status === "all" ? undefined : status;
-  const { data, isLoading, isError, error, refetch } = useMyOrders(queryStatus);
+  const { data, isLoading, isError, error, refetch } = useMyOrders(
+    queryStatus,
+    true,
+    search
+  );
 
   const orders = useMemo<OrderListOut[]>(() => data?.items ?? [], [data]);
+  const searching = search.trim().length > 0;
 
   if (isLoading) return <OrdersSkeleton />;
 
@@ -192,6 +201,16 @@ function OrdersGrid({ status }: { status: FilterKey }) {
   }
 
   if (orders.length === 0) {
+    /* نتيجة بحث فارغة — رسالة مختلفة عن «لا طلبات بعد» */
+    if (searching) {
+      return (
+        <EmptyState
+          icon={Search}
+          title="لا نتائج مطابقة"
+          description={`لا يوجد طلب برقم يحتوي "${search.trim()}" ضمن هذه القائمة.`}
+        />
+      );
+    }
     return (
       <EmptyState
         icon={ShoppingBag}
@@ -234,6 +253,9 @@ function OrdersGrid({ status }: { status: FilterKey }) {
 export default function OrdersContent() {
   const { accessToken, hydrated } = useCustomerAuth();
   const [filter, setFilter] = useState<FilterKey>("all");
+  /* بحث برقم الطلب — debounce 350ms ثم يُرسل ?search= للخادم (لا فلترة محلية) */
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 350);
 
   /* قبل الترطيب: هيكل ثابت */
   if (!hydrated) {
@@ -289,6 +311,33 @@ export default function OrdersContent() {
         </p>
       </header>
 
+      {/* البحث برقم الطلب — من الخادم */}
+      <div className="relative mb-4">
+        <Search
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          type="search"
+          inputMode="numeric"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="ابحث برقم الطلب..."
+          aria-label="البحث برقم الطلب"
+          className="min-h-[44px] rounded-full pr-9 pl-10"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={() => setSearchInput("")}
+            className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="مسح البحث"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+
       {/* فلترة الحالة */}
       <div
         className="scroll-area-thin mb-6 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1"
@@ -318,7 +367,11 @@ export default function OrdersContent() {
       </div>
 
       {/* قائمة الطلبات — يُعاد رسمها عند تغيّر الفلتر */}
-      <OrdersGrid key={filter} status={filter} />
+      <OrdersGrid
+        key={`${filter}-${debouncedSearch}`}
+        status={filter}
+        search={debouncedSearch}
+      />
     </div>
   );
 }

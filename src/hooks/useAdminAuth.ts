@@ -30,7 +30,8 @@ export function useAdminLogin() {
       authService.adminLogin(data),
     onSuccess: (data, variables) => {
       // remember=true (افتراضي) → كوكي 7 أيام | false → كوكي جلسة فقط
-      setAuth(data.access_token, variables.remember ?? true);
+      // refresh_token يُخزّن مع access — الجلسة تعيش بالتجديد الشفاف (7 أيام)
+      setAuth(data.access_token, variables.remember ?? true, data.refresh_token ?? null);
       toast({ title: "تم تسجيل الدخول", description: "مرحبًا بك في لوحة التحكم" });
       router.push("/admin");
     },

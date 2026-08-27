@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/format";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
-import { ImageUrlField } from "@/components/shared/ImageUrlField";
+import { ImageUploader } from "@/components/shared/ImageUploader";
 import { ownerService } from "@/services/owner.service";
 import { useUpdateMyFacility } from "@/hooks/useUpdateMyFacility";
 import { useOwnerProducts } from "@/hooks/useOwnerProducts";
@@ -220,12 +220,13 @@ const prefersReduced = usePrefersReducedMotion();
                     name="image_url"
                     control={control}
                     render={({ field }) => (
-                      <ImageUrlField
+                      <ImageUploader
                         id="image_url"
                         label="صورة المنشأة"
+                        folder="facilities"
                         value={field.value ?? ""}
                         onChange={field.onChange}
-                        onBlur={field.onBlur}
+                        disabled={updateMutation.isPending}
                       />
                     )}
                   />

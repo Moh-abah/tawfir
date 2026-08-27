@@ -124,7 +124,7 @@ export default function AdminLayout({
 
         <div className="flex flex-1">
           <AdminSidebar />
-          <main className="flex-1 overflow-x-hidden">
+          <main className="no-mobile-scrollbar flex-1 overflow-x-hidden">
             <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
               {children}
             </div>

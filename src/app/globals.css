@@ -253,6 +253,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   Native polish (الجولة الختامية): إخفاء أشرطة السكرول على الموبايل
+   التمرير يعمل بالإصبع بلا أي شريط ظاهر — الديسكتوب تحتفظ بأشرطته الرفيعة
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .scroll-area-thin::-webkit-scrollbar,
+  .no-mobile-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scroll-area-thin,
+  .no-mobile-scrollbar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge legacy */
+  }
+
+  /* أشرطة Radix ScrollArea المخصصة (viewport داخلي) — تختفي على الموبايل */
+  [data-slot="scroll-area-scrollbar"] {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    Brand identity gradients & login backdrops (ocean identity)
    ═══════════════════════════════════════════════════════════════ */
 

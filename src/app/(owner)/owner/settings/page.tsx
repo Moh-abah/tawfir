@@ -34,6 +34,8 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/components/theme/theme-provider";
 import { useOwnerAuth, useOwnerLogout } from "@/hooks/useOwnerAuth";
 import { useAccountMe } from "@/hooks/useAccountMe";
+import { PasswordChangeCard } from "@/components/shared/PasswordChangeCard";
+import { SoundSettingsCard } from "@/components/shared/SoundSettingsCard";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { APP_VERSION } from "@/lib/pwa/version";
@@ -442,14 +444,14 @@ export default function OwnerSettingsPage() {
               تسجيل الخروج
             </Button>
           </div>
-          <Separator className="my-4" />
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            تغيير كلمة المرور غير متوفر حالياً — يتطلب إضافة endpoint مخصص من
-            الباك إند. لتعديل بياناتك تواصل مع إدارة {SITE_NAME} عبر معلومات
-            الاتصال أعلاه.
-          </p>
         </CardContent>
       </Card>
+
+      {/* أمان الحساب — تغيير كلمة المرور (الجولة الختامية: PUT /me/password) */}
+      <PasswordChangeCard role="owner" />
+
+      {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+      <SoundSettingsCard />
     </div>
   );
 }
