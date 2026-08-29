@@ -13,14 +13,14 @@
  *  • كل POST/PUT/PATCH/DELETE + auth/login + me + admin/* + owner/* +
  *    orders + membership + أي طلب يحمل Authorization: NetworkOnly —
  *    لا يُخزَّن شيء إطلاقاً (لا تخزين للتوكنات أو العمليات الحساسة)
- *  • صور المنشآت/المنتجات (image patterns): CacheFirst بحد 50 مدخل (FIFO)
+ *  • صور المتاجر/المنتجات (image patterns): CacheFirst بحد 50 مدخل (FIFO)
  *  • بوابة المالك: هيكل التطبيق أوفلاين + كل API المالك NetworkOnly
  *  • التنقلات: NetworkFirst مع سقوط للكاش ثم صفحة /offline
  *  • أصول Next الثابتة: CacheFirst في الإنتاج / NetworkFirst في التطوير
  *
  * رسائل عربية أصيلة عند فقد الاتصال:
  *  • عملية بلا اتصال → 503 {detail: «يتطلب هذا الإجراء اتصالاً بالإنترنت»}
- *  • طلب بوابة المالك → «تتطلب بوابة المنشآت اتصالاً بالإنترنت»
+ *  • طلب بوابة المالك → «تتطلب بوابة المتاجر اتصالاً بالإنترنت»
  *    (يتعامل معها عملاء API الثلاثة كرسالة خطأ عادية من الخادم)
  */
 
@@ -128,7 +128,7 @@ function offlineApiResponse(request) {
   const url = new URL(request.url);
   const isOwner = url.pathname.indexOf("/owner") !== -1;
   const detail = isOwner
-    ? "تتطلب بوابة المنشآت اتصالاً بالإنترنت"
+    ? "تتطلب بوابة المتاجر اتصالاً بالإنترنت"
     : "يتطلب هذا الإجراء اتصالاً بالإنترنت";
   return new Response(JSON.stringify({ detail: detail }), {
     status: 503,
@@ -233,7 +233,7 @@ self.addEventListener("fetch", function (event) {
     return;
   }
 
-  /* 7) الصور (صور المنشآت/المنتجات): CacheFirst بحد 50 */
+  /* 7) الصور (صور المتاجر/المنتجات): CacheFirst بحد 50 */
   if (request.destination === "image") {
     event.respondWith(cacheFirstImage(request));
     return;
@@ -351,7 +351,10 @@ async function handleNavigation(event, request) {
   const isAdmin = url.pathname.startsWith("/admin");
   try {
     const response = await fetch(request);
-    if (response && response.ok && !isAdmin) {
+    /* الجولة 12: في التطوير لا نخزّن HTML التنقلات إطلاقاً — الكاش القديم
+       مع JS متجدد بعد كل إعادة ترجمة يسبب hydration mismatch قاتلاً.
+       (الإنتاج آمن: HTML و chunks يُنشران معاً بنسخ مُوقّعة) */
+    if (response && response.ok && !isAdmin && IS_PROD) {
       /* نستنسخ فوراً قبل إرجاع الاستجابة — الاستنساخ المتأخر يفشل
          لأن جسم الاستجابة يكون قد بدأ استهلاكه (خطأ Body already used) */
       const clone = response.clone();
@@ -363,6 +366,10 @@ async function handleNavigation(event, request) {
     }
     return response;
   } catch (err) {
+    if (!IS_PROD) {
+      /* التطوير: لا سقوط لكاش HTML متقادم — صفحة الخطأ مباشرة */
+      return offlineApiResponse(request);
+    }
     const cached = await caches.match(request);
     if (cached) return cached;
     const offlinePage = await caches.match(OFFLINE_URL);

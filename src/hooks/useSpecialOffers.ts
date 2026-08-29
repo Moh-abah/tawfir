@@ -25,7 +25,7 @@ export function useSpecialOffer(id: number | null) {
   });
 }
 
-/** GET /owner/{fid}/special-offers — قائمة عروض المنشأة (مالك). */
+/** GET /owner/{fid}/special-offers — قائمة عروض المتجر (مالك). */
 export function useOwnerSpecialOffers(facilityId: number | null, activeOnly = false) {
   return useQuery({
     queryKey: ["owner-special-offers", facilityId, activeOnly],

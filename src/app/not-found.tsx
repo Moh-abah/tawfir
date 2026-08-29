@@ -88,7 +88,7 @@ export default function NotFound() {
           size="lg"
           className="rounded-full min-h-[44px] px-8"
         >
-          <Link href="/facilities">تصفح المنشآت</Link>
+          <Link href="/facilities">تصفح المتاجر</Link>
         </Button>
       </div>
 

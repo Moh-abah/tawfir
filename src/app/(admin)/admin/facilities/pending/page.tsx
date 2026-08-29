@@ -219,7 +219,7 @@ export default function AdminPendingFacilitiesPage() {
   const approveMutation = useApproveFacility();
   const rejectMutation = useRejectFacility();
 
-  /* مودال الرفض: المنشأة قيد الرفض + السبب */
+  /* مودال الرفض: المتجر قيد الرفض + السبب */
   const [rejectTarget, setRejectTarget] = useState<PendingFacility | null>(
     null
   );
@@ -254,10 +254,10 @@ export default function AdminPendingFacilitiesPage() {
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15">
               <Hourglass className="h-5 w-5 text-accent" aria-hidden="true" />
             </span>
-            طلبات المنشآت المعلّقة
+            طلبات المتاجر المعلّقة
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            طلبات تسجيل المنشآت الجديدة بانتظار مراجعتك وموافقتك قبل ظهورها
+            طلبات تسجيل المتاجر الجديدة بانتظار مراجعتك وموافقتك قبل ظهورها
             للعملاء.
           </p>
         </div>
@@ -307,10 +307,10 @@ export default function AdminPendingFacilitiesPage() {
           </span>
           <div>
             <p className="text-lg font-bold text-foreground">
-              🎉 لا توجد طلبات منشآت معلّقة حالياً
+              🎉 لا توجد طلبات متاجر معلّقة حالياً
             </p>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              ستظهر هنا طلبات التسجيل الجديدة فور تقديمها من أصحاب المنشآت.
+              ستظهر هنا طلبات التسجيل الجديدة فور تقديمها من أصحاب المتاجر.
             </p>
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function AdminPendingFacilitiesPage() {
               رفض طلب «{rejectTarget?.name ?? ""}»
             </DialogTitle>
             <DialogDescription>
-              اكتب سبب الرفض — سيظهر لصاحب المنشأة في بوابة المالك ليعرف ما
+              اكتب سبب الرفض — سيظهر لصاحب المتجر في بوابة المالك ليعرف ما
               يجب تعديله.
             </DialogDescription>
           </DialogHeader>
@@ -373,7 +373,7 @@ export default function AdminPendingFacilitiesPage() {
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="مثال: بيانات المنشأة غير مكتملة — أضف وصفاً وصورة أوضح"
+              placeholder="مثال: بيانات المتجر غير مكتملة — أضف وصفاً وصورة أوضح"
               disabled={rejectMutation.isPending}
               className="min-h-[44px]"
               aria-invalid={reason.trim().length === 0}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import OwnerFacilitiesContent from "./OwnerFacilitiesContent";
 
 export const metadata: Metadata = {
-  title: "منشآتي | توفير",
+  title: "متجري | توفير",
 };
 
 export default function OwnerPage() {

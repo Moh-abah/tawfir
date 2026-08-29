@@ -32,7 +32,7 @@ const SHORTCUTS: ShortcutItem[] = [
   { keys: ["Ctrl", "1"], description: "لوحة التحكم", href: "/admin" },
   { keys: ["Ctrl", "2"], description: "المناطق", href: "/admin/regions" },
   { keys: ["Ctrl", "3"], description: "البطاقات", href: "/admin/cards" },
-  { keys: ["Ctrl", "4"], description: "المنشآت", href: "/admin/facilities" },
+  { keys: ["Ctrl", "4"], description: "المتاجر", href: "/admin/facilities" },
   { keys: ["Ctrl", "5"], description: "العملاء", href: "/admin/users" },
 ];
 

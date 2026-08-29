@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -44,6 +44,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { PullToRefresh } from "@/components/shared/PullToRefresh";
 import {
   ORDER_STATUS_LABEL,
   ORDER_STATUS_TONE,
@@ -217,11 +218,11 @@ function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
             </div>
           </div>
 
-          {/* اختيار الحالة */}
-          <div className="mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* اختيار الحالة — قائمة منسدلة للديسكتوب فقط */}
+          <div className="mt-4 hidden flex-row items-center justify-between gap-2 border-t pt-4 md:flex">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
-              <span>طلب من منشأة:</span>
+              <span>طلب من متجر:</span>
               <span className="font-medium text-foreground">
                 {order.facility_name ?? "—"}
               </span>
@@ -278,13 +279,99 @@ function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
               </Select>
             </div>
           </div>
+
+          {/* اختيار الحالة — كبسولات لمسية ≥44px على الموبايل فقط */}
+          <MobileOrderStatusButtons
+            order={order}
+            allowedNext={allowedNext}
+            disabled={statusMutation.isPending}
+            pendingOrderId={
+              statusMutation.isPending
+                ? statusMutation.variables?.orderId
+                : undefined
+            }
+            onStatusChange={onStatusChange}
+          />
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-// ─── Quick Stats ──────────────────────────────────────────
+// ─── كبسولات انتقال الحالة على الموبايل (≥44px لمسة) — الجولة 9 (المهمة 8)
+interface MobileOrderStatusButtonsProps {
+  order: OrderListOut;
+  allowedNext: OrderStatus[];
+  disabled: boolean;
+  pendingOrderId?: number;
+  onStatusChange: (next: string) => void;
+}
+
+function MobileOrderStatusButtons({
+  order,
+  allowedNext,
+  disabled,
+  pendingOrderId,
+  onStatusChange,
+}: MobileOrderStatusButtonsProps) {
+  // لا توجد انتقالات مسموحة → لا نعرض الكبسولات (الحالة نهائية)
+  if (allowedNext.length === 0) {
+    return (
+      <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3 md:hidden">
+        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+          <span>الطلب من:</span>
+          <span className="font-medium text-foreground">
+            {order.facility_name ?? "—"}
+          </span>
+        </span>
+        <Badge className="border-transparent text-[10px] bg-muted text-muted-foreground">
+          حالة نهائية
+        </Badge>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 flex flex-col gap-2 border-t pt-3 md:hidden">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+        <span>الطلب من:</span>
+        <span className="font-medium text-foreground">
+          {order.facility_name ?? "—"}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {allowedNext.map((status) => {
+          const isCancel = status === "cancelled";
+          const isConfirm = status === "confirmed";
+          const isBusy = disabled && pendingOrderId === order.id;
+          return (
+            <button
+              key={status}
+              type="button"
+              onClick={() => onStatusChange(status)}
+              disabled={disabled}
+              className={cn(
+                "native-tap inline-flex h-11 min-h-[44px] items-center justify-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors disabled:opacity-50",
+                isCancel
+                  ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  : isConfirm
+                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90",
+              )}
+              aria-label={`تحويل الطلب ${order.id} إلى ${ORDER_STATUS_LABEL[status]}`}
+            >
+              {isBusy ? "…" : ORDER_STATUS_LABEL[status]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 interface StatsBarProps {
   orders: OrderListOut[];
   isLoading: boolean;
@@ -371,14 +458,14 @@ export default function OwnerOrdersContent() {
   const router = useRouter();
   const prefersReduced = usePrefersReducedMotion();
 
-  // التحقق من ملكية المنشأة (يحمل القائمة من useMyFacilities الكاش الموجود)
+  // التحقق من ملكية المتجر (يحمل القائمة من useMyFacilities الكاش الموجود)
   const { data: facilities, isLoading: facilitiesLoading } = useMyFacilities();
   const facility: Facility | undefined = useMemo(
     () => facilities?.find((f) => f.id === facilityId),
     [facilities, facilityId]
   );
 
-  // استعلام تفصيلي للمنشأة (للاستعلام عن الحالة قبل وصول القائمة)
+  // استعلام تفصيلي للمتجر (للاستعلام عن الحالة قبل وصول القائمة)
   const { data: facilityDetail, isLoading: facilityDetailLoading } =
     useQuery<Facility>({
       queryKey: ["my-facility", facilityId],
@@ -428,6 +515,16 @@ export default function OwnerOrdersContent() {
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
+  // ─── auto-refresh 30s — الجولة 9 (المهمة 8): نبض الطلبات حيّ على الموبايل ───
+  useEffect(() => {
+    if (!facilityId || facilityId <= 0) return;
+    const interval = setInterval(() => {
+      refetch();
+      if (hasActiveFilter) filteredQuery.refetch();
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, [facilityId, hasActiveFilter, refetch, filteredQuery]);
+
   // ─── Loading (initial fetch) ───
   if (facilitiesLoading && !currentFacility) {
     return (
@@ -451,8 +548,8 @@ export default function OwnerOrdersContent() {
   if (currentFacility === undefined && !facilityDetailLoading) {
     return (
       <ErrorState
-        title="المنشأة غير موجودة"
-        message="لا تملك صلاحية الوصول لهذه المنشأة أو أنها غير موجودة."
+        title="المتجر غير موجود"
+        message="لا تملك صلاحية الوصول لهذا المتجر أو أنه غير موجود."
         onRetry={() => router.push("/owner")}
       />
     );
@@ -501,7 +598,7 @@ export default function OwnerOrdersContent() {
               </h1>
             </div>
             <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
-              إدارة وتتبّع طلبات المنشأة وتحديث حالتها
+              إدارة وتتبّع طلبات المتجر وتحديث حالتها
             </p>
           </div>
         </div>
@@ -521,13 +618,13 @@ export default function OwnerOrdersContent() {
               className="gap-2 rounded-full min-h-[44px]"
             >
               <ArrowRight className="h-4 w-4" />
-              <span className="hidden sm:inline">تعديل المنشأة</span>
+              <span className="hidden sm:inline">تعديل المتجر</span>
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* تنبيه حالة المنشأة (معلّقة/مرفوضة) */}
+      {/* تنبيه حالة المتجر (معلّقة/مرفوضة) */}
       {(isPending || isRejected) && (
         <div
           className={cn(
@@ -556,8 +653,8 @@ export default function OwnerOrdersContent() {
               )}
             >
               {isPending
-                ? "منشأتك بانتظار موافقة المشرف"
-                : "تم رفض منشأتك"}
+                ? "متجرك بانتظار موافقة المشرف"
+                : "تم رفض متجرك"}
             </p>
             <p
               className={cn(
@@ -566,8 +663,8 @@ export default function OwnerOrdersContent() {
               )}
             >
               {isPending
-                ? "ستظهر طلباتك هنا فور موافقة المشرف على المنشأة وستُراجع خلال 24-48 ساعة."
-                : `السبب: ${currentFacility.rejection_reason ?? "غير محدد"}. عدّل بيانات المنشأة ثم تواصل مع الإدارة.`}
+                ? "ستظهر طلباتك هنا فور موافقة المشرف على المتجر وستُراجع خلال 24-48 ساعة."
+                : `السبب: ${currentFacility.rejection_reason ?? "غير محدد"}. عدّل بيانات المتجر ثم تواصل مع الإدارة.`}
             </p>
           </div>
         </div>
@@ -656,7 +753,7 @@ export default function OwnerOrdersContent() {
       ) : ordersError ? (
         <ErrorState
           title="تعذّر تحميل الطلبات"
-          message="حدث خطأ أثناء جلب طلبات هذه المنشأة. يرجى المحاولة مرة أخرى."
+          message="حدث خطأ أثناء جلب طلبات هذا المتجر. يرجى المحاولة مرة أخرى."
           onRetry={() => refetch()}
         />
       ) : filteredOrders.length === 0 ? (
@@ -674,18 +771,20 @@ export default function OwnerOrdersContent() {
           }
         />
       ) : (
-        <div className="scroll-area-thin max-h-[calc(100vh-22rem)] space-y-3 overflow-y-auto pb-1 pe-1">
-          <AnimatePresence mode="popLayout">
-            {filteredOrders.map((order) => (
-              <OrderRow
-                key={order.id}
-                order={order}
-                facilityId={facilityId}
-                prefersReduced={prefersReduced}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+        <PullToRefresh onRefresh={() => Promise.all([refetch(), filteredQuery.refetch()])}>
+          <div className="scroll-area-thin max-h-[calc(100vh-22rem)] space-y-3 overflow-y-auto pb-1 pe-1">
+            <AnimatePresence mode="popLayout">
+              {filteredOrders.map((order) => (
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  facilityId={facilityId}
+                  prefersReduced={prefersReduced}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+        </PullToRefresh>
       )}
     </motion.div>
   );

@@ -13,10 +13,10 @@ import type {
 } from "@/types/api.generated";
 
 /* ════════════════════════════════════════════════════════════════ */
-/*  بوابة المشرف — سجل التدقيق + المنشآت المعلّقة + الطلبات + العضوية */
+/*  بوابة المشرف — سجل التدقيق + المتاجر المعلّقة + الطلبات + العضوية */
 /* ════════════════════════════════════════════════════════════════ */
 
-/** PATCH /admin/facilities/{id}/approve | reject → المنشأة بعد التحديث */
+/** PATCH /admin/facilities/{id}/approve | reject → المتجر بعد التحديث */
 export type FacilityModerationResult = Facility;
 
 /** الاسم المختصر الذي تستخدمه الـ hooks والصفحات للإشارة إلى PendingFacilityOut */
@@ -29,7 +29,7 @@ export const adminService = {
     ),
 
   /**
-   * قائمة المنشآت المعلّقة بانتظار موافقة المشرف.
+   * قائمة المتاجر المعلّقة بانتظار موافقة المشرف.
    * GET /admin/facilities/pending → {items, total, page, pages}
    */
   getPendingFacilities: (page = 1, pageSize = 20) =>
@@ -37,13 +37,13 @@ export const adminService = {
       `/admin/facilities/pending?page=${page}&page_size=${pageSize}`
     ),
 
-  /** قبول منشأة معلّقة. PATCH /admin/facilities/{id}/approve. */
+  /** قبول متجر معلّق. PATCH /admin/facilities/{id}/approve. */
   approveFacility: (id: number) =>
     apiClient.patch<FacilityModerationResult>(
       `/admin/facilities/${id}/approve`
     ),
 
-  /** رفض منشأة معلّقة مع السبب. PATCH /admin/facilities/{id}/reject. */
+  /** رفض متجر معلّق مع السبب. PATCH /admin/facilities/{id}/reject. */
   rejectFacility: (id: number, reason: string) =>
     apiClient.patch<FacilityModerationResult>(
       `/admin/facilities/${id}/reject`,

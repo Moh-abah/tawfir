@@ -6,7 +6,7 @@ import { motion, useReducedMotion, useInView } from "framer-motion";
 import Link from "next/link";
 import {  Phone, MapPin, Clock, Search, ExternalLink,
   UtensilsCrossed, Coffee, Landmark, ArrowRight, PackageOpen, ChevronLeft,
-  Share2, Flag, Check, Heart, Copy, Twitter, MessageCircle, ShoppingBag,
+  Share2, Flag, Check, Heart, Copy, Twitter, MessageCircle, ShoppingBag, ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -36,7 +36,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { haptic } from "@/lib/haptic";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { ScreenHeader, ScreenHeaderSkeleton } from "@/components/shared/ScreenHeader";
 import { useFacilityProducts, useAllFacilityProducts } from "@/hooks/useFacilityProducts";
 import { useProductCategories } from "@/hooks/useProductCategories";
 import { useFacilities } from "@/hooks/useFacilities";
@@ -82,9 +85,11 @@ function ProductCard({
   onClick: () => void;
   onOrder: () => void;
   isMember: boolean;
-  /** نسبة خصم المنشأة الفعلية (admin قابلة للتعديل 10-30) */
+  /** نسبة خصم المتجر الفعلية (admin قابلة للتعديل 10-30) */
   facilityRate: number;
 }) {
+  /* الجولة 17 — معاينة ملء الشاشة من شبكة المتجر بلا مغادرة القائمة */
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const price = parseFloat(product.price);
   const memberRate = isMember ? facilityRate : 0;
   const finalPrice = isMember ? price * (1 - memberRate / 100) : price;
@@ -113,6 +118,22 @@ function ProductCard({
           <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-bold text-white">
             غير متاح حاليا
           </span>
+        )}
+        {/* الجولة 17 — زر معاينة ملء الشاشة: stopPropagation كي لا يفتح
+            التفاصيل. ظاهر دائماً على اللمس وعلى الديسكتوب عند hover */}
+        {product.image_url && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              haptic("tick");
+              setLightboxOpen(true);
+            }}
+            aria-label={`تكبير صورة ${product.name}`}
+            className="native-tap absolute bottom-2 left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
         )}
       </div>
       <div className="p-4">
@@ -167,6 +188,15 @@ function ProductCard({
           </Button>
         </div>
       </div>
+      {/* الجولة 17 — عارض ملء الشاشة للمعاينة السريعة */}
+      {product.image_url && (
+        <ImageLightbox
+          src={resolveImageUrl(product.image_url)}
+          alt={product.name}
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </motion.div>
   );
 }
@@ -197,7 +227,7 @@ function EnhancedEmptyState() {
       </div>
       <h3 className="text-lg font-bold text-foreground mb-2">لا توجد منتجات بعد</h3>
       <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-        هذه المنشأة لم تضف أي منتجات حتى الآن. ترقّب التحديثات القادمة!
+        هذا المتجر لم يضف أي منتجات حتى الآن. ترقّب التحديثات القادمة!
       </p>
     </div>
   );
@@ -237,7 +267,7 @@ const prefersReduced = usePrefersReducedMotion();
             href="/facilities"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            المنشآت
+            المتاجر
           </Link>
         </li>
         <li>
@@ -257,7 +287,7 @@ const prefersReduced = usePrefersReducedMotion();
 const REPORT_CATEGORIES = [
   { value: "inappropriate", label: "محتوى غير لائق" },
   { value: "wrong_info", label: "معلومات خاطئة" },
-  { value: "closed", label: "منشأة مغلقة" },
+  { value: "closed", label: "متجر مغلق" },
   { value: "other", label: "أخرى" },
 ] as const;
 
@@ -289,7 +319,7 @@ function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>إبلاغ عن منشأة</DialogTitle>
+          <DialogTitle>إبلاغ عن متجر</DialogTitle>
           <DialogDescription>سيتم مراجعة البلاغ واتخاذ الإجراء المناسب</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -435,14 +465,14 @@ const prefersReduced = usePrefersReducedMotion();
   const handleShareTwitter = useCallback(() => {
     if (typeof window === "undefined") return;
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذه المنشأة"} على توفير`);
+    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذا المتجر"} على توفير`);
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
   }, [facility?.name, toast]);
 
   const handleShareWhatsApp = useCallback(() => {
     if (typeof window === "undefined") return;
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذه المنشأة"} على توفير`);
+    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذا المتجر"} على توفير`);
     window.open(`https://wa.me/?text=${text}%20${url}`, "_blank");
   }, [facility?.name, toast]);
 
@@ -489,35 +519,44 @@ const prefersReduced = usePrefersReducedMotion();
   /* ─── Facility loading / error ─────────────────────── */
   if (facLoading || catLoading) {
     return (
-      <div>
-        <Skeleton className="h-56 w-full" />
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
-          <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72" /></div>
-          <div className="flex gap-2"><Skeleton className="h-10 w-20 rounded-full" /><Skeleton className="h-10 w-20 rounded-full" /><Skeleton className="h-10 w-20 rounded-full" /></div>
-          <ProductGridSkeleton />
+      <>
+        <ScreenHeaderSkeleton />
+        <div>
+          <Skeleton className="h-56 w-full" />
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
+            <div className="space-y-2"><Skeleton className="h-8 w-48" /><Skeleton className="h-4 w-72" /></div>
+            <div className="flex gap-2"><Skeleton className="h-10 w-20 rounded-full" /><Skeleton className="h-10 w-20 rounded-full" /><Skeleton className="h-10 w-20 rounded-full" /></div>
+            <ProductGridSkeleton />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (facError) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <ErrorState title="تعذّر تحميل المنشأة" message="حدث خطأ أثناء جلب بيانات المنشأة" onRetry={() => facRefetch()} />
-      </div>
+      <>
+        <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <ErrorState title="تعذّر تحميل المتجر" message="حدث خطأ أثناء جلب بيانات المتجر" onRetry={() => facRefetch()} />
+        </div>
+      </>
     );
   }
 
   if (!facility) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Landmark className="h-20 w-20 text-muted-foreground/20 mb-4" />
-          <h3 className="text-lg font-bold text-foreground mb-1">المنشأة غير موجودة</h3>
-          <p className="text-sm text-muted-foreground mb-4">لم نتمكن من العثور على هذه المنشأة</p>
-          <Link href="/facilities" className="text-sm text-secondary hover:underline min-h-[44px] inline-flex items-center">العودة للمنشآت</Link>
+      <>
+        <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <Landmark className="h-20 w-20 text-muted-foreground/20 mb-4" />
+            <h2 className="text-lg font-bold text-foreground mb-1">المتجر غير موجود</h2>
+            <p className="text-sm text-muted-foreground mb-4">لم نتمكن من العثور على هذا المتجر</p>
+            <Link href="/facilities" className="text-sm text-secondary hover:underline min-h-[44px] inline-flex items-center">العودة للمتاجر</Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -547,6 +586,12 @@ const prefersReduced = usePrefersReducedMotion();
           transition: prefersReduced ? "none" : "width 0.1s linear",
         }}
         aria-hidden="true"
+      />
+
+      {/* رأس الشاشة Native — الجولة 9 (المهمة 4) */}
+      <ScreenHeader
+        title={facility?.name ?? "تفاصيل المتجر"}
+        fallbackHref="/facilities"
       />
 
       {/* Breadcrumbs */}
@@ -593,7 +638,7 @@ const prefersReduced = usePrefersReducedMotion();
           <div className="mx-auto max-w-7xl sm:px-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="text-2xl font-black text-white sm:text-3xl">{facility.name}</h1>
+                <h2 className="text-2xl font-black text-white sm:text-3xl">{facility.name}</h2>
                 <span className="mt-2 inline-block rounded-full bg-secondary/90 px-3 py-1 text-xs font-medium text-white">
                   {TYPE_LABEL[facility.type]}
                 </span>
@@ -736,7 +781,7 @@ const prefersReduced = usePrefersReducedMotion();
                       {formatCurrency(parseFloat(selectedProduct.price))}
                     </span>
                     <span className="text-2xl font-extrabold text-primary" dir="ltr">
-                      {formatCurrency(parseFloat(selectedProduct.price) * (1 - DISCOUNT_RATE / 100))}
+                      {formatCurrency(parseFloat(selectedProduct.price) * (1 - (facility?.discount_rate ?? DISCOUNT_RATE) / 100))}
                     </span>
                   </>
                 ) : (
@@ -845,7 +890,7 @@ const prefersReduced = usePrefersReducedMotion();
         {/* Back Link */}
         <div className="mt-8 mb-20 md:mb-0">
           <Link href="/facilities" className="inline-flex items-center gap-1.5 text-sm text-secondary hover:underline min-h-[44px]">
-            <ArrowRight className="h-4 w-4" />العودة لقائمة المنشآت
+            <ArrowRight className="h-4 w-4" />العودة لقائمة المتاجر
           </Link>
         </div>
       </div>

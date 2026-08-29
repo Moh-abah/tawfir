@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Flame } from "lucide-react";
+import { SectionTitle } from "@/components/public/SectionTitle";
 import {
   SpecialOfferCard,
   SpecialOfferCardSkeleton,
@@ -79,16 +80,12 @@ export function SpecialOffersSection() {
 
   return (
     <section className="space-y-6" aria-label="العروض الخاصة">
-      {/* العنوان */}
-      <div className="space-y-1">
-        <h2 className="flex items-center gap-2 text-xl font-extrabold text-foreground sm:text-2xl">
-          <Flame className="h-5 w-5 text-primary" aria-hidden="true" />
-          عروض خاصة
-        </h2>
-        <p className="text-sm text-muted-foreground">
-          خصومات إضافية لأعضاء توفير
-        </p>
-      </div>
+      {/* العنوان — الجولة 16: SectionTitle موحّد بشريط لهجة متدرّج */}
+      <SectionTitle
+        icon={Flame}
+        title="عروض خاصة"
+        description="خصومات إضافية لأعضاء توفير"
+      />
 
       {/* المحتوى — Netflix Grid */}
       {isLoading ? (

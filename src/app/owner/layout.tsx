@@ -11,7 +11,7 @@ import type { Metadata, Viewport } from "next";
  *  • manifest: /manifest.webmanifest?app=owner (يخدم manifest المالك)
  *  • appleWebApp: title «توفير مالك» + capable + statusBarStyle default
  *  • apple-touch-icon: /icons/owner-apple-touch-icon.png
- *  • theme-color: #003B55 (محيطي أعمق لهوية بوابة المنشآت)
+ *  • theme-color: #003B55 (محيطي أعمق لهوية بوابة المتاجر)
  */
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest?app=owner",

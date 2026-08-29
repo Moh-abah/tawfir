@@ -95,3 +95,39 @@ prompt
 # ====================================================
 Thumbs.db
 Desktop.ini
+# ====================================================
+#  mount point for platform file sync (ossfs) - MUST be ignored
+#  (dead FUSE daemon hangs any tool that reads it)
+# ====================================================
+/upload/
+
+
+
+# Capacitor
+/android/
+/ios/
+
+# Next.js
+/.next/
+/out/
+
+# Dependencies
+/node_modules/
+
+# Environment files
+.env
+.env*.local
+
+# Build outputs
+/build/
+/dist/
+
+# System files
+.DS_Store
+Thumbs.db
+*.log
+
+# Locks (اختياري)
+package-lock.json
+yarn.lock
+bun.lock

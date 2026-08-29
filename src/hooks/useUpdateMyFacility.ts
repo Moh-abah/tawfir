@@ -13,7 +13,7 @@ export function useUpdateMyFacility(facilityId: number) {
     onSuccess: (f) => {
       qc.invalidateQueries({ queryKey: ["my-facilities"] });
       qc.invalidateQueries({ queryKey: ["my-facility", facilityId] });
-      toast({ title: "تم تحديث المنشأة", description: f.name });
+      toast({ title: "تم تحديث المتجر", description: f.name });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),

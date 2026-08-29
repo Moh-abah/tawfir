@@ -4,7 +4,7 @@
  *
  * POST /owner/login → TokenOut (مُتحقَّق منها حيّاً على الإنتاج).
  * POST /owner/register → OwnerRegisterOut {detail, user_id, facility_id, status}
- *   المنشأة تُنشأ معلّقة (status=بانتظار موافقة المشرف) بانتظار المراجعة اليدوية.
+ *   المتجر يُنشأ معلّقاً (status=بانتظار موافقة المشرف) بانتظار المراجعة اليدوية.
  */
 import { ownerApiClient } from "./owner-api-client";
 import type {
@@ -23,7 +23,7 @@ import type {
   OrderOut,
 } from "@/types/api.generated";
 
-/** ─── تسجيل مالك منشأة جديدة (POST /owner/register — عام بلا توكن) ─── */
+/** ─── تسجيل مالك متجر جديد (POST /owner/register — عام بلا توكن) ─── */
 
 export interface OwnerRegisterInput {
   full_name: string;
@@ -53,7 +53,7 @@ export interface OwnerRegisterResult {
 
 export const ownerService = {
   /**
-   * تسجيل حساب مالك + منشأته الجديدة.
+   * تسجيل حساب مالك + متجره الجديد.
    * استجابة 201: {detail, user_id, facility_id, status: "بانتظار موافقة المشرف"}
    * الأخطاء: 409 تكرار بريد/جوال (detail نصي عربي) — 422 تحقق (detail.errors
    * مصفوفة بـ loc لكل حقل) — 404 منطقة غير موجودة.
@@ -113,10 +113,10 @@ export const ownerService = {
     );
   },
 
-  /* ─── طلبات المنشأة (للمالك) ─────────────────────────── */
+  /* ─── طلبات المتجر (للمالك) ─────────────────────────── */
 
   /**
-   * طلبات منشأتي. GET /owner/{facilityId}/orders → Paginated<OrderListOut>.
+   * طلبات متجري. GET /owner/{facilityId}/orders → Paginated<OrderListOut>.
    * الجولة 5: دعم فلترة الحالة وترقيم من الباك إند (كانت الفلترة محلية
    * على أول 20 طلباً فقط — تفقد الطلبات الأقدم).
    * الجولة الختامية: بحث من الخادم (search — رقم طلب أو اسم عميل).

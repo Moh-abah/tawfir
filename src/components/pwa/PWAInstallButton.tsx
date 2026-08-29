@@ -47,7 +47,7 @@ export function PWAInstallButton({
 
   if (!canShow) return null;
 
-  const appName = portal === "owner" ? "تطبيق بوابة المنشآت" : "تطبيق توفير";
+  const appName = portal === "owner" ? "تطبيق بوابة المتاجر" : "تطبيق توفير";
 
   const handleInstallClick = () => {
     if (isIos) {

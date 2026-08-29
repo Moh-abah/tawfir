@@ -1,8 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
-  Download,
   Info,
   Lock,
   Mail,
@@ -11,25 +9,15 @@ import {
   Store,
   User,
   MapPin,
-  Loader2,
   RefreshCw,
   CheckCircle2,
   Clock,
   XCircle,
   CalendarDays,
   ChevronLeft,
+  Bell,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/components/theme/theme-provider";
 import { useOwnerAuth, useOwnerLogout } from "@/hooks/useOwnerAuth";
@@ -50,7 +38,7 @@ const CONTACT_PHONE_DISPLAY = "780 090 882";
 const CONTACT_WHATSAPP = "https://wa.me/967780090882";
 const CONTACT_EMAIL = "moohabhb68@gmail.com";
 
-/** حالة المنشأة الحقيقية من الباك إند (is_approved/rejection_reason). */
+/** حالة المتجر الحقيقية من الباك إند (is_approved/rejection_reason). */
 function facilityStatus(f: Facility): {
   label: string;
   tone: "success" | "warning" | "destructive";
@@ -71,24 +59,149 @@ const TONE_CLASS: Record<"success" | "warning" | "destructive", string> = {
   destructive: "bg-destructive/15 text-destructive",
 };
 
+// ═══════════════════════════════════════════════════════════════
+// أنماط قائمة iOS — الجولة 9 (المهمة 8)
+// كل صف: أيقونة + عنوان + chevron (أو تحكم على اليمين)
+// ═══════════════════════════════════════════════════════════════
+
+/** عنوان قسم صغير (نمط iOS Settings). */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-4 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+      {children}
+    </p>
+  );
+}
+
+/** حاوية قائمة iOS (مجموعة صفوف في بطاقة واحدة بزوايا مدوّرة). */
+function ListGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="divide-y overflow-hidden rounded-2xl border border-border/60 bg-card">
+      {children}
+    </div>
+  );
+}
+
+/** صف iOS — أيقونة + عنوان + (قيمة أو تحكم) + chevron اختياري. */
+interface RowProps {
+  icon: typeof User;
+  iconClass: string;
+  title: string;
+  value?: string;
+  href?: string;
+  onClick?: () => void;
+  trailing?: "chevron" | "switch" | "none";
+  switchChecked?: boolean;
+  onSwitchChange?: (checked: boolean) => void;
+  disabled?: boolean;
+  ariaLabel?: string;
+}
+
+function IosRow({
+  icon: Icon,
+  iconClass,
+  title,
+  value,
+  href,
+  onClick,
+  trailing = "chevron",
+  switchChecked,
+  onSwitchChange,
+  disabled,
+  ariaLabel,
+}: RowProps) {
+  const content = (
+    <>
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+          iconClass,
+        )}
+      >
+        <Icon className="h-4 w-4" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium text-foreground">{title}</p>
+        {value && (
+          <p dir="ltr" className="mt-0.5 truncate text-xs text-muted-foreground">
+            {value}
+          </p>
+        )}
+      </div>
+      {trailing === "switch" && (
+        <Switch
+          checked={switchChecked}
+          onCheckedChange={onSwitchChange}
+          aria-label={ariaLabel ?? title}
+        />
+      )}
+      {trailing === "chevron" && !disabled && (
+        <ChevronLeft
+          className="h-4 w-4 shrink-0 text-muted-foreground rtl:rotate-180"
+          aria-hidden="true"
+        />
+      )}
+    </>
+  );
+
+  if (href && !disabled) {
+    return (
+      <a
+        href={href}
+        className="native-tap flex h-14 min-h-[44px] items-center gap-3 px-4 transition-colors hover:bg-muted/40"
+      >
+        {content}
+      </a>
+    );
+  }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className="native-tap flex h-14 min-h-[44px] w-full items-center gap-3 px-4 text-right transition-colors hover:bg-muted/40 disabled:opacity-50"
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div className="flex h-14 min-h-[44px] items-center gap-3 px-4">
+      {content}
+    </div>
+  );
+}
+
+/** زر الخروج في صف iOS — أحمر، بدون chevron. */
+function LogoutRow() {
+  const logout = useOwnerLogout();
+  return (
+    <button
+      type="button"
+      onClick={() => logout()}
+      className="native-tap flex h-14 min-h-[44px] w-full items-center justify-center gap-2 px-4 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
+    >
+      <Lock className="h-4 w-4" aria-hidden="true" />
+      تسجيل الخروج
+    </button>
+  );
+}
+
 /**
- * إعدادات المالك — الجولة 5.
+ * إعدادات المالك — الجولة 9 (المهمة 8): إعادة تصميم بنمط iOS.
  *
- * ميزات حقيقية فقط:
- *  - بيانات الحساب من GET /me (بالتوكن المالك)
- *  - حالة منشآته الحقيقية من GET /owner/facility (موافق عليها/معلّق/مرفوض)
- *  - زر تثبيت التطبيق (PWAInstallButton — beforeinstallprompt حقيقي)
- *  - المظهر عبر المزوّد المخصص + بطاقة تواصل حقيقية + الخروج
+ * بنية iOS Settings:
+ *  - أقسام صغيرة بعنوان رمادي صغير
+ *  - كل قسم: مجموعة صفوف في بطاقة واحدة بزوايا مدوّرة
+ *  - كل صف: أيقونة + عنوان + chevron (أو switch للأزرار التبديلية)
+ *  - معلومات حقيقية فقط: GET /me + GET /owner/facility
  */
 export default function OwnerSettingsPage() {
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { accessToken, hydrated } = useOwnerAuth();
-  const logout = useOwnerLogout();
 
-  // بيانات الحساب الحقيقية — GET /api/v1/me (توكن المالك)
   const me = useAccountMe("owner", hydrated && !!accessToken);
-  // منشآتي الحقيقية — GET /api/v1/owner/facility
   const facilities = useMyFacilities();
 
   const account = me.data;
@@ -96,361 +209,208 @@ export default function OwnerSettingsPage() {
   const isLoadingMe = me.isLoading && hydrated;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 pb-24">
-      <div>
+    <div className="mx-auto max-w-2xl space-y-1 pb-24">
+      <header className="px-4 pt-2 pb-3">
         <h1 className="text-2xl font-bold tracking-tight">الإعدادات</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          إعدادات تطبيق بوابة المنشآت.
+          إعدادات تطبيق بوابة المتاجر.
         </p>
-      </div>
+      </header>
 
-      {/* ─── معلومات الحساب — GET /me ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <User className="h-5 w-5 text-primary" aria-hidden="true" />
-            معلومات الحساب
-          </CardTitle>
-          <CardDescription>بيانات حسابك كما هي مسجّلة في المنصة.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoadingMe ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <Skeleton className="h-14 w-14 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-40" />
-                  <Skeleton className="h-3 w-56" />
-                </div>
+      {/* ════════════ معلومات الحساب ════════════ */}
+      <SectionLabel>الحساب</SectionLabel>
+      <ListGroup>
+        {isLoadingMe ? (
+          <div className="space-y-3 p-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-56" />
               </div>
-              <Skeleton className="h-3 w-32" />
             </div>
-          ) : account ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-xl font-bold text-primary-foreground">
-                  {account.full_name?.trim().charAt(0) || "م"}
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{account.full_name}</p>
-                  <p dir="ltr" className="truncate text-sm text-muted-foreground">
-                    {account.email}
-                  </p>
-                </div>
+          </div>
+        ) : account ? (
+          <>
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-lg font-bold text-primary-foreground">
+                {account.full_name?.trim().charAt(0) || "م"}
               </div>
-              <Separator />
-              <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-                <div className="flex items-center gap-2">
-                  <dt className="text-muted-foreground">الجوال:</dt>
-                  <dd dir="ltr" className="tabular-nums">{account.phone}</dd>
-                </div>
-                <div className="flex items-center gap-2">
-                  <dt className="text-muted-foreground">الدور:</dt>
-                  <dd>
-                    <Badge variant="secondary" className="rounded-full">
-                      مالك منشأة
-                    </Badge>
-                  </dd>
-                </div>
-                <div className="col-span-full flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                  <dt className="text-muted-foreground">تاريخ الإنشاء:</dt>
-                  <dd>{formatDate(account.created_at)}</dd>
-                </div>
-              </dl>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{account.full_name}</p>
+                <p dir="ltr" className="truncate text-sm text-muted-foreground">
+                  {account.email}
+                </p>
+              </div>
             </div>
-          ) : (
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                تعذّر تحميل بيانات الحساب الآن.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-full"
-                onClick={() => me.refetch()}
-                disabled={me.isFetching}
-              >
-                {me.isFetching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                )}
-                إعادة المحاولة
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
-
-      {/* ─── منشآتي — الحالة الحقيقية ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Store className="h-5 w-5 text-secondary" aria-hidden="true" />
-            منشآتي
-          </CardTitle>
-          <CardDescription>
-            حالة منشآتك لدى الإدارة — مباشرة من الخادم.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {facilities.isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-16 w-full rounded-xl" />
-              <Skeleton className="h-16 w-full rounded-xl" />
-            </div>
-          ) : facilities.isError ? (
-            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-muted-foreground">
-                تعذّر تحميل منشآتك الآن.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-2 rounded-full"
-                onClick={() => facilities.refetch()}
-                disabled={facilities.isFetching}
-              >
-                {facilities.isFetching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                )}
-                إعادة المحاولة
-              </Button>
-            </div>
-          ) : myFacilities.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              لا توجد منشآت مرتبطة بحسابك.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {myFacilities.map((f) => {
-                const status = facilityStatus(f);
-                const StatusIcon = status.icon;
-                return (
-                  <li key={f.id}>
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/owner/facilities/${f.id}`)}
-                      className="flex w-full min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 text-right transition-colors hover:bg-muted"
-                      aria-label={`إدارة ${f.name}`}
-                    >
-                      <span
-                        className={cn(
-                          "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                          TONE_CLASS[status.tone]
-                        )}
-                      >
-                        <StatusIcon className="h-4 w-4" aria-hidden="true" />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {f.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {f.rejection_reason
-                            ? `سبب الرفض: ${f.rejection_reason}`
-                            : status.label}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          "shrink-0 rounded-full border-transparent",
-                          TONE_CLASS[status.tone]
-                        )}
-                      >
-                        {status.label}
-                      </Badge>
-                      <ChevronLeft className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
-
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
-
-      {/* ─── تثبيت التطبيق ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Download className="h-5 w-5 text-secondary" aria-hidden="true" />
-            التطبيق
-          </CardTitle>
-          <CardDescription>
-            ثبّت بوابة المنشآت على شاشة جوالك الرئيسية للوصول بنقرة واحدة.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PWAInstallButton portal="owner" variant="full" />
-        </CardContent>
-      </Card>
-
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
-
-      {/* ─── المظهر ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Store className="h-5 w-5 text-primary" aria-hidden="true" />
-            المظهر
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">الوضع الداكن</p>
-              <p className="text-xs text-muted-foreground">
-                {theme === "dark" ? "مفعّل" : "غير مفعّل"}
-              </p>
-            </div>
-            <Switch
-              checked={theme === "dark"}
-              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-              aria-label="تبديل المظهر"
+            <IosRow
+              icon={Phone}
+              iconClass="bg-secondary/15 text-secondary"
+              title="الجوال"
+              value={account.phone}
+              trailing="none"
             />
+            <IosRow
+              icon={User}
+              iconClass="bg-primary/10 text-primary"
+              title="الدور"
+              value="مالك متجر"
+              trailing="none"
+            />
+            <IosRow
+              icon={CalendarDays}
+              iconClass="bg-accent/15 text-accent"
+              title="تاريخ الإنشاء"
+              value={formatDate(account.created_at)}
+              trailing="none"
+            />
+          </>
+        ) : (
+          <IosRow
+            icon={RefreshCw}
+            iconClass="bg-muted text-muted-foreground"
+            title="تعذّر تحميل بيانات الحساب"
+            value="اضغط لإعادة المحاولة"
+            onClick={() => me.refetch()}
+            disabled={me.isFetching}
+            trailing="none"
+          />
+        )}
+      </ListGroup>
+
+      {/* ════════════ متجري ════════════ */}
+      <SectionLabel>متجري</SectionLabel>
+      <ListGroup>
+        {facilities.isLoading ? (
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-14 rounded-xl" />
+            <Skeleton className="h-14 rounded-xl" />
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
-
-      {/* ─── معلومات التواصل — حقيقية حصراً ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Phone className="h-5 w-5 text-accent" aria-hidden="true" />
-            الدعم والتواصل
-          </CardTitle>
-          <CardDescription>
-            للاستفسارات والدعم الفني تواصل معنا مباشرة:
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <a
-            href={`tel:${CONTACT_PHONE}`}
-            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/15">
-              <Phone className="h-4 w-4 text-secondary" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-foreground">الهاتف</p>
-              <p dir="ltr" className="mt-0.5 text-sm text-muted-foreground tabular-nums">
-                {CONTACT_PHONE_DISPLAY}
-              </p>
-            </div>
-          </a>
-          <a
-            href={CONTACT_WHATSAPP}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success/15">
-              <MessageCircle className="h-4 w-4 text-success" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-foreground">واتساب</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                محادثة مباشرة مع فريق {SITE_NAME}
-              </p>
-            </div>
-          </a>
-          <a
-            href={`mailto:${CONTACT_EMAIL}`}
-            className="flex min-h-[44px] items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4 transition-colors hover:bg-muted"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <Mail className="h-4 w-4 text-primary" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-foreground">البريد الإلكتروني</p>
-              <p dir="ltr" className="mt-0.5 text-sm text-muted-foreground">
-                {CONTACT_EMAIL}
-              </p>
-            </div>
-          </a>
-          <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15">
-              <MapPin className="h-4 w-4 text-accent" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="text-sm font-medium text-foreground">الموقع</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                الجمهورية اليمنية — صنعاء
-              </p>
-            </div>
+        ) : facilities.isError ? (
+          <IosRow
+            icon={RefreshCw}
+            iconClass="bg-muted text-muted-foreground"
+            title="تعذّر تحميل متجرك"
+            onClick={() => facilities.refetch()}
+            disabled={facilities.isFetching}
+            trailing="none"
+          />
+        ) : myFacilities.length === 0 ? (
+          <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+            لا توجد متاجر مرتبطة بحسابك.
           </div>
-        </CardContent>
-      </Card>
+        ) : (
+          myFacilities.map((f) => {
+            const status = facilityStatus(f);
+            return (
+              <IosRow
+                key={f.id}
+                icon={Store}
+                iconClass={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+                  TONE_CLASS[status.tone],
+                )}
+                title={f.name}
+                value={
+                  f.rejection_reason
+                    ? `سبب الرفض: ${f.rejection_reason}`
+                    : status.label
+                }
+                href={`/owner/facilities/${f.id}`}
+                ariaLabel={`إدارة ${f.name}`}
+              />
+            );
+          })
+        )}
+      </ListGroup>
 
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
-
-      {/* ─── عن التطبيق ─── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Info className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            عن التطبيق
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>{SITE_NAME} — بوابة أصحاب المنشآت</p>
-          <p>
-            الإصدار: <span dir="ltr">{APP_VERSION}</span>
+      {/* ════════════ المظهر + التطبيق ════════════ */}
+      <SectionLabel>المظهر والتطبيق</SectionLabel>
+      <ListGroup>
+        <IosRow
+          icon={Store}
+          iconClass="bg-primary/10 text-primary"
+          title="الوضع الداكن"
+          trailing="switch"
+          switchChecked={theme === "dark"}
+          onSwitchChange={(checked) => setTheme(checked ? "dark" : "light")}
+          ariaLabel="تبديل المظهر"
+        />
+        <div className="px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-muted-foreground">
+            ثبّت بوابة المتاجر على شاشتك الرئيسية للوصول بنقرة واحدة.
           </p>
-          <p className="text-xs leading-relaxed">
-            رسوم التوصيل الثابتة: {DELIVERY_FEE} ريال يمني — ويعمل التطبيق
-            أوفلاين بعرض آخر بيانات ظهرت سابقاً، وتتطلب جميع العمليات اتصالاً
-            بالإنترنت.
+          <PWAInstallButton portal="owner" variant="full" />
+        </div>
+      </ListGroup>
+
+      {/* ════════════ الدعم والتواصل ════════════ */}
+      <SectionLabel>الدعم والتواصل</SectionLabel>
+      <ListGroup>
+        <IosRow
+          icon={Phone}
+          iconClass="bg-secondary/15 text-secondary"
+          title="الهاتف"
+          value={CONTACT_PHONE_DISPLAY}
+          href={`tel:${CONTACT_PHONE}`}
+        />
+        <IosRow
+          icon={MessageCircle}
+          iconClass="bg-success/15 text-success"
+          title="واتساب"
+          value={`محادثة مباشرة مع فريق ${SITE_NAME}`}
+          href={CONTACT_WHATSAPP}
+        />
+        <IosRow
+          icon={Mail}
+          iconClass="bg-primary/10 text-primary"
+          title="البريد الإلكتروني"
+          value={CONTACT_EMAIL}
+          href={`mailto:${CONTACT_EMAIL}`}
+        />
+        <IosRow
+          icon={MapPin}
+          iconClass="bg-accent/15 text-accent"
+          title="الموقع"
+          value="الجمهورية اليمنية — صنعاء"
+          trailing="none"
+        />
+      </ListGroup>
+
+      {/* ════════════ عن التطبيق ════════════ */}
+      <SectionLabel>عن التطبيق</SectionLabel>
+      <ListGroup>
+        <IosRow
+          icon={Info}
+          iconClass="bg-muted text-muted-foreground"
+          title="الإصدار"
+          value={APP_VERSION}
+          trailing="none"
+        />
+        <IosRow
+          icon={Bell}
+          iconClass="bg-primary/10 text-primary"
+          title="رسوم التوصيل"
+          value={`${DELIVERY_FEE} ر.ي ثابتة`}
+          trailing="none"
+        />
+        <div className="px-4 py-3">
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {SITE_NAME} — بوابة أصحاب المتاجر. يعمل التطبيق أوفلاين بعرض آخر
+            بيانات ظهرت سابقاً، وتتطلب جميع العمليات اتصالاً بالإنترنت.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </ListGroup>
 
-      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
+      {/* ════════════ الحساب — تسجيل الخروج ════════════ */}
+      <SectionLabel>الحساب</SectionLabel>
+      <ListGroup>
+        <LogoutRow />
+      </ListGroup>
 
-      {/* ─── الحساب ─── */}
-      <Card className="border-destructive/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-destructive">
-            <Lock className="h-5 w-5" aria-hidden="true" />
-            الحساب
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium">تسجيل الخروج</p>
-              <p className="text-xs text-muted-foreground">
-                تسجيل الخروج من بوابة المنشآت على هذا الجهاز
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="gap-2 min-h-[44px]"
-              onClick={() => logout()}
-            >
-              تسجيل الخروج
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* أمان الحساب — تغيير كلمة المرور (الجولة الختامية: PUT /me/password) */}
+      {/* ════════════ بطاقات منفصلة (لها منطقها الخاص) ════════════ */}
+      <div className="pt-4" />
       <PasswordChangeCard role="owner" />
-
-      {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
       <SoundSettingsCard />
     </div>
   );

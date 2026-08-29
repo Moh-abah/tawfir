@@ -205,12 +205,12 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
       <DialogContent className="max-w-2xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
-            {initial ? "تعديل منشأة" : "إضافة منشأة"}
+            {initial ? "تعديل متجر" : "إضافة متجر"}
           </DialogTitle>
           <DialogDescription>
             {initial
-              ? "عدّل بيانات المنشأة ثم احفظ التغييرات."
-              : "أدخل بيانات المنشأة الجديدة."}
+              ? "عدّل بيانات المتجر ثم احفظ التغييرات."
+              : "أدخل بيانات المتجر الجديد."}
           </DialogDescription>
         </DialogHeader>
 
@@ -222,7 +222,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
           >
             {/* ─── الأساسية ─── */}
             <div className="space-y-2">
-              <Label htmlFor="fac-name">اسم المنشأة *</Label>
+              <Label htmlFor="fac-name">اسم المتجر *</Label>
               <Input
                 id="fac-name"
                 placeholder="مثال: مطعم الشرق"
@@ -291,7 +291,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
               <Label htmlFor="fac-desc">الوصف</Label>
               <Textarea
                 id="fac-desc"
-                placeholder="وصف مختصر عن المنشأة..."
+                placeholder="وصف مختصر عن المتجر..."
                 rows={3}
                 {...register("description")}
               />
@@ -308,7 +308,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                 <div className="space-y-0.5">
                   <Label htmlFor="fac-visible">ظاهرة</Label>
                   <p className="text-xs text-muted-foreground">
-                    إظهار المنشأة للعملاء
+                    إظهار المتجر للعملاء
                   </p>
                 </div>
                 <Switch
@@ -496,7 +496,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
               render={({ field }) => (
                 <ImageUploader
                   id="fac-image"
-                  label="صورة المنشأة"
+                  label="صورة المتجر"
                   folder="facilities"
                   value={field.value ?? ""}
                   onChange={field.onChange}

@@ -33,7 +33,7 @@ export async function generateMetadata({
   const facility = await getFacility(id);
 
   if (!facility) {
-    return { title: "المنشأة غير موجودة | توفير" };
+    return { title: "المتجر غير موجود | توفير" };
   }
 
   return {

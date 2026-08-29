@@ -242,7 +242,7 @@ export default function AdminCardsPage() {
               <TableHead>المنصة</TableHead>
               <TableHead>المنطقة</TableHead>
               <TableHead>الخصم</TableHead>
-              <TableHead>المنشآت المشتركة</TableHead>
+              <TableHead>المتاجر المشتركة</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead className="text-left">إجراءات</TableHead>
             </TableRow>
@@ -392,7 +392,7 @@ export default function AdminCardsPage() {
                   <span className="font-medium">{selectedCard.platform_name || "—"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">عدد المنشآت:</span>
+                  <span className="text-muted-foreground">عدد المتاجر:</span>
                   <span className="font-medium">{selectedCard.facilities.length}</span>
                 </div>
                 <div className="flex items-center gap-2">

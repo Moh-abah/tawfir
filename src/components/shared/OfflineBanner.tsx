@@ -94,7 +94,7 @@ export function OfflineBanner() {
         <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>
           {isOwnerPortal
-            ? "تتطلب بوابة المنشآت اتصالاً بالإنترنت"
+            ? "تتطلب بوابة المتاجر اتصالاً بالإنترنت"
             : "لا يتوفر اتصال بالإنترنت"}
         </span>
       </motion.div>

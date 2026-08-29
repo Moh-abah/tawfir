@@ -20,7 +20,7 @@ export function useMyOrders(status?: OrderStatus, enabled = true, search?: strin
   }, [hydrated, hydrate]);
 
   return useQuery({
-    queryKey: ["my-orders", status ?? "all", search?.trim() ?? ""],
+    queryKey: ["orders", status ?? "all", search?.trim() ?? ""],
     queryFn: () => orderService.getMyOrders(status, search),
     enabled: enabled && hydrated,
     staleTime: 30 * 1000,

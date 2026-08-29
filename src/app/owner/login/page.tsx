@@ -163,7 +163,7 @@ function OwnerLoginForm() {
           </div>
           <div className="flex flex-col items-center gap-1">
             <span className="text-2xl font-bold text-foreground">توفير</span>
-            <span className="text-sm text-muted-foreground">لوحة تحكم أصحاب المنشآت</span>
+            <span className="text-sm text-muted-foreground">لوحة تحكم أصحاب المتاجر</span>
           </div>
         </div>
 
@@ -176,7 +176,7 @@ function OwnerLoginForm() {
           <Card className="border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl login-card-shimmer">
             <CardHeader className="text-center">
               <CardTitle>بوابة المالك</CardTitle>
-              <CardDescription>تسجيل دخول صاحب المنشأة</CardDescription>
+              <CardDescription>تسجيل دخول صاحب المتجر</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -260,17 +260,17 @@ function OwnerLoginForm() {
             <ArrowRight className="h-4 w-4" />
             العودة للرئيسية
           </Link>
-          {/* تسجيل منشأة جديدة — لمن لديه منشأة وغير مسجل */}
+          {/* تسجيل متجر جديد — لمن لديه متجر وغير مسجل */}
           <Link
             href="/owner/register"
             className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary hover:underline"
           >
             <Building2 className="h-4 w-4" aria-hidden="true" />
-            لديك منشأة وليس لديك حساب؟ سجّل منشأتك
+            لديك متجر وليس لديك حساب؟ سجّل متجرك
           </Link>
           {/* ✅ النص السفلي: استبدال text-white/50 */}
           <span className="text-xs text-muted-foreground/70">
-            بوابة أصحاب المنشآت — توفير
+            بوابة أصحاب المتاجر — توفير
           </span>
         </div>
       </div>

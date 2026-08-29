@@ -4,7 +4,7 @@
  * - GET /special-offers → قائمة العروض النشطة (عام).
  * - GET /special-offers/{id} → تفاصيل عرض.
  * - POST /owner/{fid}/special-offers → إنشاء (مالك).
- * - GET /owner/{fid}/special-offers → قائمة عروض المنشأة (مالك).
+ * - GET /owner/{fid}/special-offers → قائمة عروض المتجر (مالك).
  * - PATCH /owner/{fid}/special-offers/{oid}/deactivate → إنهاء (مالك).
  * - DELETE /owner/{fid}/special-offers/{oid} → حذف (مالك).
  */
@@ -48,7 +48,7 @@ export const specialOfferService = {
   getOffer: (id: number) =>
     apiClient.get<SpecialOfferOut>(`/special-offers/${id}`),
 
-  /** قائمة عروض المنشأة (مالك). */
+  /** قائمة عروض المتجر (مالك). */
   getOwnerOffers: (facilityId: number, params: OwnerSpecialOfferListParams = {}) => {
     const q = new URLSearchParams();
     if (params.active_only) q.set("active_only", "true");

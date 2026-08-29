@@ -112,7 +112,7 @@ function mapDetailToField(detail: string): Record<string, string> {
   if (detail.includes("المنطقة")) return { region_id: detail };
   if (detail.includes("كلمة المرور") || detail.includes("متطابق"))
     return { password_confirm: detail };
-  if (detail.includes("اسم المنشأة")) return { facility_name: detail };
+  if (detail.includes("اسم المتجر")) return { facility_name: detail };
   return {};
 }
 

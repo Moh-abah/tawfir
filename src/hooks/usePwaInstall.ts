@@ -2,6 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import { usePwaStore } from "@/store/pwa.store";
+import { isNativePlatform } from "@/lib/capacitor";
 
 export type PwaPortal = "customer" | "owner";
 
@@ -46,8 +47,13 @@ export function usePwaInstall(portal: PwaPortal) {
     () => true
   );
 
-  /* يختفي بعد التثبيت (قبل beforeinstallprompt) أو بعد الرفض */
-  const canShow = !standalone && !dismissed && (Boolean(promptEvent) || ios);
+  /* يختفي داخل تطبيق Native (Capacitor) — التثبيت يتم عبر متجر Play،
+     لا حاجة لزر PWA. يختفي أيضاً بعد التثبيت أو الرفض. */
+  const canShow =
+    !isNativePlatform() &&
+    !standalone &&
+    !dismissed &&
+    (Boolean(promptEvent) || ios);
 
   const dismiss = useCallback(() => {
     try {

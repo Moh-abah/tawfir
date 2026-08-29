@@ -3,17 +3,19 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
-import { Search, UtensilsCrossed, Coffee, Landmark, MapPin, SearchX, ArrowUpDown, Clock, Eye, X, Building2, Grid3X3, MapPinned, Package, BadgePercent } from "lucide-react";
+import { Search, UtensilsCrossed, Coffee, Landmark, MapPin, SearchX, ArrowUpDown, Clock, Eye, X, Package, BadgePercent } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useFacilities } from "@/hooks/useFacilities";
-import { useRegions } from "@/hooks/useRegions";
 import { useRegionStore } from "@/store/region.store";
+import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
+import { DISCOUNT_RATE } from "@/lib/site-config";
 import { resolveImageUrl } from "@/lib/format";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { FacilityType, Facility } from "@/types/api.generated";
@@ -42,7 +44,16 @@ const TYPE_BADGE_CLASS: Record<FacilityType, string> = {
 /* ------------------------------------------------------------------ */
 /*  FacilityCard (upgraded)                                            */
 /* ------------------------------------------------------------------ */
-function FacilityCard({ facility, productCount }: { facility: Facility; productCount?: number }) {
+function FacilityCard({
+  facility,
+  productCount,
+  priority = false,
+}: {
+  facility: Facility;
+  productCount?: number;
+  /** الجولة 15 — تحميل فوري للصورة (LCP) لأول كارت */
+  priority?: boolean;
+}) {
   const Icon = TYPE_ICON[facility.type];
   return (
     <Link href={`/facilities/${facility.id}`} className="block">
@@ -53,14 +64,14 @@ function FacilityCard({ facility, productCount }: { facility: Facility; productC
       >
         <div className="relative h-44 sm:h-52 bg-muted">
           {facility.image_url ? (
-            <ImageWithSkeleton src={resolveImageUrl(facility.image_url)} alt={facility.name} fill className="h-full w-full" />
+            <ImageWithSkeleton src={resolveImageUrl(facility.image_url)} alt={facility.name} fill priority={priority} className="h-full w-full" />
           ) : (
             <div className="flex h-full items-center justify-center">
               <Icon className="h-14 w-14 text-muted-foreground/30" />
             </div>
           )}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-            <DiscountBadge percentage={facility.discount_rate ?? 30} />
+            <DiscountBadge percentage={facility.discount_rate ?? DISCOUNT_RATE} />
             {typeof productCount === "number" && productCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card/90 backdrop-blur-sm border border-border/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <Package className="h-3 w-3" />
@@ -134,116 +145,49 @@ function EmptySearchIllustration() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Recent Searches Hook                                               */
+/*  Recent Searches — الجولة 10: موحّد عبر مخزن Zustand مشترك
+ *  (نفس سجل «بحثك الأخير» في الرئيسية — بلا تكرار منطق).
+ *  هجرة واحدة: دمج مفتاح tawfir_recent_searches القديم إن وُجد.        */
 /* ------------------------------------------------------------------ */
-const RECENT_KEY = "tawfir_recent_searches";
-const MAX_RECENT = 5;
+const LEGACY_RECENT_KEY = "tawfir_recent_searches";
 
-function loadRecentSearches(): string[] {
-  if (typeof window === "undefined") return [];
+/** هجرة البيانات القديمة مرة واحدة إلى المخزن الموحّد ثم حذف المفتاح القديم. */
+function migrateLegacyRecentSearches() {
+  if (typeof window === "undefined") return;
   try {
-    const stored = localStorage.getItem(RECENT_KEY);
-    if (stored) {
-      const parsed: string[] = JSON.parse(stored);
-      if (Array.isArray(parsed)) return parsed;
+    const legacy = localStorage.getItem(LEGACY_RECENT_KEY);
+    if (!legacy) return;
+    const parsed: unknown = JSON.parse(legacy);
+    localStorage.removeItem(LEGACY_RECENT_KEY);
+    if (!Array.isArray(parsed)) return;
+    const store = useRecentSearchesStore.getState();
+    for (let i = parsed.length - 1; i >= 0; i--) {
+      const term = parsed[i];
+      if (typeof term === "string" && term.trim().length >= 2) {
+        store.addRecentSearch(term);
+      }
     }
   } catch {
-    // ignore parse errors
+    /* بيانات قديمة تالفة — تُتجاهل */
   }
-  return [];
 }
 
 function useRecentSearches() {
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => loadRecentSearches());
-
-  const saveSearch = useCallback((term: string) => {
-    const trimmed = term.trim();
-    if (!trimmed) return;
-    setRecentSearches((prev) => {
-      const filtered = prev.filter((s) => s !== trimmed);
-      const next = [trimmed, ...filtered].slice(0, MAX_RECENT);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const removeSearch = useCallback((term: string) => {
-    setRecentSearches((prev) => {
-      const next = prev.filter((s) => s !== term);
-      localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const clearAll = useCallback(() => {
-    setRecentSearches([]);
-    localStorage.removeItem(RECENT_KEY);
-  }, []);
-
-  return { recentSearches, saveSearch, removeSearch, clearAll };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Animated Counter Hook                                              */
-/* ------------------------------------------------------------------ */
-function useSmallCounter(target: number, duration = 1200) {
-const prefersReduced = usePrefersReducedMotion();
-  const [count, setCount] = useState(prefersReduced ? target : 0);
+  const recentSearches = useRecentSearchesStore((s) => s.searches);
+  const addRecentSearch = useRecentSearchesStore((s) => s.addRecentSearch);
+  const removeRecentSearch = useRecentSearchesStore((s) => s.removeRecentSearch);
+  const clearRecentSearches = useRecentSearchesStore((s) => s.clearRecentSearches);
 
   useEffect(() => {
-    if (prefersReduced) return;
-    const startTime = performance.now();
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration, prefersReduced]);
+    migrateLegacyRecentSearches();
+  }, []);
 
-  return count;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Stats Bar                                                          */
-/* ------------------------------------------------------------------ */
-function StatsBar({ facilities }: { facilities: Facility[] }) {
-  const { data: regions } = useRegions();
-  const totalFacilities = useSmallCounter(facilities.length);
-  const uniqueTypes = useSmallCounter(new Set(facilities.map((f) => f.type)).size);
-  const regionCount = useSmallCounter(regions?.length ?? 0);
-
-  const stats = [
-    { icon: Building2, label: "منشأة متاحة", value: totalFacilities, color: "text-primary", bgColor: "bg-primary/10" },
-    { icon: Grid3X3, label: "نوع منشأة", value: uniqueTypes, color: "text-secondary", bgColor: "bg-secondary/10" },
-    { icon: MapPinned, label: "منطقة", value: regionCount, color: "text-accent", bgColor: "bg-accent/10" },
-  ] as const;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="mb-6 flex flex-wrap items-stretch gap-3"
-    >
-      {stats.map((stat) => (
-        <div
-          key={stat.label}
-          className="flex items-center gap-3 rounded-xl bg-card/50 border p-3 card-glow"
-        >
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", stat.bgColor)}>
-            <stat.icon className={cn("h-5 w-5", stat.color)} />
-          </div>
-          <div>
-            <p className={cn("text-lg font-black leading-tight", stat.color)}>{stat.value}</p>
-            <p className="text-xs text-muted-foreground">{stat.label}</p>
-          </div>
-        </div>
-      ))}
-    </motion.div>
-  );
+  return {
+    recentSearches,
+    saveSearch: addRecentSearch,
+    removeSearch: removeRecentSearch,
+    clearAll: clearRecentSearches,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -259,6 +203,12 @@ function FacilitiesGrid() {
   const debouncedSearch = useDebounce(searchInput, 300);
   const prefersReduced = usePrefersReducedMotion();
     const { recentSearches, saveSearch, removeSearch, clearAll } = useRecentSearches();
+
+  /* الجولة 11 — توحيد سلوك الحفظ مع الرئيسية: حفظ تلقائي عند استقرار
+   * البحث (debounced ≥2 حرف) بدل انتظار Enter — تجربة أكثر سلاسة. */
+  useEffect(() => {
+    if (debouncedSearch.trim().length >= 2) saveSearch(debouncedSearch);
+  }, [debouncedSearch, saveSearch]);
 
   const handleSearchSubmit = useCallback(() => {
     if (searchInput.trim()) {
@@ -285,7 +235,11 @@ function FacilitiesGrid() {
     return result;
   }, [allFacilities, typeFilter, debouncedSearch, sortKey]);
 
-  /* Product counts per facility */
+  /* Product counts per facility
+   * الجولة 10 — إصلاح خلل: كان الطلب يُبنى بـ process.env.NEXT_PUBLIC_API_URL
+   * (غير معرّف في العميل → /undefined/api/v1/... → 404 دائماً).
+   * الصحيح: مسار نسبي /api/... الذي يعيد next.config.ts كتابته إلى
+   * الباك إند الحقيقي — نفس نمط apiClient في كل التطبيق. */
   const [productCounts, setProductCounts] = useState<Record<number, number>>({});
   useEffect(() => {
     if (filtered.length === 0) return;
@@ -294,7 +248,7 @@ function FacilitiesGrid() {
       await Promise.all(
         filtered.slice(0, 9).map(async (f) => {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/facilities/${f.id}/products`);
+            const res = await fetch(`/api/facilities/${f.id}/products`);
             if (res.ok) {
               const data = await res.json();
               counts[f.id] = Array.isArray(data) ? data.length : 0;
@@ -323,15 +277,15 @@ function FacilitiesGrid() {
   }
 
   if (error) {
-    return <ErrorState title="تعذّر تحميل المنشآت" message="حدث خطأ أثناء جلب المنشآت" onRetry={() => refetch()} />;
+    return <ErrorState title="تعذّر تحميل المتاجر" message="حدث خطأ أثناء جلب المتاجر" onRetry={() => refetch()} />;
   }
 
   if (!selectedRegionId) {
-    return <EmptyState icon={Landmark} title="اختر منطقة لعرض المنشآت" description="حدد منطقتك من القائمة أعلى الصفحة" />;
+    return <EmptyState icon={Landmark} title="اختر منطقة لعرض المتاجر" description="حدد منطقتك من القائمة أعلى الصفحة" />;
   }
 
   if (allFacilities.length === 0) {
-    return <EmptyState icon={Landmark} title="لا توجد منشآت في هذه المنطقة" description="ترقّب المزيد من المنشآت قريبًا" />;
+    return <EmptyState icon={Landmark} title="لا توجد متاجر في هذه المنطقة" description="ترقّب المزيد من المتاجر قريبًا" />;
   }
 
   const staggerVariants = prefersReduced
@@ -345,7 +299,7 @@ function FacilitiesGrid() {
         <div className="relative max-w-lg">
           <Search className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="ابحث عن منشأة..."
+            placeholder="ابحث عن متجر..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
@@ -400,10 +354,7 @@ function FacilitiesGrid() {
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <StatsBar facilities={allFacilities} />
-
-      {/* Filter Chips + Sort */}
+      {/* Filter Chips + Sort — أُزيلت شريط الإحصائيات (StatsBar) للجولة 9 المهمة 6 */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="scroll-area-thin flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1">
           {TYPE_CONFIG.map((cfg) => (
@@ -443,7 +394,7 @@ function FacilitiesGrid() {
 
       {/* Results counter */}
       <p className="mb-4 text-sm text-muted-foreground">
-        {filtered.length} منشأة
+        {filtered.length} متجر
       </p>
 
       {/* Grid */}
@@ -457,7 +408,7 @@ function FacilitiesGrid() {
           variants={staggerVariants}
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {filtered.map((f) => (
+          {filtered.map((f, i) => (
             <motion.div
               key={f.id}
               variants={{
@@ -465,7 +416,7 @@ function FacilitiesGrid() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
               }}
             >
-              <FacilityCard facility={f} productCount={productCounts[f.id]} />
+              <FacilityCard facility={f} productCount={productCounts[f.id]} priority={i === 0} />
             </motion.div>
           ))}
         </motion.div>
@@ -476,12 +427,11 @@ function FacilitiesGrid() {
 
 export default function FacilitiesContent() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground sm:text-3xl">المنشآت</h1>
-        <p className="mt-1 text-sm text-muted-foreground">استعرض المطاعم والكافيهات والمرافق العامة المتاحة</p>
+    <>
+      <ScreenHeader title="المتاجر" fallbackHref="/" />
+      <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6">
+        <FacilitiesGrid />
       </div>
-      <FacilitiesGrid />
-    </div>
+    </>
   );
 }

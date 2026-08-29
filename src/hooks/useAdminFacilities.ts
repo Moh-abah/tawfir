@@ -5,7 +5,7 @@ import { apiClient } from "@/services/api-client";
 import type { Facility, FacilityCreate, FacilityUpdate, Paginated } from "@/types/api.generated";
 import { useToast } from "@/hooks/use-toast";
 
-/** فلترة حالة المنشأة — status param في GET /admin/facilities (الجولة 6). */
+/** فلترة حالة المتجر — status param في GET /admin/facilities (الجولة 6). */
 export type AdminFacilityStatusFilter = "approved" | "pending" | "rejected" | null;
 
 export function useAdminFacilities(
@@ -37,7 +37,7 @@ export function useCreateFacility() {
       apiClient.post<Facility>("/admin/facilities", data),
     onSuccess: (f: Facility) => {
       qc.invalidateQueries({ queryKey: ["admin", "facilities"] });
-      toast({ title: "تمت إضافة المنشأة", description: f.name });
+      toast({ title: "تمت إضافة المتجر", description: f.name });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),
@@ -52,7 +52,7 @@ export function useUpdateFacility() {
       apiClient.put<Facility>(`/admin/facilities/${id}`, data),
     onSuccess: (f: Facility) => {
       qc.invalidateQueries({ queryKey: ["admin", "facilities"] });
-      toast({ title: "تم تحديث المنشأة", description: f.name });
+      toast({ title: "تم تحديث المتجر", description: f.name });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),
@@ -67,7 +67,7 @@ export function useDeleteFacility() {
       apiClient.delete(`/admin/facilities/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin", "facilities"] });
-      toast({ title: "تم حذف المنشأة" });
+      toast({ title: "تم حذف المتجر" });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),

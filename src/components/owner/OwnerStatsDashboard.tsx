@@ -373,14 +373,14 @@ export function OwnerStatsDashboard({
 
   return (
     <div className="space-y-4">
-      {/* الترويسة + منتقي المنشأة */}
+      {/* الترويسة + منتقي المتجر */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold leading-tight">
             لوحة الإحصائيات
           </h2>
           <p className="text-xs text-muted-foreground">
-            نظرة عامة على أداء منشأتك خلال آخر 7 أيام
+            نظرة عامة على أداء متجرك خلال آخر 7 أيام
           </p>
         </div>
         {showSelector && (
@@ -390,9 +390,9 @@ export function OwnerStatsDashboard({
           >
             <SelectTrigger
               className="h-11 min-h-[44px] w-full sm:w-[220px]"
-              aria-label="اختر منشأة لعرض إحصائياتها"
+              aria-label="اختر متجراً لعرض إحصائياته"
             >
-              <SelectValue placeholder="اختر منشأة" />
+              <SelectValue placeholder="اختر متجراً" />
             </SelectTrigger>
             <SelectContent>
               {facilities.map((f) => (
@@ -467,7 +467,7 @@ export function OwnerStatsDashboard({
                 id: "facility_discount_rate",
                 icon: Target,
                 value: `${data.facility_discount_rate}%`,
-                label: "نسبة خصم منشأتك",
+                label: "نسبة خصم متجرك",
                 iconClass: "text-primary bg-primary/10",
               }}
             />

@@ -14,6 +14,8 @@ interface ImageWithSkeletonProps {
   className?: string;
   skeletonClassName?: string;
   fallbackIcon?: boolean;
+  /** الجولة 15 — تحميل فوري (LCP) للصور فوق الطية (أول بطاقة في كل شبكة) */
+  priority?: boolean;
 }
 
 export function ImageWithSkeleton({
@@ -25,6 +27,7 @@ export function ImageWithSkeleton({
   className,
   skeletonClassName,
   fallbackIcon = true,
+  priority = false,
 }: ImageWithSkeletonProps) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -62,6 +65,8 @@ export function ImageWithSkeleton({
         fill={fill}
         width={!fill ? width : undefined}
         height={!fill ? height : undefined}
+        priority={priority}
+        loading={priority ? "eager" : undefined}
         className={cn(
           "object-cover transition-opacity duration-300",
           loaded ? "opacity-100" : "opacity-0"

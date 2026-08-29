@@ -20,10 +20,15 @@ export function useUpdateOrderStatus(facilityId?: number) {
   >({
     mutationFn: ({ orderId, status }) =>
       ownerService.updateOrderStatus(orderId, status),
-    onSuccess: () => {
+    onSuccess: (_data, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ["owner-orders", facilityId] });
       queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      // الجولة 9 (المهمة 9.3): invalidate تفصيل الطلب المُحدَّث — إن كان
+      // مفتوحاً في تبويب آخر (customer view) سيتحدث شريط التتبّع فوراً
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ["order-detail", orderId] });
+      }
       toast({ title: "تم", description: "تم تحديث حالة الطلب" });
     },
     onError: (err) => {

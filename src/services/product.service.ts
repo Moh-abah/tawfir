@@ -22,13 +22,13 @@ export interface ProductListParams {
 
 /**
  * خدمة تصفّح الوجبات (عام — بلا توكن).
- * - GET /products → قائمة وجبات معلّقة بمنشآتها (مُقسّمة).
+ * - GET /products → قائمة وجبات معلّقة بمتاجرها (مُقسّمة).
  * - GET /products/nearby → مرتبة بالمسافة من الموقع الحالي.
- * - GET /products/{id} → تفاصيل وجبة + معلومات المنشأة.
+ * - GET /products/{id} → تفاصيل وجبة + معلومات المتجر.
  * الخصم يُحتسب في الواجهة إن كان العميل عضواً (× 0.7).
  */
 export const productService = {
-  /** قائمة الوجبات (مُقسّمة). فلترة حسب المنشأة/النوع/التصنيف/البحث/التوفّر. */
+  /** قائمة الوجبات (مُقسّمة). فلترة حسب المتجر/النوع/التصنيف/البحث/التوفّر. */
   getProducts: (params: ProductListParams = {}) => {
     const q = new URLSearchParams();
     if (params.facility_id != null) q.set("facility_id", String(params.facility_id));
@@ -60,7 +60,7 @@ export const productService = {
     );
   },
 
-  /** تفاصيل وجبة كاملة + معلومات المنشأة. */
+  /** تفاصيل وجبة كاملة + معلومات المتجر. */
   getProduct: (id: number) =>
     apiClient.get<ProductDetailOut>(`/products/${id}`),
 };

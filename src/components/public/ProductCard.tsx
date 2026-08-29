@@ -3,14 +3,18 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { MapPin, ShoppingBag, UtensilsCrossed, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { AddToCartButton } from "@/components/public/AddToCartButton";
 import { useMe } from "@/hooks/useMe";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
+import { haptic } from "@/lib/haptic";
 import { DISCOUNT_RATE } from "@/lib/site-config";
 import type { ProductWithFacilityOut } from "@/types/api.generated";
 import {
@@ -22,6 +26,8 @@ import { cn } from "@/lib/utils";
 interface ProductCardProps {
   product: ProductWithFacilityOut;
   className?: string;
+  /** الجولة 15 — تحميل فوري للصورة (LCP) لأول بطاقة في الشبكة */
+  priority?: boolean;
 }
 
 /**
@@ -64,8 +70,10 @@ function AvailabilityBadge({
  *  - زر طلب دائري (h-11 w-11) بجانب السعر — نمط تطبيقات Native
  *  - السعر: العضو (primary) + الأصلي مشطوب
  */
-export function ProductCard({ product, className }: ProductCardProps) {
+export function ProductCard({ product, className, priority = false }: ProductCardProps) {
   const [open, setOpen] = useState(false);
+  /* الجولة 17 — معاينة سريعة للصورة من الشبكة بلا مغادرة القائمة */
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const me = useMe();
   const { accessToken, hydrated } = useCustomerAuth();
   const router = useRouter();
@@ -105,48 +113,93 @@ export function ProductCard({ product, className }: ProductCardProps) {
     <>
       <article
         className={cn(
-          "native-tap-card group flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card shadow-sm transition-shadow duration-200 hover:shadow-md",
-          outOfStock && "opacity-60",
+          "native-tap-card group relative flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card shadow-sm transition-[shadow,border-color,transform] duration-200 hover:border-primary/30 hover:shadow-md",
+          outOfStock && "opacity-70",
           className
         )}
         aria-label={product.name}
       >
-        {/* الصورة — النقر عليها يفتح التفاصيل (نمط Netflix) */}
-        <Link
-          href={`/products/${product.id}`}
-          className="relative block aspect-square w-full overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label={`تفاصيل ${product.name}`}
-        >
-          {product.image_url ? (
-            <ImageWithSkeleton
-              src={resolveImageUrl(product.image_url)}
-              alt={product.name}
-              fill
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              skeletonClassName="rounded-none"
-            />
-          ) : (
-            <div
-              className="flex h-full w-full items-center justify-center bg-muted"
-              role="img"
-              aria-label={product.name}
-            >
-              <UtensilsCrossed
-                className="h-8 w-8 text-muted-foreground/40"
-                aria-hidden="true"
+        {/* منطقة الصورة — حاوية نسبية تضمّ Link وطبقات الأزرار العائمة
+            (الجولة 17): زر التكبير أخ للـ Link لا ابن له — HTML صحيح */}
+        <div className="relative aspect-square w-full overflow-hidden bg-muted">
+          <Link
+            href={`/products/${product.id}`}
+            className="group/img absolute inset-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={`تفاصيل ${product.name}`}
+          >
+            {product.image_url ? (
+              <ImageWithSkeleton
+                src={resolveImageUrl(product.image_url)}
+                alt={product.name}
+                fill
+                priority={priority}
+                className={cn(
+                  "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105",
+                  outOfStock && "grayscale-[35%]"
+                )}
+                skeletonClassName="rounded-none"
               />
+            ) : (
+              <div
+                className="flex h-full w-full items-center justify-center bg-muted"
+                role="img"
+                aria-label={product.name}
+              >
+                <UtensilsCrossed
+                  className="h-8 w-8 text-muted-foreground/40"
+                  aria-hidden="true"
+                />
+              </div>
+            )}
+            <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
+              <AvailabilityBadge product={product} />
+              {product.distance_km != null && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                  <MapPin className="h-2.5 w-2.5" aria-hidden="true" />
+                  {Math.round(product.distance_km * 10) / 10} كم
+                </span>
+              )}
             </div>
-          )}
-          <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
-            <AvailabilityBadge product={product} />
-            {product.distance_km != null && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                <MapPin className="h-2.5 w-2.5" aria-hidden="true" />
-                {Math.round(product.distance_km * 10) / 10} كم
+            {/* الجولة 16 — شريط مائل «نفدت الكمية» فوق الصورة عند النفاد:
+                أوضح من تعتيم الكارت وحده — نمط بطاقات المنتجات في متاجر Native */}
+            {outOfStock && product.image_url && (
+              <span
+                className="absolute bottom-2 right-0 rounded-l-full bg-destructive/95 py-1 pr-2.5 pl-3 text-[10px] font-extrabold text-white shadow-soft"
+                aria-hidden="true"
+              >
+                نفدت الكمية
               </span>
             )}
-          </div>
-        </Link>
+          </Link>
+
+          {/* الجولة 17 — زر معاينة ملء الشاشة (أسفل يسار الصورة):
+              ظاهر دائماً على اللمس، وعلى الديسكتوب يظهر عند hover.
+              هدف لمس 32px مضغوط مقبول داخل بطاقة (الأزرار الرئيسية 44px) */}
+          {product.image_url && (
+            <button
+              type="button"
+              onClick={() => {
+                haptic("tick");
+                setLightboxOpen(true);
+              }}
+              aria-label={`تكبير صورة ${product.name}`}
+              className="native-tap absolute bottom-2 left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+
+        {/* الجولة 10 — زر المفضلة (قلب) أعلى يسار الصورة.
+            خارج الـ Link عمداً (HTML صحيح: بلا interactive داخل interactive) —
+            position absolute بالنسبة للكارت فوق منطقة الصورة. */}
+        <div className="absolute left-2 top-2 z-10">
+          <FavoriteButton
+            productId={product.id}
+            productName={product.name}
+            size="sm"
+          />
+        </div>
 
         <div className="flex flex-1 flex-col gap-1 p-2.5">
           <h3 className="line-clamp-1 text-xs font-bold leading-snug text-foreground">
@@ -182,19 +235,32 @@ export function ProductCard({ product, className }: ProductCardProps) {
               </span>
             </div>
             {/* زر طلب دائري Native — هدف لمس 44px */}
-            <Button
-              type="button"
-              size="icon"
-              onClick={handleOrder}
-              disabled={outOfStock}
-              aria-label={outOfStock ? `نفد ${product.name}` : `اطلب ${product.name}`}
-              className="h-11 w-11 shrink-0 rounded-full"
-            >
-              <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            <div className="flex items-center gap-1.5">
+              <AddToCartButton product={product} />
+              <Button
+                type="button"
+                size="icon"
+                onClick={handleOrder}
+                disabled={outOfStock}
+                aria-label={outOfStock ? `نفد ${product.name}` : `اطلب ${product.name}`}
+                className="h-11 w-11 shrink-0 rounded-full"
+              >
+                <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </div>
           </div>
         </div>
       </article>
+
+      {/* الجولة 17 — عارض ملء الشاشة للمعاينة السريعة من الشبكة */}
+      {product.image_url && (
+        <ImageLightbox
+          src={resolveImageUrl(product.image_url)}
+          alt={product.name}
+          open={lightboxOpen}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
 
       <CheckoutSheet
         product={checkoutProduct}

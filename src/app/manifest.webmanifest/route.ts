@@ -12,7 +12,7 @@ import type { NextRequest } from "next/server";
  *      shortcuts: الرئيسية / المتاجر / حسابي
  *
  *  • facility.tawfir.giize.com → تطبيق المالك
- *      name: «توفير — بوابة المنشآت»
+ *      name: «توفير — بوابة المتاجر»
  *      short_name: «توفير مالك»
  *      start_url: «/owner/login» — scope: «/owner/»
  *      theme_color: #003B55 — أيقونات المالك
@@ -35,12 +35,12 @@ interface ScreenshotSpec {
 const CUSTOMER_SCREENSHOTS: ScreenshotSpec[] = [
   { src: "/screenshots/customer-home.png", label: "الرئيسية — عروض مميزة لك" },
   { src: "/screenshots/customer-card.png", label: "بطاقة العضوية الرقمية" },
-  { src: "/screenshots/customer-facility.png", label: "صفحة المنشأة ومنتجاتها" },
+  { src: "/screenshots/customer-facility.png", label: "صفحة المتجر ومنتجاتها" },
 ];
 
 const OWNER_SCREENSHOTS: ScreenshotSpec[] = [
-  { src: "/screenshots/owner-login.png", label: "تسجيل دخول بوابة المنشآت" },
-  { src: "/screenshots/owner-products.png", label: "إدارة منتجات المنشأة" },
+  { src: "/screenshots/owner-login.png", label: "تسجيل دخول بوابة المتاجر" },
+  { src: "/screenshots/owner-products.png", label: "إدارة منتجات المتجر" },
   { src: "/screenshots/owner-import.png", label: "استيراد المنتجات" },
 ];
 
@@ -97,35 +97,42 @@ function customerManifest() {
         name: "الرئيسية",
         short_name: "الرئيسية",
         url: "/",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/shortcut-home.png", sizes: "96x96", type: "image/png" }],
       },
       {
         name: "المتاجر",
         short_name: "المتاجر",
         url: "/facilities",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/shortcut-stores.png", sizes: "96x96", type: "image/png" }],
+      },
+      {
+        name: "طلباتي",
+        short_name: "طلباتي",
+        description: "تابع حالة طلباتك الحالية والسابقة",
+        url: "/orders",
+        icons: [{ src: "/icons/shortcut-orders.png", sizes: "96x96", type: "image/png" }],
       },
       {
         name: "حسابي",
         short_name: "حسابي",
         url: "/account",
-        icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+        icons: [{ src: "/icons/shortcut-account.png", sizes: "96x96", type: "image/png" }],
       },
     ],
   };
 }
 
 /**
- * Manifest تطبيق المالك — بوابة المنشآت.
+ * Manifest تطبيق المالك — بوابة المتاجر.
  * scope «/owner/» + start_url «/owner/login» + أيقونات owner-*
  */
 function ownerManifest() {
   return {
     id: "/owner/login",
-    name: "توفير — بوابة المنشآت",
+    name: "توفير — بوابة المتاجر",
     short_name: "توفير مالك",
     description:
-      "بوابة أصحاب المنشآت في منصة توفير: أدر منشآتك ومنتجاتك وعروضك من جوالك، واستورد قوائمك بضغطة واحدة، وتابع كل شيء لحظة بلحظة أينما كنت. تطبيقك الرسمي لإدارة مشاركتك في بطاقة توفير.",
+      "بوابة أصحاب المتاجر في منصة توفير: أدر متجرك ومنتجاتك وعروضك من جوالك، واستورد قوائمك بضغطة واحدة، وتابع كل شيء لحظة بلحظة أينما كنت. تطبيقك الرسمي لإدارة مشاركتك في بطاقة توفير.",
     start_url: "/owner/login",
     scope: "/owner/",
     display: "standalone",

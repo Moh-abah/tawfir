@@ -113,7 +113,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
   const pathname = usePathname();
   const { data: facilities, isLoading } = useMyFacilities();
 
-  const facilityName = facilities && facilities.length === 1 ? facilities[0].name : "منشآتي";
+  const facilityName = facilities && facilities.length === 1 ? facilities[0].name : "متجري";
 
   return (
     <nav className="flex flex-col gap-1 px-3 py-2">
@@ -123,7 +123,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
       <Link
         href="/owner"
         onClick={onNavigate}
-        title={collapsed ? "منشآتي" : undefined}
+        title={collapsed ? "متجري" : undefined}
         className={cn(
           "relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-150",
           isActive(pathname, "/owner")
@@ -138,7 +138,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
         )}
         <Store className="h-5 w-5 shrink-0 relative z-10" />
         <span className="absolute top-1 left-1 h-2.5 w-2.5 rounded-full bg-destructive" />
-        {!collapsed && <span className="relative z-10">منشآتي</span>}
+        {!collapsed && <span className="relative z-10">متجري</span>}
       </Link>
 
       {isLoading && (
@@ -185,7 +185,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                   )}
                 >
                   <ShoppingBag className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  طلبات المنشأة
+                  طلبات المتجر
                 </Link>
                 <Link
                   href={`/owner/facilities/${f.id}/special-offers`}
@@ -206,7 +206,7 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                     isActive(pathname, `/owner/facilities/${f.id}`) && "text-primary"
                   )}
                 >
-                  تعديل المنشأة
+                  تعديل المتجر
                 </Link>
               </>
             )}
@@ -304,7 +304,7 @@ export function OwnerSidebar() {
   return (
     <aside
       className={cn(
-        "sticky top-0 hidden h-screen shrink-0 flex-col border-l transition-all duration-300 lg:flex",
+        "sticky top-0 hidden h-screen shrink-0 flex-col border-l transition-all duration-300 md:flex",
         collapsed ? "w-16" : "w-64"
       )}
       style={{

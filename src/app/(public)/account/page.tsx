@@ -22,6 +22,7 @@ import {
   RefreshCw,
   CreditCard,
   ShoppingBag,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemberCard } from "@/components/public/MemberCard";
+import { AccountFaqContactSection } from "@/components/public/AccountFaqContactSection";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { PasswordChangeCard } from "@/components/shared/PasswordChangeCard";
@@ -73,9 +77,9 @@ function GuestAccount() {
         <CardContent className="flex flex-col items-center gap-5 p-8 text-center sm:p-10">
           <TawfirLogo className="h-14 w-auto" />
           <div className="space-y-2">
-            <h1 className="text-2xl font-extrabold text-foreground">
+            <h2 className="text-2xl font-extrabold text-foreground">
               أهلاً بك في توفير
-            </h1>
+            </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               سجّل الدخول لعرض بطاقتك وطلباتك، أو أنشئ حساباً جديداً
               واشترك في عضوية توفير لتحصل على خصم 30%.
@@ -100,6 +104,11 @@ function GuestAccount() {
             </Button>
           </div>
           <PWAInstallButton portal="customer" variant="full" className="w-full" />
+
+          {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
+          <div className="mt-8 w-full">
+            <AccountFaqContactSection />
+          </div>
         </CardContent>
       </Card>
     </motion.div>
@@ -398,9 +407,9 @@ function NoMembershipState({ me }: { me: MeOut }) {
     >
       {/* الترحيب */}
       <div>
-        <h1 className="text-2xl font-extrabold text-foreground">
+        <h2 className="text-2xl font-extrabold text-foreground">
           مرحباً، {me.full_name}
-        </h1>
+        </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           هذه بياناتك في منصة توفير
         </p>
@@ -460,6 +469,9 @@ function NoMembershipState({ me }: { me: MeOut }) {
 
         {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
         <SoundSettingsCard />
+
+        {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
+        <AccountFaqContactSection />
     </motion.div>
   );
 }
@@ -483,9 +495,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
       {/* الترحيب */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">
+          <h2 className="text-2xl font-extrabold text-foreground">
             مرحباً، {me.full_name}
-          </h1>
+          </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             هذه بطاقتك وبياناتك في منصة توفير
           </p>
@@ -504,7 +516,7 @@ function ActiveMemberState({ me }: { me: MeOut }) {
       <MemberCard />
 
       {/* إجراءات سريعة */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Button
           asChild
           variant="outline"
@@ -513,6 +525,16 @@ function ActiveMemberState({ me }: { me: MeOut }) {
           <Link href="/orders">
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
             طلباتي
+          </Link>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+          className="min-h-[44px] justify-start gap-2 rounded-2xl"
+        >
+          <Link href="/favorites">
+            <Heart className="h-4 w-4 text-destructive" aria-hidden="true" />
+            مفضلتي
           </Link>
         </Button>
         <Button
@@ -538,6 +560,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
 
         {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
         <SoundSettingsCard />
+
+        {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
+        <AccountFaqContactSection />
     </motion.div>
   );
 }
@@ -564,77 +589,119 @@ export default function AccountPage() {
 
   /* قبل الترطيب: هيكل ثابت يمنع وميض التوجيه */
   if (!hydrated) {
-    return <AccountSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <AccountSkeleton />
+      </>
+    );
   }
 
   /* حالة 1: زائر غير مسجل */
   if (!accessToken) {
-    return <GuestAccount />;
+    return (
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <GuestAccount />
+      </>
+    );
   }
 
   if (me.isLoading) {
-    return <AccountSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <AccountSkeleton />
+      </>
+    );
   }
 
   if (me.isError || !me.data) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
-        <p className="mb-4 text-sm text-muted-foreground">
-          {me.error instanceof Error
-            ? me.error.message
-            : "تعذّر تحميل بيانات الحساب"}
-        </p>
-        <Button
-          onClick={() => me.refetch()}
-          className="min-h-[44px] rounded-full"
-        >
-          إعادة المحاولة
-        </Button>
-      </div>
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+          <NotificationBell />
+        </ScreenHeader>
+        <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
+          <p className="mb-4 text-sm text-muted-foreground">
+            {me.error instanceof Error
+              ? me.error.message
+              : "تعذّر تحميل بيانات الحساب"}
+          </p>
+          <Button
+            onClick={() => me.refetch()}
+            className="min-h-[44px] rounded-full"
+          >
+            إعادة المحاولة
+          </Button>
+        </div>
+      </>
     );
   }
 
   /* حالة 5: مسجّل بعضوية موافق عليها */
   if (membership) {
-    return <ActiveMemberState me={me.data} />;
+    return (
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+          <NotificationBell />
+        </ScreenHeader>
+        <ActiveMemberState me={me.data} />
+      </>
+    );
   }
 
   /* حالة 3: مسجّل بطلب معلّق محلياً */
   if (pendingRequest) {
     return (
-      <motion.div
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 1 }}
-        className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6"
-      >
-        {/* الترحيب */}
-        <div>
-          <h1 className="text-2xl font-extrabold text-foreground">
-            مرحباً، {me.data.full_name}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            هذه بياناتك في منصة توفير
-          </p>
-        </div>
+      <>
+        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+          <NotificationBell />
+        </ScreenHeader>
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6"
+        >
+          {/* الترحيب */}
+          <div>
+            <h2 className="text-2xl font-extrabold text-foreground">
+              مرحباً، {me.data.full_name}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              هذه بياناتك في منصة توفير
+            </p>
+          </div>
 
-        {/* شارة قيد المراجعة */}
-        <PendingReviewBadge pending={pendingRequest} />
+          {/* شارة قيد المراجعة */}
+          <PendingReviewBadge pending={pendingRequest} />
 
-        {/* تثبيت التطبيق */}
-        <PWAInstallButton portal="customer" variant="full" />
+          {/* تثبيت التطبيق */}
+          <PWAInstallButton portal="customer" variant="full" />
 
-        {/* بياناتي */}
-        <MyDataCard me={me.data} />
+          {/* بياناتي */}
+          <MyDataCard me={me.data} />
 
-        {/* أمان الحساب — تغيير كلمة المرور */}
-        <PasswordChangeCard role="customer" />
+          {/* أمان الحساب — تغيير كلمة المرور */}
+          <PasswordChangeCard role="customer" />
 
-        {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
-        <SoundSettingsCard />
-      </motion.div>
+          {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
+          <SoundSettingsCard />
+
+          {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
+          <AccountFaqContactSection />
+        </motion.div>
+      </>
     );
   }
 
   /* حالة 2 + 4: مسجّل بلا عضوية (ولا طلب معلّق — أو ربما مرفوض لا يمكن تمييزه) */
-  return <NoMembershipState me={me.data} />;
+  return (
+    <>
+      <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+        <NotificationBell />
+      </ScreenHeader>
+      <NoMembershipState me={me.data} />
+    </>
+  );
 }

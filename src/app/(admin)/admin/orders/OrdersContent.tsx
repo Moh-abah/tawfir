@@ -200,7 +200,7 @@ function OrderDetailsDialog({
               />
               <DetailRow
                 icon={Store}
-                label="المنشأة"
+                label="المتجر"
                 value={order.facility_name ?? `#${order.facility_id}`}
               />
               <DetailRow
@@ -358,7 +358,7 @@ function OrderRow({
         {order.customer_name ?? `مستخدم #${order.customer_id}`}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {order.facility_name ?? `منشأة #${order.facility_id}`}
+        {order.facility_name ?? `متجر #${order.facility_id}`}
       </TableCell>
       <TableCell>
         <Badge
@@ -477,7 +477,7 @@ export default function OrdersContent() {
             الطلبات
           </h1>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            كل الطلبات على المنصة — فلترة بالحالة أو العميل أو المنشأة.
+            كل الطلبات على المنصة — فلترة بالحالة أو العميل أو المتجر.
           </p>
         </div>
         <Button
@@ -558,7 +558,7 @@ export default function OrdersContent() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="filter-facility" className="text-sm text-muted-foreground">
-            رقم المنشأة
+            رقم المتجر
           </Label>
           <Input
             id="filter-facility"
@@ -631,7 +631,7 @@ export default function OrdersContent() {
                   <TableRow className="bg-muted/40">
                     <TableHead className="text-xs">الطلب</TableHead>
                     <TableHead className="text-xs">العميل</TableHead>
-                    <TableHead className="text-xs">المنشأة</TableHead>
+                    <TableHead className="text-xs">المتجر</TableHead>
                     <TableHead className="text-xs">الحالة</TableHead>
                     <TableHead className="text-xs">الدفع</TableHead>
                     <TableHead className="text-xs">الفرعي</TableHead>

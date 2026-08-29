@@ -71,6 +71,31 @@ export const metadata: Metadata = {
   icons: {
     apple: "/icons/apple-touch-icon.png",
   },
+  /* الجولة 16 — معاينة اجتماعية عند مشاركة الروابط في واتساب/تيليجرام:
+     بطاقة ملخّص كبيرة بصورة وجبة مندي شهية 1200x630 + وصف مختصر */
+  openGraph: {
+    type: "website",
+    locale: "ar_YE",
+    siteName: "توفير",
+    title: "توفير | طلب الوجبات اليمنية وخصم 30% للعضوية",
+    description:
+      "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم ومقاهي مدينتك، ووفّر 30% على كل طلب مع عضوية توفير.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "توفير — تطبيق طلب الوجبات اليمنية",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "توفير | طلب الوجبات اليمنية وخصم 30% للعضوية",
+    description:
+      "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم ومقاهي مدينتك، ووفّر 30% على كل طلب مع عضوية توفير.",
+    images: ["/og-image.jpg"],
+  },
   other: {
     "apple-mobile-web-app-capable": "yes",
     "theme-color": "#005B82",
@@ -95,6 +120,18 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/*
+          الجولة 16 — إصلاح CLS (0.08): البانر الترحيبي يُرسم في SSR دائماً،
+          ثم يُزال بعد الترطيب للمسجّلين/الرافضين → إزاحة محتوى عند كل تحميل.
+          هذا السكربت يعمل قبل أول طلاء (قبل رسم أي بكسل): يقرأ كوكي الجلسة
+          وعلم الرفض ويضيف data-wb-hide على <html> — فيخفيه CSS فوراً
+          فيبقى التخطيط ثابتاً قبل وبعد الترطيب (نمط منع وميض الثيم نفسه).
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var d=document.documentElement;if(document.cookie.split('; ').some(function(c){return c.indexOf('tawfir_customer_token=')===0})||sessionStorage.getItem('tawfir_welcome_dismissed')!==null){d.setAttribute('data-wb-hide','')}}catch(e){}`,
+          }}
+        />
       </head>
 
       <body

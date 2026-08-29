@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<!--
+  توفير — صفحة الأوفلاين المحلية الاحتياطية (Capacitor Native)
+  ════════════════════════════════════════════════════════════
+  تُقدَّم من Next.js عند /native-offline.html وتُخزَّن مسبقاً في كاش SW.
+  الغرض: شاشة أنيقة بالهوية العربية حين يتعذّر تحميل الموقع الحي
+  ولا يوجد كاش SW بعد (الحالات النادرة: أول إطلاق بعد التثبيت بلا
+  اتصال). تُحاول إعادة التحميل تلقائياً كل 5 ثوانٍ، وترجع للموقع
+  فور عودة الاتصال.
+
+  ملاحظة للمراقب: هذه الصفحة لا تُستبدل بآلية الـSW القوية — الـSW
+  يخدم الهيكل كاملاً (الرئيسية/المتاجر/التفاصيل…) أوفلاين بعد أول
+  زيارة. هي مجرد شبكة أمان أخيرة بهوية موحّدة.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#005B82" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>توفير — غير متصل</title>
+    <style>
+      :root {
+        --teal: #005b82;
+        --teal-dark: #003b55;
+        --accent: #c9a23a;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      html,
+      body {
+        height: 100%;
+        font-family: "Cairo", "Tajawal", system-ui, -apple-system, sans-serif;
+        background: linear-gradient(180deg, var(--teal-dark) 0%, var(--teal) 100%);
+        color: #f8f9fa;
+        overflow: hidden;
+      }
+      .wrap {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 24px;
+        padding-top: max(24px, env(safe-area-inset-top));
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+      }
+      .logo-mark {
+        width: 88px;
+        height: 88px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      }
+      .logo-mark span {
+        font-size: 48px;
+        font-weight: 900;
+        color: var(--accent);
+        line-height: 1;
+      }
+      .icon-circle {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      }
+      .icon-circle svg {
+        width: 28px;
+        height: 28px;
+        color: var(--accent);
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 800;
+        margin-bottom: 12px;
+      }
+      p {
+        font-size: 15px;
+        line-height: 1.7;
+        color: rgba(248, 249, 250, 0.85);
+        max-width: 320px;
+        margin-bottom: 28px;
+      }
+      .retry-btn {
+        min-height: 48px;
+        padding: 0 32px;
+        border: none;
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--teal-dark);
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        transition: transform 0.15s ease;
+      }
+      .retry-btn:active {
+        transform: scale(0.97);
+      }
+      .retry-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      .auto-retry {
+        margin-top: 16px;
+        font-size: 12px;
+        color: rgba(248, 249, 250, 0.6);
+      }
+      .footer-tag {
+        position: absolute;
+        bottom: max(16px, env(safe-area-inset-bottom));
+        font-size: 11px;
+        color: rgba(248, 249, 250, 0.5);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .retry-btn {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="logo-mark"><span>ت</span></div>
+
+      <div class="icon-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="1" y1="1" x2="23" y2="23"></line>
+          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+          <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+          <line x1="12" y1="20" x2="12.01" y2="20"></line>
+        </svg>
+      </div>
+
+      <h1>أنت غير متصل</h1>
+      <p>
+        يحتاج تطبيق توفير لاتصال بالإنترنت عند أول إطلاق لتحميل البيانات.
+        بعد أول زيارة ناجحة، يعمل التطبيق أوفلاين بالكامل ويعرض آخر
+        بيانات شوهدت. تأكد من اتصالك ثم أعد المحاولة.
+      </p>
+
+      <button class="retry-btn" id="retryBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+        إعادة المحاولة
+      </button>
+
+      <p class="auto-retry" id="autoRetry">سيُعاد التحميل تلقائياً خلال 5 ثوانٍ…</p>
+
+      <p class="footer-tag">توفير — حياة أجمل.. مع خصومات أكثر</p>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        var LIVE_URL = "https://tawfir.giize.com/";
+        var retryBtn = document.getElementById("retryBtn");
+        var autoRetry = document.getElementById("autoRetry");
+        var countdown = 5;
+
+        function tryReload() {
+          window.location.replace(LIVE_URL);
+        }
+
+        retryBtn.addEventListener("click", tryReload);
+
+        var timer = setInterval(function () {
+          countdown -= 1;
+          if (countdown <= 0) {
+            clearInterval(timer);
+            autoRetry.textContent = "جارٍ إعادة التحميل…";
+            tryReload();
+          } else {
+            autoRetry.textContent =
+              "سيُعاد التحميل تلقائياً خلال " + countdown + " ثوانٍ…";
+          }
+        }, 1000);
+
+        /* عند عودة الاتصال: إعادة تحميل فوراً */
+        window.addEventListener("online", function () {
+          autoRetry.textContent = "عاد الاتصال — جارٍ التحميل…";
+          tryReload();
+        });
+      })();
+    </script>
+  </body>
+</html>

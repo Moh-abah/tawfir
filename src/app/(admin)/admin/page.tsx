@@ -91,7 +91,7 @@ const ACTION_STAT_CONFIGS: ActionStatConfig[] = [
   },
   {
     key: "pending_facilities",
-    label: "منشآت معلّقة",
+    label: "متاجر معلّقة",
     href: "/admin/facilities/pending",
     icon: Hourglass,
     colorClass:
@@ -186,7 +186,7 @@ const STAT_CONFIGS: StatConfig[] = [
   { key: "regions", label: "المناطق", icon: Map, color: "text-primary", bg: "bg-primary/15", border: "border-l-primary" },
   { key: "cards", label: "البطاقات", icon: CreditCard, color: "text-secondary", bg: "bg-secondary/15", border: "border-l-secondary" },
   { key: "published_cards", label: "البطاقات المنشورة", icon: Eye, color: "text-success", bg: "bg-success/15", border: "border-l-success" },
-  { key: "facilities", label: "المنشآت", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent" },
+  { key: "facilities", label: "المتاجر", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent" },
   { key: "customers", label: "العملاء", icon: Users, color: "text-cat-facility", bg: "bg-cat-facility/15", border: "border-l-cat-facility" },
   { key: "owners", label: "المالكون", icon: UserCog, color: "text-chart-4", bg: "bg-chart-4/15", border: "border-l-chart-4" },
   { key: "products", label: "المنتجات", icon: Package, color: "text-cat-restaurant", bg: "bg-cat-restaurant/15", border: "border-l-cat-restaurant" },
@@ -282,7 +282,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   {
-    label: "إضافة منشأة",
+    label: "إضافة متجر",
     subtitle: "إضافة مطعم أو مقهى جديد",
     href: "/admin/facilities",
     icon: Store,
@@ -589,7 +589,7 @@ const prefersReduced = usePrefersReducedMotion();
         )}
       </div>
 
-      {/* Action stat cards — بطاقات إجرائية (عضوية معلّقة + منشآت معلّقة + طلبات اليوم) */}
+      {/* Action stat cards — بطاقات إجرائية (عضوية معلّقة + متاجر معلّقة + طلبات اليوم) */}
       <motion.div
         initial="hidden"
         animate="visible"
@@ -631,7 +631,7 @@ const prefersReduced = usePrefersReducedMotion();
           <CardTitle className="text-lg font-semibold">نظرة سريعة</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <MiniBarChart label="المنشآت" value={stats.facilities} max={50} color="bg-accent" delay={0.1} reduced={prefersReduced ?? false} />
+          <MiniBarChart label="المتاجر" value={stats.facilities} max={50} color="bg-accent" delay={0.1} reduced={prefersReduced ?? false} />
           <MiniBarChart label="البطاقات المنشورة" value={stats.published_cards} max={20} color="bg-success" delay={0.2} reduced={prefersReduced ?? false} />
           <MiniBarChart label="العملاء" value={stats.customers} max={200} color="bg-secondary" delay={0.3} reduced={prefersReduced ?? false} />
           <MiniBarChart label="المنتجات المتاحة" value={stats.available_products} max={100} color="bg-cat-cafe" delay={0.4} reduced={prefersReduced ?? false} />
@@ -712,7 +712,7 @@ const prefersReduced = usePrefersReducedMotion();
             <div>
               <p className="font-semibold">نصيحة</p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                استخدم القائمة الجانبية للتنقل بين أقسام الإدارة. يمكنك إدارة المناطق والبطاقات والمنشآت والعملاء ومراجعة سجل العمليات.
+                استخدم القائمة الجانبية للتنقل بين أقسام الإدارة. يمكنك إدارة المناطق والبطاقات والمتاجر والعملاء ومراجعة سجل العمليات.
               </p>
             </div>
           </CardContent>
@@ -763,7 +763,7 @@ const prefersReduced = usePrefersReducedMotion();
 
       {/* Recent Facilities */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold">أحدث المنشآت المضافة</h2>
+        <h2 className="mb-3 text-lg font-semibold">أحدث المتاجر المضافة</h2>
         <Card>
           <CardContent className="p-4 sm:p-5">
             {facilitiesLoading ? (
@@ -781,7 +781,7 @@ const prefersReduced = usePrefersReducedMotion();
               </div>
             ) : recentFacilities.length === 0 ? (
               <p className="py-4 text-center text-sm text-muted-foreground">
-                لا توجد منشآت بعد.
+                لا توجد متاجر بعد.
               </p>
             ) : (
               <div className="space-y-3">

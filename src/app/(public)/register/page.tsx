@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { PasswordInput } from "@/components/shared/PasswordInput";
@@ -171,9 +172,9 @@ function SuccessScreen({ data }: { data: RegisterOut }) {
       <div className="mb-6 flex justify-center">
         <CheckCircle2 className="h-16 w-16 text-success" />
       </div>
-      <h1 className="mb-2 text-2xl font-extrabold text-foreground">
+      <h2 className="mb-2 text-2xl font-extrabold text-foreground">
         تم إنشاء حسابك!
-      </h1>
+      </h2>
       <p className="mb-6 text-sm text-muted-foreground">
         {data.detail || "أهلاً بك في منصة توفير"}
       </p>
@@ -349,7 +350,7 @@ function FormProgressBar({ progress }: { progress: number }) {
 
 /* ─── Decorative Side Panel ──────────────────────── */
 const BENEFITS = [
-  "خصم 30% على جميع المنشآت المشتركة",
+  "خصم 30% على جميع المتاجر المشتركة",
   "بطاقة عضوية رقمية بعد الموافقة اليدوية",
   "عروض حصرية ومزايا مميزة",
 ];
@@ -369,7 +370,7 @@ function DecorativeSidePanel() {
       <TawfirLogo className="mb-6 h-14 w-auto" />
       <h2 className="mb-2 text-2xl font-extrabold text-foreground">انضم لعائلة توفير</h2>
       <p className="mb-6 max-w-xs text-sm text-muted-foreground">
-        سجّل الآن واحصل على بطاقة خصم تنفعك في عشرات المنشآت
+        سجّل الآن واحصل على بطاقة خصم تنفعك في عشرات المتاجر
       </p>
       <TawfirPillBadge className="mb-8" />
       <ul className="space-y-4 text-right">
@@ -454,9 +455,12 @@ export default function RegisterPage() {
   /* شاشة النجاح — لا توجيه تلقائي لـ /login */
   if (successData) {
     return (
-      <div className="mx-auto w-full max-w-md px-4 py-10">
-        <SuccessScreen data={successData} />
-      </div>
+      <>
+        <ScreenHeader title="تسجيل العضوية" fallbackHref="/" />
+        <div className="mx-auto w-full max-w-md px-4 py-10">
+          <SuccessScreen data={successData} />
+        </div>
+      </>
     );
   }
 
@@ -465,19 +469,18 @@ export default function RegisterPage() {
     : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-10">
-      <motion.div
-        className="mb-8 space-y-2 text-center"
-        {...formAnimation}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-      >
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-          تسجيل العضوية
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          انضم إلى توفير واحصل على بطاقة خصم 30%
-        </p>
-      </motion.div>
+    <>
+      <ScreenHeader title="تسجيل العضوية" fallbackHref="/" />
+      <div className="mx-auto w-full max-w-6xl px-4 py-10">
+        <motion.div
+          className="mb-8 space-y-2 text-center"
+          {...formAnimation}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+        >
+          <p className="text-sm text-muted-foreground">
+            انضم إلى توفير واحصل على بطاقة خصم 30%
+          </p>
+        </motion.div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
         <div className="hidden lg:block lg:col-span-2">
@@ -633,5 +636,6 @@ export default function RegisterPage() {
         </Link>
       </div>
     </div>
+    </>
   );
 }

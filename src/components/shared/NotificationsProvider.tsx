@@ -23,6 +23,42 @@ interface WsIncomingMessage {
 }
 
 /**
+ * الجولة 9 (المهمة 9.3) — أنواع إشعارات تغيير حالة الطلب.
+ * عند وصول أي منها، ينبغي أن تُنعش صفحة تفاصيل الطلب المفتوحة
+ * + قائمة الطلبات. (order_status_changed احتياطية لمستقبل الخادم.)
+ */
+const ORDER_STATUS_NOTIFICATION_TYPES: ReadonlySet<string> = new Set<
+  string
+>([
+  "order_new",
+  "order_confirmed",
+  "order_preparing",
+  "order_out_for_delivery",
+  "order_delivered",
+  "order_cancelled",
+  "order_status_changed",
+]);
+
+/**
+ * يستخرج data.order_id بشكل آمن — يقبل number أو string.
+ * يُرجع null عند غياب القيمة أو عدم صلاحيتها.
+ */
+function extractOrderId(
+  data: Record<string, unknown> | null
+): number | null {
+  if (!data) return null;
+  const raw = data.order_id;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+    return raw;
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
+/**
  * يستخرج كائن الإشعار من رسالة WS خام.
  *
  * الصيغتان المدعومتان (تحقّق فعلي بالجولة 6):
@@ -99,6 +135,21 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       SoundService.playNotification(n, activeRole);
       // 1) حدّث React Query cache (invalidate كلا الاستعلامين)
       qc.invalidateQueries({ queryKey: ["notifications"] });
+      // 1.5) الجولة 9 (المهمة 9.3) — إن كان إشعار حالة طلب:
+      //      انعاش استعلام تفاصيل الطلب المفتوح + قائمة الطلبات.
+      //      الصفحة المفتوحة ستعيد الجلب تلقائياً وتتحدث الحالة + شريط
+      //      التتبّع + توميض لطيف على البطاقة (OrderDetailContent).
+      if (ORDER_STATUS_NOTIFICATION_TYPES.has(n.notification_type)) {
+        const orderId = extractOrderId(n.data);
+        if (orderId != null) {
+          qc.invalidateQueries({ queryKey: ["order-detail", orderId] });
+        } else {
+          // لم يصل order_id في البيانات — انعاش كل تفاصيل الطلبات المفتوحة
+          qc.invalidateQueries({ queryKey: ["order-detail"] });
+        }
+        // انعاش القائمة (يغطي كل فلاتر status/search عبر prefix match)
+        qc.invalidateQueries({ queryKey: ["orders"] });
+      }
       // 2) اعرض toast فوري بالعنوان + المحتوى + زر «عرض» يُنقل حسب النوع
       const meta = getNotificationMeta(n.notification_type);
       const Icon = meta.icon;

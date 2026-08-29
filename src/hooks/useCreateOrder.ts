@@ -15,7 +15,7 @@ export function useCreateOrder() {
   return useMutation<OrderOut, CustomerApiError, OrderCreate>({
     mutationFn: (data) => orderService.createOrder(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     },
   });
 }

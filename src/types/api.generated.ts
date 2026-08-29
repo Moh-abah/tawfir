@@ -3,11 +3,11 @@
  * Source of truth: openapi.json (saved locally, fetched live from production).
  *
  * «توفير» — منصة يمنية للخصومات وطلب الوجبات.
- * الأدوار: العميل (تصفّح/طلب/اشتراك عضوية) · المالك (إدارة منشأة) · المشرف.
+ * الأدوار: العميل (تصفّح/طلب/اشتراك عضوية) · المالك (إدارة متجر) · المشرف.
  */
 
 // ─── Enums ────────────────────────────────────────────
-/** نوع المنشأة — مطاعم ومقاهي فقط (لا public_facility). */
+/** نوع المتجر — مطاعم ومقاهي فقط (لا public_facility). */
 export type FacilityType = 'restaurant' | 'cafe';
 
 /** أدوار المستخدمين. */
@@ -232,7 +232,7 @@ export interface FacilityUpdate {
   discount_rate?: number;
 }
 
-/** تحديث جزئي للمالك على منشأته فقط (لا نوع/منطقة). */
+/** تحديث جزئي للمالك على متجره فقط (لا نوع/منطقة). */
 export interface OwnerFacilityUpdate {
   name?: string;
   description?: string | null;
@@ -245,7 +245,7 @@ export interface OwnerFacilityUpdate {
   is_visible?: boolean;
 }
 
-/** منشأة معلّقة بانتظار موافقة المشرف. */
+/** متجر معلّق بانتظار موافقة المشرف. */
 export interface PendingFacilityOut {
   id: number;
   name: string;
@@ -269,7 +269,7 @@ export interface PendingFacilityOut {
 }
 
 // ─── Product ───────────────────────────────────────────
-/** منتج عند المالك (بدون معلومات المنشأة المضمّنة). */
+/** منتج عند المالك (بدون معلومات المتجر المضمّنة). */
 export interface Product {
   id: number;
   facility_id: number;
@@ -284,7 +284,7 @@ export interface Product {
   created_at: string;
 }
 
-/** تفاصيل منتج كاملة + معلومات المنشأة. GET /products/{id}. */
+/** تفاصيل منتج كاملة + معلومات المتجر. GET /products/{id}. */
 export interface ProductDetailOut {
   id: number;
   facility_id: number;
@@ -300,7 +300,7 @@ export interface ProductDetailOut {
   facility: FacilitySummaryOut;
 }
 
-/** منتج مع معلومات منشأته + المسافة. GET /products و /products/nearby. */
+/** منتج مع معلومات متجره + المسافة. GET /products و /products/nearby. */
 export interface ProductWithFacilityOut {
   id: number;
   facility_id: number;
@@ -358,7 +358,7 @@ export interface OrderItemCreate {
   quantity: number;
 }
 
-/** جسم POST /orders. كل الأصناف يجب أن تنتمي لنفس المنشأة. */
+/** جسم POST /orders. كل الأصناف يجب أن تنتمي لنفس المتجر. */
 export interface OrderCreate {
   facility_id: number;
   items: OrderItemCreate[];
@@ -652,7 +652,7 @@ export interface FcmTokenOut {
 }
 
 // ─── Special Offers (الجولة 3) ─────────────────────────
-/** ملخص المنشأة داخل العرض الخاص. */
+/** ملخص المتجر داخل العرض الخاص. */
 export interface SpecialOfferFacilityBrief {
   id: number;
   name: string;
@@ -725,7 +725,7 @@ export interface ChartPointOut {
   revenue: number;
 }
 
-/** أكثر المنتجات طلباً في المنشأة. */
+/** أكثر المنتجات طلباً في المتجر. */
 export interface TopProductOut {
   product_id: number;
   name: string;

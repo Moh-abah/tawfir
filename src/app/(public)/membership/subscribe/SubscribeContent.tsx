@@ -34,6 +34,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { MemberCard } from "@/components/public/MemberCard";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useMe } from "@/hooks/useMe";
@@ -89,9 +90,13 @@ function CopyField({
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-muted-foreground">{label}</p>
+        {/* الجولة 9 (المهمة 9.2): القيمة قابلة للنسخ يدوياً (بالإضافة لزر النسخ)
+            — استثناء من قاعدة منع التحديد العامة (انظر globals.css). */}
         <p
           dir="ltr"
           className="truncate text-left text-sm font-bold text-foreground"
+          data-selectable="true"
+          title={value}
         >
           {value}
         </p>
@@ -287,9 +292,9 @@ function SuccessScreen({
           <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
         </span>
       </div>
-      <h1 className="mb-2 text-2xl font-extrabold text-foreground">
+      <h2 className="mb-2 text-2xl font-extrabold text-foreground">
         تم استلام طلبك!
-      </h1>
+      </h2>
       <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
         {detail ||
           "سيراجع فريقنا صورة التحويل خلال 24-48 ساعة، وستُفعَّل عضويتك فور الموافقة."}
@@ -329,9 +334,9 @@ function AlreadyMember() {
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-success/15">
           <CheckCircle2 className="h-9 w-9 text-success" aria-hidden="true" />
         </span>
-        <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
+        <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
           أنت عضو بالفعل!
-        </h1>
+        </h2>
         <p className="max-w-md text-sm text-muted-foreground">
           عضويتك في توفير مفعّلة. استمتع بخصم 30% على كل طلباتك القادمة.
         </p>
@@ -469,9 +474,9 @@ function SubscribeForm({
     >
       {/* رأس الصفحة */}
       <header className="text-center">
-        <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
+        <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
           اشترك في عضوية توفير
-        </h1>
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           مبلغ سنوي ثابت {formatCurrency(amount)} · خصم 30% على كل الوجبات
         </p>
@@ -624,9 +629,9 @@ function LoginRequired() {
       <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
         <ShieldCheck className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
       </span>
-      <h1 className="text-2xl font-extrabold text-foreground">
+      <h2 className="text-2xl font-extrabold text-foreground">
         سجّل الدخول أولاً
-      </h1>
+      </h2>
       <p className="mt-2 text-sm text-muted-foreground">
         يجب تسجيل الدخول للاشتراك في عضوية توفير.
       </p>
@@ -661,69 +666,103 @@ export default function SubscribeContent() {
 
   /* قبل الترطيب: هيكل ثابت */
   if (!hydrated) {
-    return <SubscribeSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <SubscribeSkeleton />
+      </>
+    );
   }
 
   /* غير مسجّل → شاشة طلب تسجيل الدخول */
   if (!accessToken) {
-    return <LoginRequired />;
+    return (
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <LoginRequired />
+      </>
+    );
   }
 
   /* بانتظار بيانات العميل */
   if (me.isLoading) {
-    return <SubscribeSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <SubscribeSkeleton />
+      </>
+    );
   }
 
   if (me.isError || !me.data) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
-        <ErrorState
-          title="تعذّر تحميل بياناتك"
-          message={
-            me.error instanceof Error
-              ? me.error.message
-              : "تعذّر التحقق من حالة عضويتك. تحقق من اتصالك بالإنترنت."
-          }
-          onRetry={() => me.refetch()}
-        />
-      </div>
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
+          <ErrorState
+            title="تعذّر تحميل بياناتك"
+            message={
+              me.error instanceof Error
+                ? me.error.message
+                : "تعذّر التحقق من حالة عضويتك. تحقق من اتصالك بالإنترنت."
+            }
+            onRetry={() => me.refetch()}
+          />
+        </div>
+      </>
     );
   }
 
   /* العميل عضو نشط → شاشة «عضو بالفعل» */
   const membership = me.data.membership;
   if (membership && membership.is_active) {
-    return <AlreadyMember />;
+    return (
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <AlreadyMember />
+      </>
+    );
   }
 
   /* بانتظار بيانات التحويل الثابتة */
   if (info.isLoading) {
-    return <SubscribeSkeleton />;
+    return (
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <SubscribeSkeleton />
+      </>
+    );
   }
 
   if (info.isError || !info.data) {
     return (
-      <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
-        <ErrorState
-          title="تعذّر تحميل بيانات التحويل"
-          message={
-            info.error instanceof Error
-              ? info.error.message
-              : "تعذّر جلب معلومات الاشتراك. تحقق من اتصالك بالإنترنت."
-          }
-          onRetry={() => info.refetch()}
-        />
-      </div>
+      <>
+        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
+          <ErrorState
+            title="تعذّر تحميل بيانات التحويل"
+            message={
+              info.error instanceof Error
+                ? info.error.message
+                : "تعذّر جلب معلومات الاشتراك. تحقق من اتصالك بالإنترنت."
+            }
+            onRetry={() => info.refetch()}
+          />
+        </div>
+      </>
     );
   }
 
   return (
-    <SubscribeForm
-      amount={info.data.amount || MEMBERSHIP_AMOUNT}
-      transferAccountName={info.data.transfer_account_name}
-      transferAccountNumber={info.data.transfer_account_number}
-      walletName={info.data.wallet_name}
-      instructions={info.data.instructions}
-    />
+    <>
+      <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+      <SubscribeForm
+        amount={info.data.amount || MEMBERSHIP_AMOUNT}
+        transferAccountName={info.data.transfer_account_name}
+        transferAccountNumber={info.data.transfer_account_number}
+        walletName={info.data.wallet_name}
+        instructions={info.data.instructions}
+      />
+    </>
   );
 }

@@ -116,7 +116,7 @@ const prefersReduced = usePrefersReducedMotion();
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-lg font-medium text-destructive">
-          {(error as Error).message || "حدث خطأ أثناء تحميل المنشأة"}
+          {(error as Error).message || "حدث خطأ أثناء تحميل المتجر"}
         </p>
         <Button variant="outline" className="rounded-full" onClick={() => window.location.reload()}>
           إعادة المحاولة
@@ -146,8 +146,8 @@ const prefersReduced = usePrefersReducedMotion();
           <ArrowRight className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold leading-tight">{facility?.name ?? "تعديل المنشأة"}</h1>
-          <p className="text-sm text-muted-foreground">تعديل بيانات وإعدادات المنشأة</p>
+          <h1 className="text-2xl font-bold leading-tight">{facility?.name ?? "تعديل المتجر"}</h1>
+          <p className="text-sm text-muted-foreground">تعديل بيانات وإعدادات المتجر</p>
         </div>
       </div>
 
@@ -191,8 +191,8 @@ const prefersReduced = usePrefersReducedMotion();
               </div>
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="name">اسم المنشأة *</Label>
-                  <Input id="name" {...register("name", { required: "اسم المنشأة مطلوب" })} />
+                  <Label htmlFor="name">اسم المتجر *</Label>
+                  <Input id="name" {...register("name", { required: "اسم المتجر مطلوب" })} />
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
@@ -222,7 +222,7 @@ const prefersReduced = usePrefersReducedMotion();
                     render={({ field }) => (
                       <ImageUploader
                         id="image_url"
-                        label="صورة المنشأة"
+                        label="صورة المتجر"
                         folder="facilities"
                         value={field.value ?? ""}
                         onChange={field.onChange}
@@ -234,9 +234,9 @@ const prefersReduced = usePrefersReducedMotion();
 
                 <div className="flex items-center justify-between rounded-xl border p-4 sm:col-span-2">
                   <div>
-                    <Label htmlFor="is_visible">المنشأة ظاهرة للعملاء</Label>
+                    <Label htmlFor="is_visible">المتجر ظاهر للعملاء</Label>
                     <p className="text-xs text-muted-foreground">
-                      عند التعطيل لن تظهر المنشأة في التطبيق
+                      عند التعطيل لن يظهر المتجر في التطبيق
                     </p>
                   </div>
                   <Controller

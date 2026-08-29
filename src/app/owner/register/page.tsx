@@ -85,11 +85,11 @@ const registerSchema = z
       .min(1, { message: "تأكيد كلمة المرور مطلوب" }),
     facility_name: z
       .string()
-      .min(2, { message: "اسم المنشأة يجب أن يكون حرفين على الأقل" }),
+      .min(2, { message: "اسم المتجر يجب أن يكون حرفين على الأقل" }),
     facility_type: z.enum(["restaurant", "cafe"], {
-      message: "اختر نوع المنشأة",
+      message: "اختر نوع المتجر",
     }),
-    region_id: z.number().positive({ message: "اختر منطقة المنشأة" }),
+    region_id: z.number().positive({ message: "اختر منطقة المتجر" }),
     description: z.string().trim().optional(),
     address: z.string().trim().optional(),
     phone_facility: z
@@ -121,7 +121,7 @@ const registerSchema = z
 type FormValues = z.infer<typeof registerSchema>;
 
 /* ════════════════════════════════════════════════════════════════ */
-/*  أنماط أزرار نوع المنشأة — مطاعم ومقاهي فقط                       */
+/*  أنماط أزرار نوع المتجر — مطاعم ومقاهي فقط                       */
 /* ════════════════════════════════════════════════════════════════ */
 const TYPE_CIRCLES: Record<FacilityType, { active: string; idle: string }> = {
   restaurant: {
@@ -216,11 +216,11 @@ function SuccessScreen({ result }: { result: OwnerRegisterResult }) {
               بانتظار موافقة المشرف
             </h1>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              تم استلام طلب تسجيل منشأتك بنجاح وحالتها الآن:{" "}
+              تم استلام طلب تسجيل متجرك بنجاح وحالته الآن:{" "}
               <span className="font-bold text-foreground">{result.status}</span>
             </p>
             <p className="text-xs text-muted-foreground">
-              سجّل دخولك لمتابعة حالة المنشأة ومراجعة طلباتها عند الموافقة
+              سجّل دخولك لمتابعة حالة المتجر ومراجعة طلباته عند الموافقة
             </p>
           </div>
 
@@ -396,7 +396,7 @@ export default function OwnerRegisterPage() {
           <div className="flex flex-col items-center gap-1">
             <span className="text-2xl font-bold text-foreground">توفير</span>
             <span className="text-sm text-muted-foreground">
-              سجّل منشأتك وانضم لشركاء توفير
+              سجّل متجرك وانضم لشركاء توفير
             </span>
           </div>
         </div>
@@ -411,9 +411,9 @@ export default function OwnerRegisterPage() {
         >
           <Card className="login-card-shimmer border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl">
             <CardHeader className="text-center">
-              <CardTitle>تسجيل منشأة جديدة</CardTitle>
+              <CardTitle>تسجيل متجر جديد</CardTitle>
               <CardDescription>
-                أنشئ حساب مالك وأضف منشأتك — تُراجع الإدارة طلبك قبل الظهور
+                أنشئ حساب مالك وأضف متجرك — تُراجع الإدارة طلبك قبل الظهور
                 للعملاء
               </CardDescription>
             </CardHeader>
@@ -428,7 +428,7 @@ export default function OwnerRegisterPage() {
                   <SectionTitle
                     icon={UserRound}
                     title="بيانات الحساب"
-                    hint="حساب المالك الذي ستدير به منشأتك"
+                    hint="حساب المالك الذي ستدير به متجرك"
                   />
 
                   <div className="space-y-2">
@@ -513,16 +513,16 @@ export default function OwnerRegisterPage() {
 
                 <Separator />
 
-                {/* ─── القسم ب: بيانات المنشأة ─── */}
+                {/* ─── القسم ب: بيانات المتجر ─── */}
                 <div className="space-y-4">
                   <SectionTitle
                     icon={Store}
-                    title="بيانات المنشأة"
+                    title="بيانات المتجر"
                     hint="تظهر للعملاء بعد موافقة الإدارة"
                   />
 
                   <div className="space-y-2">
-                    <Label htmlFor="facility_name">اسم المنشأة</Label>
+                    <Label htmlFor="facility_name">اسم المتجر</Label>
                     <Input
                       id="facility_name"
                       autoComplete="organization"
@@ -536,17 +536,17 @@ export default function OwnerRegisterPage() {
                     />
                   </div>
 
-                  {/* نوع المنشأة — اختيار بصري بالدوائر الملونة (مطاعم ومقاهي فقط) */}
+                  {/* نوع المتجر — اختيار بصري بالدوائر الملونة (مطاعم ومقاهي فقط) */}
                   <Controller
                     name="facility_type"
                     control={control}
                     render={({ field }) => (
                       <div className="space-y-2">
-                        <Label>نوع المنشأة</Label>
+                        <Label>نوع المتجر</Label>
                         <div
                           className="grid grid-cols-2 gap-2"
                           role="radiogroup"
-                          aria-label="نوع المنشأة"
+                          aria-label="نوع المتجر"
                         >
                           {FACILITY_TYPES.map((type) => {
                             const Icon = type.icon;
@@ -618,7 +618,7 @@ export default function OwnerRegisterPage() {
                               className="h-[44px] w-full"
                               aria-label="اختيار المنطقة"
                             >
-                              <SelectValue placeholder="اختر منطقة المنشأة" />
+                              <SelectValue placeholder="اختر منطقة المتجر" />
                             </SelectTrigger>
                             <SelectContent>
                               {(regions ?? []).map((region) => (
@@ -639,17 +639,17 @@ export default function OwnerRegisterPage() {
                     )}
                   />
 
-                  {/* وصف المنشأة */}
+                  {/* وصف المتجر */}
                   <div className="space-y-2">
                     <Label htmlFor="description">
-                      وصف المنشأة{" "}
+                      وصف المتجر{" "}
                       <span className="text-muted-foreground">(اختياري)</span>
                     </Label>
                     <Textarea
                       id="description"
                       rows={3}
                       disabled={register.isPending}
-                      placeholder="نبذة قصيرة عن منشأتك تظهر للعملاء"
+                      placeholder="نبذة قصيرة عن متجرك تظهر للعملاء"
                       {...registerField("description")}
                     />
                     <FieldError
@@ -674,7 +674,7 @@ export default function OwnerRegisterPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone_facility">
-                        جوال المنشأة{" "}
+                        جوال المتجر{" "}
                         <span className="text-muted-foreground">(اختياري)</span>
                       </Label>
                       <Input
@@ -718,7 +718,7 @@ export default function OwnerRegisterPage() {
                       render={({ field }) => (
                         <ImageUploader
                           id="image_url"
-                          label="صورة المنشأة"
+                          label="صورة المتجر"
                           folder="facilities"
                           value={field.value ?? ""}
                           onChange={field.onChange}
@@ -814,7 +814,7 @@ export default function OwnerRegisterPage() {
             لديك حساب؟ سجّل الدخول
           </Link>
           <span className="text-xs text-muted-foreground/70">
-            بوابة أصحاب المنشآت — توفير
+            بوابة أصحاب المتاجر — توفير
           </span>
         </div>
       </div>

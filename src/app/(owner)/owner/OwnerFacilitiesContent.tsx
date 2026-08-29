@@ -28,9 +28,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { useOwnerProducts } from "@/hooks/useOwnerProducts";
 import { useOwnerOrders } from "@/hooks/useOwnerOrders";
+import { useOwnerAuth } from "@/hooks/useOwnerAuth";
+import { useAccountMe } from "@/hooks/useAccountMe";
 import { ownerService } from "@/services/owner.service";
 import { formatCurrency } from "@/lib/format";
 import { OwnerStatsDashboard } from "@/components/owner/OwnerStatsDashboard";
+import { OwnerStatsGrid } from "@/components/owner/OwnerStatsGrid";
+import { OwnerQuickTools } from "@/components/owner/OwnerQuickTools";
+import { OwnerPendingOrders } from "@/components/owner/OwnerPendingOrders";
 import type {
   Paginated,
   Product,
@@ -56,12 +61,12 @@ function startOfToday(): number {
 /**
  * بطاقات الإحصاءات الموحّدة — بيانات حقيقية من الـ API فقط.
  * تجمع بين StatsOverview + AnalyticsSection السابقتين.
- * يحلّ مشكلة N+1: طلب واحد لكل منشأة بـ queryKey موحّد.
+ * يحلّ مشكلة N+1: طلب واحد لكل متجر بـ queryKey موحّد.
  */
 function StatsOverview({ facilityIds }: { facilityIds: number[] }) {
   const prefersReduced = useReducedMotion();
 
-  // طلب واحد موحّد لكل منشأة لكل المنتجات — يحلّ N+1
+  // طلب واحد موحّد لكل متجر لكل المنتجات — يحلّ N+1
   const totalQueries = useQueries({
     queries: facilityIds.map((id) => ({
       queryKey: ["owner-products-stats", id],
@@ -85,7 +90,7 @@ function StatsOverview({ facilityIds }: { facilityIds: number[] }) {
     })),
   });
 
-  // طلبات كل منشأة — لاستخراج «طلبات اليوم» عبر فلترة محلية
+  // طلبات كل متجر — لاستخراج «طلبات اليوم» عبر فلترة محلية
   const ordersQueries = useQueries({
     queries: facilityIds.map((id) => ({
       queryKey: ["owner-orders", id, "all"],
@@ -125,7 +130,7 @@ function StatsOverview({ facilityIds }: { facilityIds: number[] }) {
       id: "facilities",
       icon: Store,
       value: facilityIds.length,
-      label: "المنشآت",
+      label: "المتاجر",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
       borderAccent: "border-l-4 border-l-primary",
@@ -239,7 +244,7 @@ function FacilityStatsChart({
   return (
     <Card className="rounded-2xl">
       <CardTitle className="p-5 pb-0 text-lg font-bold">
-        أداء المنتجات حسب المنشأة
+        أداء المنتجات حسب المتجر
       </CardTitle>
       <CardContent className="p-5">
         {isLoading ? (
@@ -421,7 +426,7 @@ export default function OwnerFacilitiesContent() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <p className="text-lg font-medium text-destructive">
-          حدث خطأ أثناء تحميل المنشآت
+          حدث خطأ أثناء تحميل المتاجر
         </p>
         <Button
           variant="outline"
@@ -453,10 +458,10 @@ export default function OwnerFacilitiesContent() {
           <Store className="absolute h-24 w-24 text-primary" />
         </div>
         <div>
-          <p className="text-lg font-semibold">لا توجد منشآت مسجلة</p>
+          <p className="text-lg font-semibold">لا توجد متاجر مسجلة</p>
           <p className="mt-2 max-w-sm text-sm text-muted-foreground">
-            لم يتم ربط أي منشأة بحسابك بعد. سجّل منشأة جديدة أو تواصل مع فريق
-            الإدارة لتفعيل منشأتك.
+            لم يتم ربط أي متجر بحسابك بعد. سجّل متجر جديد أو تواصل مع فريق
+            الإدارة لتفعيل متجرك.
           </p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -465,7 +470,7 @@ export default function OwnerFacilitiesContent() {
               className="gap-2 rounded-full min-h-[44px]"
             >
               <Plus className="h-4 w-4" />
-              تسجيل منشأة جديدة
+              تسجيل متجر جديد
             </Button>
           </Link>
           <a href="mailto:info@tawfir.giize.com">
@@ -540,27 +545,40 @@ export default function OwnerFacilitiesContent() {
   return (
     <div className="space-y-6">
       <motion.h1
-        className="text-2xl font-bold"
+        className="hidden text-2xl font-bold md:block"
         variants={listVariants}
         initial="initial"
         animate="animate"
         transition={{ duration: 0.3 }}
       >
-        منشآتي
+        متجري
       </motion.h1>
 
-      {/* لوحة إحصائيات المالك — تأخذ أول منشأة موافق عليها كافتراضي */}
+      {/* ═══════════════════════════════════════════════════
+          لوحة الموبايل Native — الجولة 9 (المهمة 8)
+          (md:hidden — تختفي على الديسكتوب الذي يحتفظ بلوحته الكاملة)
+          ═══════════════════════════════════════════════════ */}
       {facilities.length > 0 && (
-        <OwnerStatsDashboard
+        <MobileOwnerDashboard
+          facilityId={firstFacilityId}
           facilities={facilities}
-          initialFacilityId={firstFacilityId}
         />
+      )}
+
+      {/* لوحة إحصائيات المالك — تأخذ أول متجر موافق عليه كافتراضي */}
+      {facilities.length > 0 && (
+        <div className="hidden md:block">
+          <OwnerStatsDashboard
+            facilities={facilities}
+            initialFacilityId={firstFacilityId}
+          />
+        </div>
       )}
 
       {/* Quick Actions */}
       {facilities.length > 0 && (
         <motion.div
-          className="space-y-3"
+          className="hidden space-y-3 md:block"
           variants={staggerContainer}
           initial="initial"
           animate="animate"
@@ -599,14 +617,20 @@ export default function OwnerFacilitiesContent() {
         </motion.div>
       )}
 
-      {/* Stats Overview — 4 cards: منشآت / منتجات / طلبات اليوم / متاح */}
-      <StatsOverview facilityIds={facilityIds} />
+      {/* Stats Overview — 4 cards: متاجر / منتجات / طلبات اليوم / متاح */}
+      <div className="hidden md:block">
+        <StatsOverview facilityIds={facilityIds} />
+      </div>
 
       {/* Facility Stats Mini Chart */}
-      <FacilityStatsChart facilities={facilities ?? []} />
+      <div className="hidden md:block">
+        <FacilityStatsChart facilities={facilities ?? []} />
+      </div>
 
       {/* Recent Products */}
-      <RecentProductsWidget facilityIds={facilityIds} />
+      <div className="hidden md:block">
+        <RecentProductsWidget facilityIds={facilityIds} />
+      </div>
 
       {/* Facility Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -626,6 +650,86 @@ export default function OwnerFacilitiesContent() {
   );
 }
 
+// ═══════════════════════════════════════════════════════════════
+// لوحة الموبايل Native — الجولة 9 (المهمة 8)
+// بطاقة ترحيب + شبكة 2×2 + أدوات سريعة 4× + آخر 3 طلبات pending
+// ═══════════════════════════════════════════════════════════════
+function MobileOwnerDashboard({
+  facilityId,
+  facilities,
+}: {
+  facilityId: number;
+  facilities: Facility[];
+}) {
+  const prefersReduced = useReducedMotion();
+  const { accessToken, hydrated } = useOwnerAuth();
+  const me = useAccountMe("owner", hydrated && !!accessToken);
+  const ownerName = me.data?.full_name?.trim() || "";
+
+  // المتجر المُختار (الأول الموافق عليه عادةً)
+  const facility = facilities.find((f) => f.id === facilityId) ?? facilities[0];
+  const isPending =
+    facility.is_approved === false && !facility.rejection_reason;
+  const isRejected =
+    facility.is_approved === false && !!facility.rejection_reason;
+
+  const welcomeAnim = prefersReduced
+    ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
+    : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 } };
+
+  return (
+    <motion.section
+      className="space-y-4 md:hidden"
+      variants={welcomeAnim}
+      initial="initial"
+      animate="animate"
+      transition={{ duration: 0.3 }}
+      aria-label="لوحة المالك المختصرة"
+    >
+      {/* بطاقة الترحيب — اسم المالك + حالة المتجر */}
+      <div className="rounded-2xl border border-border/60 bg-gradient-to-l from-primary/10 to-secondary/10 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">أهلاً،</p>
+            <p className="truncate text-lg font-bold text-foreground">
+              {ownerName || facility.name || "مالك المتجر"}
+            </p>
+          </div>
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+              isPending &&
+                "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+              isRejected && "bg-destructive/10 text-destructive",
+              !isPending && !isRejected && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+            )}
+          >
+            <span
+              className={cn(
+                "inline-block h-2 w-2 rounded-full",
+                isPending && "bg-amber-500",
+                isRejected && "bg-destructive",
+                !isPending && !isRejected && "bg-emerald-500",
+              )}
+              aria-hidden="true"
+            />
+            {isPending ? "معلّق" : isRejected ? "مرفوض" : "موافق عليها"}
+          </span>
+        </div>
+      </div>
+
+      {/* شبكة 2×2 إحصائيات */}
+      <OwnerStatsGrid facilityId={facilityId} />
+
+      {/* أدوات سريعة 4× */}
+      <OwnerQuickTools facilityId={facilityId} />
+
+      {/* آخر 3 طلبات pending + زر تأكيد مباشر */}
+      <OwnerPendingOrders facilityId={facilityId} />
+    </motion.section>
+  );
+}
+
 function FacilityCard({ facility }: { facility: Facility }) {
   // يعيد استخدام queryKey الموحّد بدلاً من إنشاء طلب جديد
   const { data: productData } = useOwnerProducts(facility.id, {
@@ -634,7 +738,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
   });
   const productCount = productData?.total ?? 0;
 
-  // طلبات المنشأة — يشارك نفس الكاش (يستخدم اليوم فقط)
+  // طلبات المتجر — يشارك نفس الكاش (يستخدم اليوم فقط)
   const { data: facilityOrders } = useOwnerOrders(facility.id);
   const todayStart = startOfToday();
   const todayOrdersCount = (facilityOrders?.items ?? []).filter(
@@ -733,7 +837,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
               aria-hidden="true"
             />
             <p className="text-sm leading-relaxed text-destructive">
-              رُفض طلبك: {facility.rejection_reason} — عدّل بيانات منشأتك ثم
+              رُفض طلبك: {facility.rejection_reason} — عدّل بيانات متجرك ثم
               تواصل مع الإدارة لإعادة المراجعة
             </p>
           </div>
@@ -751,7 +855,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
               aria-hidden="true"
             />
             <p className="text-sm leading-relaxed text-foreground">
-              ستُراجع منشأتك خلال 24-48 ساعة. سيصلّك إشعار بنتيجة المراجعة.
+              ستُراجع متجرك خلال 24-48 ساعة. سيصلّك إشعار بنتيجة المراجعة.
             </p>
           </div>
         )}
@@ -768,7 +872,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
             <Package className="h-4 w-4" />
             <span>{productCount} منتج</span>
           </div>
-          {/* طلبات اليوم (للمنشآت الموافق عليها فقط) */}
+          {/* طلبات اليوم (للمتاجر الموافق عليها فقط) */}
           {isApproved && (
             <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
               <ShoppingBag className="h-4 w-4" />
@@ -836,7 +940,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
                 )}
               >
                 <Pencil className="h-3.5 w-3.5" />
-                تعديل المنشأة
+                تعديل المتجر
               </Button>
             </Link>
           )}

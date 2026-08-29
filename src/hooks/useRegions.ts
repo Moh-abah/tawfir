@@ -19,15 +19,18 @@ export function useRegions(isAdmin = false) {
     staleTime: 10 * 60 * 1000, // 10 minutes — quasi-static
   });
 
-  // Auto-select first region (public list only, once data arrives)
+  // Auto-select first region (public list only, once data arrives).
+  // الجولة 10 — تحصين دفاعي: لو صار selectedRegionId قيمة غير صالحة
+  // (0/undefined/معرّف منطقة محذوفة من الخادم) نُصحّحه تلقائياً لأول
+  // منطقة بدل البقاء على قيمة تُفشل كل استعلامات المتاجر/البطاقات.
   useEffect(() => {
-    if (
-      !isAdmin &&
-      selectedRegionId === null &&
-      query.data &&
-      query.data.length > 0
-    ) {
-      setSelectedRegion(query.data[0].id);
+    if (!isAdmin && query.data && query.data.length > 0) {
+      const isInvalid =
+        selectedRegionId == null ||
+        !query.data.some((r) => r.id === selectedRegionId);
+      if (isInvalid) {
+        setSelectedRegion(query.data[0].id);
+      }
     }
   }, [query.data, selectedRegionId, setSelectedRegion, isAdmin]);
 

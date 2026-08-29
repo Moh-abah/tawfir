@@ -49,7 +49,7 @@ const CONTACT_EMAIL = "moohabhb68@gmail.com";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "مشرف",
-  owner: "مالك منشأة",
+  owner: "مالك متجر",
   customer: "عميل",
 };
 

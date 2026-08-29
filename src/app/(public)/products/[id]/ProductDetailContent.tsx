@@ -11,15 +11,21 @@ import {
   MapPin,
   Package,
   Phone,
+  Share2,
   ShoppingBag,
   Sparkles,
   UtensilsCrossed,
+  ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { ImageLightbox } from "@/components/shared/ImageLightbox";
+import { SimilarMealsSection } from "@/components/public/SimilarMealsSection";
 import {
   CheckoutSheet,
   type CheckoutProduct,
@@ -33,6 +39,8 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { DISCOUNT_RATE } from "@/lib/site-config";
+import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
+import { haptic } from "@/lib/haptic";
 import type {
   FacilitySummaryOut,
   ProductDetailOut,
@@ -250,8 +258,16 @@ export default function ProductDetailContent() {
   const { accessToken, hydrated } = useCustomerAuth();
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  /* الجولة 16 — عارض الصورة ملء الشاشة (تكبير/قرص/سحب) */
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const product: ProductDetailOut | null = data ?? null;
+
+  /* الجولة 13 — تسجيل المشاهدة في «شاهدت مؤخراً» عند نجاح الجلب */
+  const trackView = useRecentlyViewedStore((s) => s.trackView);
+  useEffect(() => {
+    if (product) trackView(product.id);
+  }, [product, trackView]);
 
   // ابحث عن عرض خاص نشط لهذا المنتج
   const specialOffer: SpecialOfferOut | null =
@@ -260,7 +276,9 @@ export default function ProductDetailContent() {
     ) ?? null;
 
   const isMember = !!me.data?.membership?.is_active;
-  const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
+  // نسبة الخصم من العضوية إن وُجدت، وإلا نسبة خصم المتجر من بيانات المنتج، وإلا القاعدة العامة
+  const facilityRate = product?.facility?.discount_rate ?? DISCOUNT_RATE;
+  const memberRate = me.data?.membership?.discount_rate ?? facilityRate;
   const priceNum = product ? parseFloat(product.price) || 0 : 0;
   const finalPrice = isMember ? priceNum * (1 - memberRate / 100) : priceNum;
   const outOfStock =
@@ -304,107 +322,173 @@ export default function ProductDetailContent() {
       }
     : null;
 
-  if (isLoading) return <PageSkeleton />;
+  if (isLoading) {
+    return (
+      <>
+        <ScreenHeader title="تفاصيل الوجبة" fallbackHref="/" />
+        <PageSkeleton />
+      </>
+    );
+  }
 
   if (error) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <ErrorState
-          title="تعذّر تحميل الوجبة"
-          message="حدث خطأ أثناء جلب تفاصيل الوجبة. حاول مرة أخرى."
-          onRetry={() => refetch()}
-        />
-      </div>
+      <>
+        <ScreenHeader title="تفاصيل الوجبة" fallbackHref="/" />
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <ErrorState
+            title="تعذّر تحميل الوجبة"
+            message="حدث خطأ أثناء جلب تفاصيل الوجبة. حاول مرة أخرى."
+            onRetry={() => refetch()}
+          />
+        </div>
+      </>
     );
   }
 
   if (!product) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <EmptyState
-          icon={UtensilsCrossed}
-          title="الوجبة غير موجودة"
-          description="لم نتمكن من العثور على هذه الوجبة. ربما حُذفت أو أن الرابط غير صحيح."
-          action={
-            <Button asChild variant="outline" className="rounded-full min-h-[44px]">
-              <Link href="/">العودة للرئيسية</Link>
-            </Button>
-          }
-        />
-      </div>
+      <>
+        <ScreenHeader title="تفاصيل الوجبة" fallbackHref="/" />
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <EmptyState
+            icon={UtensilsCrossed}
+            title="الوجبة غير موجودة"
+            description="لم نتمكن من العثور على هذه الوجبة. ربما حُذفت أو أن الرابط غير صحيح."
+            action={
+              <Button asChild variant="outline" className="rounded-full min-h-[44px]">
+                <Link href="/">العودة للرئيسية</Link>
+              </Button>
+            }
+          />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
-      {/* Breadcrumb */}
-      <nav
-        aria-label="مسار التصفح"
-        className="mb-4 flex items-center gap-1.5 text-sm"
-      >
-        <Link
-          href="/"
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          الرئيسية
-        </Link>
-        <ArrowRight
-          className="h-3.5 w-3.5 text-muted-foreground/50"
-          aria-hidden="true"
-        />
-        <Link
-          href={`/facilities/${product.facility.id}`}
-          className="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          {product.facility.name}
-        </Link>
-        <ArrowRight
-          className="h-3.5 w-3.5 text-muted-foreground/50"
-          aria-hidden="true"
-        />
-        <span className="line-clamp-1 max-w-[200px] font-medium text-foreground sm:max-w-xs">
-          {product.name}
-        </span>
-      </nav>
-
-      {/* Main content */}
-      <div className="grid gap-6 sm:grid-cols-2">
-        {/* Image */}
+    <>
+      <ScreenHeader title="تفاصيل الوجبة" fallbackHref="/" />
+      <div className="mx-auto max-w-4xl px-4 py-6 pb-24 sm:px-6 sm:py-10">
+        {/* Main content */}
+        <div className="grid gap-6 sm:grid-cols-2">
+        {/* Image — الجولة 16: قابلة للنقر لفتح العارض ملء الشاشة.
+            بنية صالحة: زر الصورة طبقة أساس، والأزرار العائمة فوقه
+            أشقاء خارج الزر (لا تداخل أزرار في HTML). */}
         <div className="relative aspect-square overflow-hidden rounded-2xl border border-border/60 bg-muted">
-          {product.image_url ? (
-            <ImageWithSkeleton
-              src={resolveImageUrl(product.image_url)}
-              alt={product.name}
-              fill
-              className="h-full w-full"
-              skeletonClassName="rounded-none"
-            />
-          ) : (
-            <div
-              className="flex h-full w-full items-center justify-center bg-muted"
-              role="img"
-              aria-label={product.name}
-            >
-              <UtensilsCrossed
-                className="h-16 w-16 text-muted-foreground/30"
-                aria-hidden="true"
+          {/* طبقة الصورة — زر يفتح العارض */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!product.image_url) return;
+              haptic("tick");
+              setLightboxOpen(true);
+            }}
+            disabled={!product.image_url}
+            aria-label={
+              product.image_url
+                ? `عرض صورة ${product.name} ملء الشاشة`
+                : undefined
+            }
+            className="group/img absolute inset-0 flex w-full cursor-zoom-in items-center justify-center disabled:cursor-default"
+          >
+            {product.image_url ? (
+              <>
+                <ImageWithSkeleton
+                  src={resolveImageUrl(product.image_url)}
+                  alt={product.name}
+                  fill
+                  className="h-full w-full transition-transform duration-500 ease-out group-hover/img:scale-[1.04] group-active/img:scale-[0.98]"
+                  skeletonClassName="rounded-none"
+                />
+                {/* شارة تلميح التكبير — أسفل يسار الصورة */}
+                <span
+                  className="absolute bottom-3 left-3 flex h-8 items-center gap-1.5 rounded-full bg-black/45 px-3 text-[11px] font-bold text-white backdrop-blur-sm transition-opacity duration-300 group-hover/img:opacity-100 sm:opacity-80"
+                  aria-hidden="true"
+                >
+                  <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+                  تكبير
+                </span>
+              </>
+            ) : (
+              <span
+                className="flex h-full w-full items-center justify-center bg-muted"
+                role="img"
+                aria-label={product.name}
+              >
+                <UtensilsCrossed
+                  className="h-16 w-16 text-muted-foreground/30"
+                  aria-hidden="true"
+                />
+              </span>
+            )}
+          </button>
+
+          {/* شارات وأزرار عائمة — أشقاء فوق زر الصورة */}
+          <div className="pointer-events-none absolute inset-0 z-10">
+            <div className="absolute right-3 top-3">
+              <AvailabilityBadge
+                available={product.is_available}
+                quantity={product.available_quantity}
               />
             </div>
-          )}
-          <div className="absolute right-3 top-3">
-            <AvailabilityBadge
-              available={product.is_available}
-              quantity={product.available_quantity}
-            />
+            {/* الجولة 10 — زر المفضلة (قلب) أعلى يسار الصورة */}
+            <div className="absolute left-3 top-3 flex flex-col gap-2">
+              <FavoriteButton
+                productId={product.id}
+                productName={product.name}
+                size="md"
+              />
+              {/* زر مشاركة — Web Share API مع بديل نسخ الحافظة */}
+              <button
+                type="button"
+                onClick={async () => {
+                  haptic("tick");
+                  const shareUrl =
+                    typeof window !== "undefined"
+                      ? `${window.location.origin}/products/${product.id}`
+                      : `/products/${product.id}`;
+                  const shareText = `${product.name} — ${product.facility.name} | تطبيق توفير`;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({ title: product.name, text: shareText, url: shareUrl });
+                    } catch {
+                      /* أُلغيت المشاركة — لا شيء يحدث */
+                    }
+                  } else {
+                    try {
+                      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+                      toast({ title: "تم نسخ رابط الوجبة", description: "شاركه مع أصدقائك الآن" });
+                    } catch {
+                      toast({ title: "تعذّر النسخ", variant: "destructive" });
+                    }
+                  }
+                }}
+                aria-label={`مشاركة ${product.name}`}
+                className="native-tap pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+              >
+                <Share2 className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* الجولة 16 — عارض الصورة ملء الشاشة */}
+        {product.image_url && (
+          <ImageLightbox
+            src={resolveImageUrl(product.image_url)}
+            alt={product.name}
+            open={lightboxOpen}
+            onClose={() => setLightboxOpen(false)}
+          />
+        )}
 
         {/* Info */}
         <div className="flex flex-col gap-4">
           <div className="space-y-2">
-            <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
+            <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
               {product.name}
-            </h1>
+            </h2>
             <Link
               href={`/facilities/${product.facility.id}`}
               className="inline-flex items-center gap-1.5 text-sm text-secondary transition-colors hover:text-primary"
@@ -452,7 +536,7 @@ export default function ProductDetailContent() {
                     className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
                   >
                     <Sparkles className="h-3 w-3" aria-hidden="true" />
-                    اشترك لخصم {DISCOUNT_RATE}%
+                    اشترك لخصم {facilityRate}%
                   </button>
                 </>
               )}
@@ -506,6 +590,13 @@ export default function ProductDetailContent() {
         </Link>
       </div>
 
+      {/* الجولة 15 — وجبات من نفس المتجر (اقتراح ذكي يعيد استخدام كاش المنتجات) */}
+      <SimilarMealsSection
+        facilityId={product.facility_id}
+        facilityName={product.facility.name}
+        currentProductId={product.id}
+      />
+
       <CheckoutSheet
         key={checkoutProduct.id}
         product={checkoutProduct}
@@ -515,5 +606,6 @@ export default function ProductDetailContent() {
         onOpenChange={setCheckoutOpen}
       />
     </div>
+    </>
   );
 }

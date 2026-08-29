@@ -34,6 +34,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
+import { haptic } from "@/lib/haptic";
 import { DELIVERY_FEE, DISCOUNT_RATE } from "@/lib/site-config";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
 
@@ -401,6 +402,8 @@ export function CheckoutSheet({
       {
         onSuccess: (data) => {
           setSuccessOrder(data);
+          /* الجولة 17 — اهتزاز نجاح مزدوج (إحساس Native عند تأكيد الطلب) */
+          haptic("success");
           toast({ title: "تم استلام طلبك بنجاح" });
         },
         onError: (err) => {

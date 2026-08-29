@@ -22,6 +22,7 @@ import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { useCustomerAuth, useCustomerLogin } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useToast } from "@/hooks/use-toast";
@@ -98,12 +99,14 @@ function CustomerLoginForm() {
     : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 py-10 sm:py-16">
-      {/* الشعار */}
-      <div className="flex flex-col items-center gap-3 text-center">
-        <TawfirLogo className="h-14 w-auto" />
-        <TawfirPillBadge />
-      </div>
+    <>
+      <ScreenHeader title="تسجيل الدخول" fallbackHref="/" />
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 py-10 pb-24 sm:py-16">
+        {/* الشعار */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <TawfirLogo className="h-14 w-auto" />
+          <TawfirPillBadge />
+        </div>
 
       <motion.div
         {...cardAnimation}
@@ -112,7 +115,7 @@ function CustomerLoginForm() {
       >
         <Card className="login-card-shimmer rounded-2xl border-border/60 shadow-soft-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl">تسجيل الدخول</CardTitle>
+            <CardTitle className="text-xl">أهلاً بك من جديد</CardTitle>
             <CardDescription>
               أدخل بياناتك للوصول إلى بطاقتك وحسابك
             </CardDescription>
@@ -214,6 +217,7 @@ function CustomerLoginForm() {
         </Link>
       </div>
     </div>
+    </>
   );
 }
 

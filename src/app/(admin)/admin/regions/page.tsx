@@ -171,7 +171,7 @@ export default function AdminRegionsPage() {
             </span>
             <div>
               <p className="text-2xl font-bold">{regionsWithFacilities}</p>
-              <p className="text-xs text-muted-foreground">مناطق تحتوي منشآت</p>
+              <p className="text-xs text-muted-foreground">مناطق تحتوي متاجر</p>
             </div>
           </CardContent>
         </Card>
@@ -184,7 +184,7 @@ export default function AdminRegionsPage() {
               <TableHead>الاسم</TableHead>
               <TableHead>المعرّف (slug)</TableHead>
               <TableHead>الحالة</TableHead>
-              <TableHead>المنشآت</TableHead>
+              <TableHead>المتاجر</TableHead>
               <TableHead className="text-left">إجراءات</TableHead>
             </TableRow>
           </TableHeader>

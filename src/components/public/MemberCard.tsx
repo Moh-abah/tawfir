@@ -83,9 +83,13 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
             <CreditCard className="h-4 w-4" aria-hidden="true" />
             بطاقة الخصومات الذكية
           </p>
+          {/* الجولة 9 (المهمة 9.2): رقم العضوية قابل للنسخ — استثناء من
+              قاعدة منع التحديد العامة (انظر globals.css). */}
           <p
             className="text-xl font-black tracking-[0.12em] tabular-nums text-white sm:text-2xl"
             dir="ltr"
+            data-selectable="true"
+            title="اضغط مطولاً لنسخ رقم العضوية"
           >
             {formatMembershipNumber(membership.membership_number)}
           </p>
@@ -128,7 +132,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
             {greeting}
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            خصم {DISCOUNT_RATE}% في كل المنشآت المشتركة — مبلغ سنوي 3000 ر.ي
+            خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة — مبلغ سنوي 3000 ر.ي
           </p>
         </div>
         <Button
@@ -167,7 +171,7 @@ function VisitorMemberCard({ className }: { className?: string }) {
             بطاقة الخصومات الذكية
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            خصم {DISCOUNT_RATE}% في كل المنشآت المشتركة
+            خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة
           </p>
         </div>
         <Button
@@ -185,22 +189,37 @@ function VisitorMemberCard({ className }: { className?: string }) {
   );
 }
 
-/** هيكل بطاقة أثناء التحميل */
+/** هيكل بطاقة أثناء التحميل — الجولة 16: يطابق بنية البطاقة الحقيقية
+ *  خانةً بخانة (نفس الحشوات والفجوات وارتفاعات الأسطر) حتى لا تتغير
+ *  مساحة البطاقة عند وصول البيانات → صفر CLS عند الاستبدال. */
 function MemberCardSkeleton() {
   return (
-    <div className="gradient-ocean relative overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7">
-      <div className="flex flex-col gap-5" dir="ltr">
-        <div className="flex items-start justify-between">
-          <Skeleton className="h-10 w-[130px] bg-white/15" />
-          <Skeleton className="h-7 w-20 rounded-full bg-white/15" />
+    <div
+      className="gradient-ocean relative overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7"
+      aria-busy="true"
+      aria-label="جارٍ تحميل بطاقة العضوية"
+    >
+      <div className="relative z-10 flex flex-col gap-5" dir="rtl">
+        {/* الشعار + شارة الخصم */}
+        <div className="flex items-start justify-between gap-3">
+          <Skeleton className="h-10 w-[118px] bg-white/15" />
+          <Skeleton className="h-[30px] w-[86px] rounded-full bg-white/15" />
         </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-36 bg-white/15" />
-          <Skeleton className="h-8 w-full max-w-xs bg-white/15" />
+        {/* العنوان + رقم العضوية */}
+        <div className="space-y-1.5 text-left">
+          <Skeleton className="h-5 w-40 bg-white/15" />
+          <Skeleton className="h-8 w-full max-w-[260px] bg-white/15" />
         </div>
-        <div className="flex items-end justify-between border-t border-white/10 pt-4">
-          <Skeleton className="h-9 w-24 bg-white/15" />
-          <Skeleton className="h-9 w-20 bg-white/15" />
+        {/* النوع + الانتهاء */}
+        <div className="flex items-end justify-between border-t border-white/15 pt-4">
+          <div className="space-y-1 text-left">
+            <Skeleton className="h-3.5 w-16 bg-white/15" />
+            <Skeleton className="h-5 w-24 bg-white/15" />
+          </div>
+          <div className="space-y-1 text-left">
+            <Skeleton className="h-3.5 w-16 bg-white/15" />
+            <Skeleton className="h-5 w-20 bg-white/15" />
+          </div>
         </div>
       </div>
     </div>

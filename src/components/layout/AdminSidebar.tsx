@@ -52,8 +52,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "لوحة المعلومات", icon: LayoutDashboard },
   { href: "/admin/orders", label: "الطلبات", icon: ShoppingBag, badgeKey: "orders" },
   { href: "/admin/membership-requests", label: "طلبات العضوية", icon: BadgeCheck, badgeKey: "membership-requests" },
-  { href: "/admin/facilities", label: "المنشآت", icon: Store, badgeKey: "facilities" },
-  { href: "/admin/facilities/pending", label: "طلبات المنشآت المعلّقة", icon: Hourglass, badgeKey: "pending" },
+  { href: "/admin/facilities", label: "المتاجر", icon: Store, badgeKey: "facilities" },
+  { href: "/admin/facilities/pending", label: "طلبات المتاجر المعلّقة", icon: Hourglass, badgeKey: "pending" },
   { href: "/admin/regions", label: "المناطق", icon: Map },
   { href: "/admin/cards", label: "البطاقات", icon: CreditCard, badgeKey: "cards" },
   { href: "/admin/users", label: "المستخدمون", icon: Users, badgeKey: "users" },
@@ -66,7 +66,7 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** أطول بادئة مطابقة تفوز — حتى لا تتفعّل «المنشآت» داخل صفحة طلباتها المعلّقة */
+/** أطول بادئة مطابقة تفوز — حتى لا تتفعّل «المتاجر» داخل صفحة طلباتها المعلّقة */
 function getActiveHref(pathname: string): string | null {
   const matches = NAV_ITEMS.filter((item) => isActive(pathname, item.href)).map(
     (item) => item.href

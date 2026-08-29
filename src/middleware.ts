@@ -5,7 +5,7 @@ const PUBLIC_HOST = "tawfir.giize.com";
 const ADMIN_HOST = "admin.tawfir.giize.com";
 const OWNER_HOST = "facility.tawfir.giize.com";
 
-/** صفحات بوابة المالك العامة (بلا حراسة): الدخول + تسجيل منشأة جديدة */
+/** صفحات بوابة المالك العامة (بلا حراسة): الدخول + تسجيل متجر جديد */
 const OWNER_PUBLIC_PATHS = new Set(["/owner/login", "/owner/register"]);
 
 function isOwnerPublicPath(pathname: string): boolean {

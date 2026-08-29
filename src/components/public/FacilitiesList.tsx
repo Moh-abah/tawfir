@@ -44,7 +44,7 @@ export function FacilitiesList() {
       <Card className="border-dashed bg-muted/30">
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-base font-medium text-foreground">
-            تعذّر تحميل المنشآت
+            تعذّر تحميل المتاجر
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
             حدث خطأ أثناء جلب المطاعم والمقاهي والمرافق. حاول مرة أخرى.
@@ -71,7 +71,7 @@ export function FacilitiesList() {
       <Card className="border-dashed bg-muted/30">
         <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
           <p className="text-base font-medium text-foreground">
-            لا توجد منشآت في هذه المنطقة
+            لا توجد متاجر في هذه المنطقة
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
             ترقّب المزيد من المطاعم والمقاهي والمرافق قريبًا.
@@ -87,8 +87,8 @@ export function FacilitiesList() {
         <Card
           key={f.id}
           className={cn(
-            "transition-all duration-200",
-            "hover:shadow-md hover:ring-1 hover:ring-primary/20"
+            "native-tap-card group transition-all duration-200",
+            "hover:-translate-y-0.5 hover:shadow-md hover:ring-1 hover:ring-primary/25"
           )}
         >
           <CardHeader>

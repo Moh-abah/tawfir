@@ -29,7 +29,7 @@ interface ImageUploaderProps {
   /** القيمة الحالية (مسار نسبي /uploads/... أو رابط كامل أو نص فارغ). */
   value: string;
   onChange: (value: string) => void;
-  /** مجلد الرفع في الخادم — products للمنتجات وfacilities للمنشآت. */
+  /** مجلد الرفع في الخادم — products للمنتجات وfacilities للمتاجر. */
   folder: "products" | "facilities";
   label?: string;
   hint?: string;

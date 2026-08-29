@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { PullToRefresh } from "@/components/shared/PullToRefresh";
+import { ScreenHeader, ScreenHeaderSkeleton } from "@/components/shared/ScreenHeader";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useMyOrders } from "@/hooks/useMyOrders";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -31,6 +34,14 @@ import { cn } from "@/lib/utils";
 
 /* ─── الفلاتر ──────────────────────────────────────── */
 type FilterKey = "all" | OrderStatus;
+
+/* الجولة 10 — الحالات النشطة تُظهر نقطة نابضة بجانب الشارة («مباشر» الآن) */
+const LIVE_STATUSES: ReadonlySet<OrderStatus> = new Set([
+  "pending",
+  "confirmed",
+  "preparing",
+  "out_for_delivery",
+]);
 
 const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "الكل" },
@@ -78,7 +89,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
           )}
 
           <div className="flex items-start justify-between gap-3">
-            {/* يسار: رقم الطلب + المنشأة + التاريخ */}
+            {/* يسار: رقم الطلب + المتجر + التاريخ */}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted">
@@ -96,7 +107,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
                 <div className="flex items-center gap-1.5 text-sm text-foreground">
                   <UtensilsCrossed className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="line-clamp-1 font-medium">
-                    {order.facility_name ?? "منشأة"}
+                    {order.facility_name ?? "متجر"}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -109,10 +120,20 @@ function OrderCard({ order }: { order: OrderListOut }) {
             <div className="flex flex-col items-end gap-2">
               <span
                 className={cn(
-                  "rounded-full px-3 py-1 text-xs font-bold",
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold",
                   ORDER_STATUS_TONE[order.status]
                 )}
               >
+                {/* الجولة 10 — نقطة نابضة للحالات النشطة (تُخفى لمن يفضّل تقليل الحركة) */}
+                {LIVE_STATUSES.has(order.status) && !prefersReduced && (
+                  <span
+                    className="relative flex h-2 w-2"
+                    aria-hidden="true"
+                  >
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+                  </span>
+                )}
                 {ORDER_STATUS_LABEL[order.status]}
               </span>
               <div className="text-left" dir="ltr">
@@ -249,67 +270,159 @@ function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
   );
 }
 
+/* ─── الجولة 14 — شريط الطلب الجاري ──────────────────── */
+const ACTIVE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
+  "pending",
+  "confirmed",
+  "preparing",
+  "out_for_delivery",
+]);
+
+function ActiveOrderBanner() {
+  const prefersReduced = usePrefersReducedMotion();
+  /* طلبات «all» (الأحدث أولاً) — نلتقط أول طلب جارٍ */
+  const { data } = useMyOrders(undefined, true, undefined);
+  const activeOrder = useMemo(
+    () => (data?.items ?? []).find((o) => ACTIVE_ORDER_STATUSES.has(o.status)) ?? null,
+    [data]
+  );
+
+  if (!activeOrder) return null;
+
+  const isLive = activeOrder.status !== "pending";
+
+  return (
+    <motion.div
+      initial={prefersReduced ? false : { opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="mb-6"
+    >
+      <Link
+        href={`/orders/${activeOrder.id}`}
+        className="native-tap-card group relative block overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-4 shadow-soft transition-shadow hover:shadow-soft-lg"
+        aria-label={`تتبّع طلبك الجاري رقم ${activeOrder.id}`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
+            {isLive && (
+              <motion.span
+                className="absolute inset-0 rounded-full bg-primary/15"
+                animate={{ scale: [1, 1.25, 1], opacity: [0.8, 0.2, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                aria-hidden="true"
+              />
+            )}
+            <ShoppingBag
+              className="h-5 w-5 text-primary"
+              aria-hidden="true"
+            />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-1.5 text-[10px] font-extrabold text-primary">
+              <span className="relative flex h-1.5 w-1.5" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+              </span>
+              طلبك الجاري الآن
+            </p>
+            <p className="mt-0.5 truncate text-sm font-extrabold text-foreground">
+              طلب #{activeOrder.id} — {activeOrder.facility_name ?? "المتجر"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {ORDER_STATUS_LABEL[activeOrder.status]}
+              {" · "}
+              <span dir="ltr" className="font-bold tabular-nums text-foreground">
+                {formatCurrency(activeOrder.total)}
+              </span>
+            </p>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-extrabold text-primary-foreground shadow-soft transition-transform group-hover:scale-105">
+            تتبّع
+            <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          </span>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
 /* ─── المحتوى الكامل للصفحة ────────────────────────── */
 export default function OrdersContent() {
   const { accessToken, hydrated } = useCustomerAuth();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterKey>("all");
   /* بحث برقم الطلب — debounce 350ms ثم يُرسل ?search= للخادم (لا فلترة محلية) */
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 350);
 
+  const onRefresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ["orders"] });
+  }, [queryClient]);
+
   /* قبل الترطيب: هيكل ثابت */
   if (!hydrated) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        <Skeleton className="mb-4 h-8 w-32" />
-        <div className="mb-6 flex flex-wrap gap-2">
-          {Array.from({ length: 7 }).map((_, i) => (
-            <Skeleton key={i} className="h-9 w-24 rounded-full" />
-          ))}
+      <>
+        <ScreenHeaderSkeleton />
+        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+          <Skeleton className="mb-4 h-8 w-32" />
+          <div className="mb-6 flex flex-wrap gap-2">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-24 rounded-full" />
+            ))}
+          </div>
+          <OrdersSkeleton />
         </div>
-        <OrdersSkeleton />
-      </div>
+      </>
     );
   }
 
   /* غير مسجّل → دعوة لتسجيل الدخول */
   if (!accessToken) {
     return (
-      <EmptyState
-        icon={ShoppingBag}
-        title="سجّل الدخول لعرض طلباتك"
-        description="عند تسجيل الدخول ستظهر هنا كل طلباتك السابقة وحالتها."
-        action={
-          <div className="flex flex-col gap-2">
-            <Link
-              href="/login?next=/orders"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              تسجيل الدخول
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
-            >
-              إنشاء حساب
-            </Link>
-          </div>
-        }
-      />
+      <>
+        <ScreenHeader title="طلباتي" fallbackHref="/" />
+        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+          <EmptyState
+            icon={ShoppingBag}
+            title="سجّل الدخول لعرض طلباتك"
+            description="عند تسجيل الدخول ستظهر هنا كل طلباتك السابقة وحالتها."
+            action={
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/login?next=/orders"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  تسجيل الدخول
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
+                >
+                  إنشاء حساب
+                </Link>
+              </div>
+            }
+          />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6" dir="rtl">
-      {/* العنوان */}
-      <header className="mb-6">
-        <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">
-          طلباتي
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <>
+      <ScreenHeader title="طلباتي" fallbackHref="/">
+        <NotificationBell />
+      </ScreenHeader>
+      <PullToRefresh onRefresh={onRefresh}>
+      <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
+        <p className="mb-6 text-sm text-muted-foreground">
           تابع حالة طلباتك الحالية والسابقة
         </p>
-      </header>
+
+      {/* الجولة 14 — شريط الطلب الجاري (أحدث طلب نشط بزاوية تتبّع) */}
+      {hydrated && accessToken && <ActiveOrderBanner />}
 
       {/* البحث برقم الطلب — من الخادم */}
       <div className="relative mb-4">
@@ -373,5 +486,7 @@ export default function OrdersContent() {
         search={debouncedSearch}
       />
     </div>
+    </PullToRefresh>
+    </>
   );
 }

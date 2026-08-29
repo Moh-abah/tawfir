@@ -12,6 +12,8 @@ interface SpecialOfferCardProps {
   specialOffer: SpecialOfferOut;
   onOrder: (offer: SpecialOfferOut) => void;
   className?: string;
+  /** الجولة 15 — تحميل فوري للصورة (LCP) لأول كارت */
+  priority?: boolean;
 }
 
 /**
@@ -74,6 +76,7 @@ export function SpecialOfferCard({
   specialOffer,
   onOrder,
   className,
+  priority = false,
 }: SpecialOfferCardProps) {
   const product = specialOffer.product;
   const facility = specialOffer.facility;
@@ -109,6 +112,7 @@ export function SpecialOfferCard({
             src={resolveImageUrl(product.image_url)}
             alt={product?.name ?? specialOffer.title}
             fill
+            priority={priority}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             skeletonClassName="rounded-none"
           />

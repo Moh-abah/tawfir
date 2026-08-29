@@ -2,16 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
-import { useMarkRead, useMarkAllRead } from "@/hooks/useMarkRead";
+import { useMarkRead } from "@/hooks/useMarkRead";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import {
   getNotificationMeta,
   formatRelativeTime,
@@ -26,6 +29,7 @@ type TabKey = "all" | "unread";
 
 export function NotificationsContent() {
   const router = useRouter();
+  const { accessToken, hydrated } = useCustomerAuth();
   const [tab, setTab] = useState<TabKey>("all");
   const [page, setPage] = useState(1);
   const unreadOnly = tab === "unread";
@@ -38,7 +42,6 @@ export function NotificationsContent() {
   const { data: unreadData } = useUnreadCount();
   const { data, isLoading, isFetching, isError } = useNotifications(page, unreadOnly);
   const markRead = useMarkRead();
-  const markAllRead = useMarkAllRead();
 
   const handleTabChange = (v: string) => {
     setTab(v as TabKey);
@@ -56,42 +59,20 @@ export function NotificationsContent() {
     if (href) router.push(href);
   };
 
+  // جرس الإشعارات — فقط للمستخدمين المسجّلين بعد الترطيب
+  const showBell = hydrated && !!accessToken;
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:py-8" dir="rtl">
-      <header className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <Bell className="h-5 w-5 text-primary" aria-hidden="true" />
-          </span>
-          <div>
-            <h1 className="text-lg font-extrabold sm:text-xl">الإشعارات</h1>
-            {count > 0 ? (
-              <p className="text-xs text-muted-foreground">
-                لديك {count} إشعار غير مقروء
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground">كل إشعاراتك محدّثة</p>
-            )}
-          </div>
-        </div>
+    <>
+      <ScreenHeader title="الإشعارات" fallbackHref="/">
+        {showBell && <NotificationBell />}
+      </ScreenHeader>
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 pb-24 sm:py-8" dir="rtl">
         {count > 0 && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-1 rounded-full min-h-[40px]"
-            onClick={() => markAllRead.mutate()}
-            disabled={markAllRead.isPending}
-          >
-            {markAllRead.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : (
-              <CheckCheck className="h-4 w-4" aria-hidden="true" />
-            )}
-            تعليم الكل كمقروء
-          </Button>
+          <p className="mb-3 text-center text-xs text-muted-foreground">
+            لديك {count} إشعار غير مقروء
+          </p>
         )}
-      </header>
 
       <Tabs value={tab} onValueChange={handleTabChange} className="mb-4">
         <TabsList className="grid w-full grid-cols-2 rounded-full">
@@ -238,5 +219,6 @@ export function NotificationsContent() {
         </>
       )}
     </div>
+    </>
   );
 }

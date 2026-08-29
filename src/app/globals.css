@@ -1139,3 +1139,117 @@ a:focus-visible,
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   الجولة 9 (المهمة 9.2) — منع تحديد النص في كل التطبيق عدا حقول
+   الإدخال: إحساس Native على الموبايل (لا قائمة iOS عند الضغط المطوّل،
+   لا تظليل للأسعار/الأسماء/أرقام الطلبات كأنه مستند ويب).
+
+   الاستثناءات: حقول الإدخال + [data-selectable="true"] + .selectable
+   (الأماكن التي يكون فيها النسخ مطلوباً — مثل رقم العضوية ورقم الحساب).
+   ═══════════════════════════════════════════════════════════════ */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* منع قائمة iOS عند الضغط المطوّل */
+}
+
+/* الاستثناءات — الأماكن التي يكون فيها النسخ مطلوباً */
+input,
+textarea,
+[data-selectable="true"],
+.selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   الجولة 16 — إصلاح CLS للبانر الترحيبي (الجولة 16):
+   السكربت المُضمَّن في <head> يضيف data-wb-hide على <html> قبل أول
+   طلاء عندما يكون المستخدم مسجّلاً (كوكي جلسة) أو رفض البانر —
+   فيُخفى البانر من اللقطة الأولى بلا إزاحة عند إزالته بعد الترطيب.
+   ═══════════════════════════════════════════════════════════════ */
+html[data-wb-hide] [data-welcome-banner] {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   الجولة 15 — إيصال طلب بأسلوب الطابعة الحرارية (POS receipt)
+   حواف ممزقة متعرجة + باركود زخرفي + نقاط ثقوب دائرية.
+   كل الألوان عبر توكنات الثيم (يعمل في الوضعين الفاتح والداكن).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* أسنان ورق متجهة لأعلى — للحافة العلوية الممزقة للإيصال
+   (مخروط 90° من مركز أعلى البلاطة: قاعدة عريضة أسفل + رأس مدبب أعلى) */
+.receipt-edge-up {
+  height: 12px;
+  background: conic-gradient(
+    from 135deg at 50% 0%,
+    var(--card) 90deg,
+    transparent 90deg
+  );
+  background-size: 24px 100%;
+  background-repeat: repeat-x;
+}
+
+/* أسنان ورق متجهة لأسفل — للحافة السفلية الممزقة للإيصال
+   (مخروط 90° من مركز أسفل البلاطة: قاعدة عريضة أعلى + رأس مدبب أسفل) */
+.receipt-edge-down {
+  height: 12px;
+  background: conic-gradient(
+    from 315deg at 50% 100%,
+    var(--card) 90deg,
+    transparent 90deg
+  );
+  background-size: 24px 100%;
+  background-repeat: repeat-x;
+}
+
+/* فاصل منقّط — خط الخدش في إيصالات الطابعة الحرارية */
+.receipt-dashed {
+  border: 0;
+  border-top: 2px dashed color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
+/* باركود زخرفي — أشرطة متفاوتة العرض (غير قابل للمسح — ديكور صرف) */
+.receipt-barcode {
+  height: 46px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--foreground) 0 2px,
+    transparent 2px 4px,
+    var(--foreground) 4px 7px,
+    transparent 7px 8px,
+    var(--foreground) 8px 9px,
+    transparent 9px 13px,
+    var(--foreground) 13px 16px,
+    transparent 16px 17px,
+    var(--foreground) 17px 18px,
+    transparent 18px 21px,
+    var(--foreground) 21px 23px,
+    transparent 23px 25px
+  );
+}
+
+/* ورق الإيصال — ملمس خفيف جداً من الخطوط الأفقية (محاكاة حرارية) */
+.receipt-paper {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    color-mix(in srgb, var(--foreground) 1.5%, transparent) 3px 4px
+  );
+}
+
+/* طباعة الإيصال — إخفاء كل واجهة التطبيق والاكتفاء بالورقة */
+@media print {
+  .print-hidden,
+  header[role="banner"],
+  footer,
+  nav {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}

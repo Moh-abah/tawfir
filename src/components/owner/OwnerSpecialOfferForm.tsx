@@ -172,7 +172,7 @@ export function OwnerSpecialOfferForm({
 }: OwnerSpecialOfferFormProps) {
   const [submitting, setSubmitting] = useState(false);
 
-  // جلب منتجات المنشأة (نأخذ 100 منتج — يكفي للقائمة المنسدلة)
+  // جلب منتجات المتجر (نأخذ 100 منتج — يكفي للقائمة المنسدلة)
   const { data: productsData, isLoading: productsLoading } = useOwnerProducts(
     facilityId,
     { page: 1, page_size: 100 }
@@ -244,7 +244,7 @@ export function OwnerSpecialOfferForm({
             إنشاء عرض خاص
           </>
         }
-        description="لا توجد منتجات متاحة في منشأتك. أضف منتجات أولاً لتتمكّن من إنشاء عروض خاصة عليها."
+        description="لا توجد منتجات متاحة في متجرك. أضف منتجات أولاً لتتمكّن من إنشاء عروض خاصة عليها."
       >
         <div className="flex flex-row-reverse gap-2">
           <Button
@@ -428,7 +428,7 @@ export function OwnerSpecialOfferForm({
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">
                     * السعر النهائي للأعضاء قد يُحسب بخصم إضافي بحسب نسبة
-                    منشأتك.
+                    متجرك.
                   </p>
                 </div>
               )}

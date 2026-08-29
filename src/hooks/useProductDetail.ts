@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/product.service";
 
-/** GET /products/{id} — تفاصيل وجبة + معلومات المنشأة. */
+/** GET /products/{id} — تفاصيل وجبة + معلومات المتجر. */
 export function useProductDetail(id: number | null) {
   return useQuery({
     queryKey: ["product", id],

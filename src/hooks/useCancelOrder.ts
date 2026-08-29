@@ -19,8 +19,8 @@ export function useCancelOrder(orderId: number) {
     mutationFn: () => orderService.cancelOrder(orderId),
     onSuccess: (order: OrderOut) => {
       // تحديث كاش التفاصيل فوراً — شريط التتبّع يعاد رسمه بحالة «ملغى»
-      queryClient.setQueryData(["order", orderId], order);
-      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+      queryClient.setQueryData(["order-detail", orderId], order);
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["unread-count"] });
       toast({

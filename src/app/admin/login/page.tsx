@@ -146,7 +146,8 @@ export default function AdminLoginPage() {
           {/* ✅ التعديل 3 – استبدال الشعار القديم بمكوّن TawfirLogo الجديد */}
           <TawfirLogo  className="h-24 w-24" />
           <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold">توفير</span>
+            {/* h1 لكل صفحة — الوصولية (شاشة الدخول الإدارية بلا عنوان رئيسي سابقاً) */}
+            <h1 className="text-2xl font-bold">توفير</h1>
             <span className="text-sm text-muted-foreground">لوحة تحكم المشرفين</span>
           </div>
         </div>

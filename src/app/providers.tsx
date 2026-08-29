@@ -7,8 +7,10 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { OfflineBanner } from "@/components/shared/OfflineBanner";
 import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
+import { NativeBridge } from "@/components/native/NativeBridge";
 import { NotificationsProvider } from "@/components/shared/NotificationsProvider";
 import { FcmRegistrar } from "@/components/shared/FcmRegistrar";
+import { SessionRestore } from "@/components/shared/SessionRestore";
 import { SoundService } from "@/lib/sound-service";
 
 /* ------------------------------------------------------------------ */
@@ -54,11 +56,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
+        <SessionRestore />
         <NotificationsProvider>
           <FcmRegistrar>
             <RouteLoadingBar />
             <OfflineBanner />
             <ServiceWorkerRegistrar />
+            <NativeBridge />
             {children}
             <Toaster />
           </FcmRegistrar>

@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CircleUserRound, LogIn } from "lucide-react";
+import { CircleUserRound, Heart, LogIn, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { RegionSelector } from "@/components/public/RegionSelector";
+import { CartButton } from "@/components/public/CartButton";
 import { Logo } from "@/components/shared/Logo";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -54,8 +55,31 @@ export function MainHeader() {
           <RegionSelector />
         </div>
 
-        {/* حسابي / دخول + الإشعارات + الثيم — زر المستخدم 44px قابلة للمس (الوصول للحساب من هنا بعد إزالة تبويبه من الشريط السفلي) */}
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+        {/* حسابي / دخول + السلة + الإشعارات + الثيم */}
+        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          {/* الجولة 12 — البحث الموحّد: أيقونة بحث توجّه لـ /search */}
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="native-tap h-11 min-w-11 rounded-full px-0"
+          >
+            <Link href="/search" aria-label="البحث">
+              <Search className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          </Button>
+          {/* الجولة 13 — المفضلة: أيقونة قلب توجّه لـ /favorites */}
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="native-tap h-11 min-w-11 rounded-full px-0"
+          >
+            <Link href="/favorites" aria-label="المفضلة">
+              <Heart className="h-5 w-5" aria-hidden="true" />
+            </Link>
+          </Button>
+          <CartButton />
           {isLoggedIn && <NotificationBell variant="header" />}
           {isLoggedIn ? (
             <Button

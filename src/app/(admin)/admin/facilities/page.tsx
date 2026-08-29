@@ -183,14 +183,14 @@ export default function AdminFacilitiesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">إدارة المنشآت</h1>
+          <h1 className="text-2xl font-bold tracking-tight">إدارة المتاجر</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             إدارة المطاعم والمقاهي والمرافق العامة.
           </p>
         </div>
         <Button className="gap-2" onClick={openCreate}>
           <Plus className="h-4 w-4" />
-          إضافة منشأة
+          إضافة متجر
         </Button>
       </div>
 
@@ -201,7 +201,7 @@ export default function AdminFacilitiesPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="ابحث باسم المنشأة..."
+            placeholder="ابحث باسم المتجر..."
             className="rounded-full pr-9"
             aria-label="بحث"
           />
@@ -245,7 +245,7 @@ export default function AdminFacilitiesPage() {
       {/* Results counter */}
       {!isLoading && (
         <p className="text-sm text-muted-foreground">
-          عرض {filtered.length} من {data?.total ?? allFacilities.length} منشأة
+          عرض {filtered.length} من {data?.total ?? allFacilities.length} متجر
         </p>
       )}
 
@@ -271,7 +271,7 @@ export default function AdminFacilitiesPage() {
                 <TableCell colSpan={8} className="py-10 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-sm text-destructive">
-                      تعذّر تحميل المنشآت.
+                      تعذّر تحميل المتاجر.
                     </p>
                     <Button
                       variant="outline"
@@ -308,11 +308,11 @@ export default function AdminFacilitiesPage() {
                 >
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-sm text-muted-foreground">
-                      لا توجد منشآت بعد.
+                      لا توجد متاجر بعد.
                     </p>
                     <Button className="gap-2" onClick={openCreate}>
                       <Plus className="h-4 w-4" />
-                      أول منشأة
+                      أول متجر
                     </Button>
                   </div>
                 </TableCell>
@@ -402,7 +402,7 @@ export default function AdminFacilitiesPage() {
           <DialogHeader>
             <DialogTitle>تأكيد الحذف</DialogTitle>
             <DialogDescription>
-              هل أنت متأكد من حذف هذه المنشأة؟ لا يمكن التراجع عن هذا الإجراء.
+              هل أنت متأكد من حذف هذا المتجر؟ لا يمكن التراجع عن هذا الإجراء.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

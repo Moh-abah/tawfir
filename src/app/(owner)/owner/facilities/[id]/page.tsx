@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import FacilityEditContent from "./FacilityEditContent";
 
 export const metadata: Metadata = {
-  title: "تعديل المنشأة | توفير",
+  title: "تعديل المتجر | توفير",
 };
 
 export default function FacilityEditPage() {

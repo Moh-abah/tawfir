@@ -343,7 +343,7 @@ const prefersReduced = usePrefersReducedMotion();
   const [batchDisabling, setBatchDisabling] = useState(false);
 
   /**
-   * الجولة 6: «تعطيل المحدد» كان زراً وهمياً (toast قريبًا) — صار حقيقياً:
+   * الجولة 6: «تعطيل المحدد» صار حقيقياً (لم يعد زراً معطّلاً):
    * حلقة PATCH فعلية على كل منتج محدد (is_available: false) عبر
    * PUT /owner/{fid}/products/{pid} ثم تحديث القائمة والتحديد.
    */

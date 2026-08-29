@@ -6,7 +6,7 @@ import type { PendingFacility } from "@/services/admin.service";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * جلب قائمة المنشآت المعلّقة — يعاد التحقق عند العودة للصفحة
+ * جلب قائمة المتاجر المعلّقة — يعاد التحقق عند العودة للصفحة
  * (staleTime: 0 كما في بقية استعلامات الأدمن).
  */
 export function useAdminPendingFacilities(page = 1, pageSize = 20) {
@@ -27,7 +27,7 @@ function cleanErrorMessage(error: Error): string {
 }
 
 /**
- * موافقة المشرف على منشأة معلّقة:
+ * موافقة المشرف على متجر معلّق:
  * toast نجاح عربي + إبطال استعلام القائمة فتُزال البطاقة فوراً.
  */
 export function useApproveFacility() {
@@ -39,13 +39,13 @@ export function useApproveFacility() {
     onSuccess: (facility) => {
       qc.invalidateQueries({ queryKey: ["admin", "pending-facilities"] });
       toast({
-        title: "تم قبول المنشأة بنجاح",
+        title: "تم قبول المتجر بنجاح",
         description: facility?.name,
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "تعذّر قبول المنشأة",
+        title: "تعذّر قبول المتجر",
         description: cleanErrorMessage(error),
         variant: "destructive",
       });
@@ -54,7 +54,7 @@ export function useApproveFacility() {
 }
 
 /**
- * رفض منشأة معلّقة مع السبب:
+ * رفض متجر معلّق مع السبب:
  * toast عربي بالاسم والسبب + إبطال الاستعلام لإزالة البطاقة.
  */
 export function useRejectFacility() {
@@ -67,7 +67,7 @@ export function useRejectFacility() {
     onSuccess: (facility, variables) => {
       qc.invalidateQueries({ queryKey: ["admin", "pending-facilities"] });
       toast({
-        title: "تم رفض المنشأة بنجاح",
+        title: "تم رفض المتجر بنجاح",
         description: facility?.name
           ? `${facility.name} — ${variables.reason}`
           : variables.reason,
@@ -75,7 +75,7 @@ export function useRejectFacility() {
     },
     onError: (error: Error) => {
       toast({
-        title: "تعذّر رفض المنشأة",
+        title: "تعذّر رفض المتجر",
         description: cleanErrorMessage(error),
         variant: "destructive",
       });
