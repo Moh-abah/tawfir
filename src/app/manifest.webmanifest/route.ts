@@ -8,14 +8,14 @@ import type { NextRequest } from "next/server";
  *      name: «توفير — بطاقة الخصومات»
  *      short_name: «توفير»
  *      start_url: «/» — scope: «/»
- *      theme_color: #005B82 — أيقونات العميل
+ *      theme_color: #0A1A2F (زمردي) — أيقونات العميل
  *      shortcuts: الرئيسية / المتاجر / حسابي
  *
  *  • facility.tawfir.giize.com → تطبيق المالك
  *      name: «توفير — بوابة المتاجر»
  *      short_name: «توفير مالك»
  *      start_url: «/owner/login» — scope: «/owner/»
- *      theme_color: #003B55 — أيقونات المالك
+ *      theme_color: #0A1A2F (زمردي عميق) — أيقونات المالك
  *
  * يمكن أيضاً تمرير ?app=owner أو ?app=customer لفرض التطبيق
  * (يستخدمه layout بوابة المالك على localhost حتى تُختبر بيئة المالك
@@ -64,15 +64,15 @@ function customerManifest() {
     name: "توفير — بطاقة الخصومات",
     short_name: "توفير",
     description:
-      "منصة توفير اليمنية — اطلب وجباتك من المطاعم والمقاهي المشتركة واشترك في عضوية سنوية تمنحك خصم 30% على كل طلباتك. اختر منطقتك، تصفّح الوجبات، واطلب بضغطة زر، مع دفع آمن نقداً عند الاستلام في صنعاء وبقية مناطق الجمهورية اليمنية.",
+      "منصة توفير اليمنية — اطلب وجباتك من المطاعم والمقاهي المشتركة واشترك في عضوية سنوية تمنحك خصم حتى 30% على كل طلباتك. اختر منطقتك، تصفّح الوجبات، واطلب بضغطة زر، مع دفع آمن نقداً عند الاستلام في صنعاء وبقية مناطق الجمهورية اليمنية.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
     lang: "ar",
     dir: "rtl",
-    theme_color: "#005B82",
-    background_color: "#F8F9FA",
+    theme_color: "#0A1A2F",
+    background_color: "#F7F7F7",
     categories: ["shopping", "lifestyle"],
     prefer_related_applications: false,
     icons: [
@@ -139,8 +139,8 @@ function ownerManifest() {
     orientation: "portrait",
     lang: "ar",
     dir: "rtl",
-    theme_color: "#003B55",
-    background_color: "#F8F9FA",
+    theme_color: "#0A1A2F",
+    background_color: "#F7F7F7",
     categories: ["shopping", "lifestyle"],
     prefer_related_applications: false,
     icons: [

@@ -533,7 +533,7 @@ export default function ProductDetailContent() {
                   <button
                     type="button"
                     onClick={() => router.push("/account")}
-                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:bg-accent/20"
+                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-ink transition-colors hover:bg-accent/20"
                   >
                     <Sparkles className="h-3 w-3" aria-hidden="true" />
                     اشترك لخصم {facilityRate}%

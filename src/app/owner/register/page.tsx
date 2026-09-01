@@ -40,8 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { TawfirLogo } from "@/components/shared/TawfirLogo";
+import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
@@ -205,8 +204,7 @@ function SuccessScreen({ result }: { result: OwnerRegisterResult }) {
             className="flex h-20 w-20 items-center justify-center rounded-full bg-accent/15"
           >
             <Hourglass
-              className="h-10 w-10"
-              style={{ color: "var(--accent)" }}
+              className="h-10 w-10 text-accent-ink"
               aria-hidden="true"
             />
           </motion.span>
@@ -319,88 +317,20 @@ export default function OwnerRegisterPage() {
         animate: { opacity: 1, y: 0, scale: 1 },
       };
 
-  const floatVariants = prefersReduced
-    ? { initial: { opacity: 0.15 }, animate: { opacity: 0.15 } }
-    : { initial: { opacity: 0, scale: 0.8 }, animate: { opacity: 0.15, scale: 1 } };
-
   /* ─── شاشة النجاح تحل محل النموذج — لا توجيه تلقائي ─── */
   if (successResult) {
     return (
-      <div
-        className={cn(
-          "login-ocean-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4",
-          !prefersReduced && "animate-hero-gradient"
-        )}
-      >
-        <div
-          className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0"
-          aria-hidden="true"
-        />
-        <div className="absolute left-4 top-4 z-10">
-          <ThemeToggle />
-        </div>
+      <AuthShell backHref="/owner/login">
         <SuccessScreen result={successResult} />
-      </div>
+      </AuthShell>
     );
   }
 
+  /* ✦ الجلد 2-b: قشرة AuthShell الموحّدة — كحلي غامر + هالات زمردية/ذهبية
+     + الشعار الكامل المقصوص variant=full + تاغلاين «وفّر أكثر.. عِش أجمل» */
   return (
-    <div
-      className={cn(
-        "login-ocean-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4",
-        !prefersReduced && "animate-hero-gradient"
-      )}
-    >
-      {/* زخرفة النقش */}
-      <div
-        className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0"
-        aria-hidden="true"
-      />
-
-      {/* الأشكال العائمة */}
-      <motion.div
-        className="login-blob-cyan pointer-events-none absolute -top-20 right-1/4 h-72 w-72 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.2 }}
-        aria-hidden="true"
-      />
-      <motion.div
-        className="login-blob-deep pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.5 }}
-        aria-hidden="true"
-      />
-      <motion.div
-        className="login-blob-gold pointer-events-none absolute top-1/3 left-[10%] h-48 w-48 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.8 }}
-        aria-hidden="true"
-      />
-
-      <div className="absolute left-4 top-4 z-10">
-        <ThemeToggle />
-      </div>
-
-      <div className="relative z-10 my-8 w-full max-w-md space-y-6">
-        {/* الشعار — نسخة الجوال */}
-        <div className="flex flex-col items-center gap-3 text-center md:hidden">
-          <div className="login-logo-glow">
-            <TawfirLogo variant="mark" className="h-20 w-auto" />
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold text-foreground">توفير</span>
-            <span className="text-sm text-muted-foreground">
-              سجّل متجرك وانضم لشركاء توفير
-            </span>
-          </div>
-        </div>
-
+    <AuthShell backHref="/owner/login">
+      <div className="relative z-10 my-4 w-full max-w-md space-y-6">
         {/* زر تثبيت تطبيق المالك — يعمل على صفحة التسجيل أيضاً */}
         <PWAInstallButton portal="owner" variant="full" />
 
@@ -808,16 +738,16 @@ export default function OwnerRegisterPage() {
         <div className="flex flex-col items-center gap-2">
           <Link
             href="/owner/login"
-            className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary hover:underline"
+            className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-[color:var(--logo-gold-light)] hover:underline"
           >
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
             لديك حساب؟ سجّل الدخول
           </Link>
-          <span className="text-xs text-muted-foreground/70">
+          <span className="text-xs text-white/50">
             بوابة أصحاب المتاجر — توفير
           </span>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

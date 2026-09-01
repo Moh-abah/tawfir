@@ -18,11 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { TawfirLogo } from "@/components/shared/TawfirLogo";
-import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
+import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
-import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { useCustomerAuth, useCustomerLogin } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useToast } from "@/hooks/use-toast";
@@ -99,25 +97,17 @@ function CustomerLoginForm() {
     : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <>
-      <ScreenHeader title="تسجيل الدخول" fallbackHref="/" />
-      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 py-10 pb-24 sm:py-16">
-        {/* الشعار */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <TawfirLogo className="h-14 w-auto" />
-          <TawfirPillBadge />
-        </div>
-
+    <AuthShell>
       <motion.div
         {...cardAnimation}
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full"
       >
-        <Card className="login-card-shimmer rounded-2xl border-border/60 shadow-soft-lg">
+        <Card className="login-card-shimmer rounded-2xl border-border/60 bg-card/95 shadow-soft-lg backdrop-blur-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-xl">أهلاً بك من جديد</CardTitle>
             <CardDescription>
-              أدخل بياناتك للوصول إلى بطاقتك وحسابك
+              أدخل بياناتك للوصول إلى بطاقتك وحسابك — وفّر أكثر.. عِش أجمل
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -198,26 +188,25 @@ function CustomerLoginForm() {
         </Card>
       </motion.div>
 
-      <div className="flex flex-col items-center gap-3">
-        <p className="text-sm text-muted-foreground">
+      <div className="flex w-full flex-col items-center gap-3">
+        <p className="text-sm text-white/70">
           ليس لديك حساب؟{" "}
           <Link
             href="/register"
-            className="font-bold text-secondary hover:underline"
+            className="font-bold text-[color:var(--logo-gold-light)] hover:underline"
           >
             سجّل الآن
           </Link>
         </p>
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للرئيسية
         </Link>
       </div>
-    </div>
-    </>
+    </AuthShell>
   );
 }
 

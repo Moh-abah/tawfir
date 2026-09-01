@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/shared/PasswordInput";
-import { TawfirLogo } from "@/components/shared/TawfirLogo";
-import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
+import { AuthShell } from "@/components/shared/AuthShell";
 import { authFlowService } from "@/services/auth-flow.service";
 import { useToast } from "@/hooks/use-toast";
 
@@ -58,13 +57,8 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-6 px-4 py-10 sm:py-16">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <TawfirLogo className="h-14 w-auto" />
-        <TawfirPillBadge />
-      </div>
-
-      <Card className="w-full rounded-2xl border-border/60 shadow-soft-lg">
+    <AuthShell backHref="/login">
+      <Card className="w-full rounded-2xl border-border/60 bg-card/95 shadow-soft-lg backdrop-blur-sm">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">تعيين كلمة مرور جديدة</CardTitle>
           <CardDescription>
@@ -151,12 +145,12 @@ function ResetPasswordForm() {
 
       <Link
         href="/login"
-        className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         العودة لتسجيل الدخول
       </Link>
-    </div>
+    </AuthShell>
   );
 }
 

@@ -13,8 +13,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
  * يخدمها Service Worker عند تعذر تحميل صفحة غير مخزنة بلا اتصال.
  * مسبقة التخزين عند تثبيت العامل — تعمل بلا شبكة بالكامل.
  *
- * الرسالة: التطبيق يفتح بدون إنترنت ويعرض آخر بيانات شوهدت.
- * العمليات (طلب/اشتراك/دخول) تتطلب اتصالاً.
+
  */
 export default function OfflinePage() {
   const prefersReduced = usePrefersReducedMotion();
@@ -24,7 +23,7 @@ export default function OfflinePage() {
     : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <div className="login-ocean-bg relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden p-6">
+    <div className="login-navy-bg relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden p-6">
       {/* زخرفة النقش */}
       <div
         className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0"
@@ -42,16 +41,13 @@ export default function OfflinePage() {
         </div>
 
         <div className="space-y-3">
-          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-card/90 shadow-soft">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-white/10 shadow-soft">
             <WifiOff className="h-7 w-7 text-accent" aria-hidden="true" />
           </span>
-          <h1 className="text-2xl font-extrabold text-foreground">
+          <h1 className="text-2xl font-extrabold text-white">
             أنت غير متصل
           </h1>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            التطبيق يفتح بدون إنترنت ويعرض آخر بيانات شوهدت. العمليات
-            (طلب/اشتراك/دخول) تتطلب اتصالاً.
-          </p>
+
         </div>
 
         <div className="flex w-full flex-col gap-3">
@@ -65,7 +61,7 @@ export default function OfflinePage() {
           <Button
             asChild
             variant="outline"
-            className="min-h-[44px] w-full gap-2 rounded-full border-border/60 bg-card/90"
+            className="min-h-[44px] w-full gap-2 rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white"
           >
             <Link href="/">
               <Home className="h-4 w-4" aria-hidden="true" />
@@ -74,8 +70,8 @@ export default function OfflinePage() {
           </Button>
         </div>
 
-        <p className="text-xs text-muted-foreground/70">
-          توفير — حياة أجمل.. مع خصومات أكثر
+        <p className="text-xs text-white/60">
+          توفير — وفّر أكثر.. عِش أجمل
         </p>
       </motion.div>
     </div>

@@ -42,12 +42,12 @@ export async function generateMetadata({
     title: `${product.name} | توفير`,
     description:
       product.description ??
-      `${product.name} — اطلب من منصة توفير واستفد من خصم 30% إن كنت عضواً`,
+      `${product.name} — اطلب من منصة توفير واستفد من خصم حتى 30% إن كنت عضواً`,
     openGraph: {
       title: `${product.name} | توفير`,
       description:
         product.description ??
-        `${product.name} — اطلب من منصة توفير واستفد من خصم 30% إن كنت عضواً`,
+        `${product.name} — اطلب من منصة توفير واستفد من خصم حتى 30% إن كنت عضواً`,
       type: "website",
     },
   };

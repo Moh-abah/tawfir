@@ -55,7 +55,7 @@ function facilityStatus(f: Facility): {
 
 const TONE_CLASS: Record<"success" | "warning" | "destructive", string> = {
   success: "bg-success/15 text-success",
-  warning: "bg-accent/15 text-accent",
+  warning: "bg-accent/15 text-accent-ink",
   destructive: "bg-destructive/15 text-destructive",
 };
 
@@ -259,7 +259,7 @@ export default function OwnerSettingsPage() {
             />
             <IosRow
               icon={CalendarDays}
-              iconClass="bg-accent/15 text-accent"
+              iconClass="bg-accent/15 text-accent-ink"
               title="تاريخ الإنشاء"
               value={formatDate(account.created_at)}
               trailing="none"
@@ -370,7 +370,7 @@ export default function OwnerSettingsPage() {
         />
         <IosRow
           icon={MapPin}
-          iconClass="bg-accent/15 text-accent"
+          iconClass="bg-accent/15 text-accent-ink"
           title="الموقع"
           value="الجمهورية اليمنية — صنعاء"
           trailing="none"

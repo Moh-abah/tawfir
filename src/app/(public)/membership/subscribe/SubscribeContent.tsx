@@ -338,7 +338,7 @@ function AlreadyMember() {
           أنت عضو بالفعل!
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          عضويتك في توفير مفعّلة. استمتع بخصم 30% على كل طلباتك القادمة.
+          عضويتك في توفير مفعّلة. استمتع بخصم حتى 30% على كل طلباتك القادمة.
         </p>
       </div>
 
@@ -478,7 +478,7 @@ function SubscribeForm({
           اشترك في عضوية توفير
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          مبلغ سنوي ثابت {formatCurrency(amount)} · خصم 30% على كل الوجبات
+          مبلغ سنوي ثابت {formatCurrency(amount)} · خصم حتى 30% على كل الوجبات
         </p>
       </header>
 
@@ -494,7 +494,7 @@ function SubscribeForm({
             }}
           >
             <Sparkles className="h-3 w-3" aria-hidden="true" />
-            خصم 30%
+            خصم حتى 30%
           </span>
           <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-foreground">
             موافقة يدوية خلال 24-48 ساعة

@@ -82,7 +82,7 @@ function GuestAccount() {
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               سجّل الدخول لعرض بطاقتك وطلباتك، أو أنشئ حساباً جديداً
-              واشترك في عضوية توفير لتحصل على خصم 30%.
+              واشترك في عضوية توفير لتحصل على خصم حتى 30%.
             </p>
           </div>
           <div className="flex w-full flex-col gap-3">
@@ -294,7 +294,7 @@ function MyDataCard({ me }: { me: MeOut }) {
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
-            <Phone className="h-5 w-5 shrink-0 text-accent" aria-hidden="true" />
+            <Phone className="h-5 w-5 shrink-0 text-accent-ink" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-xs text-muted-foreground">رقم الجوال</p>
               <p dir="ltr" className="truncate text-left text-sm font-bold text-foreground">
@@ -438,7 +438,7 @@ function NoMembershipState({ me }: { me: MeOut }) {
               ليس لديك عضوية بعد
             </h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground leading-relaxed">
-              اشترك في عضوية توفير السنوية واحصل على خصم 30% على كل طلباتك.
+              اشترك في عضوية توفير السنوية واحصل على خصم حتى 30% على كل طلباتك.
               مبلغ 3000 ر.ي سنوياً، موافقة يدوية خلال 24-48 ساعة.
             </p>
           </div>

@@ -155,7 +155,7 @@ function ReceiptPaper({ order }: { order: OrderOut }) {
             إيصال طلب
           </h2>
           <p className="text-[10px] font-medium text-muted-foreground">
-            حياة أجمل.. مع خصومات أكثر
+            وفّر أكثر.. عِش أجمل
           </p>
         </div>
 

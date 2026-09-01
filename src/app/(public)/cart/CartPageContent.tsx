@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
-  Banknote,
   CheckCircle2,
   Loader2,
   MapPin,
@@ -17,22 +16,18 @@ import {
   Sparkles,
   Store,
   Trash2,
-  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { DeliveryFields } from "@/components/public/DeliveryFields";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
 import { useCartStore } from "@/store/cart.store";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { haptic } from "@/lib/haptic";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
 
@@ -73,7 +68,10 @@ export function CartPageContent() {
   const { accessToken, hydrated } = useCustomerAuth();
   const createOrder = useCreateOrder();
 
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -94,8 +92,11 @@ export function CartPageContent() {
           product_id: i.product_id,
           quantity: i.quantity,
         })),
+        delivery_lat: lat,
+        delivery_lng: lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        notes: notes.trim() || null,
       },
       {
         onSuccess: (data) => {
@@ -148,7 +149,7 @@ export function CartPageContent() {
                   href="/offers"
                   className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
                 >
-                  <Sparkles className="h-4 w-4 text-accent" aria-hidden="true" />
+                  <Sparkles className="h-4 w-4 text-accent-ink" aria-hidden="true" />
                   العروض الخاصة
                 </Link>
               </div>
@@ -241,47 +242,23 @@ export function CartPageContent() {
                 بيانات الطلب
               </h2>
 
-              <div className="space-y-2">
-                <Label htmlFor="page-cart-address" className="text-xs font-bold">
-                  عنوان التوصيل (اختياري)
-                </Label>
-                <Textarea
-                  id="page-cart-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="الحي / الشارع / معلّم مميّز..."
-                  className="min-h-[72px] resize-none"
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">طريقة الدفع</Label>
-                <RadioGroup
-                  value={paymentMethod}
-                  onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                  className="grid grid-cols-2 gap-2"
-                >
-                  {[
-                    { value: "cash", label: "نقداً عند الاستلام", icon: Banknote },
-                    { value: "wallet", label: "محفظة جيب", icon: Wallet },
-                  ].map(({ value, label, icon: Icon }) => (
-                    <label
-                      key={value}
-                      className={cn(
-                        "native-tap flex min-h-[48px] cursor-pointer items-center gap-2 rounded-xl border-2 px-3 text-xs font-bold transition-colors",
-                        paymentMethod === value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border/50 text-muted-foreground hover:border-primary/40"
-                      )}
-                    >
-                      <RadioGroupItem value={value} className="sr-only" />
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {label}
-                    </label>
-                  ))}
-                </RadioGroup>
-              </div>
+              {/* موقع التوصيل + طريقة الدفع + ملاحظات — نفس حقول CheckoutSheet (2-c) */}
+              <DeliveryFields
+                lat={lat}
+                lng={lng}
+                onLocated={(la, ln) => {
+                  setLat(la);
+                  setLng(ln);
+                }}
+                address={address}
+                onAddressChange={setAddress}
+                notes={notes}
+                onNotesChange={setNotes}
+                paymentMethod={paymentMethod}
+                onPaymentMethodChange={setPaymentMethod}
+                variant="plain"
+                idPrefix="page-cart-"
+              />
 
               {!isLoggedIn && (
                 <div
@@ -578,14 +555,14 @@ function MembershipUpsell({ savings }: { savings: number }) {
     >
       <div className="flex min-w-0 items-center gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent/15 transition-transform group-hover:scale-105">
-          <Sparkles className="h-5 w-5 text-accent" aria-hidden="true" />
+          <Sparkles className="h-5 w-5 text-accent-ink" aria-hidden="true" />
         </span>
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-foreground">
             وفّر {formatCurrency(savings)} على هذا الطلب
           </p>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            اشترك بالعضوية واحصل على خصم 30% على كل وجباتك.
+            اشترك بالعضوية واحصل على خصم حتى 30% على كل وجباتك.
           </p>
         </div>
       </div>

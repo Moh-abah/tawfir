@@ -155,7 +155,7 @@ function OfferCard({
           {/* شارة النشاط */}
           <div className="absolute top-3 right-3">
             {isActive ? (
-              <Badge className="bg-emerald-600 text-white border-transparent shadow-md">
+              <Badge className="bg-success text-primary-foreground border-transparent shadow-md">
                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
                 نشط
               </Badge>

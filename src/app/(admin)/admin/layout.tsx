@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AdminAuthGuard } from "@/components/admin/AdminAuthGuard";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import {
   AdminSidebar,
   AdminMobileSidebar,
 } from "@/components/layout/AdminSidebar";
+import { AdminMobileBottomNav } from "@/components/layout/AdminMobileBottomNav";
 import {
   Dialog,
   DialogContent,
@@ -101,19 +103,26 @@ export default function AdminLayout({
   return (
     <AdminAuthGuard>
       <div className="flex min-h-screen flex-col">
-        {/* Mobile top bar */}
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-card px-4 lg:hidden">
+        {/* Mobile top bar — ✦ 4-a: رمز الشعار المقصوص بجانب العنوان */}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-2 border-b bg-card px-3 lg:hidden">
           <Button
             variant="ghost"
             size="icon"
             aria-label="فتح القائمة"
             onClick={toggleSidebar}
-            className="h-9 w-9"
+            className="h-9 w-9 shrink-0"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="text-sm font-semibold">توفير — لوحة التحكم</span>
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+            <TawfirLogo
+              variant="mark"
+              href=""
+              className="shrink-0 [&_img]:!h-7 [&_img]:!w-auto"
+            />
+            <span className="truncate text-sm font-semibold">توفير — لوحة التحكم</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
             {/* جرس الإشعارات الحقيقي — GET /notifications/unread-count */}
             <NotificationBell variant="header" />
             <ThemeToggle />
@@ -126,12 +135,16 @@ export default function AdminLayout({
           <AdminSidebar />
           <main className="no-mobile-scrollbar flex-1 overflow-x-hidden">
             <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
-              {children}
+              {/* ✦ 4-a: مساحة سفلية للموبايل كي لا يغطي الشريط السفلي أي عنصر أبداً */}
+              <div className="pb-24 lg:pb-8">{children}</div>
             </div>
           </main>
         </div>
 
         <AdminMobileSidebar />
+
+        {/* ✦ 4-a: شريط تنقّل سفلي للموبايل (lg:hidden داخلياً) — «المزيد» يفتح AdminMobileSidebar */}
+        <AdminMobileBottomNav onOpenMenu={toggleSidebar} />
 
           {/* Keyboard Shortcuts Dialog */}
         <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>

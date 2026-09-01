@@ -97,7 +97,7 @@ export default function PrivacyPage() {
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
       {/* ترويسة بالهوية */}
-      <header className="gradient-ocean relative overflow-hidden rounded-2xl">
+      <header className="gradient-emerald relative overflow-hidden rounded-2xl">
         <div className="relative z-10 flex flex-col items-center gap-4 px-6 py-10 text-center">
           <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
             <TawfirLogo className="h-12 w-auto" onDark />
@@ -153,7 +153,7 @@ export default function PrivacyPage() {
         >
           <h2 className="flex items-center gap-3 text-lg font-bold text-foreground">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/15">
-              <Phone className="h-5 w-5 text-accent" aria-hidden="true" />
+              <Phone className="h-5 w-5 text-accent-ink" aria-hidden="true" />
             </span>
             للطلب أو الاستفسار
           </h2>

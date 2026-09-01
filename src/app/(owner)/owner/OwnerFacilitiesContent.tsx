@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   ShoppingBag,
   BadgePercent,
+  ArrowLeft,
 } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { useOwnerProducts } from "@/hooks/useOwnerProducts";
 import { useOwnerOrders } from "@/hooks/useOwnerOrders";
+import { useOwnerStats } from "@/hooks/useOwnerStats";
 import { useOwnerAuth } from "@/hooks/useOwnerAuth";
 import { useAccountMe } from "@/hooks/useAccountMe";
 import { ownerService } from "@/services/owner.service";
@@ -47,6 +49,23 @@ const FACILITY_TYPE_LABELS: Record<string, string> = {
   restaurant: "مطعم",
   cafe: "مقهى",
 };
+
+/** ✦ 4-b: تحية زمنية — نفس أسلوب هيرو الأدمن للاتساق. */
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "صباح الخير";
+  return "مساء الخير";
+}
+
+/** ✦ 4-b: تاريخ اليوم بالعربية (نفس صيغة هيرو الأدمن). */
+function getFormattedToday(): string {
+  return new Date().toLocaleDateString("ar-SA", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
 
 /** يحدد بداية اليوم الحالي بالمللي ثانية. */
 function startOfToday(): number {
@@ -666,6 +685,10 @@ function MobileOwnerDashboard({
   const me = useAccountMe("owner", hydrated && !!accessToken);
   const ownerName = me.data?.full_name?.trim() || "";
 
+  // ✦ 4-b: نفس queryKey الموحّد في OwnerStatsGrid — بلا طلب إضافي
+  const { data: stats, isLoading: statsLoading } = useOwnerStats(facilityId);
+  const todayOrders = stats?.today_orders ?? 0;
+
   // المتجر المُختار (الأول الموافق عليه عادةً)
   const facility = facilities.find((f) => f.id === facilityId) ?? facilities[0];
   const isPending =
@@ -686,39 +709,82 @@ function MobileOwnerDashboard({
       transition={{ duration: 0.3 }}
       aria-label="لوحة المالك المختصرة"
     >
-      {/* بطاقة الترحيب — اسم المالك + حالة المتجر */}
-      <div className="rounded-2xl border border-border/60 bg-gradient-to-l from-primary/10 to-secondary/10 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">أهلاً،</p>
-            <p className="truncate text-lg font-bold text-foreground">
-              {ownerName || facility.name || "مالك المتجر"}
-            </p>
-          </div>
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
-              isPending &&
-                "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-              isRejected && "bg-destructive/10 text-destructive",
-              !isPending && !isRejected && "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-            )}
-          >
+      {/* ═══ ✦ 4-b: هيرو Billboard موبايل — نمط Netflix فوق الكحلي الرسمي
+          + هالات الهوية (نفس بنية هيرو الأدمن للاتساق) ═══ */}
+      <section
+        className="login-navy-bg relative overflow-hidden rounded-2xl"
+        aria-label="ملخص اليوم"
+      >
+        <div
+          className="login-blob-emerald pointer-events-none absolute -start-20 -top-24 h-56 w-56 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="login-blob-gold pointer-events-none absolute -end-16 -bottom-24 h-52 w-52 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative p-5">
+          <p className="text-xs font-medium text-white/70">{getFormattedToday()}</p>
+          <h2 className="mt-1 truncate text-2xl font-black text-white">
+            {getGreeting()}
+            {ownerName ? `، ${ownerName}` : ""}
+          </h2>
+
+          {/* اسم أول متجر + حالة الموافقة */}
+          <div className="mt-3 flex items-center gap-2">
+            <span
+              className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-white"
+            >
+              <Store className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">{facility.name}</span>
+            </span>
             <span
               className={cn(
-                "inline-block h-2 w-2 rounded-full",
-                isPending && "bg-amber-500",
-                isRejected && "bg-destructive",
-                !isPending && !isRejected && "bg-emerald-500",
+                "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                isPending && "bg-accent text-accent-foreground",
+                isRejected && "bg-destructive text-white",
+                !isPending && !isRejected && "bg-primary text-primary-foreground",
               )}
-              aria-hidden="true"
-            />
-            {isPending ? "معلّق" : isRejected ? "مرفوض" : "موافق عليها"}
-          </span>
-        </div>
-      </div>
+            >
+              <span
+                className={cn(
+                  "inline-block h-2 w-2 rounded-full",
+                  isPending && "bg-accent-foreground/70",
+                  isRejected && "bg-white/80",
+                  !isPending && !isRejected && "bg-white/80",
+                )}
+                aria-hidden="true"
+              />
+              {isPending ? "معلّق" : isRejected ? "مرفوض" : "موافق عليها"}
+            </span>
+          </div>
 
-      {/* شبكة 2×2 إحصائيات */}
+          {/* أبرز رقم: طلبات اليوم + CTA زمردي */}
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-white/70">طلبات اليوم</p>
+              {statsLoading ? (
+                <Skeleton className="mt-1 h-11 w-24 bg-white/10" />
+              ) : (
+                <p className="text-5xl font-black leading-tight tabular-nums text-white">
+                  {todayOrders}
+                </p>
+              )}
+            </div>
+            <Link
+              href={`/owner/facilities/${facilityId}/orders`}
+              className="shrink-0"
+            >
+              <Button className="min-h-[44px] gap-1.5 rounded-full font-semibold">
+                إدارة الطلبات
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* شبكة الإحصاءات — صف snap أفقي نمط Netflix */}
       <OwnerStatsGrid facilityId={facilityId} />
 
       {/* أدوات سريعة 4× */}
@@ -800,7 +866,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
                 )}
                 {isApproved && (
                   <Badge
-                    className="gap-1 border-transparent bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    className="gap-1 border-transparent bg-success/15 text-success hover:bg-success/15 dark:bg-success/20 dark:text-success"
                   >
                     <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                     موافق عليها
@@ -850,8 +916,7 @@ function FacilityCard({ facility }: { facility: Facility }) {
             role="status"
           >
             <Hourglass
-              className="mt-0.5 h-5 w-5 shrink-0"
-              style={{ color: "var(--accent)" }}
+              className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink"
               aria-hidden="true"
             />
             <p className="text-sm leading-relaxed text-foreground">

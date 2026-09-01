@@ -156,7 +156,7 @@ function CategoryCircles({
 }
 
 /* ------------------------------------------------------------------ */
-/*  قسم Hero/CTA — MemberCard يعرض العضوية أو دعوة التسجيل             */
+/*  قسم Hero/CTA — عنوان الوعد + MemberCard يعرض العضوية أو دعوة التسجيل */
 /* ------------------------------------------------------------------ */
 function HeroSection() {
   return (
@@ -164,6 +164,7 @@ function HeroSection() {
       className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 sm:pt-10"
       aria-label="بطاقة العضوية"
     >
+
       <MemberCard />
     </section>
   );

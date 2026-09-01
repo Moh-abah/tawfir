@@ -88,32 +88,54 @@ const PAGE_SIZE = 10;
 /* ─── هيكل صف الجدول ────────────────────────────────── */
 function TableSkeleton() {
   return (
-    <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
-      <div className="overflow-x-auto no-mobile-scrollbar">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {Array.from({ length: 9 }).map((_, i) => (
-                <TableHead key={i}>
-                  <Skeleton className="h-4 w-16" />
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, r) => (
-              <TableRow key={r}>
-                {Array.from({ length: 9 }).map((_, c) => (
-                  <TableCell key={c}>
-                    <Skeleton className="h-5 w-full max-w-[120px]" />
-                  </TableCell>
+    <>
+      {/* ✦ 4-a: بطاقات هيكل الموبايل */}
+      <div className="space-y-3 md:hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-xl border bg-card p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
+            <Skeleton className="mt-3 h-14 w-full rounded-lg" />
+            <div className="mt-3 flex justify-between">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-8 w-20 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* هيكل جدول الديسكتوب */}
+      <div className="hidden overflow-hidden rounded-2xl border border-border/60 bg-card md:block">
+        <div className="overflow-x-auto no-mobile-scrollbar">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <TableHead key={i}>
+                    <Skeleton className="h-4 w-16" />
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, r) => (
+                <TableRow key={r}>
+                  {Array.from({ length: 9 }).map((_, c) => (
+                    <TableCell key={c}>
+                      <Skeleton className="h-5 w-full max-w-[120px]" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -403,6 +425,83 @@ function OrderRow({
   );
 }
 
+/* ─── ✦ 4-a: بطاقة طلب للموبايل — بلا تمرير أفقي ──── */
+function OrderCard({
+  order,
+  onViewDetails,
+}: {
+  order: OrderListOut;
+  onViewDetails: (id: number) => void;
+}) {
+  const PayIcon = PAYMENT_ICON[order.payment_method];
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">
+            <span className="font-mono text-xs text-muted-foreground" dir="ltr">
+              #{order.id}
+            </span>{" "}
+            {order.customer_name ?? `مستخدم #${order.customer_id}`}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            {order.facility_name ?? `متجر #${order.facility_id}`}
+          </p>
+        </div>
+        <Badge
+          className={cn(
+            "shrink-0 border-transparent text-xs",
+            ORDER_STATUS_TONE[order.status]
+          )}
+        >
+          {ORDER_STATUS_LABEL[order.status]}
+        </Badge>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/40 p-2.5 text-center">
+        <div>
+          <p className="text-[10px] text-muted-foreground">الفرعي</p>
+          <p className="mt-0.5 text-xs font-medium tabular-nums">
+            {formatCurrency(order.subtotal)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">التوصيل</p>
+          <p className="mt-0.5 text-xs font-medium tabular-nums">
+            {formatCurrency(order.delivery_fee)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] text-muted-foreground">الإجمالي</p>
+          <p className="mt-0.5 text-xs font-bold tabular-nums text-primary">
+            {formatCurrency(order.total)}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+        <div className="min-w-0 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <PayIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {paymentMethodLabel(order.payment_method)}
+          </span>
+          <span className="mx-1.5" aria-hidden="true">·</span>
+          {formatDate(order.created_at)}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onViewDetails(order.id)}
+          className="min-h-[36px] shrink-0 gap-1.5 rounded-full"
+        >
+          <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+          تفاصيل
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── المكوّن الرئيسي ────────────────────────────────── */
 export default function OrdersContent() {
   const prefersReduced = usePrefersReducedMotion();
@@ -619,9 +718,20 @@ export default function OrdersContent() {
           <p className="text-sm text-muted-foreground">
             عرض {items.length} من {total} طلب
           </p>
+          {/* ✦ 4-a: بطاقات مكدسة لكل طلب على الموبايل — بلا تمرير أفقي بائج */}
+          <div className="space-y-3 md:hidden" aria-label="قائمة الطلبات">
+            {items.map((o) => (
+              <OrderCard
+                key={o.id}
+                order={o}
+                onViewDetails={(id) => setDetailsId(id)}
+              />
+            ))}
+          </div>
+          {/* الجدول — ديسكتوب فقط */}
           <div
             className={cn(
-              "rounded-2xl border border-border/60 bg-card overflow-hidden shadow-soft",
+              "hidden overflow-hidden rounded-2xl border border-border/60 bg-card shadow-soft md:block",
               !prefersReduced && "transition-shadow"
             )}
           >

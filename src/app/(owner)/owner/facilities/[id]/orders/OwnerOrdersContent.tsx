@@ -131,7 +131,7 @@ function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
       <Card
         className={cn(
           "rounded-2xl border-border/60 transition-shadow hover:shadow-md",
-          isPending && "border-amber-300/60 dark:border-amber-500/40"
+          isPending && "border-accent/60 dark:border-accent/40"
         )}
       >
         <CardContent className="p-4 sm:p-5">
@@ -357,7 +357,7 @@ function MobileOrderStatusButtons({
                 isCancel
                   ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
                   : isConfirm
-                    ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
               aria-label={`تحويل الطلب ${order.id} إلى ${ORDER_STATUS_LABEL[status]}`}
@@ -399,21 +399,21 @@ function StatsBar({ orders, isLoading }: StatsBarProps) {
       icon: Hourglass,
       label: "بانتظار",
       value: pending,
-      tone: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+      tone: "bg-accent/15 text-accent-foreground dark:bg-accent/20 dark:text-accent",
     },
     {
       id: "preparing",
       icon: ChefHat,
       label: "قيد التحضير",
       value: preparing,
-      tone: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+      tone: "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
     },
     {
       id: "completed",
       icon: CheckCircle2,
       label: "مكتمل",
       value: completed,
-      tone: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+      tone: "bg-success/15 text-success dark:bg-success/20 dark:text-success",
     },
   ];
 
@@ -635,8 +635,7 @@ export default function OwnerOrdersContent() {
         >
           {isPending ? (
             <Hourglass
-              className="mt-0.5 h-5 w-5 shrink-0"
-              style={{ color: "var(--accent)" }}
+              className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink"
               aria-hidden="true"
             />
           ) : (

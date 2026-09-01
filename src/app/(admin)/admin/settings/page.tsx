@@ -211,7 +211,7 @@ export default function AdminSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="h-5 w-5 text-accent" aria-hidden="true" />
+            <Bell className="h-5 w-5 text-accent-ink" aria-hidden="true" />
             الإشعارات
           </CardTitle>
           <CardDescription>
@@ -346,7 +346,7 @@ export default function AdminSettingsPage() {
           </a>
           <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15">
-              <MapPin className="h-4 w-4 text-accent" aria-hidden="true" />
+              <MapPin className="h-4 w-4 text-accent-ink" aria-hidden="true" />
             </span>
             <div>
               <p className="text-sm font-medium text-foreground">الموقع</p>

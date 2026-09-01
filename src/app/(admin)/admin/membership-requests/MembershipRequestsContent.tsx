@@ -63,11 +63,13 @@ const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "rejected", label: MEMBERSHIP_STATUS_LABEL.rejected },
 ];
 
-/* ─── أنماط شارات الحالة (توكنات Tailwind) ─────────── */
+/* ─── أنماط شارات الحالة — توكنات هوية توفير (✦ 2-b) ── */
 const STATUS_TONE: Record<MembershipRequestStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
-  approved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
+  pending:
+    "bg-accent/15 text-accent-foreground dark:bg-accent/20 dark:text-accent",
+  approved: "bg-success/15 text-success dark:bg-success/20 dark:text-success",
+  rejected:
+    "bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive",
 };
 
 const STATUS_ICON: Record<MembershipRequestStatus, LucideIcon> = {

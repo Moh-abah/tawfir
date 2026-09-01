@@ -51,8 +51,9 @@ export function OwnerPortalShell({
             }}
           >
             <div className="mx-auto w-full max-w-7xl p-4 md:p-6">
-              {/* إضافة مساحة سفلية على الموبايل للشريط السفلي الثابت 56px */}
-              <div className="pb-16 md:pb-0">{children}</div>
+              {/* ✦ 4-b: مساحة سفلية كافية (pb-24) على الموبايل كي لا يغطي
+                  الشريط السفلي الثابت (56px + safe-area) أي زر/بطاقة أبداً */}
+              <div className="pb-24 md:pb-6">{children}</div>
             </div>
           </main>
         </div>

@@ -110,6 +110,8 @@ function FacilityImage({ src, name }: { src: string | null; name: string }) {
     <ImageWithSkeleton
       src={resolved}
       alt={name}
+      width={40}
+      height={40}
       className="h-10 w-10 shrink-0 rounded-lg"
     />
   );
@@ -360,7 +362,7 @@ export default function AdminFacilitiesPage() {
                     ) : facility.rejection_reason ? (
                       <Badge variant="destructive">مرفوضة</Badge>
                     ) : (
-                      <Badge className="bg-logo-gold/15 text-logo-gold hover:bg-logo-gold/15">
+                      <Badge className="gap-1 border-transparent bg-accent/15 text-accent-foreground hover:bg-accent/15 dark:bg-accent/20 dark:text-accent">
                         معلّقة
                       </Badge>
                     )}

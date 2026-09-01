@@ -84,9 +84,10 @@ const ACTION_STAT_CONFIGS: ActionStatConfig[] = [
     label: "طلبات عضوية معلّقة",
     href: "/admin/membership-requests",
     icon: CreditCard,
-    colorClass: "text-logo-gold",
-    bgClass: "bg-logo-gold/10",
-    borderClass: "border-logo-gold/30",
+    /* ✦ 2-b: ذهبي الهوية — «انتظار» = ذهب */
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
+    borderClass: "border-accent/30",
     actionLabel: "مراجعة",
   },
   {
@@ -94,10 +95,9 @@ const ACTION_STAT_CONFIGS: ActionStatConfig[] = [
     label: "متاجر معلّقة",
     href: "/admin/facilities/pending",
     icon: Hourglass,
-    colorClass:
-      "text-orange-600 dark:text-orange-400",
-    bgClass: "bg-orange-100 dark:bg-orange-500/15",
-    borderClass: "border-orange-300 dark:border-orange-500/30",
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
+    borderClass: "border-accent/30",
     actionLabel: "مراجعة",
   },
   {
@@ -121,52 +121,92 @@ interface ActionStatCardProps {
 function ActionStatCard({ config, isLoading, value }: ActionStatCardProps) {
   const Icon = config.icon;
   return (
-    <Card
-      className={cn(
-        "relative overflow-hidden border-l-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
-        config.borderClass,
-      )}
+    <Link
+      href={config.href}
+      className="group block h-full"
+      aria-label={`${config.label}: ${value}`}
     >
-      <div
+      <Card
         className={cn(
-          "absolute inset-0 -z-10 opacity-60",
-          config.bgClass,
+          "relative h-full overflow-hidden border-l-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
+          config.borderClass,
         )}
-        aria-hidden="true"
-      />
-      <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-        <span
+      >
+        <div
           className={cn(
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+            "absolute inset-0 -z-10 opacity-60",
             config.bgClass,
-            config.colorClass,
           )}
-        >
-          <Icon className="h-6 w-6" aria-hidden="true" />
-        </span>
-        <div className="min-w-0 flex-1">
+          aria-hidden="true"
+        />
+        {/* ✦ 4-a: موبايل — بطاقة Netflix عمودية برقم كبير (صف snap أفقي) */}
+        <CardContent className="flex h-full flex-col gap-2.5 p-4 md:hidden">
+          <div className="flex items-center justify-between">
+            <span
+              className={cn(
+                "flex h-11 w-11 items-center justify-center rounded-full",
+                config.bgClass,
+                config.colorClass,
+              )}
+            >
+              <Icon className="h-5.5 w-5.5" aria-hidden="true" />
+            </span>
+            <ArrowLeft
+              className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
+          </div>
           <p className="text-xs font-medium text-muted-foreground">
             {config.label}
           </p>
           {isLoading ? (
-            <Skeleton className="mt-1 h-8 w-16" />
+            <Skeleton className="h-10 w-16" />
           ) : (
-            <p className={cn("text-3xl font-bold tabular-nums", config.colorClass)}>
+            <p
+              className={cn(
+                "text-4xl font-bold leading-none tabular-nums",
+                config.colorClass,
+              )}
+            >
               {value}
             </p>
           )}
-        </div>
-        <Link href={config.href}>
-          <Button
-            variant="outline"
-            className="min-h-[44px] gap-1.5 rounded-full"
+          <span
+            className={cn("mt-auto pt-1 text-xs font-semibold", config.colorClass)}
           >
             {config.actionLabel}
+          </span>
+        </CardContent>
+        {/* ديسكتوب — التخطيط الأفقي كما كان */}
+        <CardContent className="hidden items-center gap-4 p-4 sm:p-5 md:flex">
+          <span
+            className={cn(
+              "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+              config.bgClass,
+              config.colorClass,
+            )}
+          >
+            <Icon className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-medium text-muted-foreground">
+              {config.label}
+            </p>
+            {isLoading ? (
+              <Skeleton className="mt-1 h-8 w-16" />
+            ) : (
+              <p className={cn("text-3xl font-bold tabular-nums", config.colorClass)}>
+                {value}
+              </p>
+            )}
+          </div>
+          <span className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border bg-background px-4 text-sm font-medium shadow-xs">
+            {config.actionLabel}
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </Link>
-      </CardContent>
-    </Card>
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -186,7 +226,7 @@ const STAT_CONFIGS: StatConfig[] = [
   { key: "regions", label: "المناطق", icon: Map, color: "text-primary", bg: "bg-primary/15", border: "border-l-primary" },
   { key: "cards", label: "البطاقات", icon: CreditCard, color: "text-secondary", bg: "bg-secondary/15", border: "border-l-secondary" },
   { key: "published_cards", label: "البطاقات المنشورة", icon: Eye, color: "text-success", bg: "bg-success/15", border: "border-l-success" },
-  { key: "facilities", label: "المتاجر", icon: Store, color: "text-accent", bg: "bg-accent/15", border: "border-l-accent" },
+  { key: "facilities", label: "المتاجر", icon: Store, color: "text-accent-ink", bg: "bg-accent/15", border: "border-l-accent" },
   { key: "customers", label: "العملاء", icon: Users, color: "text-cat-facility", bg: "bg-cat-facility/15", border: "border-l-cat-facility" },
   { key: "owners", label: "المالكون", icon: UserCog, color: "text-chart-4", bg: "bg-chart-4/15", border: "border-l-chart-4" },
   { key: "products", label: "المنتجات", icon: Package, color: "text-cat-restaurant", bg: "bg-cat-restaurant/15", border: "border-l-cat-restaurant" },
@@ -211,27 +251,27 @@ function StatCard({ config, isLoading, value, index }: StatCardProps) {
   const Icon = config.icon;
   return (
     <Card className={cn(
-      "border-l-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg",
+      "border-l-4 py-4 transition-all duration-200 hover:scale-[1.02] hover:shadow-lg sm:py-6",
       config.border,
       STAT_GRADIENTS[index % STAT_GRADIENTS.length],
     )}>
-      <CardHeader className="pb-2">
+      <CardHeader className="px-4 pb-2 sm:px-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-xs font-medium text-muted-foreground sm:text-sm">
             {config.label}
           </CardTitle>
-          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", config.bg, config.color)}>
-            <Icon className="h-4.5 w-4.5" />
+          <span className={cn("flex h-8 w-8 items-center justify-center rounded-full sm:h-9 sm:w-9", config.bg, config.color)}>
+            <Icon className="h-4 w-4 sm:h-4.5 sm:w-4.5" />
           </span>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="px-4 pt-0 sm:px-6">
         <div className="flex items-end justify-between">
           <div>
             {isLoading ? (
               <Skeleton className="h-8 w-16" />
             ) : (
-              <span className="text-3xl font-bold">
+              <span className="text-2xl font-bold tabular-nums sm:text-3xl">
                 {value === undefined ? "—" : value}
               </span>
             )}
@@ -286,7 +326,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     subtitle: "إضافة مطعم أو مقهى جديد",
     href: "/admin/facilities",
     icon: Store,
-    color: "text-accent",
+    color: "text-accent-ink",
     bg: "bg-accent/15",
   },
   {
@@ -316,7 +356,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 const ROLE_COLORS: Record<UserRole, string> = {
   admin: "bg-primary/15 text-primary border-primary/25 hover:bg-primary/15",
-  owner: "bg-accent/15 text-accent border-accent/25 hover:bg-accent/15",
+  owner: "bg-accent/15 text-accent-ink border-accent/25 hover:bg-accent/15",
   customer: "bg-secondary/15 text-secondary border-secondary/25 hover:bg-secondary/15",
 };
 
@@ -529,7 +569,8 @@ const prefersReduced = usePrefersReducedMotion();
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* ترحيب الديسكتوب — يبقى كما هو */}
+      <div className="hidden lg:block">
         <h1 className="bg-gradient-to-l from-primary to-secondary bg-clip-text text-transparent font-black text-2xl sm:text-3xl">
           {greeting}
         </h1>
@@ -538,8 +579,45 @@ const prefersReduced = usePrefersReducedMotion();
         </p>
       </div>
 
-      {/* Date range filter */}
-      <div className="flex flex-wrap items-end gap-3">
+      {/* ✦ 4-a: هيرو Billboard للموبايل — نمط Netflix فوق الكحلي الرسمي + هالات الهوية */}
+      <section
+        className="login-navy-bg relative overflow-hidden rounded-2xl lg:hidden"
+        aria-label="ملخص اليوم"
+      >
+        <div
+          className="login-blob-emerald pointer-events-none absolute -start-20 -top-24 h-56 w-56 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div
+          className="login-blob-gold pointer-events-none absolute -end-16 -bottom-24 h-52 w-52 rounded-full blur-3xl"
+          aria-hidden="true"
+        />
+        <div className="relative p-5">
+          <p className="text-xs font-medium text-white/70">{todayStr}</p>
+          <h1 className="mt-1 text-2xl font-black text-white">{greeting}</h1>
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-white/70">طلبات اليوم</p>
+              {dashLoading ? (
+                <Skeleton className="mt-1 h-11 w-24 bg-white/10" />
+              ) : (
+                <p className="text-5xl font-black leading-tight tabular-nums text-white">
+                  {actionValues.orders_today}
+                </p>
+              )}
+            </div>
+            <Link href="/admin/orders" className="shrink-0">
+              <Button className="min-h-[44px] gap-1.5 rounded-full font-semibold">
+                طلبات اليوم
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Date range filter — ✦ 4-a: سطران مرتبان على الموبايل بلا كسر */}
+      <div className="grid grid-cols-2 items-end gap-3 lg:flex lg:flex-wrap">
         <div className="space-y-1.5">
           <label htmlFor="date-from" className="text-sm text-muted-foreground">
             من تاريخ
@@ -549,7 +627,7 @@ const prefersReduced = usePrefersReducedMotion();
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="min-h-[44px] w-44"
+            className="min-h-[44px] w-full lg:w-44"
           />
         </div>
         <div className="space-y-1.5">
@@ -561,43 +639,49 @@ const prefersReduced = usePrefersReducedMotion();
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="min-h-[44px] w-44"
+            className="min-h-[44px] w-full lg:w-44"
           />
         </div>
-        <Button
-          variant="outline"
-          className="min-h-[44px] gap-2"
-          onClick={() => {
-            /* visual-only: no API call */
-          }}
-        >
-          <Filter className="h-4 w-4" />
-          تطبيق
-        </Button>
-        {(dateFrom || dateTo) && (
-          <button
-            type="button"
+        <div className="col-span-2 flex items-center gap-3 lg:col-span-1">
+          <Button
+            variant="outline"
+            className="min-h-[44px] gap-2"
             onClick={() => {
-              setDateFrom("");
-              setDateTo("");
+              /* visual-only: no API call */
             }}
-            className="min-h-[44px] inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <X className="h-3.5 w-3.5" />
-            مسح الفلتر
-          </button>
-        )}
+            <Filter className="h-4 w-4" />
+            تطبيق
+          </Button>
+          {(dateFrom || dateTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setDateFrom("");
+                setDateTo("");
+              }}
+              className="min-h-[44px] inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              مسح الفلتر
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Action stat cards — بطاقات إجرائية (عضوية معلّقة + متاجر معلّقة + طلبات اليوم) */}
+      {/* Action stat cards — ✦ 4-a: صف snap أفقي نمط Netflix على الموبايل / شبكة على الديسكتوب */}
       <motion.div
         initial="hidden"
         animate="visible"
         variants={staggerVariants}
-        className="grid gap-4 md:grid-cols-3"
+        className="no-mobile-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:pb-0"
       >
         {ACTION_STAT_CONFIGS.map((config) => (
-          <motion.div key={config.key} variants={itemVariants}>
+          <motion.div
+            key={config.key}
+            variants={itemVariants}
+            className="min-w-[220px] shrink-0 snap-start md:min-w-0"
+          >
             <ActionStatCard
               config={config}
               isLoading={actionLoading[config.key]}
@@ -611,7 +695,7 @@ const prefersReduced = usePrefersReducedMotion();
         initial="hidden"
         animate="visible"
         variants={staggerVariants}
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
+        className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4"
       >
         {STAT_CONFIGS.map((config, index) => (
           <motion.div key={config.key} variants={itemVariants}>
@@ -663,22 +747,26 @@ const prefersReduced = usePrefersReducedMotion();
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
+      {/* Quick Actions — ✦ 4-a: صف snap أفقي ثانٍ على الموبايل / شبكة على sm+ */}
       <div>
         <h2 className="mb-3 text-lg font-semibold">إجراءات سريعة</h2>
         <motion.div
           initial="hidden"
           animate="visible"
           variants={staggerVariants}
-          className="grid gap-4 sm:grid-cols-3"
+          className="no-mobile-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:pb-0"
         >
           {QUICK_ACTIONS.map((action) => {
             const Icon = action.icon;
             return (
-              <motion.div key={action.href} variants={itemVariants}>
-                <Link href={action.href}>
-                  <Card className="group cursor-pointer transition-transform duration-200 hover:scale-[1.02]">
-                    <CardContent className="flex items-center gap-4 p-4">
+              <motion.div
+                key={action.href}
+                variants={itemVariants}
+                className="min-w-[200px] shrink-0 snap-start sm:min-w-0"
+              >
+                <Link href={action.href} className="block h-full">
+                  <Card className="group h-full cursor-pointer transition-transform duration-200 hover:scale-[1.02]">
+                    <CardContent className="flex items-center gap-3 p-4 sm:gap-4">
                       <span className={cn(
                         "flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition-transform duration-200 group-hover:scale-110",
                         action.bg,
@@ -692,7 +780,7 @@ const prefersReduced = usePrefersReducedMotion();
                           {action.subtitle}
                         </p>
                       </div>
-                      <ArrowLeft className="mr-auto h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                      <ArrowLeft className="mr-auto hidden h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:block" />
                     </CardContent>
                   </Card>
                 </Link>
@@ -706,7 +794,7 @@ const prefersReduced = usePrefersReducedMotion();
       <div className="relative rounded-xl p-[1.5px] bg-gradient-to-l from-primary via-secondary to-accent">
         <Card className="rounded-[10px] bg-card border-0">
           <CardContent className="flex items-start gap-3 p-4 sm:p-5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent-ink">
               <Lightbulb className="h-5 w-5" />
             </span>
             <div>
@@ -794,6 +882,8 @@ const prefersReduced = usePrefersReducedMotion();
                       <ImageWithSkeleton
                         src={resolveImageUrl(facility.image_url)}
                         alt={facility.name}
+                        width={40}
+                        height={40}
                         className="h-10 w-10 shrink-0 rounded-lg"
                       />
                     ) : (

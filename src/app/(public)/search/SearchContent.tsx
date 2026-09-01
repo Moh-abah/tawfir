@@ -9,6 +9,7 @@ import {
   Clock,
   Flame,
   History,
+  ListFilter,
   Loader2,
   Search,
   SearchX,
@@ -31,6 +32,14 @@ import {
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import {
+  SearchFiltersSheet,
+  DEFAULT_SEARCH_FILTERS,
+  countActiveFilters,
+  isPriceInRange,
+  isDistanceInRange,
+  type SearchFilters,
+} from "@/components/public/SearchFiltersSheet";
 import { useProducts } from "@/hooks/useProducts";
 import { useFacilities } from "@/hooks/useFacilities";
 import { useSpecialOffers } from "@/hooks/useSpecialOffers";
@@ -158,6 +167,10 @@ export function SearchContent() {
    * لا تُكتب قيمة الحقل برمجياً أبداً إلا بفعل المستخدم (رقاقة/مسح). */
   const [searchInput, setSearchInput] = useState(() => searchParams.get("q") ?? "");
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
+  /* فلاتر النتائج — Sheet من SearchFiltersSheet (الترتيب/السعر/التصنيف/المسافة) */
+  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_SEARCH_FILTERS);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = countActiveFilters(filters);
   const debouncedSearch = useDebounce(searchInput, 350);
   const trimmedSearch = debouncedSearch.trim();
   const isSearching = trimmedSearch.length >= 1;
@@ -210,8 +223,38 @@ export function SearchContent() {
   const offersLoading = isSearching && offersQuery.isLoading;
   const anyLoading =
     (activeTab === "all" || activeTab === "products") && productsLoading;
+
+  /* ═══ تطبيق فلاتر Sheet على النتائج (الوجبات + المتاجر) ═══
+   * السعر/المسافة/التوفر/التصنيف على الوجبات؛ التصنيف على المتاجر. */
+  const visibleProducts = useMemo(() => {
+    let list = products.filter((p) => {
+      if (filters.availableOnly && (!p.is_available || p.available_quantity === 0))
+        return false;
+      if (!isPriceInRange(parseFloat(p.price) || 0, filters.price)) return false;
+      if (filters.category !== "all" && p.facility.type !== filters.category)
+        return false;
+      if (!isDistanceInRange(p.distance_km, filters.distance)) return false;
+      return true;
+    });
+    if (filters.sort === "price_asc")
+      list = [...list].sort((a, b) => (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0));
+    else if (filters.sort === "price_desc")
+      list = [...list].sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
+    else if (filters.sort === "name")
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ar"));
+    return list;
+  }, [products, filters]);
+
+  const visibleFacilities = useMemo(
+    () =>
+      filters.category === "all"
+        ? matchedFacilities
+        : matchedFacilities.filter((f) => f.type === filters.category),
+    [matchedFacilities, filters.category]
+  );
+
   const totalResults =
-    products.length + matchedFacilities.length + matchedOffers.length;
+    visibleProducts.length + visibleFacilities.length + matchedOffers.length;
 
   /* ═══ الجولة 17 — اقتراحات ذكية عند فراغ النتائج ═══
    * عند عدم وجود أي نتائج: نستعلم عن الوجبات المتاحة (بلا كلمة بحث)
@@ -300,8 +343,8 @@ export function SearchContent() {
   /* عدد النتائج لكل تبويب (للشارات) */
   const tabCounts: Record<SearchTab, number> = {
     all: totalResults,
-    products: products.length,
-    facilities: matchedFacilities.length,
+    products: visibleProducts.length,
+    facilities: visibleFacilities.length,
     offers: matchedOffers.length,
   };
 
@@ -389,6 +432,29 @@ export function SearchContent() {
                     </button>
                   );
                 })}
+                {/* زر الفلاتر — يفتح Sheet الفلاتر (ترتيب/سعر/تصنيف/مسافة) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    haptic("tick");
+                    setFiltersOpen(true);
+                  }}
+                  aria-label="تصفية النتائج وترتيبها"
+                  className={cn(
+                    "native-tap inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-all duration-150",
+                    activeFilterCount > 0
+                      ? "border-primary bg-primary/10 text-primary shadow-soft"
+                      : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  )}
+                >
+                  <ListFilter className="h-3.5 w-3.5" aria-hidden="true" />
+                  فلترة
+                  {activeFilterCount > 0 && (
+                    <span className="rounded-full bg-primary px-1.5 text-[10px] font-extrabold tabular-nums text-primary-foreground">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -493,7 +559,7 @@ export function SearchContent() {
                 {/* الوجبات (أقصى 6) */}
                 <ResultSection
                   title="وجبات"
-                  count={products.length}
+                  count={visibleProducts.length}
                   icon={UtensilsCrossed}
                   onShowAll={() => setActiveTab("products")}
                 >
@@ -506,13 +572,13 @@ export function SearchContent() {
                         <ProductCardSkeleton key={i} />
                       ))}
                     </div>
-                  ) : products.length === 0 ? (
+                  ) : visibleProducts.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-                      لا توجد وجبات تطابق «{trimmedSearch}»
+                      لا توجد وجبات تطابق «{trimmedSearch}» بفلاتر الحالية
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
-                      {products.slice(0, 6).map((p) => (
+                      {visibleProducts.slice(0, 6).map((p) => (
                         <ProductCard key={p.id} product={p} />
                       ))}
                     </div>
@@ -522,7 +588,7 @@ export function SearchContent() {
                 {/* المتاجر (أقصى 3) */}
                 <ResultSection
                   title="متاجر"
-                  count={matchedFacilities.length}
+                  count={visibleFacilities.length}
                   icon={Store}
                   onShowAll={() => setActiveTab("facilities")}
                 >
@@ -532,13 +598,13 @@ export function SearchContent() {
                         <Skeleton key={i} className="h-[76px] w-full rounded-xl" />
                       ))}
                     </div>
-                  ) : matchedFacilities.length === 0 ? (
+                  ) : visibleFacilities.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-                      لا توجد متاجر تطابق «{trimmedSearch}»
+                      لا توجد متاجر تطابق «{trimmedSearch}» بفلاتر الحالية
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {matchedFacilities.slice(0, 3).map((f) => (
+                      {visibleFacilities.slice(0, 3).map((f) => (
                         <FacilityResultRow key={f.id} facility={f} />
                       ))}
                     </div>
@@ -743,15 +809,26 @@ export function SearchContent() {
                       <ProductCardSkeleton key={i} />
                     ))}
                   </div>
-                ) : products.length === 0 ? (
+                ) : visibleProducts.length === 0 ? (
                   <EmptyState
                     icon={UtensilsCrossed}
                     title="لا توجد وجبات مطابقة"
-                    description={`لا توجد وجبات تطابق «${trimmedSearch}». جرّب كلمة أخرى.`}
+                    description={`لا توجد وجبات تطابق «${trimmedSearch}» بفلاتر البحث الحالية. جرّب كلمة أخرى أو خفّف الفلاتر.`}
+                    action={
+                      activeFilterCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setFilters(DEFAULT_SEARCH_FILTERS)}
+                          className="native-tap inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
+                        >
+                          إزالة الفلاتر
+                        </button>
+                      ) : undefined
+                    }
                   />
                 ) : (
                   <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
-                    {products.map((p) => (
+                    {visibleProducts.map((p) => (
                       <ProductCard key={p.id} product={p} />
                     ))}
                   </div>
@@ -768,7 +845,7 @@ export function SearchContent() {
                       <Skeleton key={i} className="h-[76px] w-full rounded-xl" />
                     ))}
                   </div>
-                ) : matchedFacilities.length === 0 ? (
+                ) : visibleFacilities.length === 0 ? (
                   <EmptyState
                     icon={Store}
                     title="لا توجد متاجر مطابقة"
@@ -784,7 +861,7 @@ export function SearchContent() {
                   />
                 ) : (
                   <div className="space-y-2">
-                    {matchedFacilities.map((f) => (
+                    {visibleFacilities.map((f) => (
                       <FacilityResultRow key={f.id} facility={f} />
                     ))}
                   </div>
@@ -837,6 +914,15 @@ export function SearchContent() {
           </div>
         )}
       </div>
+
+      {/* Sheet الفلاتر — ترتيب/سعر/تصنيف/مسافة/توفر */}
+      <SearchFiltersSheet
+        open={filtersOpen}
+        onOpenChange={setFiltersOpen}
+        filters={filters}
+        onChange={setFilters}
+        resultCount={totalResults}
+      />
 
       {/* CheckoutSheet مشترك لعروض البحث */}
       <CheckoutSheet

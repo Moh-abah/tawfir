@@ -75,9 +75,15 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  /* الجولة 15 — صفحة الإيصال (/orders/{id}/receipt): عرض مستندي مركّز
-     بلا ذيل ولا شريط تنقل سفلي — لها شريط إجراءات خاص (مشاركة/طباعة) */
+
   const isReceiptRoute = /^\/orders\/\d+\/receipt$/.test(pathname ?? "");
+
+  /* شاشات الدخول الثلاث (دخول/تسجيل/استعادة): تجربة غامرة بهوية توفير —
+     AuthShell يوفر خلفية كحلية + شعار + زر رجوع، فتُخفى كل قواقع
+     التطبيق (بتر الترحيب/الهيدر/الفوتر/التنقل/شريط السلة) */
+  const isAuthRoute = /^\/(login|register|reset-password)\/?$/.test(
+    pathname ?? ""
+  );
 
   /* ترطيب المنطقة المثبتة بعد التركيب (بلا اختلاف ترطيب SSR) —
      يجعل التطبيق يفتح أوفلاين على آخر منطقة تصفحها المستخدم */
@@ -93,22 +99,27 @@ export default function PublicLayout({
   }, []);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-background text-foreground">
+    <div
+      className={cn(
+        "flex min-h-[100dvh] flex-col bg-background text-foreground",
+        isAuthRoute && "bg-transparent"
+      )}
+    >
       <IosSplashLinks />
-      <WelcomeBanner />
-      <MainHeader />
+      {!isAuthRoute && <WelcomeBanner />}
+      {!isAuthRoute && <MainHeader />}
       <main
         className={cn(
           "flex-1 pb-28 md:pb-0",
-          isReceiptRoute && "pb-0 md:pb-0",
+          (isReceiptRoute || isAuthRoute) && "pb-0 md:pb-0",
         )}
       >
         <PageTransition>{children}</PageTransition>
       </main>
-      {!isReceiptRoute && <Footer />}
-      {!isReceiptRoute && <MobileBottomNav />}
+      {!isReceiptRoute && !isAuthRoute && <Footer />}
+      {!isReceiptRoute && !isAuthRoute && <MobileBottomNav />}
       {/* الجولة 11 — شريط سلة عائم (يظهر عند وجود أصناف في السلة) */}
-      {!isReceiptRoute && <StickyMiniCart />}
+      {!isReceiptRoute && !isAuthRoute && <StickyMiniCart />}
       {!isReceiptRoute && <ScrollToTop />}
       <CookieConsent />
     </div>

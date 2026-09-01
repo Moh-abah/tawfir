@@ -127,7 +127,7 @@ function PendingFacilityCard({
           </div>
         </div>
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15">
-          <Hourglass className="h-4 w-4 text-accent" aria-hidden="true" />
+          <Hourglass className="h-4 w-4 text-accent-ink" aria-hidden="true" />
         </span>
       </div>
 
@@ -252,7 +252,7 @@ export default function AdminPendingFacilitiesPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-foreground">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15">
-              <Hourglass className="h-5 w-5 text-accent" aria-hidden="true" />
+              <Hourglass className="h-5 w-5 text-accent-ink" aria-hidden="true" />
             </span>
             طلبات المتاجر المعلّقة
           </h1>

@@ -189,7 +189,7 @@ export default function AdminCardsPage() {
           <Badge variant="outline" className="gap-1 px-3 py-1 text-xs bg-success/10 text-success border-success/25">
             {publishedCount} منشورة
           </Badge>
-          <Badge variant="outline" className="gap-1 px-3 py-1 text-xs bg-accent/10 text-accent border-accent/25">
+          <Badge variant="outline" className="gap-1 px-3 py-1 text-xs bg-accent/10 text-accent-ink border-accent/25">
             {draftCount} مسودة
           </Badge>
         </div>

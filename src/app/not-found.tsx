@@ -21,7 +21,7 @@ export default function NotFound() {
     <div className="relative flex min-h-[100dvh] flex-col items-center justify-center gap-6 px-4 text-center overflow-hidden">
       {/* Glowing radial gradient behind 404 */}
       <div
-        className="glow-ocean pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[40px]"
+        className="glow-emerald pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[40px]"
       />
 
       {/* Animated floating particles */}

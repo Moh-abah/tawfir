@@ -19,9 +19,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
-import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
+import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { RegionSelector } from "@/components/public/RegionSelector";
 import { useRegionStore } from "@/store/region.store";
@@ -87,7 +87,7 @@ function getPasswordStrength(password: string): {
 
 const STYLES: Record<string, { bar: string; text: string }> = {
   weak: { bar: "bg-destructive", text: "text-destructive" },
-  medium: { bar: "bg-accent", text: "text-accent" },
+  medium: { bar: "bg-accent", text: "text-accent-ink" },
   strong: { bar: "bg-success", text: "text-success" },
 };
 
@@ -184,7 +184,7 @@ function SuccessScreen({ data }: { data: RegisterOut }) {
         className="mb-8 rounded-2xl border border-border/60 p-5 text-center shadow-soft"
         style={{
           background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--logo-gold) 12%, transparent), color-mix(in srgb, var(--logo-blue) 8%, transparent))",
+            "linear-gradient(135deg, color-mix(in srgb, var(--logo-gold) 12%, transparent), color-mix(in srgb, var(--logo-emerald) 8%, transparent))",
         }}
       >
         <div className="mb-3 flex items-center justify-center">
@@ -198,7 +198,7 @@ function SuccessScreen({ data }: { data: RegisterOut }) {
           </span>
         </div>
         <h2 className="mb-1 text-lg font-extrabold text-foreground">
-          اشترك في عضوية توفير لخصم 30%
+          اشترك في عضوية توفير لخصم حتى 30%
         </h2>
         <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
           مبلغ سنوي ثابت 3000 ر.ي، موافقة يدوية خلال 24-48 ساعة.
@@ -350,7 +350,7 @@ function FormProgressBar({ progress }: { progress: number }) {
 
 /* ─── Decorative Side Panel ──────────────────────── */
 const BENEFITS = [
-  "خصم 30% على جميع المتاجر المشتركة",
+  "خصم حتى 30% على جميع المتاجر المشتركة",
   "بطاقة عضوية رقمية بعد الموافقة اليدوية",
   "عروض حصرية ومزايا مميزة",
 ];
@@ -365,19 +365,18 @@ function DecorativeSidePanel() {
     <motion.div
       {...anim}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="hidden lg:flex flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10 p-10 text-center"
+      className="hidden lg:flex flex-col items-center justify-center rounded-2xl border border-white/15 bg-white/5 p-10 text-center backdrop-blur-md"
     >
-      <TawfirLogo className="mb-6 h-14 w-auto" />
-      <h2 className="mb-2 text-2xl font-extrabold text-foreground">انضم لعائلة توفير</h2>
-      <p className="mb-6 max-w-xs text-sm text-muted-foreground">
+      <h2 className="mb-2 text-2xl font-extrabold text-white">انضم لعائلة توفير</h2>
+      <p className="mb-6 max-w-xs text-sm text-white/70">
         سجّل الآن واحصل على بطاقة خصم تنفعك في عشرات المتاجر
       </p>
-      <TawfirPillBadge className="mb-8" />
+      <TawfirPillBadge className="mb-8 border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-none" />
       <ul className="space-y-4 text-right">
         {BENEFITS.map((benefit) => (
-          <li key={benefit} className="flex items-center gap-3 text-sm text-foreground">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary/15">
-              <Check className="h-3.5 w-3.5 text-secondary" />
+          <li key={benefit} className="flex items-center gap-3 text-sm text-white">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--logo-gold)]/20">
+              <Check className="h-3.5 w-3.5 text-[color:var(--logo-gold-light)]" />
             </span>
             {benefit}
           </li>
@@ -455,12 +454,9 @@ export default function RegisterPage() {
   /* شاشة النجاح — لا توجيه تلقائي لـ /login */
   if (successData) {
     return (
-      <>
-        <ScreenHeader title="تسجيل العضوية" fallbackHref="/" />
-        <div className="mx-auto w-full max-w-md px-4 py-10">
-          <SuccessScreen data={successData} />
-        </div>
-      </>
+      <AuthShell>
+        <SuccessScreen data={successData} />
+      </AuthShell>
     );
   }
 
@@ -469,20 +465,18 @@ export default function RegisterPage() {
     : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } };
 
   return (
-    <>
-      <ScreenHeader title="تسجيل العضوية" fallbackHref="/" />
-      <div className="mx-auto w-full max-w-6xl px-4 py-10">
-        <motion.div
-          className="mb-8 space-y-2 text-center"
-          {...formAnimation}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <p className="text-sm text-muted-foreground">
-            انضم إلى توفير واحصل على بطاقة خصم 30%
-          </p>
-        </motion.div>
+    <AuthShell wide>
+      <motion.div
+        className="mb-8 space-y-2 text-center"
+        {...formAnimation}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+      >
+        <p className="text-sm font-medium text-white/80">
+          انضم إلى توفير — كل وجباتك.. بخصم حتى {DISCOUNT_RATE}%
+        </p>
+      </motion.div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-5">
+      <div className="grid w-full grid-cols-1 gap-8 lg:grid-cols-5">
         <div className="hidden lg:block lg:col-span-2">
           <DecorativeSidePanel />
         </div>
@@ -616,7 +610,7 @@ export default function RegisterPage() {
                 لديك حساب بالفعل؟{" "}
                 <Link
                   href="/login"
-                  className="font-medium text-secondary hover:underline"
+                  className="font-bold text-primary hover:underline"
                 >
                   تسجيل الدخول
                 </Link>
@@ -629,13 +623,12 @@ export default function RegisterPage() {
       <div className="mt-6 text-center">
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-secondary hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 hover:underline"
         >
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للرئيسية
         </Link>
       </div>
-    </div>
-    </>
+    </AuthShell>
   );
 }

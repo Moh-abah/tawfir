@@ -219,7 +219,7 @@ const prefersReduced = usePrefersReducedMotion();
     const statusColor = isSuccess
       ? "text-secondary"
       : isPartial
-        ? "text-accent"
+        ? "text-accent-ink"
         : "text-destructive";
 
     return (
@@ -253,7 +253,7 @@ const prefersReduced = usePrefersReducedMotion();
                 {isSuccess ? (
                   <CheckCircle2 className="h-16 w-16 text-secondary" />
                 ) : isPartial ? (
-                  <AlertCircle className="h-16 w-16 text-accent" />
+                  <AlertCircle className="h-16 w-16 text-accent-ink" />
                 ) : (
                   <XCircle className="h-16 w-16 text-destructive" />
                 )}
@@ -263,7 +263,7 @@ const prefersReduced = usePrefersReducedMotion();
                 <p className="mt-2 text-sm text-muted-foreground">
                   تم استيراد <strong>{result.imported_count}</strong> منتج
                   {result.errors.length > 0 && (
-                    <span className="text-accent">
+                    <span className="text-accent-ink">
                       {" "}مع <strong>{result.errors.length}</strong> خطأ
                     </span>
                   )}
@@ -426,7 +426,7 @@ const prefersReduced = usePrefersReducedMotion();
       <Card className="rounded-xl border-border/50">
         <CardContent className="flex items-start gap-3 p-4">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10">
-            <Info className="h-5 w-5 text-accent" />
+            <Info className="h-5 w-5 text-accent-ink" />
           </div>
           <div>
             <p className="font-semibold">القواعد:</p>

@@ -8,7 +8,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
 import { ArrowRight, Building2, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -20,8 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { TawfirLogo } from "@/components/shared/TawfirLogo";
+import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
@@ -84,197 +82,123 @@ function OwnerLoginForm() {
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 24, scale: 0.97 }, animate: { opacity: 1, y: 0, scale: 1 } };
 
-  const floatVariants = prefersReduced
-    ? { initial: { opacity: 0.15 }, animate: { opacity: 0.15 } }
-    : {
-      initial: { opacity: 0, scale: 0.8 },
-      animate: { opacity: 0.15, scale: 1 },
-    };
-
+  /* ✦ الجلد 2-b: قشرة AuthShell الموحّدة — كحلي غامر + هالات زمردية/ذهبية
+     + الشعار الكامل المقصوص variant=full + تاغلاين «وفّر أكثر.. عِش أجمل» */
   return (
-    <div
-      className={cn(
-        "login-ocean-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4",
-        !prefersReduced && "animate-hero-gradient"
-      )}
-    >
-      {/* Hero pattern overlay */}
-      <div className="hero-pattern-overlay pointer-events-none absolute inset-0 z-0" aria-hidden="true" />
+    <AuthShell backHref="/">
+      {/* h1 لكل صفحة — الوصولية */}
+      <h1 className="sr-only">تسجيل الدخول — بوابة مالكي المتاجر</h1>
+      {/* زر تثبيت تطبيق المالك — فوق نموذج الدخول */}
+      <PWAInstallButton portal="owner" variant="full" />
 
-      {/* Floating decorative shapes */}
+      {/* بطاقة الدخول */}
       <motion.div
-        className="login-blob-cyan pointer-events-none absolute -top-20 right-1/4 h-72 w-72 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.2 }}
-        aria-hidden="true"
-      />
-      <motion.div
-        className="login-blob-deep pointer-events-none absolute -bottom-32 left-1/4 h-80 w-80 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.5 }}
-        aria-hidden="true"
-      />
-      <motion.div
-        className="login-blob-gold pointer-events-none absolute top-1/3 left-[10%] h-48 w-48 rounded-full"
-        variants={floatVariants}
-        initial="initial"
-        animate="animate"
-        transition={{ duration: 2, delay: 0.8 }}
-        aria-hidden="true"
-      />
+        {...cardAnimation}
+        transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+        className="w-full"
+      >
+        <Card className="login-card-shimmer rounded-2xl border-border/60 bg-card/95 shadow-soft-lg backdrop-blur-sm">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl">بوابة المالك</CardTitle>
+            <CardDescription>
+              تسجيل دخول أصحاب المتاجر — وفّر أكثر.. عِش أجمل
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+              <div className="space-y-2">
+                <Label htmlFor="identifier">البريد الإلكتروني أو اسم المستخدم</Label>
+                <Input
+                  id="identifier"
+                  autoComplete="email"
+                  autoFocus
+                  dir="ltr"
+                  {...register("identifier")}
+                />
+                {formState.errors.identifier && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {formState.errors.identifier.message}
+                  </p>
+                )}
+              </div>
 
-      <div className="absolute left-4 top-4 z-10">
-        <ThemeToggle />
-      </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">كلمة المرور</Label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
+                  >
+                    نسيت كلمة المرور؟
+                  </button>
+                </div>
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  dir="ltr"
+                  {...register("password")}
+                />
+                {formState.errors.password && (
+                  <p className="text-xs text-destructive" role="alert">
+                    {formState.errors.password.message}
+                  </p>
+                )}
+              </div>
 
-      <div className="relative z-10 w-full max-w-sm space-y-6">
-        {/* زر تثبيت تطبيق المالك — فوق نموذج الدخول */}
-        <PWAInstallButton portal="owner" variant="full" />
+              {/* حوار استعادة كلمة المرور — POST /auth/forgot-password */}
+              <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
 
-        {/* Logo with glow — floating on desktop */}
-        <div className={cn(
-          "flex flex-col items-center gap-3 text-center",
-          !prefersReduced && "hidden md:flex",
-          prefersReduced && "flex"
-        )}>
-          <div className={cn(
-            "flex flex-col items-center gap-3 text-center",
-            !prefersReduced && "animate-float"
-          )}>
-            <div className="login-logo-glow">
-              <TawfirLogo className="h-24 w-auto" />
-            </div>
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                  aria-label="تذكرني"
+                />
+                <Label htmlFor="remember-me" className="text-sm cursor-pointer select-none">
+                  تذكرني (7 أيام)
+                </Label>
+              </div>
 
-          </div>
-        </div>
+              <Button
+                type="submit"
+                className="w-full min-h-[44px] rounded-full"
+                disabled={login.isPending}
+              >
+                {login.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                {login.isPending ? "جارٍ الدخول..." : "تسجيل الدخول"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
 
-        {/* Mobile logo without float */}
-        <div className={cn(
-          "flex flex-col items-center gap-3 text-center",
-          prefersReduced && "hidden",
-          !prefersReduced && "flex md:hidden"
-        )}>
-          <div className="login-logo-glow">
-            <TawfirLogo variant="mark" className="h-24 w-auto" />
-          </div>
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-2xl font-bold text-foreground">توفير</span>
-            <span className="text-sm text-muted-foreground">لوحة تحكم أصحاب المتاجر</span>
-          </div>
-        </div>
-
-        {/* Login Card */}
-        <motion.div
-          {...cardAnimation}
-          transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+      {/* روابط سفلية فوق الكحلي — أبيض/ذهبي هوية */}
+      <div className="flex w-full flex-col items-center gap-3">
+        <Link
+          href="/"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
         >
-          {/* ✅ تعديل الكارد: border و bg إلى توكنات دلالية */}
-          <Card className="border-border/50 bg-card/95 shadow-2xl backdrop-blur-xl login-card-shimmer">
-            <CardHeader className="text-center">
-              <CardTitle>بوابة المالك</CardTitle>
-              <CardDescription>تسجيل دخول صاحب المتجر</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="identifier">البريد الإلكتروني أو اسم المستخدم</Label>
-                  <Input
-                    id="identifier"
-                    autoComplete="email"
-                    autoFocus
-                    dir="ltr"
-                    {...register("identifier")}
-                  />
-                  {formState.errors.identifier && (
-                    <p className="text-xs text-destructive" role="alert">
-                      {formState.errors.identifier.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">كلمة المرور</Label>
-                    <button
-                      type="button"
-                      onClick={() => setForgotOpen(true)}
-                      className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
-                    >
-                      نسيت كلمة المرور؟
-                    </button>
-                  </div>
-                  <PasswordInput
-                    id="password"
-                    autoComplete="current-password"
-                    dir="ltr"
-                    {...register("password")}
-                  />
-                  {formState.errors.password && (
-                    <p className="text-xs text-destructive" role="alert">
-                      {formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* حوار استعادة كلمة المرور — POST /auth/forgot-password */}
-                <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
-
-                {/* Remember Me Checkbox */}
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="remember-me"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked === true)}
-                    aria-label="تذكرني"
-                  />
-                  <Label htmlFor="remember-me" className="text-sm cursor-pointer select-none">
-                    تذكرني (7 أيام)
-                  </Label>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full min-h-[44px] rounded-full"
-                  disabled={login.isPending}
-                >
-                  {login.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
-                  {login.isPending ? "جارٍ الدخول..." : "تسجيل الدخول"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <div className="flex flex-col items-center gap-2">
-          {/* ✅ روابط الأسفل: استبدال text-white/70 و hover:text-white */}
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground min-h-[44px]"
-          >
-            <ArrowRight className="h-4 w-4" />
-            العودة للرئيسية
-          </Link>
-          {/* تسجيل متجر جديد — لمن لديه متجر وغير مسجل */}
-          <Link
-            href="/owner/register"
-            className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-primary hover:underline"
-          >
-            <Building2 className="h-4 w-4" aria-hidden="true" />
-            لديك متجر وليس لديك حساب؟ سجّل متجرك
-          </Link>
-          {/* ✅ النص السفلي: استبدال text-white/50 */}
-          <span className="text-xs text-muted-foreground/70">
-            بوابة أصحاب المتاجر — توفير
-          </span>
-        </div>
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          العودة للرئيسية
+        </Link>
+        {/* تسجيل متجر جديد — لمن لديه متجر وغير مسجل */}
+        <Link
+          href="/owner/register"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-[color:var(--logo-gold-light)] hover:underline"
+        >
+          <Building2 className="h-4 w-4" aria-hidden="true" />
+          لديك متجر وليس لديك حساب؟ سجّل متجرك
+        </Link>
+        <span className="text-xs text-white/50">
+          بوابة أصحاب المتاجر — توفير
+        </span>
       </div>
-    </div>
+    </AuthShell>
   );
 }
 
@@ -284,5 +208,4 @@ export default function OwnerLoginPage() {
       <OwnerLoginForm />
     </Suspense>
   );
-
 }

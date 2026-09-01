@@ -906,13 +906,13 @@ const prefersReduced = usePrefersReducedMotion();
               className={cn(
                 "rounded-2xl border border-s-4 p-4",
                 product.is_available
-                  ? "border-s-emerald-500"
+                  ? "border-s-success"
                   : "border-s-muted-foreground/30"
               )}
               style={{
                 borderInlineStartWidth: "4px",
                 borderInlineStartColor: product.is_available
-                  ? "var(--color-emerald-500)"
+                  ? "var(--success)"
                   : "color-mix(in srgb, var(--muted-foreground) 30%, transparent)",
               }}
             >

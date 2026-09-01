@@ -35,6 +35,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
   --color-primary-deep: var(--primary-deep);
+  --color-accent-ink: var(--accent-ink);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -43,20 +44,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-
-  /* ── Category palette (facility types) ── */
+  --color-gold: var(--logo-gold);
+  --color-gold-light: var(--logo-gold-light);
+  --color-emerald-brand: var(--logo-emerald);
+  --color-teal-brand: var(--logo-teal);
+  --color-navy-brand: var(--logo-navy);
   --color-cat-restaurant: var(--cat-restaurant);
-  --color-cat-restaurant-soft: var(--cat-restaurant-soft);
   --color-cat-cafe: var(--cat-cafe);
-  --color-cat-cafe-soft: var(--cat-cafe-soft);
   --color-cat-facility: var(--cat-facility);
-  --color-cat-facility-soft: var(--cat-facility-soft);
-
-  /* ── Logo brand palette ── */
-  --color-logo-gold: var(--logo-gold);
-  --color-logo-blue: var(--logo-blue);
-  --color-logo-cyan: var(--logo-cyan);
-  --color-logo-white: var(--logo-white);
 
   /* ── Soft brand shadows ── */
   --shadow-soft: var(--shadow-soft);
@@ -67,131 +62,151 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Light Mode — Tawfir Ocean Identity
-   Primary: #005B82 (Deep Ocean) → Deep: #003B55
-   Secondary: #00A3E0 (Bright Cyan) | Accent: #FFA800 (Warm Gold)
+   Light Mode — الهوية الرسمية المعتمدة (لوحة توفير الخمسة):
+   • كحلي #0A1A2F (حبر/خلفيات داكنة) • فيروزي #0D3B3B (ثانوي)
+   • زمردي #10B981 (أساسي) • ذهبي #D4AF37 (تمييزي) • أوف-وايت #F7F7F7 (خلفية)
+   الوضع الفاتح يستخدم درجات معتمة من الزمرد/الذهب لضمان AA كنص
+   (الألوان الخمسة تظهر حرفية في الملء/التدرجات/الوضع الداكن)
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --radius: 0.75rem;
-  --background: #F8F9FA;
-  --foreground: #1D2D44;
-  --card: #FFFFFF;
-  --card-foreground: #1D2D44;
-  --popover: #FFFFFF;
-  --popover-foreground: #1D2D44;
-  --primary: #005B82;
-  --primary-foreground: #FFFFFF;
-  --primary-deep: #003B55;
-  --secondary: #00A3E0;
-  --secondary-foreground: #FFFFFF;
-  --muted: #F0F2F5;
-  --muted-foreground: #718096;
-  --accent: #FFA800;
-  --accent-foreground: #FFFFFF;
-  --destructive: #DC2626;
-  --success: #16A34A;
-  --border: #E6EAF0;
-  --input: #E6EAF0;
-  --ring: #005B82;
+  /* لوحة توفير الرسمية الخمسة */
+  --brand-navy: #0A1A2F;
+  --brand-teal: #0D3B3B;
+  --brand-emerald: #10B981;
+  --brand-gold: #D4AF37;
+  --brand-paper: #F7F7F7;
 
-  /* Charts derived from the ocean palette */
-  --chart-1: #005B82;
-  --chart-2: #00A3E0;
-  --chart-3: #FFA800;
-  --chart-4: #0E7BA6;
-  --chart-5: #8B5CF6;
+  --background: #F7F7F7;
+  --foreground: #0A1A2F;
+  --card: #FFFFFF;
+  --card-foreground: #0A1A2F;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A1A2F;
+  /* درجة زمردية معتمة من #10B981 (نص 4.77:1 على F7F7F7، أبيض عليها 5.11:1) */
+  --primary: #0E7D62;
+  --primary-foreground: #FFFFFF;
+  --primary-deep: #0B6B54;
+  /* الفيروزي الرسمي حرفياً — كنص 11.5:1 وكملء مع أبيض 12.3:1 */
+  --secondary: #0D3B3B;
+  --secondary-foreground: #F7F7F7;
+  --muted: color-mix(in srgb, #0A1A2F 5%, #FFFFFF);
+  --muted-foreground: color-mix(in srgb, #0A1A2F 72%, #FFFFFF);
+  /* الذهب الرسمي للملء (نص داكن عليه 8.15:1) + درجة حبرية للنصوص الذهبية (4.57:1) */
+  --accent: #D4AF37;
+  --accent-foreground: #241A05;
+  --accent-ink: #8A6D1F;
+  --destructive: #DC2626;
+  --success: #0E7D62;
+  --border: color-mix(in srgb, #0A1A2F 11%, #FFFFFF);
+  --input: color-mix(in srgb, #0A1A2F 15%, #FFFFFF);
+  --ring: #0E7D62;
+
+  /* Charts — درجات من اللوحة الرسمية كافية للتباين على الفاتح */
+  --chart-1: #0E7D62;
+  --chart-2: #0F8A6B;
+  --chart-3: #B08A24;
+  --chart-4: #0C414D;
+  --chart-5: #0D3B3B;
 
   /* Sidebar – light */
   --sidebar: #FFFFFF;
-  --sidebar-foreground: #1D2D44;
-  --sidebar-primary: #005B82;
+  --sidebar-foreground: #0A1A2F;
+  --sidebar-primary: #0E7D62;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E5F3F9;
-  --sidebar-accent-foreground: #005B82;
-  --sidebar-border: #E6EAF0;
-  --sidebar-ring: #005B82;
+  --sidebar-accent: color-mix(in srgb, #10B981 12%, #FFFFFF);
+  --sidebar-accent-foreground: #0B6B54;
+  --sidebar-border: color-mix(in srgb, #0A1A2F 11%, #FFFFFF);
+  --sidebar-ring: #0E7D62;
 
-  /* Facility category colors (light alpha) */
-  --cat-restaurant: #FFA800;
-  --cat-restaurant-soft: color-mix(in srgb, #FFA800 13%, transparent);
-  --cat-cafe: #00A3E0;
-  --cat-cafe-soft: color-mix(in srgb, #00A3E0 13%, transparent);
-  --cat-facility: #8B5CF6;
-  --cat-facility-soft: color-mix(in srgb, #8B5CF6 13%, transparent);
+  /* Facility category colors — درجات نصية AA من الذهب/الفيروزي */
+  --cat-restaurant: #8A6D1F;
+  --cat-restaurant-soft: color-mix(in srgb, #D4AF37 15%, transparent);
+  --cat-cafe: #0F766E;
+  --cat-cafe-soft: color-mix(in srgb, #0D3B3B 12%, transparent);
+  --cat-facility: #0D3B3B;
+  --cat-facility-soft: color-mix(in srgb, #0D3B3B 12%, transparent);
 
-  /* Logo brand colors (identity-stable, slight dark adaptation) */
-  --logo-gold: #FFA800;
-  --logo-blue: #005B82;
-  --logo-cyan: #00A3E0;
+  /* Logo brand colors — لوحة توفير الرسمية الخمسة */
+  --logo-emerald: #10B981;
+  --logo-teal: #0F766E;
+  --logo-gold: #D4AF37;
+  --logo-gold-light: #E9CB7A;
+  --logo-navy: #0A1A2F;
   --logo-white: #FFFFFF;
 
   /* Soft brand shadows */
-  --shadow-soft: 0 4px 10px rgba(29, 45, 68, 0.05);
-  --shadow-soft-lg: 0 8px 24px rgba(29, 45, 68, 0.08);
+  --shadow-soft: 0 4px 10px rgba(10, 26, 47, 0.05);
+  --shadow-soft-lg: 0 8px 24px rgba(10, 26, 47, 0.08);
 }
 
-
 [data-theme="dark"] {
-  --logo-blue: #6BB8E8;
-  /* لون فاتح يظهر على خلفيات داكنة */
+  --logo-emerald: #10B981;
+  /* الزمرد الرسمي ساطع بذاته على الداكن — لا يحتاج تعتيم */
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Dark Mode — Tawfir Ocean Identity
-   Primary: #0E7BA6 (brighter ocean for dark bg) → Deep: #062A3D
-   Background: #0F1B2A (deep navy) | Card: #16263B
+   Dark Mode — اللوحة الرسمية على وضعها الأفضل:
+   كحلي #0A1A2F خلفية + فيروزي #0D3B3B سطح البطاقات
+   + زمردي #10B981 أساسي حرفياً + ذهبي #D4AF37 تمييزياً حرفياً
    ═══════════════════════════════════════════════════════════════ */
 .dark {
-  --background: #0F1B2A;
-  --foreground: #F1F5F9;
-  --card: #16263B;
-  --card-foreground: #F1F5F9;
-  --popover: #16263B;
-  --popover-foreground: #F1F5F9;
-  --primary: #0E7BA6;
-  --primary-foreground: #FFFFFF;
-  --primary-deep: #062A3D;
-  --secondary: #38B6E8;
-  --secondary-foreground: #062A3D;
-  --muted: #1A2B40;
-  --muted-foreground: #8DA0BC;
-  --accent: #FFB833;
-  --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
-  --success: #22C55E;
-  --border: #22354E;
-  --input: #22354E;
-  --ring: #0E7BA6;
+  --background: #0A1A2F;
+  --foreground: #F7F7F7;
+  --card: #0D3B3B;
+  --card-foreground: #F7F7F7;
+  --popover: #0D3B3B;
+  --popover-foreground: #F7F7F7;
+  /* الزمرد الرسمي حرفياً — نص داكن زمردي عليه 7.46:1 */
+  --primary: #10B981;
+  --primary-foreground: #04140E;
+  --primary-deep: #0D6154;
+  /* درجة فيروزية ساطعة من #0D3B3B للنصوص/الأزرار على الداكن (~7:1) */
+  --secondary: #2DD4BF;
+  --secondary-foreground: #04231F;
+  --muted: color-mix(in srgb, #F7F7F7 8%, #0D3B3B);
+  --muted-foreground: color-mix(in srgb, #F7F7F7 68%, #0A1A2F);
+  /* الذهبي الرسمي حرفياً — 8.31:1 على الكحلي */
+  --accent: #D4AF37;
+  --accent-foreground: #241A05;
+  --accent-ink: #D4AF37;
+  --destructive: #F87171;
+  --success: #10B981;
+  --border: color-mix(in srgb, #F7F7F7 14%, #0D3B3B);
+  --input: color-mix(in srgb, #F7F7F7 18%, #0D3B3B);
+  --ring: #10B981;
 
-  /* Charts – darker-friendly variants */
-  --chart-1: #0E7BA6;
-  --chart-2: #38B6E8;
-  --chart-3: #FFB833;
-  --chart-4: #FFA800;
-  --chart-5: #A78BFA;
+  /* Charts — درجات ساطعة من اللوحة على الكحلي/الفيروزي */
+  --chart-1: #10B981;
+  --chart-2: #D4AF37;
+  --chart-3: #2DD4BF;
+  --chart-4: #88E3D8;
+  --chart-5: #E9CB7A;
 
-  /* Sidebar – dark */
-  --sidebar: #122238;
-  --sidebar-foreground: #F1F5F9;
-  --sidebar-primary: #0E7BA6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #14304A;
-  --sidebar-accent-foreground: #F1F5F9;
-  --sidebar-border: #22354E;
-  --sidebar-ring: #0E7BA6;
+  /* Sidebar – dark (مزيج كحلي/فيروزي أعمق من البطاقات) */
+  --sidebar: color-mix(in srgb, #0D3B3B 35%, #0A1A2F);
+  --sidebar-foreground: #F7F7F7;
+  --sidebar-primary: #10B981;
+  --sidebar-primary-foreground: #04140E;
+  --sidebar-accent: color-mix(in srgb, #10B981 14%, #0A1A2F);
+  --sidebar-accent-foreground: #F7F7F7;
+  --sidebar-border: color-mix(in srgb, #F7F7F7 14%, #0D3B3B);
+  --sidebar-ring: #10B981;
 
-  /* Facility category colors (higher alpha for dark clarity) */
-  --cat-restaurant: #FFA800;
-  --cat-restaurant-soft: color-mix(in srgb, #FFA800 22%, transparent);
-  --cat-cafe: #00A3E0;
-  --cat-cafe-soft: color-mix(in srgb, #00A3E0 22%, transparent);
-  --cat-facility: #8B5CF6;
-  --cat-facility-soft: color-mix(in srgb, #8B5CF6 22%, transparent);
+  /* Facility category colors (ساطعة للوضوح على الداكن) */
+  --cat-restaurant: #D4AF37;
+  --cat-restaurant-soft: color-mix(in srgb, #D4AF37 22%, transparent);
+  --cat-cafe: #2DD4BF;
+  --cat-cafe-soft: color-mix(in srgb, #2DD4BF 22%, transparent);
+  --cat-facility: #14B8A6;
+  --cat-facility-soft: color-mix(in srgb, #14B8A6 22%, transparent);
 
-  /* Logo brand colors adapted for dark surfaces */
-  --logo-gold: #FFB833;
-  --logo-blue: #38B6E8;
-  --logo-cyan: #00A3E0;
+  /* Logo brand colors — اللوحة الرسمية كما هي (ساطعة على الداكن) */
+  --logo-emerald: #10B981;
+  --logo-teal: #2DD4BF;
+  --logo-gold: #D4AF37;
+  --logo-gold-light: #E9CB7A;
+  --logo-navy: #0A1A2F;
   --logo-white: #FFFFFF;
 
   /* Deeper shadows for dark mode */
@@ -221,12 +236,12 @@
 
   ::selection {
     background: var(--primary);
-    color: #FFFFFF;
+    color: var(--primary-foreground);
   }
 
   input:focus,
   textarea:focus {
-    box-shadow: 0 0 0 3px rgba(0, 91, 130, 0.12);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
   }
 
   /* Custom scrollbar */
@@ -275,46 +290,75 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Brand identity gradients & login backdrops (ocean identity)
+   Brand identity gradients & login backdrops (هوية زمردية-ذهبية-كحلية)
    ═══════════════════════════════════════════════════════════════ */
 
 /* Membership card / «لماذا توفير» gradient — token-based, present in both modes */
+.gradient-emerald {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+}
+
+/* الاسم القديم محفوظ كاسم بديل (توافق) — نفس التدرج الزمردي */
 .gradient-ocean {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
 }
 
-/* Admin / Owner login backdrop — deep ocean gradient (identity-stable) */
-.login-ocean-bg {
+/* Admin / Owner login backdrop — deep navy gradient (official #0A1A2F family) */
+.login-navy-bg {
   background: linear-gradient(135deg,
-      #062A3D 0%,
-      #003B55 28%,
-      #005B82 50%,
-      #003B55 72%,
-      #062A3D 100%);
+      #071426 0%,
+      #0A1A2F 32%,
+      #0C2C36 55%,
+      #0A1A2F 78%,
+      #071426 100%);
   background-size: 300% 300%;
 }
 
-/* Floating login glow blobs */
-.login-blob-cyan {
-  background: radial-gradient(circle, rgba(56, 182, 232, 0.26) 0%, transparent 70%);
+/* الاسم القديم محفوظ كاسم بديل (توافق) — نفس خلفية الكحلي الرسمية */
+.login-ocean-bg {
+  background: linear-gradient(135deg,
+      #071426 0%,
+      #0A1A2F 32%,
+      #0C2C36 55%,
+      #0A1A2F 78%,
+      #071426 100%);
+  background-size: 300% 300%;
 }
 
-.login-blob-deep {
-  background: radial-gradient(circle, rgba(14, 123, 166, 0.30) 0%, transparent 70%);
+/* Floating login glow blobs — official palette */
+.login-blob-emerald {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.24) 0%, transparent 70%);
+}
+
+.login-blob-teal {
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, transparent 70%);
 }
 
 .login-blob-gold {
-  background: radial-gradient(circle, rgba(255, 168, 0, 0.14) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.16) 0%, transparent 70%);
 }
 
-/* Soft ocean glow (decorative halos) */
+/* أسماء قديمة محفوظة كأسماء بديلة (توافق) */
+.login-blob-cyan {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.24) 0%, transparent 70%);
+}
+
+.login-blob-deep {
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.2) 0%, transparent 70%);
+}
+
+/* Soft emerald glow (decorative halos) */
+.glow-emerald {
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.13) 0%, transparent 70%);
+}
+
 .glow-ocean {
-  background: radial-gradient(circle, rgba(0, 163, 224, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.13) 0%, transparent 70%);
 }
 
 /* Logo glow on dark backdrops */
 .login-logo-glow {
-  filter: drop-shadow(0 0 24px rgba(0, 163, 224, 0.45));
+  filter: drop-shadow(0 0 24px rgba(16, 185, 129, 0.45));
 }
 
 /* Shimmer sweep across the membership card */
@@ -387,11 +431,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 91, 130, 0.4);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 40%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 0 8px rgba(0, 91, 130, 0);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 0%, transparent);
   }
 }
 
@@ -531,11 +575,11 @@
 }
 
 .card-glow:hover {
-  box-shadow: 0 0 20px -5px rgba(0, 91, 130, 0.18);
+  box-shadow: 0 0 20px -5px color-mix(in srgb, var(--primary) 18%, transparent);
 }
 
 .dark .card-glow:hover {
-  box-shadow: 0 0 24px -5px rgba(56, 182, 232, 0.18);
+  box-shadow: 0 0 24px -5px color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 /* Glass card utility */
@@ -625,7 +669,8 @@
   border-radius: 0 4px 4px 0;
   animation: nprogress-loading 0.8s ease-in-out forwards;
   pointer-events: none;
-  box-shadow: 0 0 12px rgba(0, 91, 130, 0.5), 0 0 4px rgba(0, 91, 130, 0.3);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--primary) 50%, transparent),
+    0 0 4px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 
 .nprogress-bar::after {
@@ -772,11 +817,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 0 1px var(--border), 0 0 0 0 rgba(0, 91, 130, 0);
+    box-shadow: 0 0 0 1px var(--border), 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 0 1px var(--primary), 0 0 8px 0 rgba(0, 91, 130, 0.15);
+    box-shadow: 0 0 0 1px var(--primary), 0 0 8px 0 color-mix(in srgb, var(--primary) 18%, transparent);
   }
 }
 
@@ -824,7 +869,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, transparent 40%, rgba(0, 91, 130, 0.03) 50%, transparent 60%);
+  background: linear-gradient(135deg, transparent 40%, color-mix(in srgb, var(--primary) 4%, transparent) 50%, transparent 60%);
   background-size: 200% 200%;
   animation: login-border-shimmer 3s ease infinite;
   pointer-events: none;
@@ -840,7 +885,11 @@
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(90deg, transparent, rgba(0, 91, 130, 0.15), rgba(0, 163, 224, 0.15), transparent);
+  background: linear-gradient(90deg,
+      transparent,
+      color-mix(in srgb, var(--primary) 16%, transparent),
+      color-mix(in srgb, var(--secondary) 16%, transparent),
+      transparent);
   background-size: 200% 100%;
   animation: shimmer-border 3s ease-in-out infinite;
   z-index: -1;
@@ -910,11 +959,11 @@
 
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 91, 130, 0.3);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 30%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 0 6px rgba(0, 91, 130, 0);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--primary) 0%, transparent);
   }
 }
 
@@ -990,84 +1039,60 @@ a:focus-visible,
   animation: promo-shimmer 3s linear infinite;
 }
 
-
-
-
-
 /* ── صفحات الدخول — تتكيف فاتح/داكن عبر التوكنات ── */
 .login-page-bg {
-  /* الفاتح: خلفية فاتحة نظيفة مع هالات محيطية ناعمة */
+  /* الفاتح: خلفية فاتحة نظيفة مع هالات زمردية ناعمة */
   background-color: var(--background);
   background-image:
-    radial-gradient(circle at 85% 12%, rgba(0, 91, 130, 0.10), transparent 42%),
-    radial-gradient(circle at 12% 88%, rgba(0, 163, 224, 0.10), transparent 42%);
+    radial-gradient(circle at 85% 12%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 42%),
+    radial-gradient(circle at 12% 88%, color-mix(in srgb, var(--secondary) 10%, transparent), transparent 42%);
   background-size: 300% 300%;
 }
 
 .dark .login-page-bg {
-  /* الداكن: تدرج محيطي عميق من الهوية */
-  background-color: var(--primary-deep);
+  /* الداكن: كحلي الهوية الرسمي مع لمسة زمردية */
+  background-color: #071426;
   background-image: linear-gradient(135deg,
-      var(--primary) 0%,
-      var(--primary-deep) 55%,
-      #062A3D 100%);
+      #0A1A2F 0%,
+      var(--primary-deep) 65%,
+      #071426 100%);
   background-size: 300% 300%;
 }
 
 /* الأشكال العائمة — توكنات بدل rgba الثابتة */
 .login-shape-primary {
-  background: radial-gradient(circle, rgba(0, 91, 130, 0.16) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 16%, transparent) 0%, transparent 70%);
 }
 
 .login-shape-secondary {
-  background: radial-gradient(circle, rgba(0, 163, 224, 0.14) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--secondary) 14%, transparent) 0%, transparent 70%);
 }
 
 .login-shape-accent {
-  background: radial-gradient(circle, rgba(255, 168, 0, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 70%);
 }
 
 .dark .login-shape-primary {
-  background: radial-gradient(circle, rgba(14, 123, 166, 0.28) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 28%, transparent) 0%, transparent 70%);
 }
 
 .dark .login-shape-secondary {
-  background: radial-gradient(circle, rgba(56, 182, 232, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--secondary) 22%, transparent) 0%, transparent 70%);
 }
 
 .dark .login-shape-accent {
-  background: radial-gradient(circle, rgba(255, 184, 51, 0.16) 0%, transparent 70%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 70%);
 }
 
-
-
-
-
-.login-ocean-bg {
-  /* الفاتح: خلفية فاتحة + هالات محيطية ناعمة */
-  background-color: var(--background);
-  background-image:
-    radial-gradient(circle at 88% 10%, rgba(0, 91, 130, 0.10), transparent 40%),
-    radial-gradient(circle at 10% 90%, rgba(0, 163, 224, 0.10), transparent 40%);
-  background-size: 300% 300%;
-}
-
-.dark .login-ocean-bg {
-  /* الداكن: تدرج محيطي عميق من الهوية */
-  background-color: var(--primary-deep);
-  background-image: linear-gradient(135deg,
-      var(--primary) 0%,
-      var(--primary-deep) 55%,
-      #062A3D 100%);
-  background-size: 300% 300%;
+/* ── خلفية الموج المعتمدة من الهوية (tawfir-wave-background) ── */
+.wave-bg {
+  background-image: url("/identity/tawfir-wave-background.png");
+  background-size: cover;
+  background-position: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    وضع Standalone (تطبيق مثبّت على الجوال) — تجربة Native App
-   يخفي الفوتر كلياً (التطبيقات الأصلية بلا فوتر) ويبقى الهيدر
-   بشكله الـ Native (transparent → solid) للوصول للمنطقة والحساب.
-   في المتصفح العادي (غير مثبّت) لا يتغيّر شيء.
-   ملاحظة: display-mode يعمل على أندرويد/كروم وسفاري iOS 15.4+
    ═══════════════════════════════════════════════════════════════ */
 @media (display-mode: standalone) {
   .hide-in-standalone {
@@ -1076,17 +1101,7 @@ a:focus-visible,
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   الجولة 4 — سلوك Native على اللمس (YouTube / Netflix style)
-   1) قاعدة عامة: كل زر/رابط ينكمش لحظة الضغط (scale) على اللمس فقط
-      — لا تؤثر على الديسكتوب (pointer: fine) إطلاقاً.
-      تُستخدم خاصية scale الحديثة (لا transform) حتى لا تتعارض مع
-      framer-motion أو أدوات translate في Tailwind.
-   2) native-tap: نسخة بانتقال سلس 150ms للأزرار الرئيسية.
-   3) native-tap-card: كبسخة أخف (0.97) للكروت القابلة للنقر.
-   4) bottom-sheet-grip: مقبض السحب أعلى BottomSheet.
-   5) pull-refresh-spin: دوران مؤشر السحب للتحديث.
-   ملاحظة: أدوات Tailwind مثل active:scale-95 (specificity أعلى)
-   تتجاوز القاعدة العامة — لا تراكم تأثير.
+   سلوك Native على اللمس (YouTube / Netflix style)
    ═══════════════════════════════════════════════════════════════ */
 @media (pointer: coarse) {
   button:not(:disabled):active,
@@ -1124,7 +1139,8 @@ a:focus-visible,
 
 /* مقبض السحب أعلى BottomSheet (نمط iOS/YouTube) */
 .bottom-sheet-grip {
-  width: 3rem;   /* 48px */
+  width: 3rem;
+  /* 48px */
   height: 4px;
   border-radius: 9999px;
   background: color-mix(in srgb, var(--muted-foreground) 30%, transparent);
@@ -1135,23 +1151,25 @@ a:focus-visible,
 .pull-refresh-spin {
   animation: pull-refresh-rotate 0.8s linear infinite;
 }
+
 @keyframes pull-refresh-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   الجولة 9 (المهمة 9.2) — منع تحديد النص في كل التطبيق عدا حقول
-   الإدخال: إحساس Native على الموبايل (لا قائمة iOS عند الضغط المطوّل،
-   لا تظليل للأسعار/الأسماء/أرقام الطلبات كأنه مستند ويب).
-
-   الاستثناءات: حقول الإدخال + [data-selectable="true"] + .selectable
-   (الأماكن التي يكون فيها النسخ مطلوباً — مثل رقم العضوية ورقم الحساب).
+   منع تحديد النص في كل التطبيق عدا حقول الإدخال
    ═══════════════════════════════════════════════════════════════ */
 body {
   -webkit-user-select: none;
   user-select: none;
-  -webkit-touch-callout: none; /* منع قائمة iOS عند الضغط المطوّل */
+  -webkit-touch-callout: none;
+  /* منع قائمة iOS عند الضغط المطوّل */
 }
 
 /* الاستثناءات — الأماكن التي يكون فيها النسخ مطلوباً */
@@ -1165,23 +1183,17 @@ textarea,
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   الجولة 16 — إصلاح CLS للبانر الترحيبي (الجولة 16):
-   السكربت المُضمَّن في <head> يضيف data-wb-hide على <html> قبل أول
-   طلاء عندما يكون المستخدم مسجّلاً (كوكي جلسة) أو رفض البانر —
-   فيُخفى البانر من اللقطة الأولى بلا إزاحة عند إزالته بعد الترطيب.
+   إصلاح CLS للبانر الترحيبي
    ═══════════════════════════════════════════════════════════════ */
 html[data-wb-hide] [data-welcome-banner] {
   display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   الجولة 15 — إيصال طلب بأسلوب الطابعة الحرارية (POS receipt)
-   حواف ممزقة متعرجة + باركود زخرفي + نقاط ثقوب دائرية.
-   كل الألوان عبر توكنات الثيم (يعمل في الوضعين الفاتح والداكن).
+   إيصال طلب بأسلوب الطابعة الحرارية (POS receipt)
    ═══════════════════════════════════════════════════════════════ */
 
-/* أسنان ورق متجهة لأعلى — للحافة العلوية الممزقة للإيصال
-   (مخروط 90° من مركز أعلى البلاطة: قاعدة عريضة أسفل + رأس مدبب أعلى) */
+/* أسنان ورق متجهة لأعلى — للحافة العلوية الممزقة للإيصال */
 .receipt-edge-up {
   height: 12px;
   background: conic-gradient(
@@ -1193,8 +1205,7 @@ html[data-wb-hide] [data-welcome-banner] {
   background-repeat: repeat-x;
 }
 
-/* أسنان ورق متجهة لأسفل — للحافة السفلية الممزقة للإيصال
-   (مخروط 90° من مركز أسفل البلاطة: قاعدة عريضة أعلى + رأس مدبب أسفل) */
+/* أسنان ورق متجهة لأسفل — للحافة السفلية الممزقة للإيصال */
 .receipt-edge-down {
   height: 12px;
   background: conic-gradient(
