@@ -12,6 +12,7 @@ import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useMe } from "@/hooks/useMe";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 /**
  * هيدر بوابة العميل — سلوك Native (الجولة 4):
@@ -22,7 +23,11 @@ import { cn } from "@/lib/utils";
  *    للوصول للمنطقة والحساب) — الفوتر فقط هو الذي يُخفى.
  *  - الشعار مصغّر على الموبايل (scale-90) ويكبر على الديسكتوب.
  */
+
+const MAIN_HEADER_ROUTES: ReadonlySet<string> = new Set(["/"]);
+
 export function MainHeader() {
+  const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const { accessToken, hydrated } = useCustomerAuth();
   const me = useMe();
@@ -35,6 +40,9 @@ export function MainHeader() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+
+  // الشاشات الداخلية لها ScreenHeader خاص — لا نريد هيدراً رئيسياً فوقه
+  if (!MAIN_HEADER_ROUTES.has(pathname)) return null;
   return (
     <header
       className={cn(
