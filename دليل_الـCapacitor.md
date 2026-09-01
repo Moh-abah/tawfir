@@ -340,3 +340,62 @@ setsid bash -c 'exec bun run dev > dev.log 2>&1' < /dev/null & disown
 ---
 
 **انتهى الدليل.** لأي سؤال أو مشكلة، راجع `worklog.md` (سجل العمل الموحّد) أو شغّل `bun run lint && bun run typecheck` للتأكد من سلامة الكود.
+
+---
+
+## خطوات إعادة توليد أيقونات android (بعد اعتماد هوية توفير الزمردية)
+
+الأصل المعتمد: `هويه توفير/assets/generated/tawfir-app-icon.png` (1920×1920) و
+`هويه توفير/assets/generated/tawfir-splash-screen.png` (1440×2560) — **قص/تصغير فقط، لا توليد**.
+
+### 1) تجهيز موارد Capacitor (موجودة مسبقاً في resources/)
+- `resources/icon.png` — 1024×1024 (تصغير من tawfir-app-icon.png)
+- `resources/splash.png` — 1280×2276 (تصغير من tawfir-splash-screen.png)
+- `resources/icon-foreground.png` — 1024×1024 (الرمز المقصوص من المرجع على كحلي #001020)
+- `resources/icon-background.png` — 1024×1024 (كحلي #001020 صلب)
+
+### 2) إضافة منصة أندرويد (أول مرة فقط)
+```bash
+npx cap add android
+```
+
+### 3) توليد كل كثافات ic_launcher + splash بسكربت PIL
+```python
+# scripts/gen-android-icons.py
+from PIL import Image
+import os
+
+ICON = Image.open("resources/icon.png").convert("RGB")
+SPLASH = Image.open("resources/splash.png").convert("RGB")
+
+DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
+BASE_ICON = 48  # mdpi launcher icon base
+
+for dpi, scale in DENSITIES.items():
+    size = int(BASE_ICON * scale)
+    d = f"android/app/src/main/res/mipmap-{dpi}"
+    os.makedirs(d, exist_ok=True)
+    ICON.resize((size, size), Image.LANCZOS).save(f"{d}/ic_launcher.png")
+    # نسخة دائرية/مستديرة (نفس الأصل — النظام يقصّها)
+    ICON.resize((size, size), Image.LANCZOS).save(f"{d}/ic_launcher_round.png")
+
+# splash التسع بقع (9-patch يكفي نسخة واحدة لكل كثافة)
+for dpi, scale in DENSITIES.items():
+    w, h = int(320 * scale), int(480 * scale)
+    d = f"android/app/src/main/res/drawable-{dpi}"
+    os.makedirs(d, exist_ok=True)
+    SPLASH.resize((w, h), Image.LANCZOS).save(f"{d}/splash.png")
+```
+
+```bash
+python3 scripts/gen-android-icons.py   # أو bun scripts/generate-icons.ts إن وجد
+```
+
+### 4) المزامنة
+```bash
+npx cap sync android
+```
+
+### 5) ألوان النظام (محدّثة أصلاً في capacitor.config.ts)
+- StatusBar/SplashScreen backgroundColor: `#04101E` (كحلي الهوية العميق)
+- قناة الإشعارات: `#0C7D63` (الزمردي)
