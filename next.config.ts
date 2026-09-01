@@ -4,6 +4,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.tawfir.giize.co
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   allowedDevOrigins: ["*.space-z.ai", "preview-chat-*.space-z.ai"],
   images: { unoptimized: true },
   async rewrites() {
