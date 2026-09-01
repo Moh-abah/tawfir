@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { CalendarDays, CreditCard, UserPlus, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,8 +13,42 @@ import type { MyMembershipCard } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
 /**
- * زخارف Confetti ذهبية/سماوية (دوائر ومربعات مائلة ومثلثات)
- * خلف البطاقة — aria-hidden وتحترم تقليل الحركة (الأنيميشن عبر globals).
+ * بطاقة العضوية — الجلد الجديد بهوية توفير:
+ *  - الخلفية: رسمة tawfir-membership-card-art.png (أصل معتمد من الهوية)
+ *    عبر next/image fill + طبقة كحلية شفافة (توكنات فقط) لضمان تباين AA
+ *    للنص الأبيض/الذهبي فوقها
+ *  - البيانات نص HTML فوق الخلفية — منطق العرض كما هو بلا أي تغيير
+ */
+
+/** غلاف الخلفية الفنية + طبقة القراءة الكحلية — توكنات CSS فقط */
+function CardArtBackdrop() {
+  return (
+    <>
+      <Image
+        src="/identity/tawfir-membership-card-art.png"
+        alt=""
+        fill
+        draggable={false}
+        sizes="(max-width: 640px) 100vw, 560px"
+        className="object-cover"
+        priority={false}
+      />
+      {/* طبقة كحلية للتقرّب من لون خلفية المرجع وحماية تباين النص */}
+      <div
+        className="absolute inset-0"
+        aria-hidden="true"
+        style={{
+          background:
+            "linear-gradient(260deg, color-mix(in srgb, var(--logo-navy) 24%, transparent) 0%, color-mix(in srgb, var(--logo-navy) 62%, transparent) 55%, color-mix(in srgb, var(--logo-navy) 90%, transparent) 100%)",
+        }}
+      />
+    </>
+  );
+}
+
+/**
+ * زخارف Confetti زمردية/ذهبية (دوائر ومربعات مائلة ومثلثات)
+ * خلف بطاقات الدعوة — aria-hidden وتحترم تقليل الحركة (الأنيميشن عبر globals).
  */
 function MemberCardConfetti() {
   return (
@@ -53,13 +88,13 @@ interface MemberCardBodyProps {
 /** بطاقة العضوية للمسجّل — الرقم والنوع والانتهاء من بيانات حقيقية فقط */
 function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
   return (
-    <div className="gradient-ocean relative overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7">
-      <MemberCardConfetti />
+    <div className="relative min-h-[190px] overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7">
+      <CardArtBackdrop />
       <div
         className="card-shimmer-sweep pointer-events-none absolute inset-0"
         aria-hidden="true"
       />
-      <div className="relative z-10 flex flex-col gap-5" dir="rtl">
+      <div className="relative z-10 flex h-full flex-col gap-5" dir="rtl">
         {/* الشعار + الشارات */}
         <div className="flex items-start justify-between gap-3">
           <TawfirLogo onDark className="h-10 w-auto sm:h-11" />
@@ -95,12 +130,15 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
           </p>
         </div>
 
-        {/* النوع (يسار) + الانتهاء (يمين) */}
-        <div className="flex items-end justify-between border-t border-white/15 pt-4">
-          <div className="text-left">
+        {/* النوع (يسار) + الانتهاء (يمين) + التاغلاين المعتمد */}
+        <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-4">
+          <div className="space-y-1 text-left">
             <p className="text-[10px] font-medium text-white/60">نوع العضوية</p>
             <p className="mt-0.5 text-sm font-bold text-white">
               عضوية {membership.membership_type}
+            </p>
+            <p className="text-[10px] font-bold text-[color:var(--logo-gold-light)]">
+              وفّر أكثر.. عِش أجمل
             </p>
           </div>
           <ExpiryBadge expiresAt={membership.expires_at} />
@@ -119,7 +157,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
     ? `أهلاً ${fullName} — اشترك في العضوية`
     : "اشترك في عضوية توفير";
   return (
-    <div className="gradient-ocean relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8">
+    <div className="gradient-emerald relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8">
       <MemberCardConfetti />
       <div
         className="card-shimmer-sweep pointer-events-none absolute inset-0"
@@ -155,7 +193,7 @@ function VisitorMemberCard({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "gradient-ocean relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8",
+        "gradient-emerald relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8",
         className
       )}
     >
@@ -166,12 +204,12 @@ function VisitorMemberCard({ className }: { className?: string }) {
       />
       <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-3">
-          <TawfirLogo onDark className="h-11 w-auto sm:h-12" />
+          <TawfirLogo variant="mark" size="sm" />
           <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
             بطاقة الخصومات الذكية
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة
+            وفّر أكثر.. عِش أجمل — خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة
           </p>
         </div>
         <Button
@@ -195,11 +233,11 @@ function VisitorMemberCard({ className }: { className?: string }) {
 function MemberCardSkeleton() {
   return (
     <div
-      className="gradient-ocean relative overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7"
+      className="gradient-emerald relative min-h-[190px] overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7"
       aria-busy="true"
       aria-label="جارٍ تحميل بطاقة العضوية"
     >
-      <div className="relative z-10 flex flex-col gap-5" dir="rtl">
+      <div className="relative z-10 flex h-full flex-col gap-5" dir="rtl">
         {/* الشعار + شارة الخصم */}
         <div className="flex items-start justify-between gap-3">
           <Skeleton className="h-10 w-[118px] bg-white/15" />
@@ -211,7 +249,7 @@ function MemberCardSkeleton() {
           <Skeleton className="h-8 w-full max-w-[260px] bg-white/15" />
         </div>
         {/* النوع + الانتهاء */}
-        <div className="flex items-end justify-between border-t border-white/15 pt-4">
+        <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-4">
           <div className="space-y-1 text-left">
             <Skeleton className="h-3.5 w-16 bg-white/15" />
             <Skeleton className="h-5 w-24 bg-white/15" />

@@ -18,7 +18,7 @@ import {
  * صامتة، فلا تكلّف إطلاقاً (0 تأثير على الويب الإنتاجي).
  *
  * المسؤوليات:
- *  1) Status Bar: لون #005B82 + نمط Dark + overlaysWebView (safe-area CSS)
+ *  1) Status Bar: لون #0A1A2F (كحلي الهوية) + نمط Dark + overlaysWebView (safe-area CSS)
  *  2) Splash Screen: إخفاء تلقائي بعد أول paint أو 800ms (أيهما أخير)
  *  3) Back Button (Hardware): Sheet مفتوح → أغلق / history>1 → back / وإلا exit
  *  4) Network: عند عودة الاتصال → إطلاق حدث online لإبطال الكاش

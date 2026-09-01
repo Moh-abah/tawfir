@@ -151,7 +151,7 @@ export function PWAInstallButton({
             </li>
             <li className="flex items-center gap-4 rounded-xl border border-border/50 bg-muted/30 p-4">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent/15">
-                <PlusSquare className="h-5 w-5 text-accent" aria-hidden="true" />
+                <PlusSquare className="h-5 w-5 text-accent-ink" aria-hidden="true" />
               </span>
               <div>
                 <p className="text-sm font-bold text-foreground">الخطوة 2</p>

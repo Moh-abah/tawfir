@@ -48,17 +48,19 @@ function isActive(pathname: string, href: string): boolean {
 function SidebarBrand({ collapsed }: { collapsed: boolean }) {
   return (
     <div className={cn(
-      "flex items-center gap-2 px-5 py-4",
+      "flex items-center gap-2.5 px-5 py-4",
       collapsed && "justify-center px-2"
     )}>
-      <TawfirLogo variant="mark" className="h-9 w-9 shrink-0" />
+      {/* ✦ 2-b: الشعار المقصوص — الرمز عند الطي، اللوغو الأفقي عند التمدد */}
+      {collapsed ? (
+        <TawfirLogo variant="mark" href="" className="shrink-0" />
+      ) : (
+        <TawfirLogo variant="horizontal" href="" size="sm" className="shrink-0" />
+      )}
       {!collapsed && (
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold">توفير</span>
-          <span className="bg-gradient-to-l from-primary to-secondary bg-clip-text text-transparent text-xs font-semibold">
-            بوابة المالك
-          </span>
-        </div>
+        <span className="bg-gradient-to-l from-primary to-secondary bg-clip-text text-transparent text-xs font-semibold leading-tight">
+          بوابة المالك
+        </span>
       )}
     </div>
   );

@@ -36,8 +36,8 @@ export interface NotificationMeta {
 const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   order_new: {
     icon: Package,
-    colorClass: "text-amber-500",
-    bgClass: "bg-amber-500/10",
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
     hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
   },
   order_confirmed: {
@@ -48,14 +48,14 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   },
   order_preparing: {
     icon: ChefHat,
-    colorClass: "text-sky-500",
-    bgClass: "bg-sky-500/10",
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
     hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
   },
   order_out_for_delivery: {
     icon: Truck,
-    colorClass: "text-sky-500",
-    bgClass: "bg-sky-500/10",
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
     hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
   },
   order_delivered: {
@@ -72,19 +72,19 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   },
   membership_new_request: {
     icon: Mail,
-    colorClass: "text-sky-500",
-    bgClass: "bg-sky-500/10",
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
   },
   membership_received: {
     icon: Mail,
-    colorClass: "text-sky-500",
-    bgClass: "bg-sky-500/10",
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
     hrefFor: () => "/account",
   },
   membership_approved: {
     icon: BadgeCheck,
-    colorClass: "text-amber-500",
-    bgClass: "bg-amber-500/10",
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
     hrefFor: () => "/account",
   },
   membership_rejected: {
@@ -95,8 +95,8 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   },
   membership_expiring: {
     icon: Clock,
-    colorClass: "text-yellow-500",
-    bgClass: "bg-yellow-500/10",
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
     hrefFor: () => "/account",
   },
   facility_approved: {
@@ -113,8 +113,8 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   },
   owner_registered: {
     icon: UserPlus,
-    colorClass: "text-sky-500",
-    bgClass: "bg-sky-500/10",
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
     hrefFor: () => "/owner",
   },
   special_offer_new: {
@@ -125,8 +125,8 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   },
   special_offer_ending: {
     icon: Clock,
-    colorClass: "text-yellow-500",
-    bgClass: "bg-yellow-500/10",
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
     hrefFor: (d) => `/products/${d?.product_id ?? ""}`,
   },
   special_offer_soldout: {

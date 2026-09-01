@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { RegionSelector } from "@/components/public/RegionSelector";
 import { CartButton } from "@/components/public/CartButton";
-import { Logo } from "@/components/shared/Logo";
+import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useMe } from "@/hooks/useMe";
@@ -45,9 +45,9 @@ export function MainHeader() {
       )}
     >
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
-        {/* الشعار — مصغّر على الموبايل */}
+        {/* الشعار المقصوص من الهوية — مصغّر على الموبايل */}
         <div className="origin-right scale-[0.82] sm:scale-100">
-          <Logo size="sm" />
+          <TawfirLogo variant="mark" size="sm" />
         </div>
 
         {/* منتقي المنطقة */}
@@ -68,17 +68,7 @@ export function MainHeader() {
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
-          {/* الجولة 13 — المفضلة: أيقونة قلب توجّه لـ /favorites */}
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="native-tap h-11 min-w-11 rounded-full px-0"
-          >
-            <Link href="/favorites" aria-label="المفضلة">
-              <Heart className="h-5 w-5" aria-hidden="true" />
-            </Link>
-          </Button>
+      
           <CartButton />
           {isLoggedIn && <NotificationBell variant="header" />}
           {isLoggedIn ? (

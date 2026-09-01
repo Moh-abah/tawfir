@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
-import { Logo } from "../shared/Logo";
 
 /** بيانات التواصل الحقيقية — مواصفة توفير اليمنية */
 const CONTACT_PHONE = "780090882";
@@ -30,21 +29,20 @@ export function Footer() {
       className="hide-in-standalone mt-auto w-full bg-card"
       role="contentinfo"
     >
-      {/* الخط العلوي المتدرج — هوية المحيط */}
-      <div className="gradient-ocean h-1 w-full" aria-hidden="true" />
+      {/* الخط العلوي المتدرج — هوية توفير الزمردية */}
+      <div className="gradient-emerald h-1 w-full" aria-hidden="true" />
 
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-          {/* العمود 1: توفير */}
-          {/* <div className="space-y-4">
-            <TawfirLogo className="h-12 w-auto" />
+          {/* العمود 1: توفير — قصة البراند + التاغلاين المعتمد */}
+          <div className="space-y-4">
+            <TawfirLogo variant="lockup_fulltra" size="md" showPill />
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              منصة توفير — بطاقة الخصومات الذكية للمطاعم والمقاهي
-              المشتركة في الجمهورية اليمنية.
+              اول منصة يمنية يمنية توصّل بينك وبين أفضل العروض في مدينتك —
+              عضوية واحدة، ووفّر على كل طلب بخصم يصل إلى 30%.
             </p>
-          </div> */}
+          </div>
 
-          <Logo size="md" showPill />
           {/* العمود 2: روابط سريعة */}
           <div>
             <h3 className="mb-4 text-sm font-bold text-foreground">روابط سريعة</h3>
@@ -92,8 +90,9 @@ export function Footer() {
           </div>
         </div>
 
-        {/* الشريط السفلي */}
-        <div className="mt-8 border-t pt-6 text-center">
+        {/* الشريط السفلي — التاغلاين المعتمد */}
+        <div className="mt-8 space-y-1.5 border-t pt-6 text-center">
+          <p className="text-xs font-bold text-primary">وفّر أكثر.. عِش أجمل</p>
           <p className="text-xs text-muted-foreground">
             جميع الحقوق محفوظة لتوفير {year}
           </p>

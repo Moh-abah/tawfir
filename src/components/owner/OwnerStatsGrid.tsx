@@ -9,9 +9,9 @@ import { useOwnerStats } from "@/hooks/useOwnerStats";
 import { formatCurrency } from "@/lib/format";
 
 /**
- * شبكة الإحصائيات 2×2 للموبايل — الجولة 9 (المهمة 8)
+ * بطاقات الإحصاءات — ✦ 4-b: صف أفقي snap قابل للسحب على الموبايل
+ * (نمط Netflix — نفس معيار هيكل الأدمن) وشبكة 2×2 على sm+.
  *
- * بطاقات لمسية كبيرة (≥72px ارتفاعاً):
  * - 📦 منتجاتي (العدد الإجمالي + المتاح)
  * - ⏳ طلبات معلقة (نابضة لو > 0)
  * - 📋 طلبات اليوم
@@ -56,7 +56,7 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
       label: "طلبات معلقة",
       value: isLoading ? "—" : (data?.pending_orders ?? 0),
       icon: Hourglass,
-      iconClass: "bg-amber-500/10 text-amber-500",
+      iconClass: "bg-accent/15 text-accent-ink",
       pulse: !isLoading && (data?.pending_orders ?? 0) > 0,
       href: `${base}/orders`,
     },
@@ -65,7 +65,7 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
       label: "طلبات اليوم",
       value: isLoading ? "—" : (data?.today_orders ?? 0),
       icon: ShoppingBag,
-      iconClass: "bg-accent/15 text-accent",
+      iconClass: "bg-accent/15 text-accent-ink",
       href: `${base}/orders`,
     },
     {
@@ -73,7 +73,7 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
       label: "إيراد اليوم",
       value: isLoading ? "—" : formatCurrency(data?.today_revenue ?? 0),
       icon: Banknote,
-      iconClass: "bg-emerald-500/10 text-emerald-500",
+      iconClass: "bg-success/15 text-success",
       href: `${base}/orders`,
     },
   ];
@@ -95,7 +95,10 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
 
   return (
     <div
-      className={cn("grid grid-cols-2 gap-3", className)}
+      className={cn(
+        "no-mobile-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:gap-3 sm:overflow-visible sm:pb-0",
+        className,
+      )}
       role="region"
       aria-label="إحصائيات سريعة"
     >
@@ -108,10 +111,11 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
             initial="initial"
             animate="animate"
             transition={{ duration: 0.25, delay: idx * 0.05 }}
+            className="min-w-[170px] shrink-0 snap-start sm:min-w-0"
           >
             <Link
               href={stat.href}
-              className="native-tap-card group flex h-[72px] flex-col justify-between rounded-2xl border border-border/60 bg-card p-3 transition-colors hover:border-primary/30 hover:bg-muted/30"
+              className="native-tap-card group flex h-[92px] flex-col justify-between rounded-2xl border border-border/60 bg-card p-3 transition-colors hover:border-primary/30 hover:bg-muted/30"
             >
               <div className="flex items-center justify-between">
                 <span
@@ -131,7 +135,7 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
                 />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xl font-extrabold leading-none tabular-nums text-foreground">
+                <p className="truncate text-2xl font-extrabold leading-none tabular-nums text-foreground">
                   {stat.value}
                 </p>
                 <p className="mt-1 truncate text-[11px] text-muted-foreground">
@@ -146,12 +150,20 @@ export function OwnerStatsGrid({ facilityId, className }: OwnerStatsGridProps) {
   );
 }
 
-/** Skeleton مطابق للشكل النهائي للشبكة (2×2 بطاقات 72px). */
+/** Skeleton مطابق للشكل النهائي (بطاقات 92px). */
 export function OwnerStatsGridSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3", className)}>
+    <div
+      className={cn(
+        "no-mobile-scrollbar flex snap-x gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0",
+        className,
+      )}
+    >
       {[1, 2, 3, 4].map((i) => (
-        <Skeleton key={i} className="h-[72px] rounded-2xl" />
+        <Skeleton
+          key={i}
+          className="h-[92px] min-w-[170px] shrink-0 rounded-2xl sm:min-w-0"
+        />
       ))}
     </div>
   );

@@ -50,7 +50,7 @@ export function WelcomeBanner() {
     >
       <div className="mx-auto max-w-7xl flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
         <p className="text-sm text-foreground flex-1">
-          مرحبًا بك في توفير! سجّل واحصل على خصم 30% فوري
+          مرحبًا بك في توفير! سجّل واحصل على خصم حتى 30% فوري
         </p>
         <div className="flex items-center gap-2 shrink-0">
           <Button

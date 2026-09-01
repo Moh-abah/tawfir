@@ -49,7 +49,7 @@ export function isNativePlatform(): boolean {
 
 /**
  * إعداد شريط الحالة (Status Bar) — أندرويد فقط.
- *  • اللون: #005B82 (المحيطي — هوية توفير)
+ *  • اللون: #0A1A2F (الكحلي العميق — هوية توفير)
  *  • النمط: Dark (أيقونات بيضاء على الخلفية الملونة)
  *  • overlaysWebView: true — يرسم الـ WebView فوق شريط الحالة،
  *    فتعمل قواعد safe-area-inset-top الموجودة في globals.css بلا تغيير.
@@ -59,7 +59,7 @@ export async function setupNativeStatusBar(): Promise<void> {
   try {
     const { StatusBar, Style } = await import("@capacitor/status-bar");
     await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: "#005B82" });
+    await StatusBar.setBackgroundColor({ color: "#0A1A2F" });
     await StatusBar.setOverlaysWebView({ overlay: true });
   } catch {
     /* بيئة لا تدعم المكوّن — صامت */
@@ -68,7 +68,7 @@ export async function setupNativeStatusBar(): Promise<void> {
 
 /**
  * إخفاء شاشة الإقلاع (Splash) — أندرويد فقط.
- *  • Capacitor يُظهر الأيقونة 512 + خلفية #005B82 تلقائياً عند الإطلاع.
+ *  • Capacitor يُظهر الأيقونة 512 + خلفية #0A1A2F تلقائياً عند الإطلاع.
  *  • نُخفيها بعد أن يُحمّل التطبيق (يستدعيها NativeBridge بعد أول
  *    paint أو بعد 800ms كحد أقصى احتياطي).
  */

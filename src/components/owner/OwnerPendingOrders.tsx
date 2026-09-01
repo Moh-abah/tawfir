@@ -54,7 +54,7 @@ export function OwnerPendingOrders({ facilityId, className }: OwnerPendingOrders
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Hourglass className="h-4 w-4 text-amber-500" aria-hidden="true" />
+          <Hourglass className="h-4 w-4 text-accent-ink" aria-hidden="true" />
           <h2 id="pending-orders-title" className="text-sm font-bold">
             الطلبات الجديدة
           </h2>
@@ -145,7 +145,7 @@ function PendingOrderCard({
   const ordersHref = `/owner/facilities/${facilityId}/orders`;
 
   return (
-    <div className="rounded-2xl border border-amber-300/40 bg-card p-3 dark:border-amber-500/30">
+    <div className="rounded-2xl border border-accent/40 bg-card p-3 dark:border-accent/30">
       <div className="flex items-start gap-3">
         {/* رقم الطلب في دائرة */}
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 font-mono text-sm font-bold text-primary">
@@ -166,7 +166,7 @@ function PendingOrderCard({
               {formatCurrency(order.total)}
             </span>
             <Badge
-              className="border-transparent bg-amber-100 text-amber-800 text-[10px] dark:bg-amber-500/15 dark:text-amber-300"
+              className="border-transparent bg-accent/15 text-accent-foreground text-[10px] dark:bg-accent/20 dark:text-accent"
             >
               {ORDER_STATUS_LABEL[order.status]}
             </Badge>
@@ -178,7 +178,7 @@ function PendingOrderCard({
           size="sm"
           onClick={onConfirm}
           disabled={isConfirming}
-          className="native-tap h-11 min-h-[44px] shrink-0 gap-1.5 rounded-full bg-emerald-500 px-4 text-xs font-semibold text-white hover:bg-emerald-600"
+          className="native-tap h-11 min-h-[44px] shrink-0 gap-1.5 rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
           aria-label={`تأكيد الطلب رقم ${order.id}`}
         >
           <Check className="h-4 w-4" aria-hidden="true" />

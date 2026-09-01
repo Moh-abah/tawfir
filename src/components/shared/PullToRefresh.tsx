@@ -33,7 +33,11 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const pullRef = useRef(0);
   const refreshingRef = useRef(false);
   const onRefreshRef = useRef(onRefresh);
-  onRefreshRef.current = onRefresh;
+
+  /* تحديث مرجع أحدث onRefresh داخل effect — لا يجوز تحديث refs أثناء الرسم */
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   const doRefresh = useCallback(async () => {
     if (refreshingRef.current) return;

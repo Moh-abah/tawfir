@@ -5,7 +5,6 @@ import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
-  Banknote,
   CheckCircle2,
   Loader2,
   MapPin,
@@ -14,8 +13,6 @@ import {
   ShoppingBag,
   ShoppingCart,
   Trash2,
-  Wallet,
-  X,
 } from "lucide-react";
 import {
   Sheet,
@@ -25,30 +22,28 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
-import { useCartStore, type CartItem } from "@/store/cart.store";
+import { useCartStore } from "@/store/cart.store";
+import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
+import { DeliveryFields } from "@/components/public/DeliveryFields";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
-import { useMe } from "@/hooks/useMe";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
-import { DELIVERY_FEE, DISCOUNT_RATE } from "@/lib/site-config";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
 
 /**
- * سلة الطلبات — الجولة 11 (ميزة جديدة: سلة متعددة الأصناف).
+ * سلة الطلبات — الجولة 11 + مطابقة 2-c.
  *
  * قاعدة الخادم: كل الأصناف يجب أن تنتمي لنفس facility_id (مخزن السلة يطبّقها).
- * كل صنف له درجة كمية (stepper) — عند 0 يُحذف تلقائياً. الدفع نقداً أو محفظة،
- * العنوان اختياري (يمكن تحديد بالموقع). عند التأكيد: useCreateOrder بكل
- * الأصناف → فارغ السلة → توجيه لصفحة الطلب الجديد.
+ * مدخلات الطلب مطابقة الآن لCheckoutSheet عبر مكون DeliveryFields المشترك
+ * (موقع lat/lng + عنوان ≤ 500 + ملاحظات ≤ 500 + دفع نقدي — wallet يرفضه
+ * الخادم 422) والتسعير من useCartPricing (مصدر الحقيقة الوحيد):
+ * المجموع الأصلي − خصم العضوية + توصيل 300 = الإجمالي.
  *
- * يُفتح من زر السلة في MainHeader (CartButton).
+ * يُفتح من زر السلة في MainHeader (CartButton) ومن StickyMiniCart.
  */
 interface CartSheetProps {
   open: boolean;
@@ -56,39 +51,43 @@ interface CartSheetProps {
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
-  const items = useCartStore((s) => s.items);
-  const facilityName = useCartStore((s) => s.facilityName);
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
-  const facilityId = useCartStore((s) => s.facilityId);
 
-  const me = useMe();
-  const isMember = !!me.data?.membership?.is_active;
-  const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
+  /* التسعير — مصدر الحقيقة الوحيد useCartPricing (2-c) */
+  const {
+    items,
+    pricedItems,
+    facilityId,
+    facilityName,
+    totalCount,
+    baseSubtotal,
+    memberSavings,
+    delivery,
+    total,
+    isMember,
+    memberRate,
+  } = useCartPricing();
 
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const createOrder = useCreateOrder();
   const isMobile = useIsMobile();
 
-  // حساب الأسعار — خصم العضوية يُطبّق على كل صنف حسب سعره الأصلي
-  const pricedItems = items.map((i) => {
-    const base = parseFloat(i.price) || 0;
-    const unit = isMember ? base * (1 - memberRate / 100) : base;
-    return { ...i, unit, base, subtotal: unit * i.quantity };
-  });
-  const subtotal = pricedItems.reduce((s, i) => s + i.subtotal, 0);
-  const delivery = DELIVERY_FEE;
-  const total = subtotal + delivery;
-
   /* إعادة الضبط عند الإغلاق */
   useEffect(() => {
     if (open) return;
     const t = setTimeout(() => {
+      setLat(null);
+      setLng(null);
       setAddress("");
+      setNotes("");
       setPaymentMethod("cash");
       setSuccessOrder(null);
       setErrorMsg(null);
@@ -106,8 +105,11 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           product_id: i.product_id,
           quantity: i.quantity,
         })),
+        delivery_lat: lat,
+        delivery_lng: lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        notes: notes.trim() || null,
       },
       {
         onSuccess: (data) => {
@@ -116,7 +118,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           clearCart();
           toast({
             title: `تم استلام طلبك بنجاح #${data.id}`,
-            description: `${items.length} أصناف من ${facilityName}`,
+            description: `${totalCount} أصناف من ${facilityName}`,
           });
         },
         onError: (err) => {
@@ -171,7 +173,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           </SheetTitle>
           <SheetDescription className="text-right">
             {items.length > 0
-              ? `${items.length} أصناف من ${facilityName}`
+              ? `${totalCount} ${totalCount === 1 ? "صنف" : "أصناف"} من ${facilityName}`
               : "سلتك فارغة حالياً"}
           </SheetDescription>
         </SheetHeader>
@@ -201,72 +203,61 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               ))}
             </ul>
 
-            {/* العنوان + طريقة الدفع */}
-            <div className="space-y-4 p-4">
-              <div className="space-y-2">
-                <Label htmlFor="cart-address" className="text-xs font-bold">
-                  عنوان التوصيل (اختياري)
-                </Label>
-                <Textarea
-                  id="cart-address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="الحي / الشارع / معلّم مميّز..."
-                  className="min-h-[64px] resize-none"
-                  rows={2}
-                />
-              </div>
+            {/* موقع التوصيل + طريقة الدفع + ملاحظات — نفس حقول CheckoutSheet (2-c) */}
+            <DeliveryFields
+              lat={lat}
+              lng={lng}
+              onLocated={(la, ln) => {
+                setLat(la);
+                setLng(ln);
+              }}
+              address={address}
+              onAddressChange={setAddress}
+              notes={notes}
+              onNotesChange={setNotes}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
+              idPrefix="cart-"
+            />
 
-              <div className="space-y-2">
-                <Label className="text-xs font-bold">طريقة الدفع</Label>
-                <RadioGroup
-                  value={paymentMethod}
-                  onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                  className="grid grid-cols-2 gap-2"
-                >
-                  {[
-                    { value: "cash", label: "نقداً عند الاستلام", icon: Banknote },
-                    { value: "wallet", label: "محفظة جيب", icon: Wallet },
-                  ].map(({ value, label, icon: Icon }) => (
-                    <label
-                      key={value}
-                      className={cn(
-                        "native-tap flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border-2 px-3 text-xs font-bold transition-colors",
-                        paymentMethod === value
-                          ? "border-primary bg-primary/5 text-primary"
-                          : "border-border/50 text-muted-foreground hover:border-primary/40"
-                      )}
-                    >
-                      <RadioGroupItem value={value} className="sr-only" />
-                      <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-                      {label}
-                    </label>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              {errorMsg && (
+            {/* رسالة الخطأ */}
+            {errorMsg && (
+              <div className="p-4">
                 <div
-                  className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive"
                   role="alert"
+                  className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
                 >
-                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  <p>{errorMsg}</p>
+                  <AlertTriangle
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="leading-relaxed">{errorMsg}</span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* ملخص الفاتورة + تأكيد */}
+            {/* ملخص الفاتورة + تأكيد — نفس منطق useCartPricing في صفحة /cart */}
             <div className="border-t border-border/50 bg-card/50 p-4 space-y-3">
               <div className="space-y-1.5 text-sm" dir="rtl">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
-                    المجموع الفرعي{isMember ? ` (بعد خصم ${memberRate}% عضوية)` : ""}
+                    المجموع الأصلي ({totalCount} {totalCount === 1 ? "صنف" : "أصناف"})
                   </span>
                   <span className="font-bold tabular-nums text-foreground" dir="ltr">
-                    {formatCurrency(subtotal)}
+                    {formatCurrency(baseSubtotal)}
                   </span>
                 </div>
+                {isMember && memberSavings > 0 && (
+                  <div className="flex items-center justify-between text-primary">
+                    <span className="inline-flex items-center gap-1 font-bold">
+                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      خصم العضوية {memberRate}%
+                    </span>
+                    <span className="font-bold tabular-nums" dir="ltr">
+                      −{formatCurrency(memberSavings)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">رسوم التوصيل</span>
                   <span className="font-bold tabular-nums text-foreground" dir="ltr">
@@ -316,7 +307,7 @@ function CartLine({
   onUpdate,
   onRemove,
 }: {
-  item: CartItem & { unit: number; base: number; subtotal: number };
+  item: PricedCartItem;
   isMember: boolean;
   onUpdate: (qty: number) => void;
   onRemove: () => void;
@@ -407,7 +398,7 @@ function CartLine({
       <div className="shrink-0 text-left" dir="ltr">
         <p className="text-[10px] text-muted-foreground">المجموع</p>
         <p className="text-sm font-extrabold tabular-nums text-foreground">
-          {formatCurrency(item.subtotal)}
+          {formatCurrency(item.lineTotal)}
         </p>
       </div>
     </li>

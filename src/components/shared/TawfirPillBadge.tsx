@@ -3,8 +3,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * كبسولة توفير الترويجية — سماوية بنص أبيض.
- * «حياة أجمل.. مع خصومات أكثر»
+ * كبسولة توفير الترويجية — زمردية بنص أبيض.
+ * تحمل التاغلاين المعتمد: «وفّر أكثر.. عِش أجمل»
  */
 export function TawfirPillBadge({ className }: { className?: string }) {
   return (
@@ -15,7 +15,7 @@ export function TawfirPillBadge({ className }: { className?: string }) {
         className
       )}
     >
-      حياة أجمل.. مع خصومات أكثر
+      وفّر أكثر.. عِش أجمل
     </span>
   );
 }

@@ -64,13 +64,13 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 const ROLE_COLORS: Record<UserRole, string> = {
   admin: "bg-primary/15 text-primary border-primary/25 hover:bg-primary/15",
-  owner: "bg-accent/15 text-accent border-accent/25 hover:bg-accent/15",
+  owner: "bg-accent/15 text-accent-ink border-accent/25 hover:bg-accent/15",
   customer: "bg-secondary/15 text-secondary border-secondary/25 hover:bg-secondary/15",
 };
 
 const DIALOG_ROLE_BADGE_COLORS: Record<UserRole, string> = {
   customer: "bg-secondary/10 text-secondary",
-  owner: "bg-accent/10 text-accent",
+  owner: "bg-accent/10 text-accent-ink",
   admin: "bg-primary/10 text-primary",
 };
 
@@ -129,6 +129,26 @@ function TableSkeleton() {
         </TableRow>
       ))}
     </TableBody>
+  );
+}
+
+/* ✦ 4-a: هيكل بطاقات الموبايل */
+function CardsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="rounded-xl border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1.5">
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+            <Skeleton className="h-5 w-14 rounded-full" />
+          </div>
+          <Skeleton className="mt-3 h-3 w-24" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -224,7 +244,130 @@ export function UsersTable({ search, roleFilter = "all" }: UsersTableProps) {
   }
 
   return (
-    <div className="max-h-[70vh] overflow-auto rounded-lg border bg-card">
+    <>
+      {/* ✦ 4-a: بطاقة مكدسة لكل مستخدم على الموبايل — بلا تمرير أفقي بائج */}
+      <div className="space-y-3 md:hidden" aria-label="قائمة المستخدمين">
+        {isLoading ? (
+          <CardsSkeleton />
+        ) : error ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border bg-card py-10 text-center">
+            <p className="text-sm text-destructive">تعذّر تحميل المستخدمين.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="gap-2"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              إعادة المحاولة
+            </Button>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-xl border bg-card py-12 text-center">
+            <Search className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">
+              {hasActiveFilter ? "لا يوجد مستخدمون بهذا الفلتر." : "لا يوجد مستخدمون."}
+            </p>
+          </div>
+        ) : (
+          items.map((user) => (
+            <div key={user.id} className="rounded-xl border bg-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{user.full_name}</p>
+                  <p
+                    className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground"
+                    dir="ltr"
+                  >
+                    <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{user.email}</span>
+                  </p>
+                  {user.phone && (
+                    <p
+                      className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground"
+                      dir="ltr"
+                    >
+                      <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {user.phone}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn("shrink-0", ROLE_COLORS[user.role])}
+                >
+                  <span className="flex items-center gap-1">
+                    {ROLE_ICONS[user.role]}
+                    {ROLE_LABELS[user.role]}
+                  </span>
+                </Badge>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(user.created_at)}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11"
+                    onClick={() => setDetailUser(user)}
+                    aria-label={`عرض تفاصيل ${user.full_name}`}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11"
+                        aria-label="تغيير الدور"
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      <DropdownMenuLabel>تغيير الدور</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setRoleDialogUser(user);
+                          setPendingRole(user.role);
+                        }}
+                        className="gap-2"
+                      >
+                        <UserCog className="h-4 w-4" />
+                        تغيير الدور
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {ROLES.map((role) => (
+                        <DropdownMenuItem
+                          key={role}
+                          onClick={() => handleChangeRole(user, role)}
+                          disabled={user.role === role || updateRole.isPending}
+                          className="gap-2"
+                        >
+                          {ROLE_ICONS[role]}
+                          {ROLE_LABELS[role]}
+                          {user.role === role && (
+                            <span className="mr-auto text-xs text-muted-foreground">
+                              الحالي
+                            </span>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* الجدول — ديسكتوب فقط */}
+      <div className="max-h-[70vh] hidden overflow-auto rounded-lg border bg-card md:block">
       <Table>
         <TableHeader className="sticky top-0 z-10 bg-card">
           <TableRow>
@@ -371,6 +514,7 @@ export function UsersTable({ search, roleFilter = "all" }: UsersTableProps) {
           </TableBody>
         )}
       </Table>
+      </div>
 
       {/* User Detail Dialog */}
       <Dialog open={detailUser !== undefined} onOpenChange={(o) => !o && setDetailUser(undefined)}>
@@ -470,6 +614,6 @@ export function UsersTable({ search, roleFilter = "all" }: UsersTableProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

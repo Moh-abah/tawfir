@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { useAccountMe } from "@/hooks/useAccountMe";
 import { useOwnerAuth } from "@/hooks/useOwnerAuth";
@@ -58,11 +60,15 @@ export function OwnerMobileTopBar({ onOpenMenu, className }: OwnerMobileTopBarPr
     ? facilityName
     : (ownerName || facilityName);
 
-  // منع وميض hydration: ابدأ بعنوان ثابت ثم حدّثه بعد hydration
+  // منع وميض hydration: نبدأ بعنوان ثابت ثم نتبع العنوان الديناميكي
+  // (نمط React الرسمي «تعديل الحالة عند تغيّر prop» داخل مرحلة الرندر —
+  //  بلا useEffect/setState-in-effect)
   const [displayTitle, setDisplayTitle] = useState<string>(title);
-  useEffect(() => {
+  const [prevTitle, setPrevTitle] = useState<string>(title);
+  if (prevTitle !== title) {
+    setPrevTitle(title);
     setDisplayTitle(title);
-  }, [title]);
+  }
 
   return (
     <header
@@ -73,7 +79,7 @@ export function OwnerMobileTopBar({ onOpenMenu, className }: OwnerMobileTopBarPr
       style={{ paddingTop: "env(safe-area-inset-top)" }}
       role="banner"
     >
-      <div className="grid h-14 w-full grid-cols-[44px_1fr_44px] items-center px-1">
+      <div className="grid h-14 w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center px-1">
         {/* زر القائمة ☰ — أقصى اليمين البصري (RTL) */}
         <div className="flex justify-start">
           <button
@@ -86,17 +92,27 @@ export function OwnerMobileTopBar({ onOpenMenu, className }: OwnerMobileTopBarPr
           </button>
         </div>
 
-        {/* العنوان المركزي — h2 لتجنّب تكرار h1 مع الشريط الجانبي (قاعدة h1 واحد للصفحة) */}
-        <h2
-          className="truncate text-center text-sm font-semibold text-foreground"
-          title={displayTitle}
-        >
-          {displayTitle}
-        </h2>
+        {/* العنوان المركزي + رمز الشعار — h2 لتجنّب تكرار h1 مع الشريط الجانبي */}
+        <div className="flex min-w-0 items-center justify-center gap-1.5">
+          {/* ✦ 2-b: رمز الشعار المقصوص في ترويسة الموبايل */}
+          <TawfirLogo
+            variant="mark"
+            href=""
+            className="shrink-0 [&_img]:!h-7 [&_img]:!w-auto"
+          />
+          <h2
+            className="truncate text-center text-sm font-semibold text-foreground"
+            title={displayTitle}
+          >
+            {displayTitle}
+          </h2>
+        </div>
 
-        {/* جرس الإشعارات — أقصى اليسار البصري */}
-        <div className="flex justify-end">
+        {/* ✦ 4-b: جرس الإشعارات + مبدّل الثيم — أقصى اليسار البصري
+            (نفس ترتيب ترويسة الأدمن للاتساق) */}
+        <div className="flex items-center justify-end gap-0.5">
           <NotificationBell variant="header" />
+          <ThemeToggle />
         </div>
       </div>
     </header>

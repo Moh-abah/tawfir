@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Upload, Flame, BarChart3 } from "lucide-react";
+import { Plus, Upload, Flame, BarChart3, ChevronLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { motion, useReducedMotion } from "framer-motion";
 
 /**
- * شبكة الأدوات السريعة — 4 أعمدة أيقونات — الجولة 9 (المهمة 8)
+ * الأدوات السريعة — ✦ 4-b: صف أفقي snap قابل للسحب على الموبايل
+ * (نمط Netflix) وشبكة 4 أعمدة على sm+.
  *
  * - ➕ منتج جديد → /owner/facilities/{id}/products (مع trigger لفتح النموذج)
  * - 📤 استيراد Excel → /owner/facilities/{id}/products/import
@@ -63,7 +64,7 @@ export function OwnerQuickTools({ facilityId, className }: OwnerQuickToolsProps)
       label: "الإحصائيات",
       icon: BarChart3,
       href: "/owner",
-      iconClass: "bg-accent/15 text-accent",
+      iconClass: "bg-accent/15 text-accent-ink",
     },
   ];
 
@@ -73,7 +74,10 @@ export function OwnerQuickTools({ facilityId, className }: OwnerQuickToolsProps)
 
   return (
     <div
-      className={cn("grid grid-cols-4 gap-2", className)}
+      className={cn(
+        "no-mobile-scrollbar flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:gap-2 sm:overflow-visible sm:pb-0",
+        className,
+      )}
       role="region"
       aria-label="أدوات سريعة"
     >
@@ -86,22 +90,27 @@ export function OwnerQuickTools({ facilityId, className }: OwnerQuickToolsProps)
             initial="initial"
             animate="animate"
             transition={{ duration: 0.25, delay: idx * 0.04 }}
+            className="min-w-[150px] shrink-0 snap-start sm:min-w-0"
           >
             <Link
               href={tool.href}
-              className="native-tap-card group flex h-[72px] flex-col items-center justify-center gap-1 rounded-2xl border border-border/60 bg-card p-2 text-center transition-colors hover:border-primary/30 hover:bg-muted/30"
+              className="native-tap-card group flex h-[76px] items-center gap-3 rounded-2xl border border-border/60 bg-card p-3 text-start transition-colors hover:border-primary/30 hover:bg-muted/30"
             >
               <span
                 className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105",
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform group-hover:scale-105",
                   tool.iconClass,
                 )}
               >
                 <Icon className="h-5 w-5" aria-hidden="true" />
               </span>
-              <span className="text-[11px] font-medium leading-tight text-foreground">
+              <span className="min-w-0 flex-1 text-xs font-semibold leading-snug text-foreground">
                 {tool.label}
               </span>
+              <ChevronLeft
+                className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:-translate-x-0.5 rtl:rotate-180"
+                aria-hidden="true"
+              />
             </Link>
           </motion.div>
         );
@@ -110,12 +119,20 @@ export function OwnerQuickTools({ facilityId, className }: OwnerQuickToolsProps)
   );
 }
 
-/** Skeleton للشبكة (4 بطاقات 72px). */
+/** Skeleton للصف الأفقي (بطاقات 76px). */
 export function OwnerQuickToolsSkeleton({ className }: { className?: string }) {
   return (
-    <div className={cn("grid grid-cols-4 gap-2", className)}>
+    <div
+      className={cn(
+        "no-mobile-scrollbar flex snap-x gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-4 sm:gap-2 sm:overflow-visible sm:pb-0",
+        className,
+      )}
+    >
       {[1, 2, 3, 4].map((i) => (
-        <Skeleton key={i} className="h-[72px] rounded-2xl" />
+        <Skeleton
+          key={i}
+          className="h-[76px] min-w-[150px] shrink-0 rounded-2xl sm:min-w-0"
+        />
       ))}
     </div>
   );

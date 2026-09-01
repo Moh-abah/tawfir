@@ -5,16 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
-  Banknote,
   CheckCircle2,
   ListOrdered,
   Loader2,
-  MapPin,
   Minus,
   Plus,
   ShoppingBag,
   Sparkles,
-  Wallet,
 } from "lucide-react";
 import {
   Sheet,
@@ -24,10 +21,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { DeliveryFields } from "@/components/public/DeliveryFields";
 import { useMe } from "@/hooks/useMe";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -301,7 +297,6 @@ export function CheckoutSheet({
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
-  const [locating, setLocating] = useState(false);
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -355,35 +350,6 @@ export function CheckoutSheet({
     }, 250);
     return () => clearTimeout(t);
   }, [open]);
-
-  const handleLocate = () => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      toast({
-        title: "غير مدعوم",
-        description: "متصفحك لا يدعم تحديد الموقع.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocating(false);
-        toast({ title: "تم تحديد موقعك" });
-      },
-      (err) => {
-        setLocating(false);
-        toast({
-          title: "تعذّر تحديد موقعك",
-          description: err.message,
-          variant: "destructive",
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 0 }
-    );
-  };
 
   const handleSubmit = () => {
     if (outOfStock) return;
@@ -568,10 +534,10 @@ export function CheckoutSheet({
                       className="flex w-full items-center justify-between rounded-lg bg-accent/15 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent/20"
                     >
                       <span className="inline-flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+                        <Sparkles className="h-3.5 w-3.5 text-accent-ink" aria-hidden="true" />
                         اشترك في عضوية توفير لخصم {DISCOUNT_RATE}%
                       </span>
-                      <span className="font-bold text-accent">اشترك</span>
+                      <span className="font-bold text-accent-ink">اشترك</span>
                     </button>
                   )}
 
@@ -597,96 +563,22 @@ export function CheckoutSheet({
               )}
             </section>
 
-            {/* موقع التوصيل */}
-            <section className="space-y-2 border-b p-4" aria-label="موقع التوصيل">
-              <Label className="text-sm font-bold">موقع التوصيل</Label>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleLocate}
-                disabled={locating || outOfStock}
-                className="min-h-[44px] w-full justify-center gap-2"
-              >
-                {locating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <MapPin className="h-4 w-4" aria-hidden="true" />
-                )}
-                {lat != null && lng != null
-                  ? "تم تحديد موقعك"
-                  : "حدد موقعي"}
-              </Button>
-              <Label htmlFor="address" className="text-xs text-muted-foreground">
-                العنوان التفصيلي
-              </Label>
-              <Textarea
-                id="address"
-                placeholder="الحي، الشارع، أقرب نقطة دالة..."
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                maxLength={500}
-                rows={3}
-                disabled={outOfStock}
-                className="resize-none"
-              />
-              <p className="text-left text-[11px] text-muted-foreground" dir="ltr">
-                {address.length}/500
-              </p>
-            </section>
-
-            {/* طريقة الدفع */}
-            <section className="space-y-2 border-b p-4" aria-label="طريقة الدفع">
-              <Label className="text-sm font-bold">طريقة الدفع</Label>
-              <RadioGroup
-                value={paymentMethod}
-                onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
-                className="space-y-2"
-              >
-                <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                  <RadioGroupItem value="cash" id="pay-cash" />
-                  <Label
-                    htmlFor="pay-cash"
-                    className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
-                  >
-                    <Banknote className="h-5 w-5 text-foreground" aria-hidden="true" />
-                    نقداً عند الاستلام
-                  </Label>
-                </div>
-                <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border p-3 opacity-60">
-                  <RadioGroupItem value="wallet" id="pay-wallet" disabled />
-                  <Label
-                    htmlFor="pay-wallet"
-                    className="flex flex-1 cursor-not-allowed items-center gap-2 text-sm font-medium text-muted-foreground"
-                  >
-                    <Wallet className="h-5 w-5" aria-hidden="true" />
-                    محفظة
-                  </Label>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                    قريباً
-                  </span>
-                </div>
-              </RadioGroup>
-            </section>
-
-            {/* ملاحظات */}
-            <section className="space-y-2 border-b p-4" aria-label="ملاحظات">
-              <Label htmlFor="notes" className="text-sm font-bold">
-                ملاحظات (اختياري)
-              </Label>
-              <Textarea
-                id="notes"
-                placeholder="أي ملاحظات على طلبك (مثال: بدون بصل، توابل إضافية...)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                maxLength={500}
-                rows={3}
-                disabled={outOfStock}
-                className="resize-none"
-              />
-              <p className="text-left text-[11px] text-muted-foreground" dir="ltr">
-                {notes.length}/500
-              </p>
-            </section>
+            {/* موقع التوصيل + طريقة الدفع + ملاحظات — حقول مشتركة (2-c) */}
+            <DeliveryFields
+              lat={lat}
+              lng={lng}
+              onLocated={(la, ln) => {
+                setLat(la);
+                setLng(ln);
+              }}
+              address={address}
+              onAddressChange={setAddress}
+              notes={notes}
+              onNotesChange={setNotes}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
+              disabled={outOfStock}
+            />
 
             {/* رسالة الخطأ */}
             {errorMsg && (

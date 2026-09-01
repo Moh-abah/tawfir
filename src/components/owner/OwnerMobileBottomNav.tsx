@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, Package, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMyFacilities } from "@/hooks/useMyFacilities";
 
 /**
  * الشريط السفلي للبائع — الجولة 9 (المهمة 8)
@@ -13,6 +14,9 @@ import { cn } from "@/lib/utils";
  * - الطلبات  → /owner/facilities/{id}/orders
  * - المنتجات → /owner/facilities/{id}/products
  * - القائمة  → يفتح Sheet (OwnerMobileMenuSheet)
+ *
+ * ✦ 4-b: عند غياب معرّف المتجر من المسار (مثل /owner نفسها) نستخدم
+ * أول متجر مملوك من useMyFacilities — التبويبات تعمل دائماً بدل تعطيلها.
  *
  * القائمة السفلية لا تُعرض على الديسكتوب (`md:hidden` من المستدعي).
  * safe-area-inset-bottom محترم عبر padding-bottom.
@@ -43,9 +47,15 @@ interface TabDef {
 
 export function OwnerMobileBottomNav({ onOpenMenu, className }: OwnerMobileBottomNavProps) {
   const pathname = usePathname();
-  const facilityId = useFacilityIdFromPath();
+  const pathFacilityId = useFacilityIdFromPath();
+  const { data: facilities } = useMyFacilities();
 
-  // إن لم نكن في صفحة متجر محددة، عطّل تبويبات الطلبات/المنتجات
+  // ✦ 4-b: fallback لأول متجر مملوك عندما لا يحمل المسار معرّف متجر
+  const facilityId =
+    pathFacilityId ??
+    (facilities && facilities.length > 0 ? facilities[0].id : null);
+
+  // تبويبات الطلبات/المنتجات تُعطّل فقط عند غياب أي متجر نهائياً
   const facilityBase = facilityId ? `/owner/facilities/${facilityId}` : null;
 
   const tabs: TabDef[] = [

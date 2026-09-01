@@ -48,6 +48,27 @@ function TableSkeleton() {
   );
 }
 
+/* ✦ 4-a: هيكل بطاقات الموبايل */
+function CardsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="rounded-xl border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-24 rounded-full" />
+            <Skeleton className="h-4 w-4" />
+          </div>
+          <Skeleton className="mt-3 h-3 w-full" />
+          <div className="mt-3 flex justify-between">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Map predefined Arabic categories to actual action_type values */
 const ACTION_CATEGORY_MAP: Record<string, string[]> = {
   all: [],
@@ -131,7 +152,97 @@ export function AuditTable({ predefinedFilter }: AuditTableProps) {
         )}
       </div>
 
-      <div className="max-h-[70vh] overflow-auto rounded-lg border bg-card">
+      {/* ✦ 4-a: بطاقات مكدسة لكل سجل على الموبايل — بلا تمرير أفقي بائج */}
+      <div className="space-y-3 md:hidden" aria-label="سجل العمليات">
+        {isLoading ? (
+          <CardsSkeleton />
+        ) : error ? (
+          <div className="flex flex-col items-center gap-3 rounded-xl border bg-card py-10 text-center">
+            <p className="text-sm text-destructive">تعذّر تحميل سجل العمليات.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              className="gap-2"
+            >
+              <RefreshCcw className="h-4 w-4" />
+              إعادة المحاولة
+            </Button>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="rounded-xl border bg-card py-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              {actionFilter !== "all" || (predefinedFilter && predefinedFilter !== "all")
+                ? "لا توجد سجلات لهذا الفلتر."
+                : "لا توجد عمليات مسجّلة."}
+            </p>
+          </div>
+        ) : (
+          filteredItems.map((log) => {
+            const isExpanded = expandedId === log.id;
+            const hasDetails = log.details && Object.keys(log.details).length > 0;
+            const detailsText = log.details
+              ? typeof log.details === "string"
+                ? log.details
+                : JSON.stringify(log.details)
+              : "—";
+            return (
+              <div
+                key={log.id}
+                className={cn(
+                  "rounded-xl border bg-card p-4 transition-colors",
+                  hasDetails && "cursor-pointer active:bg-muted/40"
+                )}
+                onClick={() => hasDetails && toggleExpand(log.id)}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Badge variant="outline">{getAuditLabel(log.action_type)}</Badge>
+                  {hasDetails && (
+                    <span
+                      className="flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground"
+                      aria-hidden="true"
+                    >
+                      {isExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </span>
+                  )}
+                </div>
+                <p
+                  className={cn(
+                    "mt-2 text-xs text-muted-foreground",
+                    !isExpanded && "line-clamp-2"
+                  )}
+                  dir="ltr"
+                >
+                  {detailsText}
+                </p>
+                <div className="mt-3 flex items-center justify-between gap-2 border-t pt-3">
+                  <span className="text-xs text-muted-foreground" dir="ltr">
+                    {log.ip_address || "—"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(log.created_at)}
+                  </span>
+                </div>
+                {isExpanded && hasDetails && (
+                  <pre
+                    className="no-mobile-scrollbar mt-3 max-h-48 overflow-auto rounded-lg bg-background p-3 text-xs leading-relaxed"
+                    dir="ltr"
+                  >
+                    <code>{JSON.stringify(log.details, null, 2)}</code>
+                  </pre>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* الجدول — ديسكتوب فقط */}
+      <div className="max-h-[70vh] hidden overflow-auto rounded-lg border bg-card md:block">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>

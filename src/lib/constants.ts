@@ -65,16 +65,26 @@ export const ORDER_TRACKING_FLOW: OrderStatus[] = [
   "delivered",
 ];
 
-/** الخريطة اللونية لكل حالة (توكنات CSS مخصّصة). */
+/**
+ * الخريطة اللونية لكل حالة — هوية توفير الزمردية-الذهبية فقط (2-b):
+ * بانتظار التأكيد = ذهبي (accent) · مؤكَّد = زمردي هادئ (primary)
+ * قيد التحضير = فيروزي (secondary) · في الطريق = كحلي مميز (chart-4)
+ * تم التوصيل = زمردي (success) · ملغى = destructive
+ * (نص فاتح = accent-foreground لضمان تباين AA فوق الذهبي الفاتح)
+ */
 export const ORDER_STATUS_TONE: Record<OrderStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
-  confirmed: "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
-  preparing: "bg-violet-100 text-violet-800 dark:bg-violet-500/15 dark:text-violet-300",
+  pending:
+    "bg-accent/15 text-accent-foreground dark:bg-accent/20 dark:text-accent",
+  confirmed:
+    "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary",
+  preparing:
+    "bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary",
   out_for_delivery:
-    "bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300",
+    "bg-chart-4/10 text-chart-4 dark:bg-chart-4/20 dark:text-chart-4",
   delivered:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
-  cancelled: "bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300",
+    "bg-success/15 text-success dark:bg-success/20 dark:text-success",
+  cancelled:
+    "bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive",
 };
 
 // ─── Membership request status labels ─────────────────

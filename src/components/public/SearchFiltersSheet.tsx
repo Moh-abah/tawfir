@@ -7,7 +7,9 @@ import {
   Check,
   CircleDollarSign,
   ListFilter,
+  MapPin,
   RotateCcw,
+  Store,
   UtensilsCrossed,
 } from "lucide-react";
 import {
@@ -25,16 +27,22 @@ import { haptic } from "@/lib/haptic";
 
 export type SortKey = "default" | "price_asc" | "price_desc" | "name";
 export type PriceRangeKey = "all" | "lt500" | "r500to1000" | "gt1000";
+export type CategoryKey = "all" | "restaurant" | "cafe";
+export type DistanceKey = "all" | "lt2" | "lt5";
 
 export interface SearchFilters {
   sort: SortKey;
   price: PriceRangeKey;
+  category: CategoryKey;
+  distance: DistanceKey;
   availableOnly: boolean;
 }
 
 export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
   sort: "default",
   price: "all",
+  category: "all",
+  distance: "all",
   availableOnly: true,
 };
 
@@ -59,6 +67,38 @@ export const PRICE_OPTIONS: {
   { key: "gt1000", label: "أكثر من ١٠٠٠" },
 ];
 
+/** خيارات التصنيف — ألوان هوية التصنيفات عبر توكنات --cat-* */
+export const CATEGORY_OPTIONS: {
+  key: CategoryKey;
+  label: string;
+  icon: typeof Store;
+  /** أصناف Tailwind للرقاقة النشطة (ألوان التصنيف) */
+  activeClass: string;
+}[] = [
+  { key: "all", label: "الكل", icon: Store, activeClass: "border-primary bg-primary text-primary-foreground" },
+  {
+    key: "restaurant",
+    label: "مطاعم",
+    icon: UtensilsCrossed,
+    activeClass: "border-cat-restaurant bg-cat-restaurant text-white",
+  },
+  {
+    key: "cafe",
+    label: "مقاهي",
+    icon: Store,
+    activeClass: "border-cat-cafe bg-cat-cafe text-white",
+  },
+];
+
+export const DISTANCE_OPTIONS: {
+  key: DistanceKey;
+  label: string;
+}[] = [
+  { key: "all", label: "كل المسافات" },
+  { key: "lt2", label: "ضمن ٢ كم" },
+  { key: "lt5", label: "ضمن ٥ كم" },
+];
+
 /** حدود نطاق السعر بالريال اليمني (تُطابق PRICE_OPTIONS) */
 const PRICE_BOUNDS: Record<
   Exclude<PriceRangeKey, "all">,
@@ -69,6 +109,15 @@ const PRICE_BOUNDS: Record<
   gt1000: { min: 1000, max: Number.POSITIVE_INFINITY },
 };
 
+/** حدود نطاق المسافة بالكيلومتر */
+const DISTANCE_BOUNDS: Record<
+  Exclude<DistanceKey, "all">,
+  { max: number }
+> = {
+  lt2: { max: 2 },
+  lt5: { max: 5 },
+};
+
 /** هل السعر داخل النطاق المحدد؟ */
 export function isPriceInRange(price: number, range: PriceRangeKey): boolean {
   if (range === "all") return true;
@@ -76,11 +125,26 @@ export function isPriceInRange(price: number, range: PriceRangeKey): boolean {
   return price >= b.min && price < b.max;
 }
 
+/**
+ * هل المسافة داخل النطاق المحدد؟
+ * القيم null (لا بيانات موقع) تُعرض فقط عند «كل المسافات».
+ */
+export function isDistanceInRange(
+  distanceKm: number | null | undefined,
+  range: DistanceKey
+): boolean {
+  if (range === "all") return true;
+  if (distanceKm == null) return false;
+  return distanceKm <= DISTANCE_BOUNDS[range].max;
+}
+
 /** عدد الفلاتر النشطة (غير الافتراضية) — لشارة زر الفلاتر */
 export function countActiveFilters(f: SearchFilters): number {
   let n = 0;
   if (f.sort !== "default") n++;
   if (f.price !== "all") n++;
+  if (f.category !== "all") n++;
+  if (f.distance !== "all") n++;
   if (!f.availableOnly) n++;
   return n;
 }
@@ -144,15 +208,17 @@ function SortRow({
   );
 }
 
-/* ─── رقاقة نطاق سعر ────────────────────────────────── */
-function PriceChip({
+/* ─── رقاقة عامة (سعر/مسافة) ────────────────────────── */
+function FilterChip({
   label,
   selected,
   onSelect,
+  selectedClass,
 }: {
   label: string;
   selected: boolean;
   onSelect: () => void;
+  selectedClass?: string;
 }) {
   return (
     <button
@@ -165,7 +231,8 @@ function PriceChip({
       className={cn(
         "native-tap min-h-[44px] rounded-full border px-4 py-1.5 text-sm font-bold transition-all duration-150 active:scale-95",
         selected
-          ? "border-primary bg-primary text-primary-foreground shadow-soft"
+          ? selectedClass ??
+              "border-primary bg-primary text-primary-foreground shadow-soft"
           : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
       )}
     >
@@ -183,6 +250,10 @@ interface SearchFiltersSheetProps {
   resultCount: number;
 }
 
+/**
+ * Sheet فلاتر البحث — الترتيب / نطاق السعر / التصنيف / المسافة / التوفر.
+ * الألوان كاملة عبر توكنات الهوية (primary/accent/--cat-*) — Sheet من shadcn.
+ */
 export function SearchFiltersSheet({
   open,
   onOpenChange,
@@ -244,6 +315,40 @@ export function SearchFiltersSheet({
             </div>
           </section>
 
+          {/* ── التصنيف ── */}
+          <section aria-label="التصنيف" className="space-y-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+              <Store className="h-4 w-4 text-primary" aria-hidden="true" />
+              التصنيف
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORY_OPTIONS.map((opt) => {
+                const Icon = opt.icon;
+                const selected = filters.category === opt.key;
+                return (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => {
+                      haptic("tick");
+                      onChange({ ...filters, category: opt.key });
+                    }}
+                    className={cn(
+                      "native-tap inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-bold transition-all duration-150 active:scale-95",
+                      selected
+                        ? opt.activeClass + " shadow-soft"
+                        : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
           {/* ── نطاق السعر ── */}
           <section aria-label="نطاق السعر" className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
@@ -252,7 +357,7 @@ export function SearchFiltersSheet({
             </h3>
             <div className="flex flex-wrap gap-2">
               {PRICE_OPTIONS.map((opt) => (
-                <PriceChip
+                <FilterChip
                   key={opt.key}
                   label={opt.label}
                   selected={filters.price === opt.key}
@@ -263,6 +368,28 @@ export function SearchFiltersSheet({
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               <BadgePercent className="ml-1 inline h-3 w-3" aria-hidden="true" />
               الأسعار بالريال اليمني — النطاق يطبَّق على نتائج الوجبات
+            </p>
+          </section>
+
+          {/* ── المسافة ── */}
+          <section aria-label="المسافة" className="space-y-2">
+            <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+              <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
+              المسافة
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {DISTANCE_OPTIONS.map((opt) => (
+                <FilterChip
+                  key={opt.key}
+                  label={opt.label}
+                  selected={filters.distance === opt.key}
+                  onSelect={() => onChange({ ...filters, distance: opt.key })}
+                />
+              ))}
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              <MapPin className="ml-1 inline h-3 w-3" aria-hidden="true" />
+              تُطبَّق عند توفر بيانات الموقع للوجبات القريبة منك
             </p>
           </section>
 

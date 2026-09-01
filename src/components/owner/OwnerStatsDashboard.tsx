@@ -32,23 +32,16 @@ import {
 import { cn } from "@/lib/utils";
 import { useOwnerStats } from "@/hooks/useOwnerStats";
 import { formatCurrency, formatDate } from "@/lib/format";
-import { ORDER_STATUS_LABEL } from "@/lib/constants";
+import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/constants";
 import type {
   Facility,
   OrderStatus,
 } from "@/types/api.generated";
 
-// ─── ثوابت الألوان لشارات حالة الطلب (مطابقة لمواصفات المهمة) ───
-const STATUS_TONE: Record<OrderStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
-  confirmed: "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
-  preparing: "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
-  out_for_delivery:
-    "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
-  delivered:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
-  cancelled: "bg-destructive/10 text-destructive dark:bg-destructive/20",
-};
+// ─── ثوابت الألوان لشارات حالة الطلب ──────────────────────
+// ✦ 2-b: توحيد الشارات مع خريطة الهوية المركزية في lib/constants
+// (ذهبي=قيد التنفيذ · فيروزي=توصيل · زمردي=مُسلّم · destructive=ملغى)
+const STATUS_TONE: Record<OrderStatus, string> = ORDER_STATUS_TONE;
 
 const WEEKDAY_LABELS = [
   "الأحد",
@@ -282,11 +275,11 @@ function TopProductsList({
         const pct = maxCount > 0 ? (p.count / maxCount) * 100 : 0;
         const rankClass =
           idx === 0
-            ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+            ? "bg-accent/20 text-accent-foreground dark:bg-accent/25 dark:text-gold-light"
             : idx === 1
-              ? "bg-zinc-200 text-zinc-800 dark:bg-zinc-500/20 dark:text-zinc-300"
+              ? "bg-muted-foreground/15 text-foreground dark:bg-muted-foreground/25"
               : idx === 2
-                ? "bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-300"
+                ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary"
                 : "bg-muted text-muted-foreground";
         return (
           <li key={p.product_id} className="space-y-1.5">
@@ -430,8 +423,7 @@ export function OwnerStatsDashboard({
                 subtitle: `إيراد اليوم: ${formatCurrency(
                   data.today_revenue
                 )}`,
-                iconClass:
-                  "text-emerald-500 bg-emerald-500/10",
+                iconClass: "text-success bg-success/15",
               }}
             />
             <StatCard
@@ -440,7 +432,7 @@ export function OwnerStatsDashboard({
                 icon: Hourglass,
                 value: data.pending_orders,
                 label: "طلبات معلّقة",
-                iconClass: "text-amber-500 bg-amber-500/10",
+                iconClass: "text-accent-ink bg-accent/15",
                 pulse: data.pending_orders > 0,
               }}
             />
@@ -450,7 +442,7 @@ export function OwnerStatsDashboard({
                 icon: Banknote,
                 value: formatCurrency(data.total_revenue),
                 label: "إجمالي الإيراد",
-                iconClass: "text-sky-500 bg-sky-500/10",
+                iconClass: "text-secondary bg-secondary/10",
               }}
             />
             <StatCard
@@ -528,7 +520,7 @@ export function OwnerStatsDashboard({
               <CardContent className="p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Trophy
-                    className="h-4 w-4 text-amber-500"
+                    className="h-4 w-4 text-accent-ink"
                     aria-hidden="true"
                   />
                   <h3 className="text-sm font-bold">الأكثر طلباً</h3>

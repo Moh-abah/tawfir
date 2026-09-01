@@ -22,7 +22,7 @@ export const useRegionStore = create<RegionState>()(
       setSelectedRegion: (id) => set({ selectedRegionId: id }),
     }),
     {
-      name: "wafir-region",
+      name: "tawfir-region",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
     }
