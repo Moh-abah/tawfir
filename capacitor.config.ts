@@ -38,13 +38,13 @@ const config: CapacitorConfig = {
       keystoreAlias: "tawfir",
     },
     allowMixedContent: false,
-    backgroundColor: "#005B82",
+    backgroundColor: "#0A1A2F",
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: "#005B82",
+      backgroundColor: "#0A1A2F",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
@@ -53,7 +53,7 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       style: "DARK",
-      backgroundColor: "#005B82",
+      backgroundColor: "#0A1A2F",
       overlaysWebView: true,
     },
   },

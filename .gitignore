@@ -127,6 +127,10 @@ Desktop.ini
 Thumbs.db
 *.log
 
+
+*.rar
+tawfir-front.rar
+
 # Locks (اختياري)
 package-lock.json
 yarn.lock

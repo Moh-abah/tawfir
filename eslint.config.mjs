@@ -44,7 +44,9 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     "no-useless-escape": "off",
   },
 }, {
-  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "upload/**", "mini-services/**", "*.md"]
+  ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts", "examples/**", "skills", "upload/**", "mini-services/**", "*.md",
+    /* نسخ المشروع الاحتياطية ومخرجات الأدوات — ليست كوداً تشغيلياً */
+    "tawfir-extract/**", "tool-results/**", "agent-ctx/**", "screenshots/**", "identity-crops/**", "هويه توفير/**", "db/**"]
 }];
 
 export default eslintConfig;
