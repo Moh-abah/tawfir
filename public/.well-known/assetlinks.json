@@ -7,7 +7,7 @@
       "namespace": "android_app",
       "package_name": "com.tawfir.app",
       "sha256_cert_fingerprints": [
-        "3F07592415B7AC0C96246799376FB7244EEF22A2CE1EEA949E358037C6EA6635"
+        "3F:07:59:24:15:B7:AC:0C:96:24:67:99:37:6F:B7:24:4E:EF:22:A2:CE:1E:EA:94:9E:35:80:37:C6:EA:66:35"
       ]
     }
   },
@@ -19,7 +19,7 @@
       "namespace": "android_app",
       "package_name": "com.tawfir.owner",
       "sha256_cert_fingerprints": [
-        "3F07592415B7AC0C96246799376FB7244EEF22A2CE1EEA949E358037C6EA6635"
+        "3F:07:59:24:15:B7:AC:0C:96:24:67:99:37:6F:B7:24:4E:EF:22:A2:CE:1E:EA:94:9E:35:80:37:C6:EA:66:35"
       ]
     }
   }
