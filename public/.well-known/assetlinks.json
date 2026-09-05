@@ -5,9 +5,9 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.tawfir.app",
+      "package_name": "com.tawfir.ye.app",
       "sha256_cert_fingerprints": [
-        "3F:07:59:24:15:B7:AC:0C:96:24:67:99:37:6F:B7:24:4E:EF:22:A2:CE:1E:EA:94:9E:35:80:37:C6:EA:66:35"
+        "EE:E5:C2:B7:C4:CF:94:DE:8B:07:6A:5A:B9:E6:D8:6E:CB:27:EA:AC:4B:FF:A5:65:A4:B1:16:95:A0:96:72:1D"
       ]
     }
   },
@@ -17,9 +17,9 @@
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.tawfir.owner",
+      "package_name": "com.tawfir.ye.owner",
       "sha256_cert_fingerprints": [
-        "3F:07:59:24:15:B7:AC:0C:96:24:67:99:37:6F:B7:24:4E:EF:22:A2:CE:1E:EA:94:9E:35:80:37:C6:EA:66:35"
+        "EE:E5:C2:B7:C4:CF:94:DE:8B:07:6A:5A:B9:E6:D8:6E:CB:27:EA:AC:4B:FF:A5:65:A4:B1:16:95:A0:96:72:1D"
       ]
     }
   }
