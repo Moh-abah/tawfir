@@ -56,6 +56,13 @@ const geistMono = localFont({
  *  • theme-color: #0A1A2F (الزمردي — هوية توفير)
  */
 export const metadata: Metadata = {
+  // الجولة 21 — metadataBase + canonical لمنع المحتوى المكرر في Google
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://tawfir.giize.com",
+  ),
+  alternates: {
+    canonical: "/",
+  },
   title: "توفير | طلب الوجبات اليمنية وخصم حتى 30% للعضوية",
   description:
     "منصة توفير اليمنية — تصفّح الوجبات اليمنية من المطاعم والمقاهي واطلبها، واشترك في عضوية الخصم حتى 30%. اختر منطقتك واستمتع بالعروض الحصرية.",
@@ -130,6 +137,36 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var d=document.documentElement;if(document.cookie.split('; ').some(function(c){return c.indexOf('tawfir_customer_token=')===0})||sessionStorage.getItem('tawfir_welcome_dismissed')!==null){d.setAttribute('data-wb-hide','')}}catch(e){}`,
+          }}
+        />
+        {/* الجولة 21 — structured data schema.org/WebSite للـSEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: "توفير",
+              alternateName: "Tawfir",
+              url: "https://tawfir.giize.com",
+              description:
+                "منصة يمنية للخصومات على الوجبات — خصم حتى 30% للأعضاء في المطاعم والكافيهات المشتركة",
+              inLanguage: "ar",
+              publisher: {
+                "@type": "Organization",
+                name: "توفير",
+                url: "https://tawfir.giize.com",
+              },
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate:
+                    "https://tawfir.giize.com/search?q={search_term_string}",
+                },
+                "query-input": "required name=search_term_string",
+              },
+            }),
           }}
         />
       </head>

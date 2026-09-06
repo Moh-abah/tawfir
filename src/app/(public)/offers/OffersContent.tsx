@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
+// (الجولة 20) useQueryClient لم يعد لازماً بعد نقل PTR للـlayout
 import { motion } from "framer-motion";
 import { Flame, Sparkles } from "lucide-react";
 import {
@@ -14,7 +14,8 @@ import {
   type CheckoutProduct,
 } from "@/components/public/CheckoutSheet";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
-import { PullToRefresh } from "@/components/shared/PullToRefresh";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+// (الجولة 20) PullToRefresh نُقل لـ (public)/layout.tsx (GlobalPullToRefresh)
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useSpecialOffers } from "@/hooks/useSpecialOffers";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -83,7 +84,7 @@ function OffersEmptyCelebration() {
  *  - تبويب العروض في الشريط السفلي يوجّه إلى هذه الصفحة (/offers)
  */
 export function OffersContent() {
-  const queryClient = useQueryClient();
+
   const { data, isLoading, error, refetch } = useSpecialOffers(1, 50);
 
   const [selectedOffer, setSelectedOffer] = useState<SpecialOfferOut | null>(
@@ -98,9 +99,8 @@ export function OffersContent() {
     setOpen(true);
   };
 
-  const onRefresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["special-offers"] });
-  };
+  // ملاحظة الجولة 20: السحب للتحديث الآن عام في (public)/layout.tsx
+  // (GlobalPullToRefresh يُبطّل special-offers وغيرها). أزحنا PTR المحلي.
 
   // بناء CheckoutProduct من العرض الخاص المُحدّد
   const checkoutProduct: CheckoutProduct = selectedOffer
@@ -144,8 +144,12 @@ export function OffersContent() {
     <>
       <ScreenHeader title="العروض الخاصة" fallbackHref="/" />
 
-      <PullToRefresh onRefresh={onRefresh}>
         <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8">
+          {/* الجولة 21 — Breadcrumbs للـSEO */}
+          <Breadcrumbs
+            items={[{ label: "العروض الخاصة" }]}
+            className="mb-4"
+          />
           {/* العنوان — الجولة 10: h2 بدل h1 (الـ h1 الوحيد للصفحة في ScreenHeader — SEO) */}
           <div className="space-y-1">
             <h2 className="flex items-center gap-2 text-2xl font-extrabold text-foreground sm:text-3xl">
@@ -218,7 +222,6 @@ export function OffersContent() {
             )}
           </div>
         </div>
-      </PullToRefresh>
 
       {/* CheckoutSheet واحد مشترك — يُفتح بالعرض المُحدّد */}
       <CheckoutSheet

@@ -34,6 +34,7 @@ import { useAdminAuth, useAdminLogout } from "@/hooks/useAdminAuth";
 import { useAccountMe } from "@/hooks/useAccountMe";
 import { PasswordChangeCard } from "@/components/shared/PasswordChangeCard";
 import { SoundSettingsCard } from "@/components/shared/SoundSettingsCard";
+import { FreeMembershipToggleCard } from "@/components/admin/FreeMembershipToggleCard";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { useWsStatus } from "@/hooks/useWsStatus";
 import { formatDate } from "@/lib/format";
@@ -204,6 +205,11 @@ export default function AdminSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
+
+      {/* ─── العضوية المجانية — تحكّم المشرف (الجولة 20) ─── */}
+      <FreeMembershipToggleCard />
 
       <div className="h-[2px] w-full rounded-full bg-gradient-to-l from-primary/30 via-secondary/30 to-accent/30" />
 

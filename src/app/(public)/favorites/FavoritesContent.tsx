@@ -6,6 +6,7 @@ import { useQueries } from "@tanstack/react-query";
 import { Heart, Store, Trash2 } from "lucide-react";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { FavoriteFacilitiesSection } from "@/components/public/FavoriteFacilitiesSection";
 import {
   ProductCard,
   ProductCardSkeleton,
@@ -119,7 +120,10 @@ export function FavoritesContent() {
       </ScreenHeader>
 
       <div className="mx-auto max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
-        {/* وصف عدّاد */}
+        {/* الجولة 21 — المتاجر المفضلة (من الباك إند + إشعارات ذكية) */}
+        <FavoriteFacilitiesSection />
+
+        {/* وصف عدّاد المنتجات المفضلة محلياً */}
         {ids.length > 0 && (
           <p className="mb-4 text-xs text-muted-foreground">
             {loading && total === 0

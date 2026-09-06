@@ -1,18 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BadgePercent,
+  Clock,
   Coffee,
+  Heart,
   History,
   Landmark,
   Loader2,
   MapPin,
   MapPinned,
   Navigation,
+  RefreshCw,
   Search,
   Sparkles,
   UtensilsCrossed,
@@ -30,7 +32,6 @@ import {
 import { SpecialOffersSection } from "@/components/public/SpecialOffersSection";
 import { FavoritesSection } from "@/components/public/FavoritesSection";
 import { RecentlyViewedSection } from "@/components/public/RecentlyViewedSection";
-import { PullToRefresh } from "@/components/shared/PullToRefresh";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -39,6 +40,10 @@ import { SectionTitle } from "@/components/public/SectionTitle";
 import { useFacilities } from "@/hooks/useFacilities";
 import { useNearbyProducts } from "@/hooks/useNearbyProducts";
 import { useProducts } from "@/hooks/useProducts";
+import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useRatingAggregate } from "@/hooks/useRatings";
+import { Stars } from "@/components/shared/Stars";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRegionStore } from "@/store/region.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
@@ -47,6 +52,7 @@ import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
 import { DISCOUNT_RATE } from "@/lib/site-config";
 import { resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
+import { isFacilityOpen } from "@/lib/facility-hours";
 import type { Facility, FacilityType } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
@@ -331,7 +337,7 @@ function OffersSection() {
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
           {products.map((p, i) => (
-            <ProductCard key={p.id} product={p} priority={i === 0} />
+            <ProductCard key={p.id} product={p} priority={i === 0} staggerIndex={i} />
           ))}
         </div>
       )}
@@ -483,7 +489,7 @@ function NearbySection() {
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
           {products.map((p, i) => (
-            <ProductCard key={p.id} product={p} priority={i === 0} />
+            <ProductCard key={p.id} product={p} priority={i === 0} staggerIndex={i} />
           ))}
         </div>
       )}
@@ -494,14 +500,45 @@ function NearbySection() {
 /* ------------------------------------------------------------------ */
 /*  قسم المتاجر — كروت متاجر                                            */
 /* ------------------------------------------------------------------ */
-function FacilityCard({ facility }: { facility: Facility }) {
+function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerIndex?: number }) {
   const PlaceholderIcon = TYPE_ICON[facility.type];
   const maxDiscount = facility.cards.length
     ? Math.max(...facility.cards.map((c) => c.discount_rate))
     : DISCOUNT_RATE;
 
+  // الجولة 21 — شارة "مفتوح الآن" ديناميكية من working_hours
+  const isOpen = isFacilityOpen(facility.working_hours);
+
+  // الجولة 21 — زر المفضلة (متجر مفضل = إشعارات ذكية للعروض)
+  const { accessToken, hydrated } = useCustomerAuth();
+  const { data: favoritesData } = useFavorites();
+  const toggleFav = useToggleFavorite();
+  // الجولة 21 — متوسط تقييم المتجر (public, للعرض على البطاقة)
+  const ratingAgg = useRatingAggregate("facility", facility.id);
+  const hasRating = !!ratingAgg.data && ratingAgg.data.count > 0;
+  const isFavorited = (favoritesData?.items ?? []).some(
+    (f) => f.facility_id === facility.id,
+  );
+  const canFavorite = hydrated && !!accessToken;
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!canFavorite) {
+      toast({
+        title: "سجّل الدخول للمفضلة",
+        description: "المفضلة تتيح لك استقبال إشعارات العروض الجديدة",
+      });
+      return;
+    }
+    toggleFav.mutate(facility.id);
+  };
+
   return (
-    <article className="group flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-soft-lg">
+    <article
+      className="tawfir-card-enter group flex flex-col overflow-hidden rounded-xl border border-border/50 bg-card shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-soft-lg"
+      data-stagger={staggerIndex != null ? Math.min(staggerIndex, 8) : undefined}
+    >
       <div className="relative aspect-video overflow-hidden">
         {facility.image_url ? (
           <ImageWithSkeleton
@@ -535,6 +572,43 @@ function FacilityCard({ facility }: { facility: Facility }) {
             خصم حتى {maxDiscount}%
           </span>
         )}
+        {/* الجولة 21 — شارة "مفتوح الآن" الديناميكية (نمط نيتفليكس) */}
+        {facility.working_hours && (
+          <span
+            className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold shadow-soft ${
+              isOpen
+                ? "bg-primary text-primary-foreground"
+                : "bg-card/95 text-muted-foreground"
+            }`}
+            aria-label={isOpen ? "مفتوح الآن" : "مغلق حالياً"}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isOpen ? "bg-white animate-pulse" : "bg-muted-foreground"
+              }`}
+              aria-hidden="true"
+            />
+            {isOpen ? "مفتوح" : "مغلق"}
+          </span>
+        )}
+        {/* الجولة 21 — زر المفضلة (قلب) — يُرسل إشعارات العروض للمستخدمين المهتمين */}
+        <button
+          type="button"
+          onClick={handleFavorite}
+          disabled={toggleFav.isPending}
+          aria-label={isFavorited ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+          aria-pressed={isFavorited}
+          className="native-tap absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 shadow-soft backdrop-blur-sm transition-all hover:scale-110 active:scale-95"
+        >
+          <Heart
+            className={`h-4.5 w-4.5 transition-all ${
+              isFavorited
+                ? "fill-destructive text-destructive"
+                : "text-foreground/70"
+            }`}
+            aria-hidden="true"
+          />
+        </button>
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-2">
@@ -548,6 +622,15 @@ function FacilityCard({ facility }: { facility: Facility }) {
                 خصم {facility.discount_rate}%
               </span>
             )}
+            {hasRating && (
+              <Stars
+                average={ratingAgg.data!.average}
+                count={ratingAgg.data!.count}
+                size="sm"
+                showNumber
+                showCount
+              />
+            )}
           </div>
           <span className="shrink-0 rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold text-secondary">
             {TYPE_LABEL[facility.type]}
@@ -557,6 +640,12 @@ function FacilityCard({ facility }: { facility: Facility }) {
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
             <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             <span className="line-clamp-2">{facility.address}</span>
+          </p>
+        )}
+        {facility.working_hours && (
+          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground/80">
+            <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span className="line-clamp-1">{facility.working_hours}</span>
           </p>
         )}
         <Button
@@ -644,11 +733,22 @@ function FacilitiesSection() {
           icon={Landmark}
           title="لا توجد متاجر في منطقتك بعد"
           description="جرّب منطقة أخرى أو عُد لاحقاً — نضيف متاجر جديدة باستمرار."
+          action={
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 native-tap"
+              onClick={() => refetch()}
+            >
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              إعادة المحاولة
+            </Button>
+          }
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {facilities.slice(0, 9).map((f) => (
-            <FacilityCard key={f.id} facility={f} />
+          {facilities.slice(0, 9).map((f, i) => (
+            <FacilityCard key={f.id} facility={f} staggerIndex={i} />
           ))}
         </div>
       )}
@@ -660,39 +760,24 @@ function FacilitiesSection() {
 /*  الصفحة الرئيسية                                                    */
 /* ------------------------------------------------------------------ */
 
-/** منطق السحب للتحديث — إبطال استعلامات الصفحة الرئيسية (الجولة 4). */
-function HomeRefreshWrapper({ children }: { children: React.ReactNode }) {
-  const queryClient = useQueryClient();
-  const onRefresh = useCallback(async () => {
-    await Promise.allSettled([
-      queryClient.invalidateQueries({ queryKey: ["products"] }),
-      queryClient.invalidateQueries({ queryKey: ["products-nearby"] }),
-      queryClient.invalidateQueries({ queryKey: ["special-offers"] }),
-      queryClient.invalidateQueries({ queryKey: ["facilities"] }),
-      queryClient.invalidateQueries({ queryKey: ["cards"] }),
-    ]);
-  }, [queryClient]);
-  return (
-    <PullToRefresh onRefresh={onRefresh}>{children}</PullToRefresh>
-  );
-}
+/* ملاحظة الجولة 20: السحب للتحديث الآن عام في (public)/layout.tsx عبر
+   GlobalPullToRefresh (يُبطّل كل الاستعلامات + router.refresh). أزحنا
+   HomeRefreshWrapper المحلي لتجنّب تداخل معالجتي لمس على document. */
 
 export default function HomePage() {
   return (
-    <HomeRefreshWrapper>
-      <div className="w-full">
-        <HeroSection />
-        <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-14">
-          <OffersSection />
-          <SpecialOffersSection />
-          {/* الجولة 10 — مفضلتي (تظهر فقط عند وجود مفضلات محلية) */}
-          <FavoritesSection />
-          {/* الجولة 13 — شاهدت مؤخراً (تظهر فقط عند وجود مشاهدات محلية) */}
-          <RecentlyViewedSection />
-          <NearbySection />
-          <FacilitiesSection />
-        </div>
+    <div className="w-full">
+      <HeroSection />
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-14">
+        <OffersSection />
+        <SpecialOffersSection />
+        {/* الجولة 10 — مفضلتي (تظهر فقط عند وجود مفضلات محلية) */}
+        <FavoritesSection />
+        {/* الجولة 13 — شاهدت مؤخراً (تظهر فقط عند وجود مشاهدات محلية) */}
+        <RecentlyViewedSection />
+        <NearbySection />
+        <FacilitiesSection />
       </div>
-    </HomeRefreshWrapper>
+    </div>
   );
 }

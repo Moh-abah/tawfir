@@ -12,6 +12,9 @@ import {
   ShieldCheck,
   Crown,
   Sparkles,
+  Gift,
+  Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,22 +27,39 @@ import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { RegionSelector } from "@/components/public/RegionSelector";
+import { OtpVerifyForm } from "@/components/shared/OtpVerifyForm";
+import { MemberCard } from "@/components/public/MemberCard";
 import { useRegionStore } from "@/store/region.store";
 import { useRegister } from "@/hooks/useRegister";
+import { useRequestOtp } from "@/hooks/useRequestOtp";
+import { customerAuthService } from "@/services/customer-auth.service";
+import { useCustomerAuthStore } from "@/store/customerAuth.store";
+import { useToast } from "@/hooks/use-toast";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useQueryClient } from "@tanstack/react-query";
 import { DISCOUNT_RATE } from "@/lib/site-config";
-import type { RegisterOut } from "@/types/api.generated";
+import type {
+  MyMembershipCard,
+  OtpRequestOut,
+  RegisterOut,
+} from "@/types/api.generated";
+import type { ApiError } from "@/services/api-client";
 import { cn } from "@/lib/utils";
 
 /* ─── Zod Schema ─────────────────────────────────── */
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const registerSchema = z
   .object({
     full_name: z.string().min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" }),
-    email: z.string().email({ message: "صيغة البريد الإلكتروني غير صحيحة" }),
+    // البريد اختياري (الجولة 20) — لكن عند إدخاله يجب أن يكون صحيحاً.
+    email: z
+      .string()
+      .email({ message: "صيغة البريد الإلكتروني غير صحيحة" })
+      .optional()
+      .or(z.literal("")),
     // الجوال اليمني: 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78 (لا يقبل 05 في البداية)
     phone: z
       .string()
@@ -47,8 +67,8 @@ const registerSchema = z
       .regex(/^(7[01378])\d{7}$/, {
         message: "أدخل رقم جوال يمني صحيح (يبدأ بـ 70/71/73/77/78)",
       }),
-    password: z.string().min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }),
-    password_confirm: z.string().min(6, { message: "تأكيد كلمة المرور مطلوب" }),
+    password: z.string().min(8, { message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }),
+    password_confirm: z.string().min(8, { message: "تأكيد كلمة المرور مطلوب" }),
     region_id: z.number().positive({ message: "يرجى اختيار منطقة" }),
   })
   .refine((d) => d.password === d.password_confirm, {
@@ -157,9 +177,22 @@ function ConfettiParticles() {
   );
 }
 
-/* ─── Success Screen — لا عضوية تلقائية بعد التسجيل ─── */
-function SuccessScreen({ data }: { data: RegisterOut }) {
+/* ─── Success Screen — بعد التسجيل (مع أو بدون عضوية مجانية) ─── */
+function SuccessScreen({
+  data,
+  membership,
+  freeGrantedByDetail,
+}: {
+  data: RegisterOut;
+  /** بطاقة العضوية من /me بعد تسجيل الدخول التلقائي. null إن لم تُجلب. */
+  membership?: MyMembershipCard | null;
+  /** true إن كانت رسالة الباك إند تذكر «عضوية مجانية» (احتياط إن فشل /me). */
+  freeGrantedByDetail?: boolean;
+}) {
   const reduced = useReducedMotion();
+  const hasActiveMembership = !!membership && membership.is_active;
+  const showFreeCard = hasActiveMembership || freeGrantedByDetail;
+
   return (
     <motion.div
       initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.95 }}
@@ -170,47 +203,94 @@ function SuccessScreen({ data }: { data: RegisterOut }) {
       <ConfettiParticles />
 
       <div className="mb-6 flex justify-center">
-        <CheckCircle2 className="h-16 w-16 text-success" />
+        {showFreeCard ? (
+          <span
+            className="flex h-16 w-16 items-center justify-center rounded-full"
+            style={{
+              background:
+                "color-mix(in srgb, var(--logo-emerald) 22%, transparent)",
+            }}
+          >
+            <Gift
+              className="h-10 w-10"
+              style={{ color: "var(--logo-emerald)" }}
+              aria-hidden="true"
+            />
+          </span>
+        ) : (
+          <CheckCircle2 className="h-16 w-16 text-success" />
+        )}
       </div>
       <h2 className="mb-2 text-2xl font-extrabold text-foreground">
-        تم إنشاء حسابك!
+        {showFreeCard ? "تم إنشاء حسابك! 🎁" : "تم إنشاء حسابك!"}
       </h2>
       <p className="mb-6 text-sm text-muted-foreground">
         {data.detail || "أهلاً بك في منصة توفير"}
       </p>
 
-      {/* بطاقة دعوة الاشتراك في العضوية */}
-      <div
-        className="mb-8 rounded-2xl border border-border/60 p-5 text-center shadow-soft"
-        style={{
-          background:
-            "linear-gradient(135deg, color-mix(in srgb, var(--logo-gold) 12%, transparent), color-mix(in srgb, var(--logo-emerald) 8%, transparent))",
-        }}
-      >
-        <div className="mb-3 flex items-center justify-center">
-          <TawfirLogo className="h-10 w-auto" />
+      {/* بطاقة العضوية الحقيقية إن وُجدت من /me */}
+      {hasActiveMembership && membership ? (
+        <div className="mb-6">
+          <MemberCard membership={membership} />
         </div>
-        <div className="mb-3 flex items-center justify-center gap-2">
-          <DiscountBadge percentage={DISCOUNT_RATE} />
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
-            <Sparkles className="h-3 w-3" aria-hidden="true" />
-            اشترك الآن
-          </span>
+      ) : freeGrantedByDetail ? (
+        /* علم الباك إند يُفيد بمنح عضوية مجانية لكن /me لم يصل — نُظهر رسالة
+           بديلة (العميل will see the card in /account بعد دخوله). */
+        <div
+          className="mb-6 rounded-2xl border border-border/60 p-5 text-center shadow-soft"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--logo-emerald) 12%, transparent), color-mix(in srgb, var(--logo-gold) 8%, transparent))",
+          }}
+        >
+          <div className="mb-2 flex items-center justify-center gap-2">
+            <Gift
+              className="h-5 w-5"
+              style={{ color: "var(--logo-emerald)" }}
+              aria-hidden="true"
+            />
+            <span className="text-base font-extrabold text-foreground">
+              حصلت على عضوية توفير المجانية
+            </span>
+          </div>
+          <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
+            ستظهر بطاقة عضويتك مع رقم العضوية في صفحة حسابك بعد تسجيل الدخول.
+          </p>
         </div>
-        <h2 className="mb-1 text-lg font-extrabold text-foreground">
-          اشترك في عضوية توفير لخصم حتى 30%
-        </h2>
-        <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
-          مبلغ سنوي ثابت 3000 ر.ي، موافقة يدوية خلال 24-48 ساعة.
-          عند الموافقة تظهر بطاقة عضويتك في حسابك.
-        </p>
-      </div>
+      ) : (
+        /* بطاقة دعوة الاشتراك في العضوية (التدفق اليدوي) */
+        <div
+          className="mb-8 rounded-2xl border border-border/60 p-5 text-center shadow-soft"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--logo-gold) 12%, transparent), color-mix(in srgb, var(--logo-emerald) 8%, transparent))",
+          }}
+        >
+          <div className="mb-3 flex items-center justify-center">
+            <TawfirLogo className="h-10 w-auto" />
+          </div>
+          <div className="mb-3 flex items-center justify-center gap-2">
+            <DiscountBadge percentage={DISCOUNT_RATE} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
+              <Sparkles className="h-3 w-3" aria-hidden="true" />
+              اشترك الآن
+            </span>
+          </div>
+          <h2 className="mb-1 text-lg font-extrabold text-foreground">
+            اشترك في عضوية توفير لخصم حتى 30%
+          </h2>
+          <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
+            مبلغ سنوي ثابت 3000 ر.ي، موافقة يدوية خلال 24-48 ساعة.
+            عند الموافقة تظهر بطاقة عضويتك في حسابك.
+          </p>
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-sm flex-col gap-3">
         <Button asChild size="lg" className="min-h-[44px] w-full gap-2 rounded-full">
-          <Link href="/membership/subscribe">
-            <Crown className="h-4 w-4" aria-hidden="true" />
-            اشترك في العضوية
+          <Link href="/account">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            حسابي
           </Link>
         </Button>
         <Button
@@ -225,6 +305,57 @@ function SuccessScreen({ data }: { data: RegisterOut }) {
           </Link>
         </Button>
       </div>
+    </motion.div>
+  );
+}
+
+/* ─── Stage — تحديد المرحلة في تدفق التسجيل ──────────── */
+type RegisterStage = "form" | "otp" | "success";
+
+/* ─── Inline loading banner — أثناء طلب OTP ─────────── */
+function InlineRequestingOtp({ message }: { message: string }) {
+  return (
+    <p
+      className="flex items-center justify-center gap-2 rounded-xl bg-muted/40 px-4 py-3 text-sm font-medium text-muted-foreground"
+      role="status"
+      aria-live="polite"
+    >
+      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+      {message}
+    </p>
+  );
+}
+
+/* ─── Creating Account Overlay — بعد OTP نجح وقبل /me ── */
+function CreatingAccountOverlay() {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduced ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="mx-auto w-full max-w-md text-center"
+    >
+      <Card className="rounded-2xl border-border/60 shadow-soft-lg">
+        <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+          <span
+            className="flex h-16 w-16 items-center justify-center rounded-full"
+            style={{
+              background:
+                "color-mix(in srgb, var(--logo-emerald) 18%, transparent)",
+              color: "var(--logo-emerald)",
+            }}
+          >
+            <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
+          </span>
+          <h2 className="text-xl font-extrabold text-foreground">
+            جارٍ إنشاء حسابك...
+          </h2>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            تحقّقنا من رقمك — نُنشئ حسابك الآن ونجلب بطاقة عضويتك.
+          </p>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
@@ -388,10 +519,27 @@ function DecorativeSidePanel() {
 
 /* ─── Register Page ──────────────────────────────── */
 export default function RegisterPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const [stage, setStage] = useState<RegisterStage>("form");
   const [successData, setSuccessData] = useState<RegisterOut | null>(null);
-  const { mutate, isPending } = useRegister();
+  const [storedValues, setStoredValues] = useState<RegisterValues | null>(null);
+  const [initialOtpResult, setInitialOtpResult] =
+    useState<OtpRequestOut | null>(null);
+  const [membershipAfterRegister, setMembershipAfterRegister] =
+    useState<MyMembershipCard | null>(null);
+  const [otpRequestError, setOtpRequestError] = useState<string | null>(null);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+
+  const { mutate: registerMutate, isPending: isRegisterPending } =
+    useRegister();
+  const requestOtp = useRequestOtp();
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const prefersReduced = usePrefersReducedMotion();
+
+  const isOtpRequesting = requestOtp.isPending;
+  const isFormDisabled = isOtpRequesting || isCreatingAccount || isRegisterPending;
 
   const {
     register,
@@ -423,7 +571,7 @@ export default function RegisterPage() {
     let step = 1;
     if (fullName.trim().length >= 2) filled += 1;
     else return { progress: 0, currentStep: 1 };
-    if (email.trim().length > 0) filled += 1;
+    if ((email ?? "").trim().length > 0) filled += 1;
     else return { progress: 33, currentStep: 1 };
     if (phone.trim().length > 0) filled += 1;
     else return { progress: 50, currentStep: 1 };
@@ -443,23 +591,137 @@ export default function RegisterPage() {
       setValue("region_id", selectedRegionId, { shouldValidate: true });
   }, [selectedRegionId, setValue]);
 
+  /* ─── Stage transitions ───────────────────────── */
+
+  /** إرسال النموذج → طلب OTP → الانتقال لمرحلة OTP. */
   const onSubmit = (values: RegisterValues) => {
-    mutate(values, {
-      onSuccess: (response) => {
+    setOtpRequestError(null);
+    requestOtp.mutate(
+      { target: values.phone, name: values.full_name },
+      {
+        onSuccess: (res) => {
+          setStoredValues(values);
+          setInitialOtpResult(res);
+          setStage("otp");
+        },
+        onError: (err: ApiError) => {
+          setOtpRequestError(err.message || "تعذّر إرسال كود التحقق");
+          toast({
+            title: "تعذّر إرسال كود التحقق",
+            description: err.message,
+            variant: "destructive",
+          });
+        },
+      }
+    );
+  };
+
+  /** عند نجاح التحقق من OTP → إنشاء الحساب → دخول تلقائي → /me. */
+  const handleVerified = () => {
+    if (!storedValues) return;
+    setIsCreatingAccount(true);
+    registerMutate(storedValues, {
+      onSuccess: async (response) => {
+        // محاولة دخول تلقائي (بالهاتف + كلمة المرور) لجلب /me.
+        let membership: MyMembershipCard | null = null;
+        try {
+          const tokens = await customerAuthService.login({
+            identifier: storedValues.phone,
+            password: storedValues.password,
+          });
+          useCustomerAuthStore
+            .getState()
+            .setAuth(tokens.access_token, tokens.refresh_token ?? null);
+          // إبطال كاش /me بعد تسجيل الدخول حتى يُجلب من جديد
+          queryClient.invalidateQueries({ queryKey: ["me"] });
+          try {
+            const me = await customerAuthService.getMe();
+            membership = me.membership;
+          } catch {
+            membership = null;
+          }
+        } catch {
+          // فشل الدخول التلقائي — لا يمنع عرض شاشة النجاح (المستخدم يمكنه
+          // الدخول يدوياً عبر /login).
+          membership = null;
+        }
+        setMembershipAfterRegister(membership);
         setSuccessData(response);
+        setStage("success");
+        setIsCreatingAccount(false);
+      },
+      onError: () => {
+        // toast يُطلق بالفعل من useRegister — نعود لمرحلة النموذج.
+        setIsCreatingAccount(false);
+        setStage("form");
       },
     });
   };
 
-  /* شاشة النجاح — لا توجيه تلقائي لـ /login */
-  if (successData) {
+  /** الرجوع من OTP إلى النموذج مع استعادة القيم. */
+  const handleBackToForm = () => {
+    if (storedValues) {
+      // استعادة القيم في النموذج (react-hook-form يحفظها داخلياً لكن نضمن).
+      (Object.keys(storedValues) as (keyof RegisterValues)[]).forEach((k) => {
+        const v = storedValues[k];
+        if (typeof v === "string" || typeof v === "number") {
+          setValue(k, v as never, { shouldValidate: false });
+        }
+      });
+    }
+    setStage("form");
+  };
+
+  /* ─── Stage: success ─── */
+  if (stage === "success" && successData) {
+    const freeGrantedByDetail = /مجانية|عضوية.*مجاني|مجاني.*عضوية/.test(
+      successData.detail || ""
+    );
     return (
       <AuthShell>
-        <SuccessScreen data={successData} />
+        <SuccessScreen
+          data={successData}
+          membership={membershipAfterRegister}
+          freeGrantedByDetail={freeGrantedByDetail}
+        />
       </AuthShell>
     );
   }
 
+  /* ─── Stage: otp (or creating account overlay) ─── */
+  if (stage === "otp" && storedValues) {
+    if (isCreatingAccount) {
+      return (
+        <AuthShell>
+          <CreatingAccountOverlay />
+        </AuthShell>
+      );
+    }
+    return (
+      <AuthShell>
+        <motion.div
+          className="mb-8 space-y-2 text-center"
+          initial={prefersReduced ? { opacity: 1 } : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+        >
+          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-white/80">
+            <MessageCircle className="h-4 w-4" aria-hidden="true" />
+            تأكيد ملكية الرقم عبر واتساب
+          </p>
+        </motion.div>
+        <OtpVerifyForm
+          target={storedValues.phone}
+          name={storedValues.full_name}
+          initialResult={initialOtpResult}
+          onVerified={handleVerified}
+          onBack={handleBackToForm}
+        />
+      </AuthShell>
+    );
+  }
+
+  /* ─── Stage: form ─── */
   const formAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 } };
@@ -506,7 +768,7 @@ export default function RegisterPage() {
                     id="full_name"
                     autoComplete="name"
                     placeholder="مثال: أحمد محمد"
-                    disabled={isPending}
+                    disabled={isFormDisabled}
                     aria-invalid={!!errors.full_name}
                     {...register("full_name")}
                   />
@@ -516,7 +778,7 @@ export default function RegisterPage() {
 
                 <Field
                   id="email"
-                  label="البريد الإلكتروني"
+                  label="البريد الإلكتروني (اختياري)"
                   error={errors.email?.message}
                 >
                   <Input
@@ -527,7 +789,7 @@ export default function RegisterPage() {
                     autoComplete="email"
                     placeholder="you@example.com"
                     className="text-left"
-                    disabled={isPending}
+                    disabled={isFormDisabled}
                     aria-invalid={!!errors.email}
                     {...register("email")}
                   />
@@ -546,10 +808,13 @@ export default function RegisterPage() {
                     autoComplete="tel"
                     placeholder="771234567"
                     className="text-left"
-                    disabled={isPending}
+                    disabled={isFormDisabled}
                     aria-invalid={!!errors.phone}
                     {...register("phone")}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    سيُرسل كود تحقق 6 أرقام إلى هذا الرقم عبر واتساب.
+                  </p>
                 </Field>
 
                 <Separator />
@@ -568,10 +833,10 @@ export default function RegisterPage() {
                   <PasswordInput
                     id="password"
                     autoComplete="new-password"
-                    placeholder="......"
+                    placeholder="........"
                     dir="ltr"
                     className="text-left"
-                    disabled={isPending}
+                    disabled={isFormDisabled}
                     aria-invalid={!!errors.password}
                     {...register("password")}
                   />
@@ -586,21 +851,39 @@ export default function RegisterPage() {
                   <PasswordInput
                     id="password_confirm"
                     autoComplete="new-password"
-                    placeholder="......"
+                    placeholder="........"
                     dir="ltr"
                     className="text-left"
-                    disabled={isPending}
+                    disabled={isFormDisabled}
                     aria-invalid={!!errors.password_confirm}
                     {...register("password_confirm")}
                   />
                 </Field>
 
+                {/* خطأ طلب OTP إن فشل الإرسال */}
+                {otpRequestError && (
+                  <p
+                    className="rounded-xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+                    role="alert"
+                  >
+                    {otpRequestError}
+                  </p>
+                )}
+
+                {isOtpRequesting && (
+                  <InlineRequestingOtp message="جارٍ إرسال كود التحقق إلى واتساب..." />
+                )}
+
                 <Button
                   type="submit"
                   className="w-full rounded-full min-h-[44px]"
-                  disabled={isPending}
+                  disabled={isFormDisabled}
                 >
-                  {isPending ? "جارٍ التسجيل..." : "تسجيل العضوية"}
+                  {isOtpRequesting
+                    ? "جارٍ إرسال الكود..."
+                    : isRegisterPending
+                    ? "جارٍ التسجيل..."
+                    : "تسجيل العضوية"}
                 </Button>
               </form>
 

@@ -43,6 +43,9 @@ export async function generateMetadata({
     description:
       product.description ??
       `${product.name} — اطلب من منصة توفير واستفد من خصم حتى 30% إن كنت عضواً`,
+    alternates: {
+      canonical: `/products/${id}`,
+    },
     openGraph: {
       title: `${product.name} | توفير`,
       description:
@@ -53,6 +56,42 @@ export async function generateMetadata({
   };
 }
 
-export default function ProductDetailPage() {
-  return <ProductDetailContent />;
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const product = await getProductMeta(id);
+
+  // الجولة 21 — structured data (schema.org/Product) للـSEO
+  const jsonLd = product
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        name: product.name,
+        description:
+          product.description ??
+          `${product.name} — من منصة توفير مع خصم حتى 30% للأعضاء`,
+        brand: { "@type": "Brand", name: "توفير" },
+        offers: {
+          "@type": "Offer",
+          availability: "https://schema.org/InStock",
+          priceCurrency: "YER",
+          seller: { "@type": "Organization", name: "توفير" },
+        },
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <ProductDetailContent />
+    </>
+  );
 }

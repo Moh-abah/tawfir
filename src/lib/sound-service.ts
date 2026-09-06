@@ -1,17 +1,25 @@
 /**
- * SoundService — نظام الإشعارات الصوتية (الجولة 8).
+ * SoundService — نظام الإشعارات الصوتية (الجولة 8 → تقليم الجولة 20).
  * ================================================
  * القاعدة المعمارية الحاكمة: ملف صوتي واحد لكل نوع إشعار — قابل للاستبدال
  * بلا كود. كل ملف في public/sounds/ باسم النوع حرفياً:
  *
- *   /sounds/notifications/{notification_type}.mp3   (15 صوتاً)
+ *   /sounds/notifications/{notification_type}.mp3   (2 صوتاً — الأساسية فقط)
  *   /sounds/system/{system_type}.mp3                (3 أصوات)
+ *
+ * الجولة 20: قُصّت الأصوات من 18 إلى 5 لإحساس إنتاجي وليس صاخب:
+ *  - order_new (مالك: طلب جديد عاجل — أولوية قصوى + اهتزاز)
+ *  - order_delivered (عميل: لحظة إكتمال الطلب)
+ *  - success_action / error_occurred (تأكيد الإجراءات)
+ *  - notification_open (فتح صفحة الإشعارات — خفيف جداً)
+ * باقي أنواع الإشعارات (order_confirmed/preparing/...، membership_*،
+ * special_offer_*، facility_*، owner_registered) تظهر توستاً فقط بلا صوت.
  *
  * استبدال أي ملف بنفس الاسم = تغيير الصوت فوراً بعد تحديث الصفحة —
  * لا أسماء بديلة ولا تضمين للصوت في الكود إطلاقاً.
  *
  * السلوك:
- *  - كاش مسبق (preload) للأصوات الـ18 بعد أول تفاعل — لا تأخير أول إشعار
+ *  - كاش مسبق (preload) للأصوات الـ5 بعد أول تفاعل — لا تأخير أول إشعار
  *  - إعدادات المستخدم: localStorage (tawfir_sound_enabled + tawfir_sound_volume)
  *  - التشغيل فقط والتطبيق في المقدمة (document.visibilityState === "visible")
  *  - صوت واحد في كل مرة: الإشعار المتتالي يعرض توستاً فقط بلا صوت
@@ -24,23 +32,12 @@ import type { NotificationOut } from "@/types/api.generated";
 
 /* ─── الأنواع ─── */
 
-/** أصوات الإشعارات (15) — الأسماء حرفياً = أسماء الملفات. */
+/** أصوات الإشعارات (2 — الجولة 20: تقليم من 15 إلى الأساسية فقط).
+ * 保留: order_new (مالك: طلب جديد عاجل)، order_delivered (عميل: لحظة الإكتمال).
+ * باقي الأنواع تظهر توستاً فقط بلا صوت (إحساس إنتاجي وليس صاخب). */
 export type NotificationSoundType =
   | "order_new"
-  | "order_confirmed"
-  | "order_preparing"
-  | "order_out_for_delivery"
-  | "order_delivered"
-  | "order_cancelled"
-  | "membership_approved"
-  | "membership_rejected"
-  | "membership_expiring"
-  | "membership_new_request"
-  | "special_offer_new"
-  | "special_offer_soldout"
-  | "facility_approved"
-  | "facility_rejected"
-  | "owner_registered";
+  | "order_delivered";
 
 /** أصوات النظام العامة للتفاعلات (3). */
 export type SystemSoundType =
@@ -70,23 +67,10 @@ const VOLUME_KEY = "tawfir_sound_volume";
 /** المستوى الافتراضي عند أول تشغيل. */
 export const DEFAULT_SOUND_VOLUME = 0.7;
 
-/** كل الأصوات المدعومة (18) بترتيب عرض ثابت للإعدادات والتقارير. */
+/** كل الأصوات المدعومة (5 — الجولة 20) بترتيب عرض ثابت للإعدادات والتقارير. */
 export const NOTIFICATION_SOUND_TYPES: readonly NotificationSoundType[] = [
   "order_new",
-  "order_confirmed",
-  "order_preparing",
-  "order_out_for_delivery",
   "order_delivered",
-  "order_cancelled",
-  "membership_new_request",
-  "membership_approved",
-  "membership_rejected",
-  "membership_expiring",
-  "special_offer_new",
-  "special_offer_soldout",
-  "facility_approved",
-  "facility_rejected",
-  "owner_registered",
 ];
 
 export const SYSTEM_SOUND_TYPES: readonly SystemSoundType[] = [
@@ -128,26 +112,31 @@ export const SOUND_LABELS: Record<SoundType, string> = {
  * منطق الأدوار (تحسين ترتيب فقط — الكل يستقبل الكل عبر WS):
  *  - المالك: order_new أولوية قصوى لا تُسكت إن كانت الأصوات مفعلة
  *  - المشرف: الطلبات والعضويات في القمة
+ *
+ * الجولة 20: قُصّت الأصوات من 18 إلى 5. الأنواع المُقصاة بأولوية 0 —
+ * playNotification يتجاهلها أصلاً (خارج ALL_SOUND_TYPES).
  */
 const BASE_PRIORITY: Record<SoundType, number> = {
+  // الأصوات المُبقاة (5):
   order_new: 10,
-  membership_new_request: 8,
-  membership_approved: 8,
-  membership_rejected: 8,
-  order_confirmed: 7,
   order_delivered: 7,
-  order_cancelled: 7,
-  owner_registered: 7,
-  order_preparing: 6,
-  order_out_for_delivery: 6,
-  membership_expiring: 6,
-  facility_approved: 6,
-  facility_rejected: 6,
   error_occurred: 6,
-  special_offer_new: 5,
-  special_offer_soldout: 5,
   success_action: 4,
   notification_open: 3,
+  // الأنواع المُقصاة (تبقى قيمها لسلامة البحث لكن لا تُشغّل لأنها خارج NOTIFICATION_SOUND_TYPES):
+  order_confirmed: 0,
+  order_preparing: 0,
+  order_out_for_delivery: 0,
+  order_cancelled: 0,
+  membership_new_request: 0,
+  membership_approved: 0,
+  membership_rejected: 0,
+  membership_expiring: 0,
+  special_offer_new: 0,
+  special_offer_soldout: 0,
+  facility_approved: 0,
+  facility_rejected: 0,
+  owner_registered: 0,
 };
 
 /** أولوية «طلب جديد» للمالك — قصوى: لا يقطعها شيء ولا تُسكت بالتزاحم. */

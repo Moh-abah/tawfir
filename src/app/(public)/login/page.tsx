@@ -88,6 +88,12 @@ function CustomerLoginForm() {
       onError: (e: Error) => {
         /* رسالة الخادم العربية تُعرض هنا مباشرة (detail) */
         setFormError(e.message || "تعذّر تسجيل الدخول");
+        /* TODO الجولة 20 (Task 7-8-9) — Hook مستقبلي لـ OTP في الدخول:
+         * إذا أرجع الباك إند مستقبلاً `requires_otp: true` داخل TokenOut
+         * أو مع 401 يحمل detail="يتطلب كود تحقق" — يجب الانتقال إلى
+         * <OtpVerifyForm target={identifier} onVerified={...} onBack={...} />
+         * ومحاولة إعادة POST /auth/login بعد التحقق. لآن الباك إند لا يُرجع
+         * هذا الحقل، فلذلك نكتفي بعرض الرسالة فقط. */
       },
     });
   }

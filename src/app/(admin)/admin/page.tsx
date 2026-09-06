@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { AdminKpiCards } from "@/components/admin/AdminKpiCards";
 import {
   Map,
   CreditCard,
@@ -708,6 +709,19 @@ const prefersReduced = usePrefersReducedMotion();
           </motion.div>
         ))}
       </motion.div>
+
+      {/* الجولة 21 — مؤشرات الأداء الأساسية (KPIs) */}
+      <section className="space-y-4" aria-label="مؤشرات الأداء">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground">
+            مؤشرات الأداء الأساسية
+          </h2>
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+            آخر 30 يوم
+          </span>
+        </div>
+        <AdminKpiCards />
+      </section>
 
       {/* Quick Glance Bar Chart */}
       <Card>

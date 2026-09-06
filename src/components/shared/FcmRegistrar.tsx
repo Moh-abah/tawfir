@@ -1,40 +1,69 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useOwnerAuth } from "@/hooks/useOwnerAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useRegisterFcm, useUnregisterFcm } from "@/hooks/useFcm";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  getFcmMessaging,
+  getFcmToken,
+  subscribeFcmMessages,
+  isFcmSupported,
+} from "@/lib/firebase";
+import {
+  SoundService,
+  ALL_SOUND_TYPES,
+  type SoundRole,
+  type SoundType,
+} from "@/lib/sound-service";
+import {
+  getNotificationMeta,
+  getNotificationHref,
+} from "@/lib/notifications-meta";
+import type { MessagePayload } from "firebase/messaging";
 
 /**
- * FcmRegistrar — يدير تسجيل/إلغاء توكن FCM حسب حالة الدخول.
+ * FcmRegistrar — يدير تسجيل/إلغاء توكن FCM الحقيقي + الإشعارات الأمامية.
  *
- * - عند الدخول (توكن موجود): يطلب إذن الإشعارات من المتصفح
- *   (Notification.requestPermission()). إن مُنح (permission === "granted")
- *   يُولّد pseudo-token فريد للجلسة، يخزّنه في sessionStorage، ويُسجّله عبر
- *   POST /fcm/token مرة واحدة لكل جلسة (نتحقق من sessionStorage لتفادي
- *   التكرار عبر تحديثات الصفحة في نفس التبويب).
- * - عند الخروج (activeToken === null): يقرأ التوكن المخزّن، يُلغيه عبر
- *   DELETE /fcm/token، ويمسحه من sessionStorage.
+ * ============ تسجيل/إلغاء التوكن ============
+ *  - عند الدخول (توكن موجود): يطلب إذن الإشعارات من المتصفح
+ *    (Notification.requestPermission()). إن مُنح (permission === "granted")
+ *    يطلب توكن FCM الحقيقي عبر Firebase (`getToken(messaging, { vapidKey })`)،
+ *    يخزّنه في sessionStorage، ويُسجّله عبر POST /fcm/token مرة واحدة لكل
+ *    جلسة (نتحقق من sessionStorage لتفادي التكرار عبر تحديثات الصفحة).
+ *  - عند الخروج (activeToken === null): يقرأ التوكن المخزّن، يُلغيه عبر
+ *    DELETE /fcm/token، ويمسحه من sessionStorage، ويُوقف اشتراك onMessage.
  *
- * ملاحظة مهمة: مكتبة `firebase` غير مُثبّتة في المشروع، لذا لا يمكن توليد
- * توكن FCM حقيقي عبر `firebase/messaging`. هذا المكوّن يُسجّل pseudo-token
- * للتحقق من أن مسار /fcm/token يعمل من البداية للنهاية (تسجيل + حذف)،
- * والـ WebSocket (notificationWs) يكفي للإشعارات الفورية أثناء استخدام
- * التطبيق. انظر BLOCKERS.md لخطة الترقية لـ FCM حقيقي.
+ *  كل العمليات مُغلّفة بـ try/catch: إن فشل Firebase/المتصفح غير مدعوم/
+ *  الإذن مرفوض ← يُتخطّى التسجيل بصمت دون تعطيل بقية التطبيق.
+ *
+ * ============ الإشعارات الأمامية (foreground) ============
+ *  - عند كل جلسة دخول نشطة: يشترك في `onMessage(messaging, cb)` عبر
+ *    `subscribeFcmMessages(...)`.
+ *  - عند وصول رسالة FCM في المقدمة: يستخرج العنوان/المحتوى/النوع
+ *    من `payload.notification` أو `payload.data`، يُشغّل الصوت المناسب
+ *    (إن كان النوع ضمن أصوات الإشعارات المُبقاة — SoundService)، ويعرض
+ *    توست بنمط علامة توفير (أيقونة ملوّنة + زر «عرض» يُنقل للرابط المناسب).
+ *  - يُزامن التشغيل الصوتي مع نظام الأصوات المركزي (SoundService.play)
+ *    ويمنع الازدواجية مع التوست المركزي عبر `sound: "none"`.
+ *
+ * ملاحظة: الإشعارات الخلفية (التطبيق مغلق/بالخلفية) يعرضها
+ * /firebase-messaging-sw.js (Service Worker منفصل بـ importScripts compat).
  */
+
 const FCM_TOKEN_KEY = "tawfir_fcm_token";
 
-function generatePseudoToken(): string {
-  return `tawfir-web-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
+/* ── مساعدات sessionStorage (تفادي إعادة التسجيل عبر تحديث الصفحة) ── */
 
 function readStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   try {
     return window.sessionStorage.getItem(FCM_TOKEN_KEY);
   } catch {
-    // وضع التصفّح الخاص أو امتلاء التخزين — نُرجع null بأمان
     return null;
   }
 }
@@ -44,7 +73,7 @@ function writeStoredToken(token: string): void {
   try {
     window.sessionStorage.setItem(FCM_TOKEN_KEY, token);
   } catch {
-    /* تجاهل أخطاء الحصة/الوضع الخاص — لا يُعطّل الدخول */
+    /* وضع التصفّح الخاص أو امتلاء التخزين — لا يُعطّل الدخول */
   }
 }
 
@@ -72,26 +101,140 @@ async function requestNotificationPermission(): Promise<NotificationPermission |
   }
 }
 
+/* ── إزالة تكرار رسائل FCM الأمامية بمعرّف الرسالة (messageId) ── */
+
+/**
+ * مجموعة معرّفات الرسائل الفورية المستلمة لمنع عرض التوست مرتين
+ * للرسالة نفسها (قد يصل FCM إلى onMessage أكثر من مرة بسبب إعادة
+ * محاولة المتصفح أو إعادة تشغيل SW). مُحَدَّدة بـ 50 إدخالاً لتفادي
+ * النمو غير المحدود. الترتيب بحسب الإدراج (Set يحفظ الترتيب).
+ */
+const seenFcmMessageIds = new Set<string>();
+const SEEN_FCM_MAX = 50;
+
+function markSeen(id: string | undefined): boolean {
+  if (!id) return true; // لا يوجد معرّف — نسمح بالعرض (لا مكرّر معروف)
+  if (seenFcmMessageIds.has(id)) return false;
+  if (seenFcmMessageIds.size >= SEEN_FCM_MAX) {
+    // نُفرّغ النصف الأقدم لتفادي النمو غير المحدود
+    const half = Math.ceil(SEEN_FCM_MAX / 2);
+    let i = 0;
+    for (const v of seenFcmMessageIds) {
+      seenFcmMessageIds.delete(v);
+      if (++i >= half) break;
+    }
+  }
+  seenFcmMessageIds.add(id);
+  return true;
+}
+
+/* ── المكون ─────────────────────────────────────────────────────── */
+
 export function FcmRegistrar({ children }: { children: React.ReactNode }) {
   const customerAuth = useCustomerAuth();
   const ownerAuth = useOwnerAuth();
   const adminAuth = useAdminAuth();
 
-  // نختار التوكن الفعّال — العميل أولاً، ثم المالك، ثم المشرف (مثل NotificationsProvider).
+  // نختار التوكن الفعّال — العميل أولاً، ثم المالك، ثم المشرف.
   const activeToken =
     customerAuth.accessToken ??
     ownerAuth.accessToken ??
     adminAuth.accessToken ??
     null;
 
+  // دور المستمع = مالك التوكن الفعّال (لأولوية «طلب جديد» للمالك + الاهتزاز).
+  const activeRole: SoundRole = customerAuth.accessToken
+    ? "customer"
+    : ownerAuth.accessToken
+      ? "owner"
+      : "admin";
+
   const isHydrated =
     customerAuth.hydrated && ownerAuth.hydrated && adminAuth.hydrated;
 
   const { mutate: registerFcmToken } = useRegisterFcm();
   const { mutate: unregisterFcmToken } = useUnregisterFcm();
-  // نستخدم ref لمنع إعادة التسجيل المتكررة خلال دورة حياة الدخول الواحدة
-  // (حتى قبل أن يُكتب sessionStorage داخل الـ async).
+  const { toast } = useToast();
+  const router = useRouter();
+
+  // نستخدم ref لمنع إعادة التسجيل المتكررة ضمن دورة حياة الدخول الواحدة.
   const attemptedRef = useRef(false);
+  // نُحتفظ بدالة إلغاء اشتراك onMessage لتنظيفها عند الخروج/إعادة التسجيل.
+  const unsubscribeFcmRef = useRef<(() => void) | null>(null);
+
+  /**
+   * معالج رسالة FCM الأمامية — يعرض توست بنمط توفير + يُشغّل الصوت المناسب.
+   * يُمرَّر إلى subscribeFcmMessages (داخل useEffect).
+   */
+  const handleFcmForeground = (payload: MessagePayload) => {
+    try {
+      // 0) إزالة التكرار بمعرّف رسالة FCM إن وُجد
+      if (!markSeen(payload.messageId)) return;
+
+      // 1) استخراج العنوان/المحتوى/النوع — يقبَل صيغتَي notification أو data-only
+      const notif = payload.notification;
+      const data: Record<string, string> = payload.data ?? {};
+      const title: string = notif?.title ?? data.title ?? "توفير";
+      const body: string = notif?.body ?? data.body ?? "";
+      const type: string = data.notification_type ?? data.type ?? "";
+
+      // 2) بناء كائن data لربط زر «عرض» بالمسار المناسب
+      const hrefData: Record<string, unknown> = {};
+      if (data.order_id) hrefData.order_id = data.order_id;
+      if (data.product_id) hrefData.product_id = data.product_id;
+      if (data.facility_id) hrefData.facility_id = data.facility_id;
+
+      // 3) تشغيل الصوت إن كان النوع ضمن الأصوات المُبقاة (SoundService)
+      //    يُحترم إعداد المستخدم (مُفعّل/معطّل) + المقدمة فقط + الأولويات.
+      const notifIdRaw = data.notification_id ?? data.id;
+      const notifIdNum = notifIdRaw ? Number(notifIdRaw) : NaN;
+      if (
+        type &&
+        (ALL_SOUND_TYPES as readonly string[]).includes(type)
+      ) {
+        SoundService.play(type as SoundType, {
+          role: activeRole,
+          notificationId: Number.isFinite(notifIdNum) ? notifIdNum : undefined,
+        });
+      }
+
+      // 4) عرض التوست بنمط علامة توفير (أيقونة ملوّنة + زر «عرض»)
+      //    أيقونة + لونها من notifications-meta — لون العلامة (accent-ink/primary)
+      //    يُعطي التوست هوية توفير بصرية. التوست نفسه يستخدم bg-background
+      //    + text-foreground + border (توكنات العلامة).
+      const meta = getNotificationMeta(type);
+      const Icon = meta.icon;
+      const href = getNotificationHref(type, hrefData);
+
+      toast({
+        // صوت الإشعار صدر أعلاه — نمنع التوست المركزي من تشغيل صوته
+        sound: "none",
+        title: (
+          <span className="flex items-center gap-2">
+            <Icon
+              className={`h-4 w-4 ${meta.colorClass}`}
+              aria-hidden="true"
+            />
+            <span>{title}</span>
+          </span>
+        ),
+        description: body || undefined,
+        action: href ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="rounded-full"
+            onClick={() => router.push(href)}
+          >
+            عرض
+          </Button>
+        ) : undefined,
+      });
+    } catch (err) {
+      console.warn("[FCM] foreground handler error:", err);
+    }
+  };
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -103,8 +246,16 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
         unregisterFcmToken({ token: stored });
         clearStoredToken();
       }
-      // نُعيد الضبط ليُعاد التسجيل عند دخول لاحق
       attemptedRef.current = false;
+      // إيقاف اشتراك onMessage عند الخروج
+      if (unsubscribeFcmRef.current) {
+        try {
+          unsubscribeFcmRef.current();
+        } catch {
+          /* تجاهل */
+        }
+        unsubscribeFcmRef.current = null;
+      }
       return;
     }
 
@@ -113,26 +264,65 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
     attemptedRef.current = true;
 
     void (async () => {
+      // 1) جهّز Messaging + اشترك في onMessage فوراً (مستقل عن الإذن والتوكن).
+      //    لو فشل الإذن لاحقاً يبقى الاشتراك معطّلاً بلا أثر — getToken
+      //    فقط يحتاج الإذن، أما onMessage فيعمل بلا إذن صريح طالما المتصفح
+      //    يدعم FCM. (في الواقع onMessage يعمل حتى لو رُفض الإذن طالما
+      //    التطبيق في المقدمة.)
+      try {
+        if (isFcmSupported()) {
+          getFcmMessaging(); // يهيّئ المثيل + يُسجّل SW فوراً عند الحاجة
+          unsubscribeFcmRef.current = subscribeFcmMessages(
+            handleFcmForeground
+          );
+        }
+      } catch (err) {
+        console.warn("[FCM] onMessage setup failed:", err);
+      }
+
+      // 2) اطلب إذن الإشعارات (لا يُطلب التوكن بلا إذن)
       const perm = await requestNotificationPermission();
       if (perm !== "granted") {
-        if (perm === "denied" || perm === "default") {
-          // مُقبول كمعلومة تشخيصية فقط — لا نُظهر شيئاً للمستخدم
-          console.warn("[FCM] إذن الإشعارات لم يُمنح:", perm);
-        }
+        console.warn("[FCM] إذن الإشعارات لم يُمنح:", perm);
         return;
       }
 
-      // تجنّب التسجيل المكرر: إن وُجد توكن في sessionStorage فقد سُجّل
-      // في هذه الجلسة (مثلاً بعد تحديث الصفحة) — لا نُكرر.
+      // 3) تأكّد من دعم المتصفح لـ FCM
+      if (!isFcmSupported()) {
+        console.warn("[FCM] المتصفح لا يدعم FCM — يُتخطّى التسجيل");
+        return;
+      }
+
+      // 4) تجنّب التسجيل المكرر: إن وُجد توكن في sessionStorage فقد سُجّل
+      //    في هذه الجلسة (مثلاً بعد تحديث الصفحة) — لا نُكرر.
       const existingToken = readStoredToken();
       if (existingToken) return;
 
-      // TODO(firebase): استبدال توليد pseudo-token بـ firebase/messaging.getToken(...)
-      // انظر BLOCKERS.md لمسار الترقية.
-      const token = generatePseudoToken();
+      // 5) اطلب توكن FCM الحقيقي عبر Firebase (getToken + VAPID)
+      const token = await getFcmToken();
+      if (!token) {
+        console.warn(
+          "[FCM] لم يُعِد getToken توكناً (قد يكون الإذن مرفوض على مستوى النظام أو فشل SW) — يُتخطّى التسجيل"
+        );
+        return;
+      }
+
       writeStoredToken(token);
       registerFcmToken({ token, device_info: getDeviceInfo() });
     })();
+
+    return () => {
+      // تنظيف عند تغيّر activeToken أو فكّ تركيب المكوّن
+      if (unsubscribeFcmRef.current) {
+        try {
+          unsubscribeFcmRef.current();
+        } catch {
+          /* تجاهل */
+        }
+        unsubscribeFcmRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeToken, isHydrated, registerFcmToken, unregisterFcmToken]);
 
   return <>{children}</>;

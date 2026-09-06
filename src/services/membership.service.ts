@@ -1,12 +1,16 @@
 import { customerApiClient } from "./customer-api-client";
 import type {
+  FreeMembershipSubscribeOut,
   MembershipInfoOut,
   MembershipSubscribeOut,
 } from "@/types/api.generated";
 
 /**
  * خدمة العضوية للعميل.
- * الاشتراك بموافقة يدوية: العميل يرفع صورة التحويل → pending → يراجعها المشرف.
+ *  - الاشتراك بموافقة يدوية: العميل يرفع صورة التحويل → pending → يراجعها المشرف.
+ *  - الاشتراك المجاني (الجولة 20): عند تفعيل المشرف للعلم
+ *    `is_free_membership_enabled` → العميل يحصل على عضوية approved فوراً
+ *    بلا دفع ولا رفع إيصال عبر POST /membership/subscribe-free.
  */
 export const membershipService = {
   /** بيانات التحويل الثابتة قبل الاشتراك. GET /membership/info. */
@@ -37,4 +41,17 @@ export const membershipService = {
       form
     );
   },
+
+  /**
+   * الحصول على عضوية مجانية فورية (الجولة 20).
+   * POST /membership/subscribe-free (بلا جسم) — يمنح العميل عضوية approved
+   * فوراً (is_free=true) إذا كان علم العضوية المجانية مفعّلاً من المشرف.
+   * استجابة 201: {detail, id, membership_number, expires_at, is_free}.
+   * أخطاء محتملة: 409 «لديك عضوية نشطة بالفعل» أو 403 «العضوية المجانية
+   * غير مفعّلة».
+   */
+  subscribeFree: () =>
+    customerApiClient.post<FreeMembershipSubscribeOut>(
+      "/membership/subscribe-free"
+    ),
 };

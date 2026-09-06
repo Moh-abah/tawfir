@@ -58,6 +58,38 @@ export function NativeBridge() {
   React.useEffect(() => {
     if (!isNativePlatform()) return;
 
+    /* ─── وضع التطبيق الأصيل: وسم <html> بـ data-native ───
+       يُفعّل قواعد CSS الخاصة بالـAPK فقط (تعطيل التقريب بإصبعين،
+       منع سحب الصور، تحسين الإحساس). لا يؤثر على الويب/PWA إطلاقاً. */
+    document.documentElement.setAttribute("data-native", "1");
+
+    /* ─── تعطيل التقريب بإصبعين (pinch-zoom) داخل الـAPK فقط ───
+       نعدّل <meta name="viewport"> ديناميكياً لإضافة maximum-scale=1
+       وuser-scalable=no. هذا الحل يعمل فوراً داخل WebView الحي
+       (https://tawfir.giize.com) دون إعادة بناء الـAPK — لأن React
+       يُحمّل حياً وNativeBridge يعمل بعد الترطيب.
+       على الويب/PWA: لا يُنفّذ (مُحاط بـ isNativePlatform). */
+    const lockViewportZoom = () => {
+      const meta = document.querySelector('meta[name="viewport"]');
+      if (!meta) return;
+      const cur = meta.getAttribute("content") ?? "";
+      if (!/maximum-scale/i.test(cur)) {
+        meta.setAttribute(
+          "content",
+          cur.replace(/,\s*$/, "") +
+            ", maximum-scale=1, user-scalable=no, minimum-scale=1",
+        );
+      }
+    };
+    lockViewportZoom();
+    /* إعادة التطبيق عند تغيّر المسار (قد يُعاد بناء الـmeta) */
+    const observer = new MutationObserver(lockViewportZoom);
+    observer.observe(document.head, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["content"],
+    });
+
     let removeBack: (() => void) | null = null;
     let removeNetwork: (() => void) | null = null;
 
@@ -98,6 +130,7 @@ export function NativeBridge() {
       setNativeBackHandler(null);
       removeBack?.();
       removeNetwork?.();
+      observer.disconnect();
     };
   }, []);
 

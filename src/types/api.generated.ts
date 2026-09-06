@@ -431,6 +431,9 @@ export interface MembershipInfoOut {
   transfer_account_number: string;
   wallet_name: string;
   instructions: string;
+  /** الجولة 20: علم العضوية المجانية المفعّل من لوحة المشرف.
+   *  عند true: العميل يحصل على عضوية مجانية بلا دفع ولا رفع إيصال. */
+  is_free_membership_enabled?: boolean;
 }
 
 /** ردّ فوري بعد رفع صورة التحويل. POST /membership/subscribe. */
@@ -438,6 +441,19 @@ export interface MembershipSubscribeOut {
   detail: string;
   id: number;
   status: MembershipRequestStatus;
+}
+
+/**
+ * ردّ POST /membership/subscribe-free (الجولة 20).
+ * يستدعيها العميل بعد تفعيل المشرف للعضوية المجانية — تمنح عضوية
+ * approved فوراً بلا دفع ولا رفع إيصال (is_free=true).
+ */
+export interface FreeMembershipSubscribeOut {
+  detail: string;
+  id: number;
+  membership_number: string;
+  expires_at: string;
+  is_free: boolean;
 }
 
 /** طلب اشتراك (رؤية العميل + المشرف). */
@@ -470,6 +486,50 @@ export interface MyMembershipCard {
 /** جسم رفض طلب الاشتراك. */
 export interface RejectBody {
   reason: string;
+}
+
+// ─── OTP via WhatsApp (الجولة 20) ─────────────────────
+/** جسم POST /otp/request و POST /otp/resend. */
+export interface OtpRequestInput {
+  /** رقم الجوال المستهدف (يبدأ بـ 7 ومجموع 9 أرقام). */
+  target: string;
+  /** اسم المستخدم (اختياري — يُستخدم في نص رسالة واتساب). */
+  name?: string | null;
+}
+
+/** ردّ POST /otp/request و POST /otp/resend.
+ *  - delivered: تم محاولة الإرسال عبر webhook واتساب
+ *  - dev_code: كود 6 أرقام يُرجع فقط في وضع التطوير (للاختبار) */
+export interface OtpRequestOut {
+  detail: string;
+  ttl_seconds: number;
+  delivered: boolean;
+  dev_code?: string | null;
+}
+
+/** جسم POST /otp/verify. */
+export interface OtpVerifyInput {
+  target: string;
+  code: string;
+}
+
+/** ردّ POST /otp/verify عند النجاح. الفشل يُرجع 422 مع detail. */
+export interface OtpVerifyOut {
+  verified: boolean;
+  target: string;
+}
+
+// ─── Admin Free Membership Toggle (الجولة 20) ─────────
+/** ردّ GET /admin/settings/free-membership (auth: admin). */
+export interface AdminFreeMembershipOut {
+  is_free_membership_enabled: boolean;
+  updated_by: number | null;
+  updated_at?: string | null;
+}
+
+/** جسم PATCH /admin/settings/free-membership. */
+export interface AdminFreeMembershipUpdate {
+  is_free_membership_enabled: boolean;
 }
 
 // ─── User / Auth ───────────────────────────────────────
@@ -748,6 +808,16 @@ export interface OwnerStatsOut {
   recent_orders: OrderListOut[];
   top_products: TopProductOut[];
   orders_chart: ChartPointOut[];
+  // الجولة 21 — مؤشرات تجارية متقدمة (Merchant Dashboard)
+  monthly_revenue: number;
+  avg_order_value: number;
+  new_customers: number;
+  total_customers: number;
+  monthly_visits: number;
+  total_visits: number;
+  roi_percent: number;
+  seo_score: number;
+  seo_tips: string[];
 }
 
 // ─── Compatibility aliases (مراجع تاريخية مسموحة) ────

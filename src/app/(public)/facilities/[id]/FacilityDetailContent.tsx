@@ -51,6 +51,8 @@ import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import type { FacilityType, Product } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useFacilityView } from "@/hooks/useFacilityView";
+import { RatingsSection } from "@/components/public/RatingsSection";
 import {
   CheckoutSheet,
   type CheckoutProduct,
@@ -384,6 +386,9 @@ export default function FacilityDetailContent() {
   const [search, setSearch] = useState("");
 const prefersReduced = usePrefersReducedMotion();
   const coverRef = useRef<HTMLDivElement>(null);
+
+  // الجولة 21 — تسجيل زيارة المتجر (للإحصائيات الحقيقية)
+  useFacilityView(facilityId);
 
   const { data: facilities, isLoading: facLoading, error: facError, refetch: facRefetch } = useFacilities();
   const { data: categories, isLoading: catLoading } = useProductCategories(facilityId);
@@ -919,6 +924,15 @@ const prefersReduced = usePrefersReducedMotion();
             </Button>
           </div>
         </div>
+      )}
+
+      {/* الجولة 21 — قسم التقييمات (قائمة + إضافة تقييم) */}
+      {facility && (
+        <RatingsSection
+          type="facility"
+          id={facility.id}
+          name={facility.name}
+        />
       )}
 
       {/* شاشة الطلب — تُفتح من زر «اطلب» على أي منتج */}

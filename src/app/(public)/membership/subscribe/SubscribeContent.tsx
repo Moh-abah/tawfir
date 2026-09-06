@@ -45,6 +45,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { clearPendingMembershipRequest } from "@/lib/membership-local";
 import { formatCurrency } from "@/lib/format";
 import { MEMBERSHIP_AMOUNT } from "@/lib/site-config";
+import { FreeMembershipCard } from "@/components/public/FreeMembershipCard";
 import type { CustomerApiError } from "@/services/customer-api-client";
 import { cn } from "@/lib/utils";
 
@@ -756,13 +757,19 @@ export default function SubscribeContent() {
   return (
     <>
       <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
-      <SubscribeForm
-        amount={info.data.amount || MEMBERSHIP_AMOUNT}
-        transferAccountName={info.data.transfer_account_name}
-        transferAccountNumber={info.data.transfer_account_number}
-        walletName={info.data.wallet_name}
-        instructions={info.data.instructions}
-      />
+      {/* الجولة 20: علم العضوية المجانية مفعّل → عرض بطاقة الاشتراك المجاني
+          بدلاً من شاشة الدفع + رفع الإيصال. */}
+      {info.data.is_free_membership_enabled ? (
+        <FreeMembershipCard />
+      ) : (
+        <SubscribeForm
+          amount={info.data.amount || MEMBERSHIP_AMOUNT}
+          transferAccountName={info.data.transfer_account_name}
+          transferAccountNumber={info.data.transfer_account_number}
+          walletName={info.data.wallet_name}
+          instructions={info.data.instructions}
+        />
+      )}
     </>
   );
 }

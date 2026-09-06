@@ -57,11 +57,28 @@ const PRECACHE_URLS = [
   "/fonts/Cairo-Bold.ttf",
   "/fonts/Cairo-ExtraBold.ttf",
   "/fonts/Cairo-Black.ttf",
+  /* الجولة 20: تسخين مسبق لشاشات الزبون الأساسية — تعمل أوفلاين من أول تثبيت
+     (الصفحة الرئيسية، العروض، البحث، المتاجر، الإشعارات، الحساب، تسجيل الدخول) */
+  "/",
+  "/offers",
+  "/search",
+  "/facilities",
+  "/notifications",
+  "/account",
+  "/login",
+  "/membership",
 ];
 
 /* بيانات كتالوج أساسية تُخزَّن مسبقاً في كاش البيانات حتى يعمل التطبيق
    أوفلاين من أول تثبيت (طلبات الزيارة الأولى قد تسبق تفعيل العامل) */
-const PRECACHE_DATA_URLS = ["/api/regions"];
+const PRECACHE_DATA_URLS = [
+  "/api/regions",
+  /* الجولة 20: بيانات أساسية تُخزّن مسبقاً لشاشات أوفلاين أفضل */
+  "/api/products",
+  "/api/facilities",
+  "/api/special-offers",
+  "/api/cards",
+];
 
 /* خريطة مؤقتة لمنع إغراق الخادم بإعادة التحقق لنفس الطلب */
 const revalidateMemo = new Map();

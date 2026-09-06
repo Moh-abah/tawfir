@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, ShoppingBag, UtensilsCrossed, ZoomIn } from "lucide-react";
+import { Crown, MapPin, ShoppingBag, UtensilsCrossed, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
@@ -12,6 +12,8 @@ import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { AddToCartButton } from "@/components/public/AddToCartButton";
 import { useMe } from "@/hooks/useMe";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useRatingAggregate } from "@/hooks/useRatings";
+import { Stars } from "@/components/shared/Stars";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
@@ -28,6 +30,8 @@ interface ProductCardProps {
   className?: string;
   /** الجولة 15 — تحميل فوري للصورة (LCP) لأول بطاقة في الشبكة */
   priority?: boolean;
+  /** الجولة 21 — فهرس التتابع للأنميشن (0-8) لتأثير ظهور متدرّج */
+  staggerIndex?: number;
 }
 
 /**
@@ -70,13 +74,16 @@ function AvailabilityBadge({
  *  - زر طلب دائري (h-11 w-11) بجانب السعر — نمط تطبيقات Native
  *  - السعر: العضو (primary) + الأصلي مشطوب
  */
-export function ProductCard({ product, className, priority = false }: ProductCardProps) {
+export function ProductCard({ product, className, priority = false, staggerIndex }: ProductCardProps) {
   const [open, setOpen] = useState(false);
   /* الجولة 17 — معاينة سريعة للصورة من الشبكة بلا مغادرة القائمة */
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const me = useMe();
   const { accessToken, hydrated } = useCustomerAuth();
   const router = useRouter();
+  // الجولة 21 — متوسط تقييم المنتج (public, للعرض على البطاقة)
+  const ratingAgg = useRatingAggregate("product", product.id);
+  const hasRating = !!ratingAgg.data && ratingAgg.data.count > 0;
 
   const isMember = !!me.data?.membership?.is_active;
   const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
@@ -113,10 +120,11 @@ export function ProductCard({ product, className, priority = false }: ProductCar
     <>
       <article
         className={cn(
-          "native-tap-card group relative flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card shadow-sm transition-[shadow,border-color,transform] duration-200 hover:border-primary/30 hover:shadow-md",
+          "tawfir-card-enter native-tap-card group relative flex flex-col overflow-hidden rounded-xl border border-border/30 bg-card shadow-sm transition-[shadow,border-color,transform] duration-200 hover:border-primary/30 hover:shadow-md",
           outOfStock && "opacity-70",
           className
         )}
+        data-stagger={staggerIndex != null ? Math.min(staggerIndex, 8) : undefined}
         aria-label={product.name}
       >
         {/* منطقة الصورة — حاوية نسبية تضمّ Link وطبقات الأزرار العائمة
@@ -160,6 +168,16 @@ export function ProductCard({ product, className, priority = false }: ProductCar
                 </span>
               )}
             </div>
+            {/* الجولة 21 — شارة «عضو توفير» على الصورة للأعضاء النشطين */}
+            {isMember && (
+              <span
+                className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-accent/95 px-1.5 py-0.5 text-[9px] font-extrabold text-accent-foreground shadow-soft"
+                aria-label="عضو توفير"
+              >
+                <Crown className="h-2.5 w-2.5" aria-hidden="true" />
+                عضو
+              </span>
+            )}
             {/* الجولة 16 — شريط مائل «نفدت الكمية» فوق الصورة عند النفاد:
                 أوضح من تعتيم الكارت وحده — نمط بطاقات المنتجات في متاجر Native */}
             {outOfStock && product.image_url && (
@@ -213,6 +231,15 @@ export function ProductCard({ product, className, priority = false }: ProductCar
           <p className="line-clamp-1 text-[10px] text-muted-foreground">
             {product.facility.name}
           </p>
+          {hasRating && (
+            <Stars
+              average={ratingAgg.data!.average}
+              count={ratingAgg.data!.count}
+              size="sm"
+              showCount
+              className="mt-0.5"
+            />
+          )}
 
           <div className="mt-auto flex items-end justify-between gap-1.5 pt-1">
             <div className="flex min-w-0 flex-col">

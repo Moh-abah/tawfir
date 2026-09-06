@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { SimilarMealsSection } from "@/components/public/SimilarMealsSection";
+import { RatingsSection } from "@/components/public/RatingsSection";
 import {
   CheckoutSheet,
   type CheckoutProduct,
@@ -595,6 +596,13 @@ export default function ProductDetailContent() {
         facilityId={product.facility_id}
         facilityName={product.facility.name}
         currentProductId={product.id}
+      />
+
+      {/* الجولة 21 — قسم التقييمات (قائمة + إضافة تقييم) */}
+      <RatingsSection
+        type="product"
+        id={product.id}
+        name={product.name}
       />
 
       <CheckoutSheet

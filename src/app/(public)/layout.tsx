@@ -11,6 +11,7 @@ import { ScrollToTop } from "@/components/shared/ScrollToTop";
 import { CookieConsent } from "@/components/shared/CookieConsent";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { StickyMiniCart } from "@/components/public/StickyMiniCart";
+import { GlobalPullToRefresh } from "@/components/shared/GlobalPullToRefresh";
 import { useRegionStore } from "@/store/region.store";
 import { useFavoritesStore } from "@/store/favorites.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
@@ -114,7 +115,15 @@ export default function PublicLayout({
           (isReceiptRoute || isAuthRoute) && "pb-0 md:pb-0",
         )}
       >
-        <PageTransition>{children}</PageTransition>
+        {/* السحب للتحديث بنمط توفير — يُحلّ محل مؤشر المتصفح الافتراضي في
+            كل صفحات العميل. لا يُركّب في شاشات الدخول (لا تحتاج تحديث بيانات). */}
+        {!isAuthRoute ? (
+          <GlobalPullToRefresh>
+            <PageTransition>{children}</PageTransition>
+          </GlobalPullToRefresh>
+        ) : (
+          <PageTransition>{children}</PageTransition>
+        )}
       </main>
       {!isReceiptRoute && !isAuthRoute && <Footer />}
       {!isReceiptRoute && !isAuthRoute && <MobileBottomNav />}

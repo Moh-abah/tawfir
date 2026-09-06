@@ -30,6 +30,7 @@ import {
   type CheckoutProduct,
 } from "@/components/public/CheckoutSheet";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import {
@@ -353,6 +354,11 @@ export function SearchContent() {
       <ScreenHeader title="البحث" fallbackHref="/" />
 
       <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-4 sm:px-6 sm:pt-6">
+        {/* الجولة 21 — Breadcrumbs للـSEO */}
+        <Breadcrumbs
+          items={[{ label: "البحث" }]}
+          className="mb-3"
+        />
         {/* حقل البحث — كبير وثابت أعلى الشاشة */}
         <div className="sticky top-14 z-30 -mx-4 bg-background/95 px-4 pb-3 pt-1 backdrop-blur-lg sm:-mx-6 sm:px-6">
           <div className="relative">

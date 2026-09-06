@@ -9,6 +9,7 @@ import { RegionSelector } from "@/components/public/RegionSelector";
 import { CartButton } from "@/components/public/CartButton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { NetworkStatusIndicator } from "@/components/shared/NetworkStatusIndicator";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useMe } from "@/hooks/useMe";
 import { cn } from "@/lib/utils";
@@ -78,6 +79,7 @@ export function MainHeader() {
           </Button>
       
           <CartButton />
+          <NetworkStatusIndicator className="hidden sm:inline-flex" />
           {isLoggedIn && <NotificationBell variant="header" />}
           {isLoggedIn ? (
             <Button

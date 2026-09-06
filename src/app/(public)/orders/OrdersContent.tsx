@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+// (الجولة 20) useQueryClient لم يعد لازماً بعد نقل PTR للـlayout
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { PullToRefresh } from "@/components/shared/PullToRefresh";
+// (الجولة 20) PullToRefresh نُقل لـ (public)/layout.tsx (GlobalPullToRefresh)
 import { ScreenHeader, ScreenHeaderSkeleton } from "@/components/shared/ScreenHeader";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { useMyOrders } from "@/hooks/useMyOrders";
@@ -254,7 +254,6 @@ function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
     : { initial: { opacity: 0 }, animate: { opacity: 1 } };
 
   return (
-    <PullToRefresh onRefresh={() => refetch()}>
       <motion.div
         {...containerAnim}
         transition={{ duration: 0.3 }}
@@ -266,7 +265,6 @@ function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
           ))}
         </AnimatePresence>
       </motion.div>
-    </PullToRefresh>
   );
 }
 
@@ -350,15 +348,12 @@ function ActiveOrderBanner() {
 /* ─── المحتوى الكامل للصفحة ────────────────────────── */
 export default function OrdersContent() {
   const { accessToken, hydrated } = useCustomerAuth();
-  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterKey>("all");
   /* بحث برقم الطلب — debounce 350ms ثم يُرسل ?search= للخادم (لا فلترة محلية) */
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 350);
 
-  const onRefresh = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: ["orders"] });
-  }, [queryClient]);
+  /* (الجولة 20) السحب للتحديث الآن عام في الـlayout عبر GlobalPullToRefresh */
 
   /* قبل الترطيب: هيكل ثابت */
   if (!hydrated) {
@@ -415,7 +410,6 @@ export default function OrdersContent() {
       <ScreenHeader title="طلباتي" fallbackHref="/">
         <NotificationBell />
       </ScreenHeader>
-      <PullToRefresh onRefresh={onRefresh}>
       <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
         <p className="mb-6 text-sm text-muted-foreground">
           تابع حالة طلباتك الحالية والسابقة
@@ -486,7 +480,6 @@ export default function OrdersContent() {
         search={debouncedSearch}
       />
     </div>
-    </PullToRefresh>
     </>
   );
 }

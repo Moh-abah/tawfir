@@ -39,6 +39,9 @@ export async function generateMetadata({
   return {
     title: `${facility.name} | توفير`,
     description: facility.description ?? `${facility.name} — استعرض المنتجات والعروض على منصة توفير`,
+    alternates: {
+      canonical: `/facilities/${id}`,
+    },
     openGraph: {
       title: `${facility.name} | توفير`,
       description: facility.description ?? `${facility.name} — استعرض المنتجات والعروض على منصة توفير`,
@@ -47,6 +50,38 @@ export async function generateMetadata({
   };
 }
 
-export default function FacilityDetailPage() {
-  return <FacilityDetailContent />;
+export default async function FacilityDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const facility = await getFacility(id);
+
+  // الجولة 21 — structured data (schema.org/Restaurant) للـSEO
+  const jsonLd = facility
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Restaurant",
+        name: facility.name,
+        description:
+          facility.description ??
+          `${facility.name} — من متاجر منصة توفير مع خصم حتى 30% للأعضاء`,
+        servesCuisine: "Yemeni",
+        acceptsReservations: "False",
+        parentOrganization: { "@type": "Organization", name: "توفير" },
+      }
+    : null;
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
+      <FacilityDetailContent />
+    </>
+  );
 }

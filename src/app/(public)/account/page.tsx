@@ -23,6 +23,7 @@ import {
   CreditCard,
   ShoppingBag,
   Heart,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -532,9 +533,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
           variant="outline"
           className="min-h-[44px] justify-start gap-2 rounded-2xl"
         >
-          <Link href="/favorites">
-            <Heart className="h-4 w-4 text-destructive" aria-hidden="true" />
-            مفضلتي
+          <Link href="/savings">
+            <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
+            سجل التوفير
           </Link>
         </Button>
         <Button
@@ -542,9 +543,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
           variant="outline"
           className="min-h-[44px] justify-start gap-2 rounded-2xl"
         >
-          <Link href="/">
-            <CreditCard className="h-4 w-4" aria-hidden="true" />
-            تصفّح الوجبات
+          <Link href="/favorites">
+            <Heart className="h-4 w-4 text-destructive" aria-hidden="true" />
+            مفضلتي
           </Link>
         </Button>
       </div>
