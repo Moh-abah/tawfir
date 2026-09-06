@@ -141,14 +141,14 @@ export function FreeMembershipToggleCard() {
 
               <Separator />
 
-              <div
-                className="rounded-xl border border-border/50 p-4"
-                style={{
-                  background:
-                    value &&
-                    "color-mix(in srgb, var(--logo-emerald) 6%, transparent)",
-                }}
-              >
+                  <div
+                    className="rounded-xl border border-border/50 p-4"
+                    style={{
+                      background: value
+                        ? "color-mix(in srgb, var(--logo-emerald) 6%, transparent)"
+                        : undefined,
+                    }}
+                  >
                 <p className="text-xs leading-relaxed text-foreground">
                   {value ? (
                     <span className="space-y-1.5 block">

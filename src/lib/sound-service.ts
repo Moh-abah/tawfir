@@ -87,10 +87,17 @@ export const ALL_SOUND_TYPES: readonly SoundType[] = [
 /** تسميات عربية للأصوات — تُستخدم في قسم «الأصوات» بالإعدادات. */
 export const SOUND_LABELS: Record<SoundType, string> = {
   order_new: "طلب جديد",
+  order_delivered: "تم التوصيل",
+  success_action: "نجاح إجراء",
+  error_occurred: "خطأ في إجراء",
+  notification_open: "فتح الإشعارات",
+};
+
+
+export const DEPRECATED_SOUND_LABELS: Record<string, string> = {
   order_confirmed: "تأكيد طلب",
   order_preparing: "قيد التحضير",
   order_out_for_delivery: "في الطريق للتوصيل",
-  order_delivered: "تم التوصيل",
   order_cancelled: "إلغاء طلب",
   membership_new_request: "طلب عضوية جديد",
   membership_approved: "الموافقة على عضوية",
@@ -101,9 +108,6 @@ export const SOUND_LABELS: Record<SoundType, string> = {
   facility_approved: "الموافقة على متجر",
   facility_rejected: "رفض متجر",
   owner_registered: "تسجيل مالك جديد",
-  success_action: "نجاح إجراء",
-  error_occurred: "خطأ في إجراء",
-  notification_open: "فتح الإشعارات",
 };
 
 /**
@@ -123,21 +127,14 @@ const BASE_PRIORITY: Record<SoundType, number> = {
   error_occurred: 6,
   success_action: 4,
   notification_open: 3,
-  // الأنواع المُقصاة (تبقى قيمها لسلامة البحث لكن لا تُشغّل لأنها خارج NOTIFICATION_SOUND_TYPES):
-  order_confirmed: 0,
-  order_preparing: 0,
-  order_out_for_delivery: 0,
-  order_cancelled: 0,
-  membership_new_request: 0,
-  membership_approved: 0,
-  membership_rejected: 0,
-  membership_expiring: 0,
-  special_offer_new: 0,
-  special_offer_soldout: 0,
-  facility_approved: 0,
-  facility_rejected: 0,
-  owner_registered: 0,
 };
+
+
+
+/** دالة موحّدة لجلب تسمية أي نوع (حتى المُقصاة). */
+export function getSoundLabel(type: string): string {
+  return SOUND_LABELS[type as SoundType] ?? DEPRECATED_SOUND_LABELS[type] ?? type;
+}
 
 /** أولوية «طلب جديد» للمالك — قصوى: لا يقطعها شيء ولا تُسكت بالتزاحم. */
 const OWNER_ORDER_NEW_PRIORITY = 100;
@@ -265,6 +262,7 @@ class SoundServiceClass {
 
     // 4) صوت واحد في كل مرة — بالأولويات (طلب جديد للمالك لا يُسكت)
     let priority = BASE_PRIORITY[type] ?? 5;
+    
     if (role === "owner" && type === "order_new") {
       priority = OWNER_ORDER_NEW_PRIORITY;
     }

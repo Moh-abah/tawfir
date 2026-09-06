@@ -10,7 +10,7 @@ import { useRatings } from "@/hooks/useRatings";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { customerApiClient } from "@/services/customer-api-client";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
+import { toast, useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";

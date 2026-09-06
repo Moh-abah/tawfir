@@ -78,6 +78,11 @@ const registerSchema = z
 
 type RegisterValues = z.infer<typeof registerSchema>;
 
+
+type StoredRegisterValues = Omit<RegisterValues, "email"> & {
+  email: string; // أصبح مطلوبًا مع السماح بفارغة
+};
+
 /* ─── Step Indicator Data ─────────────────────────── */
 const STEPS = [
   { num: 1, label: "البيانات الشخصية", icon: User },
@@ -524,7 +529,7 @@ export default function RegisterPage() {
 
   const [stage, setStage] = useState<RegisterStage>("form");
   const [successData, setSuccessData] = useState<RegisterOut | null>(null);
-  const [storedValues, setStoredValues] = useState<RegisterValues | null>(null);
+  const [storedValues, setStoredValues] = useState<StoredRegisterValues | null>(null);
   const [initialOtpResult, setInitialOtpResult] =
     useState<OtpRequestOut | null>(null);
   const [membershipAfterRegister, setMembershipAfterRegister] =
@@ -600,7 +605,16 @@ export default function RegisterPage() {
       { target: values.phone, name: values.full_name },
       {
         onSuccess: (res) => {
-          setStoredValues(values);
+
+          const email = (values.email ?? "").trim() || "";
+          setStoredValues({
+            full_name: values.full_name,
+            phone: values.phone,
+            password: values.password,
+            password_confirm: values.password_confirm,
+            region_id: values.region_id,
+            email, // الآن نص قطعي
+          });
           setInitialOtpResult(res);
           setStage("otp");
         },
@@ -620,6 +634,7 @@ export default function RegisterPage() {
   const handleVerified = () => {
     if (!storedValues) return;
     setIsCreatingAccount(true);
+    
     registerMutate(storedValues, {
       onSuccess: async (response) => {
         // محاولة دخول تلقائي (بالهاتف + كلمة المرور) لجلب /me.
@@ -662,7 +677,7 @@ export default function RegisterPage() {
   const handleBackToForm = () => {
     if (storedValues) {
       // استعادة القيم في النموذج (react-hook-form يحفظها داخلياً لكن نضمن).
-      (Object.keys(storedValues) as (keyof RegisterValues)[]).forEach((k) => {
+      (Object.keys(storedValues) as (keyof StoredRegisterValues)[]).forEach((k) => {
         const v = storedValues[k];
         if (typeof v === "string" || typeof v === "number") {
           setValue(k, v as never, { shouldValidate: false });
