@@ -95,7 +95,7 @@ jobs:
           distribution: temurin
           java-version: "21"
           # كاش Gradle مدمج (يتخلص من تحذير actions/cache@v4 القديم)
-          cache: gradle
+          # cache: ''
 
       - name: "🤖 تجهيز Android SDK (التراخيص + منصة 36)"
         run: |
