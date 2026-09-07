@@ -4,7 +4,8 @@
 #  لا حاجة لأي تثبيت على جهازك (لا Android Studio / JDK / Gradle / Bun).
 #  يكفي رفع كود Next.js + مجلد resources/ — والباقي يتم هنا آلياً:
 #
-#    1) تثبيت Bun + Java 17 + Android SDK في السحابة
+#    1) تثبيت Bun + Java 21 + Android SDK في السحابة (Capacitor 8 يتطلب Java 21
+#       — مكتبة capacitor-android تستهدف sourceCompatibility VERSION_21)
 #    2) bun install ثم npx cap add android       (إنشاء مجلد android من الصفر)
 #    3) npx capacitor-assets generate --android   (كل الأيقونات/السبلاش من resources/)
 #    4) bun scripts/patch-android-identity.mjs    (هوية توفير: الألوان + سبلاش
@@ -63,7 +64,7 @@ jobs:
 
     steps:
       - name: "⬇️ تحميل الكود"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🔍 فحص الأسرار المطلوبة (فشل مبكر بدل 10 دقائق انتظار)"
         env:
@@ -88,11 +89,13 @@ jobs:
         with:
           bun-version: latest
 
-      - name: "☕ تثبيت Java 17 (Temurin)"
-        uses: actions/setup-java@v4
+      - name: "☕ تثبيت Java 21 (Temurin) — Capacitor 8 يتطلب 21"
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
+          # كاش Gradle مدمج (يتخلص من تحذير actions/cache@v4 القديم)
+          cache: gradle
 
       - name: "🤖 تجهيز Android SDK (التراخيص + منصة 36)"
         run: |
@@ -101,22 +104,6 @@ jobs:
           yes | "$SDKM" --licenses >/dev/null 2>&1 || true
           yes | "$SDKM" "platforms;android-36" "platform-tools" >/dev/null 2>&1 || true
           echo "✓ التراخيص مقبولة ومنصة API 36 متوفرة"
-
-      - name: "💾 كاش Bun (تثبيت أسرع في المرات القادمة)"
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: bun-${{ runner.os }}-
-
-      - name: "💾 كاش Gradle"
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: gradle-${{ runner.os }}-
 
       - name: "📦 تثبيت الاعتماديات (bun install)"
         run: bun install --frozen-lockfile
