@@ -115,8 +115,20 @@ jobs:
           sed -i 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
           grep -E "appId|appName" capacitor.config.ts | head -2
 
+
       - name: "🆕 إنشاء مشروع Android من الصفر (cap add android)"
-        run: npx cap add android
+        run: |
+          rm -rf android
+          npx cap add android
+
+      - name: "🔍 التحقق من وجود AndroidManifest.xml"
+        run: |
+          if [ ! -f "android/app/src/main/AndroidManifest.xml" ]; then
+            echo "::error::AndroidManifest.xml غير موجود — فشل إنشاء مشروع Android"
+            exit 1
+          fi
+          echo "✓ AndroidManifest.xml موجود"
+
 
       - name: "🎨 توليد كل الأيقونات والسبلاش من resources/ (123 ملفاً)"
         run: npx capacitor-assets generate --android
