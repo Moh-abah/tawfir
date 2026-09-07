@@ -1,4 +1,4 @@
-"use client";
+// "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -165,8 +165,14 @@ export function SearchContent() {
   const searchParams = useSearchParams();
 
   /* searchInput هو المصدر الوحيد للحقيقة للعرض (الجولة 9 — 9.1):
-   * لا تُكتب قيمة الحقل برمجياً أبداً إلا بفعل المستخدم (رقاقة/مسح). */
-  const [searchInput, setSearchInput] = useState(() => searchParams.get("q") ?? "");
+   * لا تُكتب قيمة الحقل برمجياً أبداً إلا بفعل المستخدم (رقاقة/مسح).
+   *
+   * الجولة 24 — استقبال المشاركة (share_target في الـmanifest):
+   * التطبيقات الأخرى تشارك نصاً مع توفير → يفتح /search?text=النص
+   * فنملأ الحقل به ونبحث فوراً (نفس آلية ?q= للروابط العميقة). */
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get("text") ?? searchParams.get("q") ?? ""
+  );
   const [activeTab, setActiveTab] = useState<SearchTab>("all");
   /* فلاتر النتائج — Sheet من SearchFiltersSheet (الترتيب/السعر/التصنيف/المسافة) */
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_SEARCH_FILTERS);
@@ -309,36 +315,36 @@ export function SearchContent() {
 
   const checkoutProduct: CheckoutProduct = selectedOffer
     ? {
-        id: selectedOffer.product?.id ?? 0,
-        facility_id: selectedOffer.facility_id,
-        name: selectedOffer.product?.name ?? selectedOffer.title,
-        description: null,
-        price: String(
-          selectedOffer.base_price ?? selectedOffer.product?.price ?? 0
-        ),
-        image_url: selectedOffer.product?.image_url ?? null,
-        is_available: (selectedOffer.quantity_remaining ?? 1) > 0,
-        available_quantity: selectedOffer.quantity_remaining,
-      }
+      id: selectedOffer.product?.id ?? 0,
+      facility_id: selectedOffer.facility_id,
+      name: selectedOffer.product?.name ?? selectedOffer.title,
+      description: null,
+      price: String(
+        selectedOffer.base_price ?? selectedOffer.product?.price ?? 0
+      ),
+      image_url: selectedOffer.product?.image_url ?? null,
+      is_available: (selectedOffer.quantity_remaining ?? 1) > 0,
+      available_quantity: selectedOffer.quantity_remaining,
+    }
     : {
-        id: 0,
-        facility_id: 0,
-        name: "",
-        description: null,
-        price: "0",
-        image_url: null,
-        is_available: false,
-        available_quantity: null,
-      };
+      id: 0,
+      facility_id: 0,
+      name: "",
+      description: null,
+      price: "0",
+      image_url: null,
+      is_available: false,
+      available_quantity: null,
+    };
   const checkoutSpecialOffer = selectedOffer
     ? {
-        id: selectedOffer.id,
-        offer_discount_rate: selectedOffer.offer_discount_rate,
-        base_price: selectedOffer.base_price,
-        member_price: selectedOffer.member_price,
-        non_member_price: selectedOffer.non_member_price,
-        facility_discount_rate: selectedOffer.facility_discount_rate,
-      }
+      id: selectedOffer.id,
+      offer_discount_rate: selectedOffer.offer_discount_rate,
+      base_price: selectedOffer.base_price,
+      member_price: selectedOffer.member_price,
+      non_member_price: selectedOffer.non_member_price,
+      facility_discount_rate: selectedOffer.facility_discount_rate,
+    }
     : null;
 
   /* عدد النتائج لكل تبويب (للشارات) */
