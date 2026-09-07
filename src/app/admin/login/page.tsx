@@ -188,12 +188,12 @@ export default function AdminLoginPage() {
       <div className="flex w-full flex-col items-center gap-3">
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للموقع
         </Link>
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-muted-foreground/70">
           لوحة تحكم المشرفين — توفير
         </span>
       </div>

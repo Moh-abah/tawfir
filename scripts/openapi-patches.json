@@ -1,0 +1,104 @@
+{
+  "$comment": "ترقيعات السكمة — فروق openapi_live.json المتقادمة عن الباك إند الحي. يطبقها gen-api-types.mjs قبل توليد الأنواع. كل ترقيع يختفي تلقائياً من التقرير عندما يلحق الباك إند بالسكمة الرسمية (حدّث openapi_live.json ثم bun run api:types وراجع التقرير).",
+  "FacilitySummaryOut": {
+    "required": ["id", "name", "type", "region_id", "image_url", "address", "phone", "working_hours", "latitude", "longitude"],
+    "properties": {
+      "image_url": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "address": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "phone": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "working_hours": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "latitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+      "longitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+      "discount_rate": { "type": "integer", "minimum": 10, "maximum": 30, "description": "نسبة الخصم لعضوية توفير (10-30%). (الجولة 3)" }
+    }
+  },
+  "FacilityCreate": {
+    "properties": {
+      "discount_rate": { "type": "integer", "minimum": 10, "maximum": 30, "description": "نسبة الخصم لعضوية توفير (الجولة 3)." }
+    }
+  },
+  "MembershipInfoOut": {
+    "properties": {
+      "is_free_membership_enabled": { "type": "boolean", "description": "الجولة 20: علم العضوية المجانية المفعّل من لوحة المشرف." }
+    }
+  },
+  "OrderCreate": {
+    "properties": {
+      "special_offer_id": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "description": "معرّف العرض الخاص — null/undefined إن لم يكن على عرض." }
+    }
+  },
+  "OrderListOut": {
+    "required": ["id", "customer_id", "facility_id", "facility_name", "customer_name", "status", "payment_method", "subtotal", "delivery_fee", "total", "created_at"],
+    "properties": {
+      "facility_name": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "customer_name": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "status": { "type": "string", "enum": ["pending", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"] },
+      "payment_method": { "type": "string", "enum": ["cash", "wallet"] }
+    }
+  },
+  "OrderOut": {
+    "properties": {
+      "status": { "type": "string", "enum": ["pending", "confirmed", "preparing", "out_for_delivery", "delivered", "cancelled"] },
+      "payment_method": { "type": "string", "enum": ["cash", "wallet"] },
+      "updated_at": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+    }
+  },
+  "OrderItemOut": {
+    "required": ["id", "product_id", "product_name", "quantity", "unit_price", "discount_applied", "subtotal"],
+    "properties": {
+      "product_name": { "anyOf": [{ "type": "string" }, { "type": "null" }] }
+    }
+  },
+  "OwnerRegister": {
+    "properties": {
+      "latitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+      "longitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
+    }
+  },
+  "OwnerStatsOut": {
+    "required": ["monthly_revenue", "avg_order_value", "new_customers", "total_customers", "monthly_visits", "total_visits", "roi_percent", "seo_score", "seo_tips"],
+    "properties": {
+      "monthly_revenue": { "type": "number", "description": "الجولة 21 — إيرادات الشهر الحالي." },
+      "avg_order_value": { "type": "number", "description": "متوسط قيمة الطلب." },
+      "new_customers": { "type": "integer", "description": "عملاء جدد هذا الشهر." },
+      "total_customers": { "type": "integer", "description": "إجمالي العملاء." },
+      "monthly_visits": { "type": "integer", "description": "زيارات الشهر الحالي." },
+      "total_visits": { "type": "integer", "description": "إجمالي الزيارات." },
+      "roi_percent": { "type": "number", "description": "العائد على الاستثمار %." },
+      "seo_score": { "type": "integer", "description": "نتيجة الجاهزية الرقمية (0-100)." },
+      "seo_tips": { "type": "array", "items": { "type": "string" }, "description": "توصيات تحسين الجاهزية الرقمية." }
+    }
+  },
+  "PendingFacilityOut": {
+    "required": ["id", "name", "type", "region_id", "description", "owner_id", "owner_name", "owner_email", "owner_phone", "address", "phone", "working_hours", "image_url", "latitude", "longitude", "created_at", "rejection_reason"],
+    "properties": {
+      "owner_name": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "address": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "phone": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "working_hours": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "image_url": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "latitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+      "longitude": { "anyOf": [{ "type": "number" }, { "type": "null" }] },
+      "rejection_reason": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+      "discount_rate": { "type": "integer", "minimum": 10, "maximum": 30, "description": "نسبة الخصم المطلوبة للعضوية (الجولة 3)." }
+    }
+  },
+  "UserOut": {
+    "required": ["id", "full_name", "email", "phone", "role", "is_active", "created_at"],
+    "properties": {
+      "is_active": { "type": "boolean", "description": "حالة تنشيط الحساب (لوحة المشرف)." }
+    }
+  },
+  "UserDetailOut": {
+    "required": ["region_id"],
+    "properties": {
+      "region_id": { "anyOf": [{ "type": "integer" }, { "type": "null" }], "description": "منطقة المستخدم (null = غير محددة)." }
+    }
+  },
+  "MeOut": {
+    "required": ["id", "full_name", "email", "phone", "role", "created_at", "membership"],
+    "properties": {
+      "membership": { "anyOf": [{ "$ref": "#/components/schemas/MyMembershipCard" }, { "type": "null" }], "description": "بطاقة العضوية — null حين لا توجد." }
+    }
+  }
+}

@@ -743,7 +743,7 @@ export default function OwnerRegisterPage() {
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
             لديك حساب؟ سجّل الدخول
           </Link>
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-muted-foreground/70">
             بوابة أصحاب المتاجر — توفير
           </span>
         </div>

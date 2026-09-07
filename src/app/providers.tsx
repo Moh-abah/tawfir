@@ -11,6 +11,8 @@ import { NativeBridge } from "@/components/native/NativeBridge";
 import { NotificationsProvider } from "@/components/shared/NotificationsProvider";
 import { FcmRegistrar } from "@/components/shared/FcmRegistrar";
 import { SessionRestore } from "@/components/shared/SessionRestore";
+import { BootSplash } from "@/components/shared/BootSplash";
+import { NativeZoomGuard } from "@/components/shared/NativeZoomGuard";
 import { SoundService } from "@/lib/sound-service";
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +58,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
+        <BootSplash />
         <SessionRestore />
         <NotificationsProvider>
           <FcmRegistrar>
@@ -63,6 +66,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <OfflineBanner />
             <ServiceWorkerRegistrar />
             <NativeBridge />
+            <NativeZoomGuard />
             {children}
             <Toaster />
           </FcmRegistrar>

@@ -145,7 +145,7 @@ function ResetPasswordForm() {
 
       <Link
         href="/login"
-        className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
+        className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
         العودة لتسجيل الدخول

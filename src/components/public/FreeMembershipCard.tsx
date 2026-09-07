@@ -238,14 +238,9 @@ export function FreeMembershipCard() {
         </p>
       </header>
 
-      {/* بطاقة الهوية: شعار + شارات + مزايا */}
-      <div
-        className="relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--logo-navy) 0%, color-mix(in srgb, var(--logo-navy) 82%, var(--logo-emerald)) 100%)",
-        }}
-      >
+      {/* بطاقة الهوية: شعار + شارات + مزايا — ثنائية الثيم (الجولة 22):
+          فاتح = بطاقة فاتحة بلمسة زمردية بنصوص واضحة، داكن = كحلي الهوية */}
+      <div className="tawfir-brand-card relative overflow-hidden rounded-[20px] border border-border/50 p-6 shadow-soft-lg sm:p-8 dark:border-transparent">
         <div
           className="pointer-events-none absolute inset-0 opacity-30"
           aria-hidden="true"
@@ -255,10 +250,8 @@ export function FreeMembershipCard() {
           }}
         />
         <div className="relative z-10 flex flex-col items-center gap-5 text-center">
-          <TawfirLogo onDark className="h-12 w-auto" />
-          <TawfirPillBadge
-            className="border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-none"
-          />
+          <TawfirLogo onDark={false} className="h-12 w-auto dark:brightness-0 dark:invert" />
+          <TawfirPillBadge className="shadow-soft" />
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span
               className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-soft"
@@ -275,7 +268,7 @@ export function FreeMembershipCard() {
               موافقة فورية بلا انتظار
             </span>
           </div>
-          <p className="max-w-md text-sm leading-relaxed text-white/85">
+          <p className="max-w-md text-sm leading-relaxed text-foreground/85 dark:text-white/85">
             فريق توفير يمنحك العضوية السنوية مجاناً خلال هذه الفترة — لا حاجة
             لتحويل بنكي ولا رفع إيصال. فقط اضغط الزر وستظهر بطاقتك فوراً.
           </p>

@@ -177,11 +177,11 @@ function OwnerLoginForm() {
         </Card>
       </motion.div>
 
-      {/* روابط سفلية فوق الكحلي — أبيض/ذهبي هوية */}
+      {/* روابط سفلية — ألوان من توكنات الثيم (الجولة 22) */}
       <div className="flex w-full flex-col items-center gap-3">
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 transition-colors hover:text-white"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للرئيسية
@@ -194,7 +194,7 @@ function OwnerLoginForm() {
           <Building2 className="h-4 w-4" aria-hidden="true" />
           لديك متجر وليس لديك حساب؟ سجّل متجرك
         </Link>
-        <span className="text-xs text-white/50">
+        <span className="text-xs text-muted-foreground/70">
           بوابة أصحاب المتاجر — توفير
         </span>
       </div>

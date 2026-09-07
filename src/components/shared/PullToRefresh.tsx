@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
 
@@ -17,32 +18,7 @@ interface PullToRefreshProps {
 }
 
 /**
- * شعار توفير «ت» — رسم SVG خفيف بهوية التطبيق (ذهبي على كحلي).
- * يُستخدم داخل مؤشر السحب للتحديث لإعطاء إحساس Native بهوية توفير
- * (بديل أيقونة المتصفح الافتراضية RefreshCw).
- */
-function TawfirMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 48 48"
-      className={className}
-      fill="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      {/* خلفية كحلية دائرية */}
-      <circle cx="24" cy="24" r="22" fill="#0A1A2F" />
-      {/* الحرف «ت» بأسلوب توفير — ذهبي */}
-      <path
-        d="M24 9.5c-5.2 0-9.4 1.7-9.4 3.8 0 1.6 2.6 2.8 6.3 3.4v3.1h-4.2c-.7 0-1.3.6-1.3 1.3 0 .7.6 1.3 1.3 1.3h4.2v11.6c0 1.2 1 2.2 2.2 2.2h1.8c1 0 1.8-.8 1.8-1.8V14.6c3.4-.7 5.7-2 5.7-3.5 0-1.9-3.6-3.6-8.4-3.6z"
-        fill="#D4AF37"
-      />
-    </svg>
-  );
-}
-
-/**
- * السحب للتحديث — Pull-to-Refresh (إعادة تصميم الجولة 20 — نمط نيتفليكس بهوية توفير):
+ * السحب للتحديث — Pull-to-Refresh (إعادة تصميم الجولة 20 + ثنائية الثيم بالجولة 22):
  *  - يعمل فقط على أجهزة اللمس (pointer: coarse) وبلا prefers-reduced-motion
  *  - عند أعلى الصفحة: السحب للأسفل يسحب «كبسولة توفير» بمقاومة مطاطية
  *  - حلقة تقدّم ذهبية (conic-gradient) تملأ بتقدّم السحب من 0→270deg
@@ -50,6 +26,12 @@ function TawfirMark({ className }: { className?: string }) {
  *  - لا يعترض التمرير العادي إطلاقاً (بلا preventDefault)
  *  - يُقصد به استبدال مؤشر المتصفح الافتراضي تماماً (مع overscroll-behavior
  *    في globals.css) لإعطاء إحساس Native بهوية توفير وليس ويب.
+ *
+ * الجولة 22:
+ *  - الشعار: صورة /identity/mark.png الرسمية المفرغة (بديل الرسم اليدوي
+ *    القديم) — أولوية المستخدم: Native بأدق تفاصيل الهوية.
+ *  - ثنائية الثيم: الفاتح = كبسولة بيضاء بظل ناعم وحلقة ذهبية؛ الداكن =
+ *    كبسولة كحلية متوهجة كما كان. الألوان عبر dark: variants لا hex ثابت.
  */
 export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const prefersReduced = usePrefersReducedMotion();
@@ -149,7 +131,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
   const ringDeg = progress * 270;
   /* معامل تكبر الكبسولة مع السحب: 0.7 → 1 */
   const scale = refreshing ? 1 : 0.7 + progress * 0.3;
-  /* تترجم المؤشر لأسفل من أعلى الصفحة — يظهر تدريجياً */
+  /* يترجم المؤشر لأسفل من أعلى الصفحة — يظهر تدريجياً */
   const translateY = Math.max(pull - 44, refreshing ? 8 : -44);
 
   return (
@@ -194,16 +176,12 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           className={cn(
             "relative flex items-center justify-center rounded-full",
             "h-12 w-12 shadow-lg",
+            "bg-white ring-1 ring-black/10",
+            "dark:bg-[radial-gradient(circle_at_50%_40%,#0F2238_0%,#0A1A2F_70%)] dark:ring-[rgba(212,175,55,0.30)]",
             refreshing && "tawfir-ptr-spin",
           )}
           style={{
             transform: `scale(${scale})`,
-            /* خلفية كبسولة: كحلي + توهج ذهبي — هوية توفير */
-            background:
-              "radial-gradient(circle at 50% 40%, #0F2238 0%, #0A1A2F 70%)",
-            boxShadow: refreshing
-              ? "0 0 0 1px rgba(212,175,55,0.55), 0 6px 18px -4px rgba(10,26,47,0.55), 0 0 22px -6px rgba(212,175,55,0.45)"
-              : "0 0 0 1px rgba(212,175,55,0.30), 0 6px 16px -6px rgba(10,26,47,0.45)",
             willChange: "transform",
           }}
         >
@@ -235,10 +213,16 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
               }}
             />
           )}
-          {/* شعار توفير «ت» في المركز */}
-          <TawfirMark
+          {/* شعار توفير الرسمي — /identity/mark.png المفرغ (الجولة 22) */}
+          <Image
+            src="/identity/mark.png"
+            alt=""
+            width={48}
+            height={48}
+            priority={false}
+            draggable={false}
             className={cn(
-              "relative h-6 w-6 transition-transform duration-150",
+              "relative h-6 w-6 select-none object-contain transition-transform duration-150",
               refreshing && "tawfir-ptr-pulse",
             )}
           />

@@ -1173,6 +1173,25 @@ a:focus-visible,
   animation: promo-shimmer 3s linear infinite;
 }
 
+/* ── بطاقة الهوية البراندية — ثنائية الثيم (الجولة 22) ── */
+/* تُستخدم في بطاقات الدعوة (العضوية المجانية وغيرها): فاتح = بطاقة
+   فاتحة بلمسة زمردية، داكن = كحلي الهوية العميق بنص بيضاء */
+.tawfir-brand-card {
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--card) 96%, var(--primary) 4%) 0%,
+      color-mix(in srgb, var(--card) 88%, var(--primary) 12%) 100%);
+  color: var(--foreground);
+}
+
+.dark .tawfir-brand-card {
+  background:
+    linear-gradient(135deg,
+      var(--logo-navy) 0%,
+      color-mix(in srgb, var(--logo-navy) 82%, var(--logo-emerald)) 100%);
+  color: #ffffff;
+}
+
 /* ── صفحات الدخول — تتكيف فاتح/داكن عبر التوكنات ── */
 .login-page-bg {
   /* الفاتح: خلفية فاتحة نظيفة مع هالات زمردية ناعمة */
@@ -1356,14 +1375,33 @@ html {
   overscroll-behavior-y: contain;
 }
 
-/* ─── وضع التطبيق الأصيل (APK/AAB) — تعطيل التقريب بإصبعين ───
-   NativeBridge يضيف data-native على <html> عند الإطلاق داخل Capacitor.
-   touch-action: manipulation يلغي إيماءة التكبير/التصغير بإصبعين
-   ويبقي النقر السريع. آمن: لا يُفعّل إلا داخل APK وليس على الويب/PWA. */
+/* ─── الجولة 22 — سلوك Native على الجوال (ويب + PWA + APK) ───
+   touch-action: manipulation يمنع تقريب الكانفس بإصبعين (pinch-zoom)
+   والنقر المزدوج للتكبير — يبقي التمرير والنقر السريع فقط. يعمل مع
+   viewport (maximum-scale=1) على أندرويد؛ iOS يُكمل بمنع gesturestart
+   في NativeZoomGuard. هذا هو السلوك المطلوب: تطبيق Native لا ويب. */
+@media (pointer: coarse) {
+  html,
+  body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+}
+
+/* داخل APK: القواعد نفسها دائماً بلا استعلام وسائط */
 html[data-native] body {
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+}
+
+/* منع تحديد/سحب الصور في كل الأوضاع على الجوال (إحساس Native) */
+@media (pointer: coarse) {
+  img {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
 }
 
 /* منع التحديد/القائمة الطويلة في APK لإحساس Native أقوى */

@@ -3,7 +3,10 @@ import type { CapacitorConfig } from "@capacitor/cli";
 /**
  * إعداد Capacitor لتطبيق «توفير» — المسار 2 (Live WebView)
  * ═══════════════════════════════════════════════════════════════
- * appId: com.tawfir.app — يطابق assetlinks.json (SHA-256 في المفتاح نفسه)
+ * appId: com.tawfir.ye.app — يطابق assetlinks.json حرفياً (الجولة 22:
+ *   إصلاح تعارض package_name — كان com.tawfir.app هنا بينما
+ *   assetlinks.json يصرّح بـ com.tawfir.ye.app و com.tawfir.ye.owner
+ *   ← روابط أندرويد العميقة كانت ستفشل التحقق. المعتمد: com.tawfir.ye.*)
  * appName: توفير
  * webDir: native-shell — مجلد محلي صغير (12KB) يحوي index.html فقط،
  *   وهي صفحة «غير متصل» بهوية توفير تُحاول إعادة التحميل للموقع الحي
@@ -20,11 +23,11 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * server.androidScheme: 'https'
  *
  * تحذير التوقيع: يجب استخدام نفس keystore الذي أنشأ assetlinks.json
- * (SHA-256: 3F0759...6635). مفتاح مختلف = شريط عنوان أخضر يظهر في
+ * (SHA-256: EE:E5:C2...:72:1D — كما في assetlinks.json). مفتاح مختلف = شريط عنوان أخضر يظهر في
  * أندرويد (يفقد إحساس Native) ← اقرأ دليل_الـCapacitor.md.
  */
 const config: CapacitorConfig = {
-  appId: "com.tawfir.app",
+  appId: "com.tawfir.ye.app",
   appName: "توفير",
   webDir: "native-shell",
   server: {

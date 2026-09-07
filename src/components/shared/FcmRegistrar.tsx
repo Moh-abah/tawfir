@@ -263,6 +263,43 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
     if (attemptedRef.current) return;
     attemptedRef.current = true;
 
+    /* 0) الجولة 22 — استقبال رسائل Push المُحوَّلة من Service Worker:
+       عامل /sw.js يستقبل كل رسائل FCM (هو مالك الاشتراك). إن كان
+       التطبيق مرئياً يُحوّلها هنا عبر postMessage فنعرض التوست، وإن
+       كان بالخلفية يعرضها إشعارَ نظام (شاشة القفل) بنفسه. */
+    try {
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        const onSwMessage = (event: MessageEvent) => {
+          const data = event.data as
+            | {
+                __tawfirPush?: boolean;
+                payload?: MessagePayload;
+                type?: string;
+                url?: unknown;
+              }
+            | undefined;
+          if (data && data.__tawfirPush === true && data.payload) {
+            handleFcmForeground(data.payload);
+          } else if (
+            data &&
+            data.type === "tawfir-navigate" &&
+            typeof data.url === "string"
+          ) {
+            router.push(data.url);
+          }
+        };
+        navigator.serviceWorker.addEventListener("message", onSwMessage);
+        /* نظّف عند فكّ التركيب — نستخدم دالة التفكيك أدناه أيضاً */
+        const prevCleanup = unsubscribeFcmRef.current;
+        unsubscribeFcmRef.current = () => {
+          navigator.serviceWorker.removeEventListener("message", onSwMessage);
+          prevCleanup?.();
+        };
+      }
+    } catch (err) {
+      console.warn("[FCM] SW message listener setup failed:", err);
+    }
+
     void (async () => {
       // 1) جهّز Messaging + اشترك في onMessage فوراً (مستقل عن الإذن والتوكن).
       //    لو فشل الإذن لاحقاً يبقى الاشتراك معطّلاً بلا أثر — getToken
@@ -322,7 +359,6 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
         unsubscribeFcmRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeToken, isHydrated, registerFcmToken, unregisterFcmToken]);
 
   return <>{children}</>;

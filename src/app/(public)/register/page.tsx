@@ -501,16 +501,16 @@ function DecorativeSidePanel() {
     <motion.div
       {...anim}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="hidden lg:flex flex-col items-center justify-center rounded-2xl border border-white/15 bg-white/5 p-10 text-center backdrop-blur-md"
+      className="hidden lg:flex flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/60 p-10 text-center shadow-soft backdrop-blur-md"
     >
-      <h2 className="mb-2 text-2xl font-extrabold text-white">انضم لعائلة توفير</h2>
-      <p className="mb-6 max-w-xs text-sm text-white/70">
+      <h2 className="mb-2 text-2xl font-extrabold text-foreground">انضم لعائلة توفير</h2>
+      <p className="mb-6 max-w-xs text-sm text-muted-foreground">
         سجّل الآن واحصل على بطاقة خصم تنفعك في عشرات المتاجر
       </p>
-      <TawfirPillBadge className="mb-8 border border-white/15 bg-white/10 text-white backdrop-blur-md shadow-none" />
+      <TawfirPillBadge className="mb-8 shadow-soft" />
       <ul className="space-y-4 text-right">
         {BENEFITS.map((benefit) => (
-          <li key={benefit} className="flex items-center gap-3 text-sm text-white">
+          <li key={benefit} className="flex items-center gap-3 text-sm text-foreground">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--logo-gold)]/20">
               <Check className="h-3.5 w-3.5 text-[color:var(--logo-gold-light)]" />
             </span>
@@ -720,7 +720,7 @@ export default function RegisterPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
-          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-white/80">
+          <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground">
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
             تأكيد ملكية الرقم عبر واتساب
           </p>
@@ -748,7 +748,7 @@ export default function RegisterPage() {
         {...formAnimation}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <p className="text-sm font-medium text-white/80">
+        <p className="text-sm font-medium text-muted-foreground">
           انضم إلى توفير — كل وجباتك.. بخصم حتى {DISCOUNT_RATE}%
         </p>
       </motion.div>
@@ -921,7 +921,7 @@ export default function RegisterPage() {
       <div className="mt-6 text-center">
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/70 hover:underline"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:underline hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للرئيسية

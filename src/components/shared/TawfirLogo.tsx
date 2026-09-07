@@ -26,12 +26,12 @@ interface TawfirLogoProps {
 }
 
 const SOURCES: Record<LogoVariant, { src: string; w: number; h: number }> = {
-  full: { src: "/identity/lockup-full.png", w: 359, h: 411 },
-  lockup_fulltra: { src: "/identity/lockup-fulltra.png", w: 359, h: 411 },
-  horizontal: { src: "/identity/lockup-horizontal.png", w: 669, h: 232 },
-  mark: { src: "/identity/mark.png", w: 294, h: 232 },
-  "mark-gold": { src: "/identity/mark.png", w: 294, h: 232 },
-  "mark-white": { src: "/identity/mark.png", w: 294, h: 232 },
+  full: { src: "/identity/lockup-full.png", w: 560, h: 373 },
+  lockup_fulltra: { src: "/identity/lockup-fulltra.png", w: 560, h: 373 },
+  horizontal: { src: "/identity/lockup-horizontal.png", w: 900, h: 900 },
+  mark: { src: "/identity/mark.png", w: 640, h: 640 },
+  "mark-gold": { src: "/identity/mark.png", w: 640, h: 640 },
+  "mark-white": { src: "/identity/mark.png", w: 640, h: 640 },
 };
 
 /** مرشحات CSS للنسخ الملونة — مسموح بها بدل إعادة التوليد */

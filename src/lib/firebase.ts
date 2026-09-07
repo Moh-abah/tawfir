@@ -53,17 +53,17 @@ export const FIREBASE_VAPID_KEY =
 
 // We use `any` here to avoid pulling the runtime SDK into the SSR graph.
 // The types are still enforced at call sites via the public exported helpers.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let firebaseApp: any = null;
 let messagingInstance: Messaging | null = null;
 let messagingInitAttempted = false;
 
 // Loaded once (lazily, client-only) and cached.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let messagingApi: any = null;
 
 /** Returns the cached messaging SDK module, loading it on first call. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function loadMessagingApi(): any {
   if (messagingApi) return messagingApi;
   try {
@@ -123,8 +123,46 @@ export function getFcmMessaging(): Messaging | null {
 }
 
 /**
+ * يضمن وجود تسجيل Service Worker الرئيسي /sw.js (نطاق "/") ويعيده.
+ *
+ * الجولة 22 — إصلاح جذر الإشعارات الخارجية: اشتراك Push يجب أن يُربط
+ * بعامل /sw.js نفسه (الذي يحتوي معالج push). في السابق كان getToken
+ * يلتقط أي تسجيل موجود — وقد يسبقه عامل قديم — فتضيع أحداث push.
+ * register() هنا idempotent: إن كان /sw.js مسجلاً يعيد تسجيله نفسه.
+ */
+async function getMainSwRegistration(): Promise<ServiceWorkerRegistration | null> {
+  if (typeof window === "undefined") return null;
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    /* إن وُجد تسجيل نشط لنطاق الجذر وهو /sw.js → استعمله مباشرة */
+    const existing = await navigator.serviceWorker.getRegistration("/");
+    const swUrl =
+      existing?.installing?.scriptURL ??
+      existing?.waiting?.scriptURL ??
+      existing?.active?.scriptURL ??
+      "";
+    if (existing && swUrl.endsWith("/sw.js")) {
+      return existing;
+    }
+    /* سجّل /sw.js (يستبدل أي عامل قديم بنفس النطاق — مثل
+       firebase-messaging-sw.js المتقادم — بتحديث التسجيل) */
+    const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    /* انتظر تفعيله حتى يصبح قادراً على استقبال push فوراً */
+    if (!reg.active) {
+      await navigator.serviceWorker.ready;
+    }
+    return reg;
+  } catch (err) {
+    console.warn("[firebase] SW registration failed:", err);
+    return null;
+  }
+}
+
+/**
  * Requests a real FCM registration token from the browser's push
- * subscription, using our VAPID key. Resolves to the token string, or `null`
+ * subscription, using our VAPID key. The subscription is explicitly bound
+ * to the MAIN /sw.js registration (which owns the push handler that shows
+ * lock-screen notifications). Resolves to the token string, or `null`
  * if anything goes wrong (unsupported, permission denied, network error,
  * SW registration failure, etc.). Never throws.
  */
@@ -134,7 +172,11 @@ export async function getFcmToken(): Promise<string | null> {
   const api = loadMessagingApi();
   if (!api) return null;
   try {
-    const token = await api.getToken(m, { vapidKey: FIREBASE_VAPID_KEY });
+    const swReg = await getMainSwRegistration();
+    const token = await api.getToken(m, {
+      vapidKey: FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: swReg ?? undefined,
+    });
     return token ?? null;
   } catch (err) {
     console.warn("[firebase] getToken failed:", err);

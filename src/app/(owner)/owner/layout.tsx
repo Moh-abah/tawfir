@@ -26,6 +26,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  /* الجولة 22 — سلوك Native: تعطيل التقريب بإصبعين + زووم النقر المزدوج
+     على الجوال (viewport meta يعمل على أندرويد؛ iOS يُكمل بمنع
+     gesturestart في NativeBridge — كلاهما معاً يغطي كل المتصفحات). */
+  maximumScale: 1,
+  minimumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#0A1A2F",
 };

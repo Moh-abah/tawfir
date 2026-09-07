@@ -4,6 +4,22 @@
  * يُخدم عبر مسار /sw.js (route handler) مع حقن رقم الإصدار وعلم
  * الإنتاج — فيعمل بنفس المنطق في التطوير والإنتاج مع فروق آمنة.
  *
+ * ═══ الإشعارات الخارجية (FCM Push) — الجولة 22 ═══
+ * هذا العامل هو الوحيد في المشروع بنطاق "/" — وهو نفسه الذي يملك
+ * اشتراك Push (getToken يربط الاشتراك به). لذلك معالجات push و
+ * notificationclick هنا هي التي تُظهر إشعار شاشة القفل دون فتح
+ * التطبيق. (في السابق كان هناك عامل ثانٍ /firebase-messaging-sw.js
+ * بنفس النطاق — المتصفح لا يسمح بعاملين لنفس النطاق، فكانت أحداث
+ * push تصل لعامل الكاش الذي لا يعرف كيف يعرضها — جذر مشكلة عدم
+ * وصول الإشعارات الخارجية. حُلَّت بالدمج هنا وحذف العامل الثاني.)
+ *
+ *   • push: إن وُجد نافذة مرئية (التطبيق مفتوح بالأمام) → إعادة
+ *     توجيه الحمولة للصفحة عبر postMessage لعرض توست الواجهة.
+ *     وإلا (التطبيق بالخلفية/الشاشة مقفلة) → showNotification
+ *     بإشعار نظام كامل بهوية توفير (أيقونة/RTL/عربية/صوت النظام).
+ *   • notificationclick: تركيز تبويب موجود + تنقّل للرابط العميق،
+ *     أو فتح نافذة جديدة عند غيابه.
+ *
  * استراتيجيات الكاش:
  *  • Precache (تثبيت): صفحة /offline و/privacy وخطوط Cairo والأيقونات
  *  • كتالوج العميل GET /api/products + /api/products/nearby +
@@ -152,6 +168,180 @@ function offlineApiResponse(request) {
     headers: { "Content-Type": "application/json; charset=utf-8" },
   });
 }
+
+/* ═══════════════ إشعارات FCM Push (الجولة 22) ═══════════════ */
+
+/* هوية العلامة في إشعار النظام (تُخدم من /public/icons/) */
+var BRAND_ICON = "/icons/icon-192.png";
+var BRAND_BADGE = "/icons/icon-192.png";
+var BRAND_TITLE = "توفير";
+
+/* يشتق رابط النقر من نوع الإشعار + حقول البيانات (نفس منطق
+   src/lib/notifications-meta.ts — hrefFor) */
+function resolveClickUrl(type, data) {
+  data = data || {};
+  if (data.order_id) return "/orders/" + data.order_id;
+  if (data.product_id) return "/products/" + data.product_id;
+  if (data.facility_id) return "/owner";
+  switch (type) {
+    case "membership_received":
+    case "membership_approved":
+    case "membership_rejected":
+    case "membership_expiring":
+      return "/account";
+    case "facility_approved":
+    case "facility_rejected":
+    case "owner_registered":
+      return "/owner";
+    case "special_offer_new":
+    case "special_offer_ending":
+    case "special_offer_soldout":
+      return "/offers";
+    default:
+      return "/";
+  }
+}
+
+/* قراءة حمولة الـPush من PushEvent (صيغتا notification أو data-only) */
+function parsePushPayload(event) {
+  if (!event.data) return {};
+  try {
+    return event.data.json();
+  } catch (_e) {
+    try {
+      return { data: { body: event.data.text() } };
+    } catch (_e2) {
+      return {};
+    }
+  }
+}
+
+/* بناء NotificationOptions بهوية توفير */
+function buildPushOptions(title, body, type, data) {
+  var tagBase = type ? "tawfir-" + type : "tawfir-notif";
+  var tag = data.order_id
+    ? tagBase + "-" + data.order_id
+    : data.product_id
+      ? tagBase + "-" + data.product_id
+      : tagBase;
+  return {
+    body: body,
+    icon: BRAND_ICON,
+    badge: BRAND_BADGE,
+    dir: "rtl",
+    lang: "ar",
+    tag: tag,
+    renotify: true,
+    data: Object.assign({}, data, {
+      url: resolveClickUrl(type, data),
+      type: type,
+    }),
+  };
+}
+
+/* push: إشعار نظام عند الخلفية/القفل، أو إعادة توجيه للواجهة عند الفتح */
+self.addEventListener("push", function (event) {
+  event.waitUntil(
+    (async function () {
+      var payload = parsePushPayload(event);
+      var notif = payload.notification || {};
+      var data = payload.data || {};
+      var title = notif.title || data.title || BRAND_TITLE;
+      var body = notif.body || data.body || "";
+      var type = data.notification_type || data.type || "";
+
+      /* هل التطبيق مفتوح ومرئي؟ → توست داخل الواجهة بدل إشعار النظام */
+      var windowClients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      var hasVisible = windowClients.some(function (c) {
+        return c.visibilityState === "visible";
+      });
+
+      if (hasVisible) {
+        var relay = {
+          __tawfirPush: true,
+          payload: {
+            messageId: payload.fcmMessageId || data.message_id || null,
+            notification: notif,
+            data: data,
+          },
+        };
+        await Promise.all(
+          windowClients.map(function (c) {
+            try {
+              c.postMessage(relay);
+            } catch (_e) {
+              /* تجاهل */
+            }
+          })
+        );
+        return;
+      }
+
+      /* الخلفية/شاشة القفل → إشعار نظام بهوية توفير */
+      return self.registration.showNotification(
+        title,
+        buildPushOptions(title, body, type, data)
+      );
+    })().catch(function (_err) {
+      /* احتياط أخير: إشعار عام كي لا يفوت المستخدم وجود رسالة */
+      try {
+        return self.registration.showNotification(BRAND_TITLE, {
+          body: "لديك إشعار جديد",
+          icon: BRAND_ICON,
+          badge: BRAND_BADGE,
+          dir: "rtl",
+          lang: "ar",
+          data: { url: "/" },
+        });
+      } catch (_e) {
+        return undefined;
+      }
+    })
+  );
+});
+
+/* notificationclick: ركّز تبويباً موجوداً وتنقّل للهدف، أو افتح نافذة */
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  var data = event.notification.data || {};
+  var targetUrl = data.url || "/";
+
+  event.waitUntil(
+    (async function () {
+      var allClients = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (var i = 0; i < allClients.length; i++) {
+        var client = allClients[i];
+        if ("focus" in client) {
+          try {
+            await client.focus();
+            if ("navigate" in client) {
+              await client.navigate(targetUrl);
+            } else if ("postMessage" in client) {
+              client.postMessage({
+                type: "tawfir-navigate",
+                url: targetUrl,
+              });
+            }
+            return;
+          } catch (_e) {
+            /* جرّب التالي */
+          }
+        }
+      }
+      try {
+        await self.clients.openWindow(targetUrl);
+      } catch (_e) {
+        /* تجاهل */
+      }
+    })()
+  );
+});
 
 /* ═══════════════ التثبيت والتفعيل ═══════════════ */
 

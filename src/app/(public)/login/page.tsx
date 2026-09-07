@@ -195,7 +195,7 @@ function CustomerLoginForm() {
       </motion.div>
 
       <div className="flex w-full flex-col items-center gap-3">
-        <p className="text-sm text-white/70">
+        <p className="text-sm text-muted-foreground">
           ليس لديك حساب؟{" "}
           <Link
             href="/register"
@@ -206,7 +206,7 @@ function CustomerLoginForm() {
         </p>
         <Link
           href="/"
-          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-white/60 transition-colors hover:text-white"
+          className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground/80 transition-colors hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
           العودة للرئيسية

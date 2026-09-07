@@ -87,6 +87,23 @@ export function ServiceWorkerRegistrar() {
         });
         if (!cancelled) watchRegistration(registration);
 
+        /* الجولة 22 — تنظيف التسجيلات المتقادمة: كان هناك عامل ثانٍ
+           /firebase-messaging-sw.js بنفس النطاق (لا يجوز — عامل واحد لكل
+           نطاق). تسجيل /sw.js أعلاه يستبدله تلقائياً، لكن هذا التنظيف
+           يضمن إزالة أي تسجيل متبقٍ لمستخدمين قدامى قبل أن يزاحم
+           اشتراك Push. */
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            const script = reg.installing?.scriptURL ?? reg.waiting?.scriptURL ?? reg.active?.scriptURL ?? "";
+            if (script && !script.endsWith("/sw.js")) {
+              await reg.unregister();
+            }
+          }
+        } catch {
+          /* غير حرج */
+        }
+
         /* فحص تحديث دوري (كل ساعة) */
         intervalId = window.setInterval(() => {
           registration.update().catch(() => undefined);
