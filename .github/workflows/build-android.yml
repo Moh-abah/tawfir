@@ -1,0 +1,238 @@
+# ══════════════════════════════════════════════════════════════════════
+#  📦 بناء APK لتوفير — كلياً في السحابة (GitHub Actions)
+# ══════════════════════════════════════════════════════════════════════
+#  لا حاجة لأي تثبيت على جهازك (لا Android Studio / JDK / Gradle / Bun).
+#  يكفي رفع كود Next.js + مجلد resources/ — والباقي يتم هنا آلياً:
+#
+#    1) تثبيت Bun + Java 17 + Android SDK في السحابة
+#    2) bun install ثم npx cap add android       (إنشاء مجلد android من الصفر)
+#    3) npx capacitor-assets generate --android   (كل الأيقونات/السبلاش من resources/)
+#    4) bun scripts/patch-android-identity.mjs    (هوية توفير: الألوان + سبلاش
+#       صلب #005B82 + الإصدار + التوقيع — انظر رأس السكربت للتفاصيل)
+#    5) npx cap sync android ثم ./gradlew assembleRelease
+#    6) تحقق آلي أن بصمة SHA-256 للتوقيع تطابق assetlinks.json على
+#       tawfir.giize.com (خوارزمية روابط أندرويد العميقة تعمل فوراً)
+#    7) رفع الـAPK الموقّع كـ Artifact قابل للتنزيل
+#
+#  الأسرار المطلوبة (Settings → Secrets and variables → Actions):
+#    ANDROID_KEYSTORE_BASE64     ملف tawfeer-release.keystore بترميز Base64
+#    ANDROID_KEYSTORE_PASSWORD   كلمة مرور الـKeystore
+#    ANDROID_KEY_ALIAS           الاسم المستعار (tawfeer)
+#    ANDROID_KEY_PASSWORD        كلمة مرور المفتاح
+# ══════════════════════════════════════════════════════════════════════
+
+name: "Build Android APK — توفير"
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "أي تطبيق؟ (customer = تطبيق العملاء على Play)"
+        required: true
+        default: "customer"
+        type: choice
+        options:
+          - customer
+          - owner
+      version_name:
+        description: "اسم الإصدار versionName (مثال: 1.2.0)"
+        required: true
+        default: "1.2.0"
+        type: string
+      version_code:
+        description: "رقم الإصدار versionCode — يجب أن يزيد عن أي رفعة سابقة لـ Play"
+        required: true
+        default: "1"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ inputs.app || 'customer' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "🔧 توليد + توقيع APK"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERSION_NAME: ${{ inputs.version_name || '1.2.0' }}
+      VERSION_CODE: ${{ inputs.version_code || '1' }}
+
+    steps:
+      - name: "⬇️ تحميل الكود"
+        uses: actions/checkout@v4
+
+      - name: "🔍 فحص الأسرار المطلوبة (فشل مبكر بدل 10 دقائق انتظار)"
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KS_KEY: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          MISSING=""
+          [ -z "$KS_B64" ]  && MISSING="$MISSING ANDROID_KEYSTORE_BASE64"
+          [ -z "$KS_PASS" ] && MISSING="$MISSING ANDROID_KEYSTORE_PASSWORD"
+          [ -z "$KS_ALIAS" ] && MISSING="$MISSING ANDROID_KEY_ALIAS"
+          [ -z "$KS_KEY" ]  && MISSING="$MISSING ANDROID_KEY_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::أسرار ناقصة:$MISSING — أضفها من Settings → Secrets and variables → Actions ثم أعد تشغيل الـWorkflow"
+            exit 1
+          fi
+          echo "✓ الأسرار الأربعة موجودة"
+
+      - name: "🥟 تثبيت Bun"
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: "☕ تثبيت Java 17 (Temurin)"
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: "🤖 تجهيز Android SDK (التراخيص + منصة 36)"
+        run: |
+          SDKM="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+          yes | "$SDKM" "platforms;android-36" "platform-tools" >/dev/null 2>&1 || true
+          echo "✓ التراخيص مقبولة ومنصة API 36 متوفرة"
+
+      - name: "💾 كاش Bun (تثبيت أسرع في المرات القادمة)"
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: "💾 كاش Gradle"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: "📦 تثبيت الاعتماديات (bun install)"
+        run: bun install --frozen-lockfile
+
+      - name: "🏪 هوية التطبيق المختار (تطبيق المالك عند اختياره)"
+        if: ${{ inputs.app == 'owner' }}
+        run: |
+          sed -i 's/appId: "com.tawfir.ye.app"/appId: "com.tawfir.ye.owner"/' capacitor.config.ts
+          sed -i 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
+          grep -E "appId|appName" capacitor.config.ts | head -2
+
+      - name: "🆕 إنشاء مشروع Android من الصفر (cap add android)"
+        run: npx cap add android
+
+      - name: "🎨 توليد كل الأيقونات والسبلاش من resources/ (123 ملفاً)"
+        run: npx capacitor-assets generate --android
+
+      - name: "🔐 فك Keystore من الأسرار (يدعم صيغة certutil)"
+        run: |
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" \
+            | sed '/^-----/d' \
+            | tr -d '\r\n ' \
+            | base64 -d > android/tawfeer-release.keystore
+          SIZE=$(stat -c%s android/tawfeer-release.keystore)
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "::error::ملف الـKeystore أصغر من المتوقع (${SIZE} بايت) — تأكد من ترميز Base64 الصحيح"
+            exit 1
+          fi
+          echo "✓ Keystore جاهز (${SIZE} بايت)"
+
+      - name: "🖌️ تفعيل هوية توفير + الإصدار + التوقيع"
+        run: bun scripts/patch-android-identity.mjs
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: "🔄 مزامنة Capacitor (نسخة الويب + تسجيل الإضافات)"
+        run: npx cap sync android
+
+      - name: "🏗️ بناء APK موقّع (assembleRelease)"
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: "✅ التحقق من بصمة التوقيع (مطابقة assetlinks.json)"
+        run: |
+          APK_DIR="android/app/build/outputs/apk/release"
+          APK_FILE="$(ls "$APK_DIR"/app-release*.apk | head -n1)"
+          APK_NAME="$(basename "$APK_FILE")"
+          echo "الـAPK الناتج: $APK_NAME"
+
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
+          CERT_SHA256="$("$APKSIGNER" verify --print-certs "$APK_FILE" | grep -oP 'SHA-256 digest: \K[0-9a-f]+' | head -n1)"
+
+          # البصمة المعلنة في assetlinks.json على tawfir.giize.com
+          EXPECTED="EE:E5:C2:B7:C4:CF:94:DE:8B:07:6A:5A:B9:E6:D8:6E:CB:27:EA:AC:4B:FF:A5:65:A4:B1:16:95:A0:96:72:1D"
+          EXPECTED_NORM="$(printf '%s' "$EXPECTED" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+
+          echo "بصمة الـAPK   : $CERT_SHA256"
+          echo "بصمة المتوقعة : $EXPECTED_NORM"
+          if [ -z "$CERT_SHA256" ]; then
+            echo "::error::تعذر قراءة بصمة التوقيع — الـAPK غير موقّع؟"
+            exit 1
+          fi
+          if [ "$CERT_SHA256" != "$EXPECTED_NORM" ]; then
+            echo "::error::البصمة لا تطابق assetlinks.json! روابط أندرويد العميقة لن تعمل. تأكد أن ANDROID_KEYSTORE_BASE64 هو ملف tawfeer-release.keystore نفسه"
+            exit 1
+          fi
+          echo "✓ البصمة مطابقة تماماً — Deep Links ستُتحقق آلياً 🎉"
+
+          # معلومات الشهادة كاملة للتوثيق
+          "$APKSIGNER" verify --print-certs "$APK_FILE" | grep -E "DN:|SHA-1|SHA-256" || true
+
+      - name: "📤 تجهيز الـArtifact (APK + بصمة الملف)"
+        run: |
+          APK_DIR="android/app/build/outputs/apk/release"
+          APK_FILE="$(ls "$APK_DIR"/app-release*.apk | head -n1)"
+          APP="${{ inputs.app || 'customer' }}"
+          OUT_NAME="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}.apk"
+          OUT_DIR="$RUNNER_TEMP/tawfir-apk"
+          mkdir -p "$OUT_DIR"
+          cp "$APK_FILE" "$OUT_DIR/$OUT_NAME"
+          (cd "$OUT_DIR" && sha256sum "$OUT_NAME" > "$OUT_NAME.sha256")
+          ls -lh "$OUT_DIR"
+          echo "APK_OUT_NAME=$OUT_NAME" >> "$GITHUB_ENV"
+          echo "APK_OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
+
+      - name: "📤 رفع الـAPK للتنزيل"
+        uses: actions/upload-artifact@v4
+        with:
+          name: tawfir-${{ inputs.app || 'customer' }}-v${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
+          path: |
+            ${{ env.APK_OUT_DIR }}/*.apk
+            ${{ env.APK_OUT_DIR }}/*.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: "📋 ملخص البناء"
+        run: |
+          APK_PATH="${{ env.APK_OUT_DIR }}/${{ env.APK_OUT_NAME }}"
+          APK_SIZE="$(du -h "$APK_PATH" | cut -f1)"
+          {
+            echo "## 📦 اكتمل بناء توفير لـ Android"
+            echo ""
+            echo "| البند | القيمة |"
+            echo "|---|---|"
+            echo "| التطبيق | \`${{ inputs.app || 'customer' }}\` |"
+            echo "| حزمة التطبيق | \`$(grep -oP 'applicationId "\K[^"]+' android/app/build.gradle)\` |"
+            echo "| الإصدار | ${VERSION_NAME} (versionCode ${VERSION_CODE}) |"
+            echo "| حجم الـAPK | ${APK_SIZE} |"
+            echo "| الملف | \`${{ env.APK_OUT_NAME }}\` |"
+            echo ""
+            echo "**بصمة SHA-256 للتوقيع مطابقة لـ assetlinks.json** ✅ (روابط أندرويد العميقة تعمل فوراً)"
+            echo ""
+            echo "> نزّل الـAPK من قسم **Artifacts** بالأعلى، ثم ثبّته على جهازك"
+            echo "> (فعّل «التثبيت من مصادر غير معروفة» عند سؤال أندرويد)."
+          } >> "$GITHUB_STEP_SUMMARY"

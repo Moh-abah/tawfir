@@ -37,8 +37,10 @@ const config: CapacitorConfig = {
   },
   android: {
     buildOptions: {
-      keystorePath: "android/tawfir.keystore",
-      keystoreAlias: "tawfir",
+      // يُستخدم فقط من npx cap run — البناء الفعلي عبر Gradle يقرأ
+      // أسرار التوقيع في .github/workflows/build-android.yml
+      keystorePath: "android/tawfeer-release.keystore",
+      keystoreAlias: "tawfeer",
     },
     allowMixedContent: false,
     backgroundColor: "#0A1A2F",
@@ -47,7 +49,9 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false,
-      backgroundColor: "#0A1A2F",
+      // #005B82 — نفس خلفية drawable/splash.xml الصلبة (سكربت
+      // patch-android-identity.mjs) حتى لا يومض لون مختلف بينهما
+      backgroundColor: "#005B82",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
