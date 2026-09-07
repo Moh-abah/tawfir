@@ -167,17 +167,31 @@ if (signRequested) {
     fail(`${KEYSTORE_FILE} غير موجود أو فارغ — فُكَّ ANDROID_KEYSTORE_BASE64 بشكل خاطئ؟`);
   }
 
-  // حذف أي signingConfigs موجودة سابقاً لتجنب التكرار
+  // كتابة الخصائص في gradle.properties
+  const gradlePropsPath = path.join(ROOT, "android", "gradle.properties");
+  let propsContent = fs.existsSync(gradlePropsPath) ? fs.readFileSync(gradlePropsPath, "utf8") : "";
+  // حذف أي إعدادات توقيع سابقة من gradle.properties
+  propsContent = propsContent.replace(/^# توقيع التطبيق[\s\S]*?(?=\n[^#]|$)/, '');
+  propsContent += `
+# توقيع التطبيق
+TAWFIR_STORE_FILE=${path.basename(KEYSTORE_FILE)}
+TAWFIR_STORE_PASSWORD=${signEnv.pass}
+TAWFIR_KEY_ALIAS=${signEnv.alias}
+TAWFIR_KEY_PASSWORD=${signEnv.key}
+`;
+  fs.writeFileSync(gradlePropsPath, propsContent);
+
+  // إزالة أي كتلة signingConfigs موجودة لتجنب التكرار
   gradle = gradle.replace(/\s*signingConfigs\s*\{[\s\S]*?\n\s*\}/g, '');
 
-  // كتلة التوقيع الصحيحة
+  // إضافة كتلة signingConfigs جديدة ولكن بطريقة صحيحة (نستخدم project.properties)
   const signingBlock = `
     signingConfigs {
         release {
-            storeFile rootProject.file('${path.basename(KEYSTORE_FILE)}')
-            storePassword '${signEnv.pass}'
-            keyAlias '${signEnv.alias}'
-            keyPassword '${signEnv.key}'
+            storeFile rootProject.file(project.properties['TAWFIR_STORE_FILE'])
+            storePassword project.properties['TAWFIR_STORE_PASSWORD']
+            keyAlias project.properties['TAWFIR_KEY_ALIAS']
+            keyPassword project.properties['TAWFIR_KEY_PASSWORD']
         }
     }
 `;
@@ -187,12 +201,6 @@ if (signRequested) {
     gradle = gradle.replace(
       /^(\s{4})buildTypes\s*\{/m,
       `${signingBlock}$1buildTypes {`
-    );
-  } else {
-    // في حال وجودها مسبقاً
-    gradle = gradle.replace(
-      /\s*signingConfigs\s*\{[\s\S]*?\n\s*\}/,
-      signingBlock
     );
   }
 
@@ -204,7 +212,7 @@ if (signRequested) {
     );
   }
 
-  signingNote = "🔐 build.gradle ← signingConfig release مع كلمات المرور المباشرة";
+  signingNote = "🔐 build.gradle ← signingConfig release عبر gradle.properties";
 }
 fs.writeFileSync(GRADLE_FILE, gradle);
 log("📝", signingNote);
