@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "predev": "bun scripts/sync-version.mjs",
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "next dev -p 3000 ",
+    "build": "next build",
     "prebuild": "bun scripts/sync-version.mjs",
-    "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "version:sync": "bun scripts/sync-version.mjs",
