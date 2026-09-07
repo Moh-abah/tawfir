@@ -151,47 +151,52 @@ gradle = gradle.replace(/versionName\s+"[^"]*"/, `versionName "${VERSION_NAME}"`
 log("🔢", `build.gradle ← versionName ${VERSION_NAME} / versionCode ${VERSION_CODE}`);
 
 // التوقيع
+// التوقيع
 const signEnv = {
   pass: process.env.KEYSTORE_PASSWORD,
   alias: process.env.KEY_ALIAS,
   key: process.env.KEY_PASSWORD,
 };
-const signRequested = Boolean(signEnv.pass || signEnv.alias || signEnv.key);
+const signRequested = Boolean(signEnv.pass && signEnv.alias && signEnv.key);
 const hasKeystoreFile =
   fs.existsSync(KEYSTORE_FILE) && fs.statSync(KEYSTORE_FILE).size > 0;
 
 let signingNote = "⏭️  التوقيع متخطى (لا أسرار) — سينتج APK غير موقّع";
 if (signRequested) {
-  if (!signEnv.pass || !signEnv.alias || !signEnv.key) {
-    fail("أسرار التوقيع ناقصة: يجب ضبط KEYSTORE_PASSWORD و KEY_ALIAS و KEY_PASSWORD معاً.");
-  }
   if (!hasKeystoreFile) {
     fail(
       `${KEYSTORE_FILE} غير موجود أو فارغ — فُكَّ ANDROID_KEYSTORE_BASE64 بشكل خاطئ؟`,
     );
   }
-  if (!gradle.includes("signingConfigs")) {
-    const block = `
+
+  // إضافة كتلة signingConfigs مع القيم مباشرة (بدون System.getenv)
+  const signingBlock = `
     signingConfigs {
         release {
-            // tawfeer-release.keystore — بصمة SHA-256 مطابقة لـ assetlinks.json
             storeFile rootProject.file('${path.basename(KEYSTORE_FILE)}')
-            storePassword System.getenv('KEYSTORE_PASSWORD')
-            keyAlias System.getenv('KEY_ALIAS')
-            keyPassword System.getenv('KEY_PASSWORD')
+            storePassword '${signEnv.pass}'
+            keyAlias '${signEnv.alias}'
+            keyPassword '${signEnv.key}'
         }
     }
 `;
+
+  if (!gradle.includes("signingConfigs")) {
     if (!/^\s{4}buildTypes\s*\{/m.test(gradle)) {
       fail("لم أجد كتلة buildTypes في build.gradle — بنية غير متوقعة.");
     }
-    gradle = gradle.replace(/^(\s{4})buildTypes\s*\{/m, `${block}$1buildTypes {`);
+    gradle = gradle.replace(/^(\s{4})buildTypes\s*\{/m, `${signingBlock}$1buildTypes {`);
+  }
+
+  // تأكد من إضافة signingConfig إلى release (إن لم تكن موجودة)
+  if (!gradle.includes('signingConfig signingConfigs.release')) {
     gradle = gradle.replace(
-      /(release\s*\{[\s\S]*?minifyEnabled\s+false)/,
-      `$1\n            signingConfig signingConfigs.release`,
+      /(release\s*\{[\s\S]*?)(\n\s*\})/,
+      `$1\n            signingConfig signingConfigs.release$2`
     );
   }
-  signingNote = "🔐 build.gradle ← signingConfig release عبر Keystore السرّي";
+
+  signingNote = "🔐 build.gradle ← signingConfig release مع كلمات المرور المباشرة";
 }
 fs.writeFileSync(GRADLE_FILE, gradle);
 log("📝", signingNote);

@@ -148,7 +148,10 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            -PKEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -PKEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }} \
+            -PKEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: "✅ التحقق من بصمة التوقيع (مطابقة assetlinks.json)"
         run: |
