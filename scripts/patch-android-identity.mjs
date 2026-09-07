@@ -151,7 +151,7 @@ gradle = gradle.replace(/versionName\s+"[^"]*"/, `versionName "${VERSION_NAME}"`
 log("🔢", `build.gradle ← versionName ${VERSION_NAME} / versionCode ${VERSION_CODE}`);
 
 // التوقيع
-// التوقيع
+// ─── التوقيع ─────────────────────────────────────────────────────────
 const signEnv = {
   pass: process.env.KEYSTORE_PASSWORD,
   alias: process.env.KEY_ALIAS,
@@ -164,12 +164,13 @@ const hasKeystoreFile =
 let signingNote = "⏭️  التوقيع متخطى (لا أسرار) — سينتج APK غير موقّع";
 if (signRequested) {
   if (!hasKeystoreFile) {
-    fail(
-      `${KEYSTORE_FILE} غير موجود أو فارغ — فُكَّ ANDROID_KEYSTORE_BASE64 بشكل خاطئ؟`,
-    );
+    fail(`${KEYSTORE_FILE} غير موجود أو فارغ — فُكَّ ANDROID_KEYSTORE_BASE64 بشكل خاطئ؟`);
   }
 
-  // إضافة كتلة signingConfigs مع القيم مباشرة (بدون System.getenv)
+  // حذف أي signingConfigs موجودة سابقاً لتجنب التكرار
+  gradle = gradle.replace(/\s*signingConfigs\s*\{[\s\S]*?\n\s*\}/g, '');
+
+  // كتلة التوقيع الصحيحة
   const signingBlock = `
     signingConfigs {
         release {
@@ -181,14 +182,21 @@ if (signRequested) {
     }
 `;
 
-  if (!gradle.includes("signingConfigs")) {
-    if (!/^\s{4}buildTypes\s*\{/m.test(gradle)) {
-      fail("لم أجد كتلة buildTypes في build.gradle — بنية غير متوقعة.");
-    }
-    gradle = gradle.replace(/^(\s{4})buildTypes\s*\{/m, `${signingBlock}$1buildTypes {`);
+  // إدراج signingConfigs قبل buildTypes
+  if (!gradle.includes('signingConfigs {')) {
+    gradle = gradle.replace(
+      /^(\s{4})buildTypes\s*\{/m,
+      `${signingBlock}$1buildTypes {`
+    );
+  } else {
+    // في حال وجودها مسبقاً
+    gradle = gradle.replace(
+      /\s*signingConfigs\s*\{[\s\S]*?\n\s*\}/,
+      signingBlock
+    );
   }
 
-  // تأكد من إضافة signingConfig إلى release (إن لم تكن موجودة)
+  // إضافة signingConfig إلى release داخل buildTypes (إن لم تكن موجودة)
   if (!gradle.includes('signingConfig signingConfigs.release')) {
     gradle = gradle.replace(
       /(release\s*\{[\s\S]*?)(\n\s*\})/,
