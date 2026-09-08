@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════════════════════
-#  📦 بناء APK لتوفير — كلياً في السحابة (GitHub Actions)
+#  📦 بناء APK + AAB لتوفير — كلياً في السحابة (GitHub Actions)
 # ══════════════════════════════════════════════════════════════════════
 #  لا حاجة لأي تثبيت على جهازك (لا Android Studio / JDK / Gradle / Bun).
 #  يكفي رفع كود Next.js + مجلد resources/ — والباقي يتم هنا آلياً:
@@ -9,12 +9,21 @@
 #    2) bun install ثم npx cap add android       (إنشاء مجلد android من الصفر)
 #    3) npx capacitor-assets generate --android   (كل الأيقونات/السبلاش من resources/)
 #    4) bun scripts/patch-android-identity.mjs    (هوية توفير: الألوان + سبلاش
-#       صلب #005B82 + الإصدار + التوقيع — مع تحقق بنيوي آلي قبل Gradle:
-#       يضمن أن signingConfig يقع داخل buildTypes→release حصراً)
-#    5) npx cap sync android ثم ./gradlew assembleRelease
+#       صلب #005B82 + الإصدار + التوقيع + فلتر روابط أندرويد العميقة
+#       autoVerify لـ tawfir.giize.com + أذونات الإشعارات/الشبكة/الاهتزاز
+#       + قفل الاتجاه portrait + ألوان أشرطة النظام + [إن وُجد
+#       google-services.json في جذر المستودع] الإشعارات الأصلية FCM
+#       بالكامل: firebase-messaging + خدمة Java تعمل في كل الحالات
+#       + قناتا إشعارات (الطلبات/عام) + أيقونة إشعار نيتفة + موضوع
+#       tawfir_all للإرسال من Firebase Console بلا خادم
+#       — مع تحقق بنيوي آلي قبل Gradle: يضمن أن signingConfig يقع داخل
+#       buildTypes→release حصراً وأن فلتر Deep Links داخل MainActivity)
+#    5) npx cap sync android ثم ./gradlew assembleRelease bundleRelease
+#       ← APK موقّع (للتثبيت المباشر) + AAB موقّع (للرفع على Google Play)
 #    6) تحقق آلي أن بصمة SHA-256 للتوقيع تطابق assetlinks.json على
-#       tawfir.giize.com (روابط أندرويد العميقة تعمل فوراً)
-#    7) رفع الـAPK الموقّع كـ Artifact قابل للتنزيل
+#       tawfir.giize.com (روابط أندرويد العميقة تعمل فوراً) + تحقق
+#       توقيع الـAAB بـ jarsigner
+#    7) رفع الـAPK + الـAAB الموقّعَين كـ Artifacts قابلة للتنزيل
 #
 #  الأسرار المطلوبة (Settings → Secrets and variables → Actions):
 #    ANDROID_KEYSTORE_BASE64     ملف tawfeer-release.keystore بترميز Base64
@@ -23,9 +32,14 @@
 #    ANDROID_KEY_PASSWORD        كلمة مرور المفتاح
 #    (ملاحظة: إن كان الـKeystore من نوع PKCS12 فيجب أن تكون كلمة مرور
 #     المفتاح = كلمة مرور الـKeystore نفسها — هذا سلوك Java القياسي)
+#
+#  الإشعارات (FCM) — ملف عمومي غير سرّي يُرفع مع الكود في جذر المستودع:
+#    google-services.json  (Firebase Console → Project settings → تطبيق
+#    Android → تنزيل الملف). الإرسال بعدها من Firebase Console → Messaging
+#    → حملة جديدة → Target: Topic = tawfir_all (اشتراك تلقائي بالتطبيق)
 # ══════════════════════════════════════════════════════════════════════
 
-name: "Build Android APK — توفير"
+name: "Build Android APK + AAB — توفير"
 
 on:
   workflow_dispatch:
@@ -58,7 +72,7 @@ concurrency:
 
 jobs:
   build:
-    name: "🔧 توليد + توقيع APK"
+    name: "🔧 توليد + توقيع APK + AAB"
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -156,28 +170,32 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-      - name: "🔍 لقطة بنية build.gradle (مقنّعة — للتوثيق في السجل)"
+      - name: "🔍 لقطة بنية build.gradle + Manifest + FCM (مقنّعة — للتوثيق في السجل)"
         run: |
           echo "── الأسطر الحرجة في app/build.gradle (كلمات المرور مقنّعة) ──"
-          grep -nE "signingConfigs \{|release \{|signingConfig |storeFile|versionCode |versionName |buildTypes \{" android/app/build.gradle \
+          grep -nE "signingConfigs \{|release \{|signingConfig |storeFile|versionCode |versionName |buildTypes \{|firebase-messaging" android/app/build.gradle \
             | sed -E "s/(storePassword|keyPassword|keyAlias)[^ ]* .*/\1 '***'/" || true
+          echo ""
+          echo "── فلتر Deep Links والأذونات في AndroidManifest.xml ──"
+          grep -nE "autoVerify|tawfir.giize.com|BROWSABLE|uses-permission|screenOrientation" android/app/src/main/AndroidManifest.xml || true
+          echo ""
+          echo "── عناصر الإشعارات الأصلية (FCM) في AndroidManifest.xml ──"
+          grep -nE "TawfirApp|TawfirFirebaseMessagingService|MESSAGING_EVENT|default_notification" android/app/src/main/AndroidManifest.xml || echo "(FCM غير مفعّل — لا google-services.json في المستودع)"
+          if [ -f android/app/google-services.json ]; then
+            echo "── google-services.json (المعرّف فقط — معلومات عمومية غير سرّية) ──"
+            grep -oE '"project_id"[^,]*' android/app/google-services.json || true
+          fi
 
       - name: "🔄 مزامنة Capacitor (نسخة الويب + تسجيل الإضافات)"
         run: npx cap sync android
 
-      - name: "🏗️ بناء APK موقّع (assembleRelease)"
+      - name: "🏗️ بناء APK + AAB موقّعَين (assembleRelease + bundleRelease)"
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew assembleRelease bundleRelease --no-daemon --stacktrace
 
-
-      - name: "🏗️ بناء AAB (Android App Bundle) للنشر على Google Play"
-        run: |
-          cd android
-          ./gradlew bundleRelease --no-daemon --stacktrace
-
-      - name: "✅ التحقق من بصمة التوقيع (مطابقة assetlinks.json)"
+      - name: "✅ التحقق من التوقيع: بصمة APK (assetlinks) + توقيع AAB"
         run: |
           APK_DIR="android/app/build/outputs/apk/release"
           APK_FILE="$(ls "$APK_DIR"/app-release*.apk | head -n1)"
@@ -206,35 +224,61 @@ jobs:
           # معلومات الشهادة كاملة للتوثيق
           "$APKSIGNER" verify --print-certs "$APK_FILE" | grep -E "DN:|SHA-1|SHA-256" || true
 
-      - name: "📤 تجهيز الـArtifact (APK + بصمة الملف)"
+          # ── التحقق من الـAAB (Android App Bundle — للرفع على Google Play) ──
+          AAB_FILE="android/app/build/outputs/bundle/release/app-release.aab"
+          if [ ! -f "$AAB_FILE" ]; then
+            echo "::error::ملف AAB غير موجود — فشل bundleRelease؟"
+            exit 1
+          fi
+          AAB_SIZE="$(du -h "$AAB_FILE" | cut -f1)"
+          echo "✓ AAB جاهز: $AAB_SIZE ($AAB_FILE)"
+          if ! jarsigner -verify "$AAB_FILE" >/dev/null 2>&1; then
+            echo "::error::الـAAB غير موقّع بشكل صالح — راجع إعدادات signingConfigs"
+            exit 1
+          fi
+          echo "✓ توقيع الـAAB سليم (jarsigner) — جاهز للرفع على Google Play"
+
+      - name: "📤 تجهيز الـArtifacts (APK + AAB + بصمات الملفين)"
         run: |
           APK_DIR="android/app/build/outputs/apk/release"
+          AAB_DIR="android/app/build/outputs/bundle/release"
           APK_FILE="$(ls "$APK_DIR"/app-release*.apk | head -n1)"
+          AAB_FILE="$(ls "$AAB_DIR"/*.aab | head -n1)"
           APP="${{ inputs.app || 'customer' }}"
-          OUT_NAME="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}.apk"
-          OUT_DIR="$RUNNER_TEMP/tawfir-apk"
+          OUT_APK="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}.apk"
+          OUT_AAB="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}.aab"
+          OUT_DIR="$RUNNER_TEMP/tawfir-build"
           mkdir -p "$OUT_DIR"
-          cp "$APK_FILE" "$OUT_DIR/$OUT_NAME"
-          (cd "$OUT_DIR" && sha256sum "$OUT_NAME" > "$OUT_NAME.sha256")
+          cp "$APK_FILE" "$OUT_DIR/$OUT_APK"
+          cp "$AAB_FILE" "$OUT_DIR/$OUT_AAB"
+          (cd "$OUT_DIR" && sha256sum "$OUT_APK" > "$OUT_APK.sha256" && sha256sum "$OUT_AAB" > "$OUT_AAB.sha256")
           ls -lh "$OUT_DIR"
-          echo "APK_OUT_NAME=$OUT_NAME" >> "$GITHUB_ENV"
+          echo "APK_OUT_NAME=$OUT_APK" >> "$GITHUB_ENV"
+          echo "AAB_OUT_NAME=$OUT_AAB" >> "$GITHUB_ENV"
           echo "APK_OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
 
-      - name: "📤 رفع الـAPK للتنزيل"
+      - name: "📤 رفع APK + AAB للتنزيل"
         uses: actions/upload-artifact@v4
         with:
           name: tawfir-${{ inputs.app || 'customer' }}-v${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}
           path: |
             ${{ env.APK_OUT_DIR }}/*.apk
+            ${{ env.APK_OUT_DIR }}/*.aab
             ${{ env.APK_OUT_DIR }}/*.sha256
-            android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 90
 
       - name: "📋 ملخص البناء"
         run: |
           APK_PATH="${{ env.APK_OUT_DIR }}/${{ env.APK_OUT_NAME }}"
+          AAB_PATH="${{ env.APK_OUT_DIR }}/${{ env.AAB_OUT_NAME }}"
           APK_SIZE="$(du -h "$APK_PATH" | cut -f1)"
+          AAB_SIZE="$(du -h "$AAB_PATH" | cut -f1)"
+          if [ -f android/app/google-services.json ]; then
+            FCM_ROW="FCM أصلي ✓ — أرسل من Firebase Console للموضوع \`tawfir_all\`"
+          else
+            FCM_ROW="غير مفعّل (أضِف google-services.json في جذر المستودع)"
+          fi
           {
             echo "## 📦 اكتمل بناء توفير لـ Android"
             echo ""
@@ -244,10 +288,17 @@ jobs:
             echo "| حزمة التطبيق | \`$(grep -oP 'applicationId "\K[^"]+' android/app/build.gradle)\` |"
             echo "| الإصدار | ${VERSION_NAME} (versionCode ${VERSION_CODE}) |"
             echo "| حجم الـAPK | ${APK_SIZE} |"
-            echo "| الملف | \`${{ env.APK_OUT_NAME }}\` |"
+            echo "| حجم الـAAB | ${AAB_SIZE} |"
+            echo "| ملف الـAPK | \`${{ env.APK_OUT_NAME }}\` |"
+            echo "| ملف الـAAB | \`${{ env.AAB_OUT_NAME }}\` (للرفع على Google Play) |"
+            echo "| الإشعارات | ${FCM_ROW} |"
             echo ""
             echo "**بصمة SHA-256 للتوقيع مطابقة لـ assetlinks.json** ✅ (روابط أندرويد العميقة تعمل فوراً)"
             echo ""
             echo "> نزّل الـAPK من قسم **Artifacts** بالأعلى، ثم ثبّته على جهازك"
             echo "> (فعّل «التثبيت من مصادر غير معروفة» عند سؤال أندرويد)."
+            echo ">"
+            echo "> 📲 الـ**AAB** هو الملف المطلوب للرفع على Google Play (Production)."
+            echo "> 🔔 للإشعارات: Firebase Console → Messaging → حملة جديدة →"
+            echo ">    Target: Topic = \`tawfir_all\` — ستصلك على الجهاز في كل الحالات."
           } >> "$GITHUB_STEP_SUMMARY"

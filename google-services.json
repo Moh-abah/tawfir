@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "607746892859",
+    "project_id": "tawfeer-b99c2",
+    "storage_bucket": "tawfeer-b99c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:607746892859:android:e6b401742c7d23e4fe281e",
+        "android_client_info": {
+          "package_name": "com.tawfir.ye.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "607746892859-16epr6cm6bgccu3ej1ah9jch2scaa45l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoWzgxhABNkXT08OUuTrpOop6IzAt0aCM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "607746892859-16epr6cm6bgccu3ej1ah9jch2scaa45l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
