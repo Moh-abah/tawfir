@@ -470,7 +470,7 @@ if (FCM_ENABLED) {
   if (problems.length > 0) {
     fail(
       "فشل التحقق البنيوي من AndroidManifest.xml:\n" +
-      problems.map((p) => `   • ${p}`).join("\n"),
+        problems.map((p) => `   • ${p}`).join("\n"),
     );
   }
   log("🛡️", "تحقق الـManifest ✓ — الفلتر داخل MainActivity، الأذونات كاملة، الوسوم متوازنة");
@@ -941,7 +941,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Build;
-import android.view.View;
+import android.webkit.WebView;
 import android.view.Window;
 import android.view.WindowManager;
 
@@ -986,7 +986,7 @@ public class TawfirNative extends Plugin {
             Activity activity = getActivity();
             if (activity == null || bridge == null || bridge.getWebView() == null) return;
             final Window window = activity.getWindow();
-            final View webView = bridge.getWebView();
+            final WebView webView = bridge.getWebView();
 
             /* المظهر الأولي لأشرطة النظام من وضع النظام (windowLight*
                في styles.xml يُتجاهَل في Android 15 Edge-to-Edge —
@@ -1017,7 +1017,7 @@ public class TawfirNative extends Plugin {
             call.resolve(ret);
             return;
         }
-        final View webView = bridge.getWebView();
+        final WebView webView = bridge.getWebView();
         activity.runOnUiThread(() -> {
             JSObject ret = new JSObject();
             try {
@@ -1044,7 +1044,7 @@ public class TawfirNative extends Plugin {
     }
 
     /** يضخّ قيم Safe-Area كمتغيرات CSS في الصفحة الحية + يحدّث الكاش */
-    private void pushSafeAreaVars(View webView, WindowInsetsCompat insets) {
+    private void pushSafeAreaVars(WebView webView, WindowInsetsCompat insets) {
         try {
             float d = cssPixelScale();
             Insets st = insets.getInsets(WindowInsetsCompat.Type.statusBars());
@@ -1182,7 +1182,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         /* الإطلاق البارد من إشعار: الجسر جاهز الآن — وجّه الرابط (مرة) */
         routeDeepLink(getIntent());
@@ -1610,7 +1610,7 @@ fs.writeFileSync(GRADLE_FILE, gradle);
   if (problems.length > 0) {
     fail(
       "فشل التحقق البنيوي من build.gradle (لن أُمرّر ملفاً تالفاً لـ Gradle):\n" +
-      problems.map((p) => `   • ${p}`).join("\n"),
+        problems.map((p) => `   • ${p}`).join("\n"),
     );
   }
   log("🛡️", "التحقق البنيوي النهائي ✓ — التوقيع + الإصدارات" + (FCM_ENABLED ? " + ملفات FCM" : ""));
