@@ -171,6 +171,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon --stacktrace
 
+
+      - name: "🏗️ بناء AAB (Android App Bundle) للنشر على Google Play"
+        run: |
+          cd android
+          ./gradlew bundleRelease --no-daemon --stacktrace
+
       - name: "✅ التحقق من بصمة التوقيع (مطابقة assetlinks.json)"
         run: |
           APK_DIR="android/app/build/outputs/apk/release"
@@ -221,6 +227,7 @@ jobs:
           path: |
             ${{ env.APK_OUT_DIR }}/*.apk
             ${{ env.APK_OUT_DIR }}/*.sha256
+            android/app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
           retention-days: 90
 
