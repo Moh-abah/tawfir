@@ -470,7 +470,7 @@ if (FCM_ENABLED) {
   if (problems.length > 0) {
     fail(
       "فشل التحقق البنيوي من AndroidManifest.xml:\n" +
-        problems.map((p) => `   • ${p}`).join("\n"),
+      problems.map((p) => `   • ${p}`).join("\n"),
     );
   }
   log("🛡️", "تحقق الـManifest ✓ — الفلتر داخل MainActivity، الأذونات كاملة، الوسوم متوازنة");
@@ -488,7 +488,8 @@ fs.writeFileSync(MANIFEST_FILE, manifest);
  *   • TawfirApp.java            — يهيّئ قنوات الإشعارات فور بدء أي عملية
  *   • TawfirFirebaseMessagingService.java — استقبال الرسائل في كل الحالات
  *   • MainActivity.java          — أذونات 13+ + ألوان أشرطة النظام
- *   • drawable/ic_stat_tawfir.xml — أيقونة إشعار Vector (جرس — أبيض)
+ *   • ic_stat_tawfir.png — أيقونة إشعار الشعار الأبيض بكل دلائل الكثافة
+ *                              (Vector XML احتياطاً عند تعذّر sharp)
  * إن لم يوجد الملف: تخطٍّ رشيق — البناء ينجح بلا إشعارات.
  */
 if (!FCM_ENABLED) {
@@ -1581,15 +1582,35 @@ fs.writeFileSync(GRADLE_FILE, gradle);
         if (!content.includes(marker)) problems.push(`${name} لا يحوي ${marker}!`);
       }
     }
-    if (!fs.existsSync(path.join(RES_DIR, "drawable", "ic_stat_tawfir.xml"))) {
-      problems.push("drawable/ic_stat_tawfir.xml (أيقونة الإشعار) غير موجودة!");
+    /* أيقونة الإشعار ic_stat_tawfir — مساران صالحان للتوليد (5-ب):
+       أ) PNG بكل الكثافات (المسار الأساسي عبر sharp — شعار توفير الأبيض)
+       ب) Vector XML (الاحتياط عند تعذّر sharp أو غياب المصدر)
+       كلاهما يُشبع @drawable/ic_stat_tawfir في الـManifest و
+       R.drawable.ic_stat_tawfir في Java — أندرويد يحلّ المورد بالاسم
+       عبر دلائل الكثافة ولا يشترط صيغة .xml (إصلاح الجولة 31:
+       كان الفحص يقبل الـXML فقط فيفشل زيفاً عند نجاح مسار PNG). */
+    const DENSITY_DIRS = [
+      "drawable-mdpi",
+      "drawable-hdpi",
+      "drawable-xhdpi",
+      "drawable-xxhdpi",
+      "drawable-xxxhdpi",
+    ];
+    const pngHits = DENSITY_DIRS.filter((d) =>
+      fs.existsSync(path.join(RES_DIR, d, "ic_stat_tawfir.png")),
+    );
+    const vectorHit = fs.existsSync(path.join(RES_DIR, "drawable", "ic_stat_tawfir.xml"));
+    if (pngHits.length === 0 && !vectorHit) {
+      problems.push(
+        "أيقونة الإشعار ic_stat_tawfir غير موجودة (لا PNG بالكثافات ولا Vector XML)!",
+      );
     }
   }
 
   if (problems.length > 0) {
     fail(
       "فشل التحقق البنيوي من build.gradle (لن أُمرّر ملفاً تالفاً لـ Gradle):\n" +
-        problems.map((p) => `   • ${p}`).join("\n"),
+      problems.map((p) => `   • ${p}`).join("\n"),
     );
   }
   log("🛡️", "التحقق البنيوي النهائي ✓ — التوقيع + الإصدارات" + (FCM_ENABLED ? " + ملفات FCM" : ""));
@@ -1602,13 +1623,13 @@ console.log(
     "════════════════════════════════════════════════════",
     "✅ اكتمل تفعيل هوية «توفير» في مشروع Android",
     `   • التطبيق        : ${APPLICATION_ID} (${APPLICATION_ID.includes("owner") ? "توفير مالك" : "توفير"})`,
-    `   • الألوان        : Primary ${BRAND.colorPrimary} · Dark ${BRAND.colorPrimaryDark} · Accent ${BRAND.colorAccent} · أشرطة النظام ✓`,
+    `   • الألوان        : Primary ${BRAND.colorPrimary} · داكن (values-night) ${BRAND.dark.statusBar} · Accent ${BRAND.colorAccent} · أشرطة النظام ✓`,
     `   • السبلاش        : @color/splash_background ثنائي الوضع (${removedCount} صورة حُذفت)`,
     `   • الإصدار        : ${VERSION_NAME} (${VERSION_CODE})`,
     `   • التوقيع        : ${signRequested ? "مفعَّل (APK + AAB يُوقَّعان تلقائياً)" : "غير مفعَّل"}`,
     `   • الروابط         : Deep Links فلتر https://${DEEP_LINK_HOST} (autoVerify) ✓`,
     `   • الأذونات        : ${wantedPermissions.join(" · ").replace(/android\.permission\./g, "")}`,
-    `   • الإشعارات      : ${FCM_ENABLED ? "FCM أصلي ✓ — قناتان (الطلبات/عام) + موضوع tawfir_all + أيقونة نيتفة + طلب إذن 13+" : "متخطاة (لا google-services.json)"}`,
+    `   • الإشعارات      : ${FCM_ENABLED ? "FCM أصلي ✓ — 5 قنوات (طلبات/عضوية/متاجر/عروض/عام) + موضوع tawfir_all + أيقونة نيتفة + طلب إذن 13+" : "متخطاة (لا google-services.json)"}`,
     `   • الاتجاه        : portrait (قفل رأسي — كتطبيقات الطعام)`,
     `   • البنية         : تحققت آلياً ✓ (Manifest + build.gradle + Java)`,
     "════════════════════════════════════════════════════",
