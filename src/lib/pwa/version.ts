@@ -10,4 +10,4 @@
  *   • ServiceWorkerRegistrar → شريحة «يتوفر تحديث للإصدار X»
  *   • شاشة الإعدادات     → عرض الإصدار للمستخدم
  */
-export const APP_VERSION = "1.3.0";
+export const APP_VERSION = "1.2.0";
