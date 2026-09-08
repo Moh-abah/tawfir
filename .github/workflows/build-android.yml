@@ -4,15 +4,16 @@
 #  لا حاجة لأي تثبيت على جهازك (لا Android Studio / JDK / Gradle / Bun).
 #  يكفي رفع كود Next.js + مجلد resources/ — والباقي يتم هنا آلياً:
 #
-#    1) تثبيت Bun + Java 21 + Android SDK في السحابة (Capacitor 8 يتطلب Java 21
-#       — مكتبة capacitor-android تستهدف sourceCompatibility VERSION_21)
+#    1) تثبيت Bun + Java 21 + Android SDK في السحابة (Capacitor 8 يتطلب
+#       Java 21 — مكتبة capacitor-android تستهدف sourceCompatibility 21)
 #    2) bun install ثم npx cap add android       (إنشاء مجلد android من الصفر)
 #    3) npx capacitor-assets generate --android   (كل الأيقونات/السبلاش من resources/)
 #    4) bun scripts/patch-android-identity.mjs    (هوية توفير: الألوان + سبلاش
-#       صلب #005B82 + الإصدار + التوقيع — انظر رأس السكربت للتفاصيل)
+#       صلب #005B82 + الإصدار + التوقيع — مع تحقق بنيوي آلي قبل Gradle:
+#       يضمن أن signingConfig يقع داخل buildTypes→release حصراً)
 #    5) npx cap sync android ثم ./gradlew assembleRelease
 #    6) تحقق آلي أن بصمة SHA-256 للتوقيع تطابق assetlinks.json على
-#       tawfir.giize.com (خوارزمية روابط أندرويد العميقة تعمل فوراً)
+#       tawfir.giize.com (روابط أندرويد العميقة تعمل فوراً)
 #    7) رفع الـAPK الموقّع كـ Artifact قابل للتنزيل
 #
 #  الأسرار المطلوبة (Settings → Secrets and variables → Actions):
@@ -20,6 +21,8 @@
 #    ANDROID_KEYSTORE_PASSWORD   كلمة مرور الـKeystore
 #    ANDROID_KEY_ALIAS           الاسم المستعار (tawfeer)
 #    ANDROID_KEY_PASSWORD        كلمة مرور المفتاح
+#    (ملاحظة: إن كان الـKeystore من نوع PKCS12 فيجب أن تكون كلمة مرور
+#     المفتاح = كلمة مرور الـKeystore نفسها — هذا سلوك Java القياسي)
 # ══════════════════════════════════════════════════════════════════════
 
 name: "Build Android APK — توفير"
@@ -94,8 +97,6 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
-          # كاش Gradle مدمج (يتخلص من تحذير actions/cache@v4 القديم)
-          # cache: ''
 
       - name: "🤖 تجهيز Android SDK (التراخيص + منصة 36)"
         run: |
@@ -113,22 +114,24 @@ jobs:
         run: |
           sed -i 's/appId: "com.tawfir.ye.app"/appId: "com.tawfir.ye.owner"/' capacitor.config.ts
           sed -i 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
+          if ! grep -q 'com.tawfir.ye.owner' capacitor.config.ts; then
+            echo "::error::فشل تعديل capacitor.config.ts لهوية المالك — راجع صيغة الملف"
+            exit 1
+          fi
           grep -E "appId|appName" capacitor.config.ts | head -2
-
 
       - name: "🆕 إنشاء مشروع Android من الصفر (cap add android)"
         run: |
           rm -rf android
           npx cap add android
 
-      - name: "🔍 التحقق من وجود AndroidManifest.xml"
+      - name: "🔍 التحقق من إنشاء المشروع"
         run: |
           if [ ! -f "android/app/src/main/AndroidManifest.xml" ]; then
             echo "::error::AndroidManifest.xml غير موجود — فشل إنشاء مشروع Android"
             exit 1
           fi
           echo "✓ AndroidManifest.xml موجود"
-
 
       - name: "🎨 توليد كل الأيقونات والسبلاش من resources/ (123 ملفاً)"
         run: npx capacitor-assets generate --android
@@ -146,12 +149,18 @@ jobs:
           fi
           echo "✓ Keystore جاهز (${SIZE} بايت)"
 
-      - name: "🖌️ تفعيل هوية توفير + الإصدار + التوقيع"
+      - name: "🖌️ تفعيل هوية توفير + الإصدار + التوقيع (مع تحقق بنيوي آلي)"
         run: bun scripts/patch-android-identity.mjs
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+      - name: "🔍 لقطة بنية build.gradle (مقنّعة — للتوثيق في السجل)"
+        run: |
+          echo "── الأسطر الحرجة في app/build.gradle (كلمات المرور مقنّعة) ──"
+          grep -nE "signingConfigs \{|release \{|signingConfig |storeFile|versionCode |versionName |buildTypes \{" android/app/build.gradle \
+            | sed -E "s/(storePassword|keyPassword|keyAlias)[^ ]* .*/\1 '***'/" || true
 
       - name: "🔄 مزامنة Capacitor (نسخة الويب + تسجيل الإضافات)"
         run: npx cap sync android
@@ -160,10 +169,7 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace \
-            -PKEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-            -PKEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }} \
-            -PKEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: "✅ التحقق من بصمة التوقيع (مطابقة assetlinks.json)"
         run: |
