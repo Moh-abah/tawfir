@@ -47,7 +47,8 @@ export function OwnerPortalShell({
           <main
             className="no-mobile-scrollbar flex-1 overflow-x-hidden"
             style={{
-              paddingBottom: "env(safe-area-inset-bottom)",
+              /* Safe-Area مزدوجة المصدر: env() + --cap-safe-bottom (جسر الـAPK) */
+              paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px))",
             }}
           >
             <div className="mx-auto w-full max-w-7xl p-4 md:p-6">

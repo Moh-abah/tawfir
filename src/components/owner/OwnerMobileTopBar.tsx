@@ -76,7 +76,10 @@ export function OwnerMobileTopBar({ onOpenMenu, className }: OwnerMobileTopBarPr
         "sticky top-0 z-40 flex h-14 items-center border-b border-border/50 bg-background/95 backdrop-blur-lg",
         className,
       )}
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{
+        /* Safe-Area مزدوجة المصدر: env() + --cap-safe-top (جسر الـAPK) */
+        paddingTop: "max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px))",
+      }}
       role="banner"
     >
       <div className="grid h-14 w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center px-1">

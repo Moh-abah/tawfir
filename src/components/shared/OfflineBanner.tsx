@@ -86,9 +86,9 @@ export function OfflineBanner() {
         transition={{ duration: 0.28, ease: "easeOut" }}
         className={cn(
           "pointer-events-none fixed inset-x-0 z-40 flex items-center justify-center gap-2",
-          "bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-auto md:top-0",
+          "bottom-[calc(3.5rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] md:bottom-auto md:top-0",
           "bg-neutral-900 py-2.5 text-center text-sm font-medium text-white",
-          "md:pt-[max(0.625rem,env(safe-area-inset-top))] md:pb-2.5"
+          "md:pt-[max(0.625rem,env(safe-area-inset-top,0px),var(--cap-safe-top,0px))] md:pb-2.5"
         )}
       >
         <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -112,7 +112,7 @@ export function OfflineBanner() {
             transition={{ duration: 0.28, ease: "easeOut" }}
             className={cn(
               "pointer-events-none fixed inset-x-0 z-40 flex items-center justify-center gap-2",
-              "bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-auto md:top-0",
+              "bottom-[calc(3.5rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] md:bottom-auto md:top-0",
               "bg-success px-4 py-2.5 text-sm font-medium text-white shadow-lg"
             )}
           >

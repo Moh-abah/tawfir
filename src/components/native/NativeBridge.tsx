@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "@/components/theme/theme-provider";
 import {
   isNativePlatform,
   setupNativeStatusBar,
@@ -9,6 +10,7 @@ import {
   setupNativeBackButton,
   setNativeBackHandler,
   watchNativeNetwork,
+  syncNativeSafeArea,
 } from "@/lib/capacitor";
 
 /**
@@ -18,7 +20,13 @@ import {
  * صامتة، فلا تكلّف إطلاقاً (0 تأثير على الويب الإنتاجي).
  *
  * المسؤوليات:
- *  1) Status Bar: لون #0A1A2F (كحلي الهوية) + نمط Dark + overlaysWebView (safe-area CSS)
+ *  1) Status Bar + Navigation Bar: متزامنة مع الثيم الفعلي (إصلاح
+ *     ملاحظات المستخدم) — أيقونات داكنة في الفاتح/فاتحة في الداكن
+ *     (شريط الحالة وشريط التنقل معاً) — عند الإقلاع وعند كل تبديل
+ *     + عند تبديل وضع النظام.
+ *  1-ب) Safe-Area: مزامنة --cap-safe-top/--cap-safe-bottom من
+ *     WindowInsets الأصلية عند الإقلاع وعند كل resize (Edge-to-Edge:
+ *     هيدر لا يتداخل مع أيقونات النظام، شريط سفلي فوق أزرار أندرويد).
  *  2) Splash Screen: إخفاء تلقائي بعد أول paint أو 800ms (أيهما أخير)
  *  3) Back Button (Hardware): Sheet مفتوح → أغلق / history>1 → back / وإلا exit
  *  4) Network: عند عودة الاتصال → إطلاق حدث online لإبطال الكاش
@@ -29,6 +37,7 @@ import {
 export function NativeBridge() {
   const pathname = usePathname();
   const router = useRouter();
+  const { resolvedTheme } = useTheme();
   const [sheetOpen, setSheetOpen] = React.useState(false);
   const sheetOpenRef = React.useRef(false);
 
@@ -77,7 +86,7 @@ export function NativeBridge() {
         meta.setAttribute(
           "content",
           cur.replace(/,\s*$/, "") +
-            ", maximum-scale=1, user-scalable=no, minimum-scale=1",
+          ", maximum-scale=1, user-scalable=no, minimum-scale=1",
         );
       }
     };
@@ -92,10 +101,34 @@ export function NativeBridge() {
 
     let removeBack: (() => void) | null = null;
     let removeNetwork: (() => void) | null = null;
+    /* إصلاح (التدقيق 3-a / L2): سباق async — لو فُكّ التركيب أثناء
+       انتظار setupNativeBackButton/watchNativeNetwork تُعيَّن الدوال
+       بعد التنظيف فلا تُستدعى أبداً (مستمعات أصلية يتيمة). الحارس
+       disposed يجعل المسار المتأخر يفكّك نفسه فوراً. */
+    let disposed = false;
+
+    /* إعادة مزامنة Safe-Area عند resize/تدوير — القيم قد تتغير
+       (تغيّر شريط الحالة/التنقل) — مع debounce خفيف لتجميع العاصفة */
+    let safeAreaSyncTimer: number | null = null;
+    const onResizeSyncSafeArea = () => {
+      if (safeAreaSyncTimer !== null) window.clearTimeout(safeAreaSyncTimer);
+      safeAreaSyncTimer = window.setTimeout(() => {
+        safeAreaSyncTimer = null;
+        void syncNativeSafeArea();
+      }, 150);
+    };
+    window.addEventListener("resize", onResizeSyncSafeArea);
+    window.addEventListener("orientationchange", onResizeSyncSafeArea);
 
     (async () => {
-      /* 1) Status Bar */
-      await setupNativeStatusBar();
+      /* 1) Status Bar + Navigation Bar — يتولاها effect الثيم أدناه
+            (متزامن مع resolvedTheme) */
+
+      /* 1-ب) Safe-Area — سحب WindowInsets الفعلية من TawfirNative
+            وضخها كمتغيرات CSS (--cap-safe-top/--cap-safe-bottom)
+            تستهلكها قواعد max(env(...), var(--cap-safe-*)) —
+            إصلاح تداخل الهيدر مع شريط النظام داخل APK (Edge-to-Edge). */
+      void syncNativeSafeArea();
 
       /* 2) Splash hide — بعد أول paint أو 800ms احتياطي */
       const splashTimer = window.setTimeout(() => {
@@ -124,15 +157,34 @@ export function NativeBridge() {
           window.dispatchEvent(new Event("offline"));
         }
       });
+
+      /* المسار المتأخر بعد التنظيف: فكّك فوراً (إصلاح L2) */
+      if (disposed) {
+        removeBack?.();
+        removeNetwork?.();
+      }
     })();
 
     return () => {
+      disposed = true;
       setNativeBackHandler(null);
       removeBack?.();
       removeNetwork?.();
       observer.disconnect();
+      window.removeEventListener("resize", onResizeSyncSafeArea);
+      window.removeEventListener("orientationchange", onResizeSyncSafeArea);
+      if (safeAreaSyncTimer !== null) window.clearTimeout(safeAreaSyncTimer);
     };
   }, []);
+
+  /* إصلاح الثيم — مزامنة شريط الحالة الأصلي مع الثيم الفعّالي:
+     يعمل على الويب كـ no-op فوراً (setupNativeStatusBar يحرس بـ
+     isNativePlatform). عند الإقلاع + عند كل تبديل (زر الثيم أو
+     تبديل وضع النظام) — كان ثابتاً داكناً دائماً حتى في الوضع
+     الفاتح (أيقونات بيضاء على شريط فاتح). */
+  React.useEffect(() => {
+    void setupNativeStatusBar(resolvedTheme);
+  }, [resolvedTheme]);
 
   /* استخدام pathname و router في سياق (تفادي تحذير lint للقيم غير المستخدمة) */
   React.useEffect(() => {

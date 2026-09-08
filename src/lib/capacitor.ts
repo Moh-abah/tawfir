@@ -48,21 +48,121 @@ export function isNativePlatform(): boolean {
 }
 
 /**
- * إعداد شريط الحالة (Status Bar) — أندرويد فقط.
- *  • اللون: #0A1A2F (الكحلي العميق — هوية توفير)
- *  • النمط: Dark (أيقونات بيضاء على الخلفية الملونة)
+ * إعداد شريط الحالة + شريط التنقل (Status Bar + Navigation Bar) —
+ * أندرويد فقط — متزامن مع الثيم (إصلاح ملاحظات المستخدم الثلاث).
+ *  • الوضع الفاتح: أيقونات داكنة (Style.Light = أيقونات داكنة — تسمية
+ *    المكتبة معكوسة!) + ألوان فاتحة #F7F7F7.
+ *  • الوضع الداكن: أيقونات فاتحة (Style.Dark) + كحلي الهوية #0A1A2F.
+ *  • الشريط السفلي (Navigation Bar): عبر إضافة TawfirNative الأصلية
+ *    (setSystemBars) لأن @capacitor/status-bar لا يغطيه إطلاقاً —
+ *    أيقونات أزرار (رجوع/رئيسية/تطبيقات) تتبع الثيم، ولون الشريط
+ *    يتبع الثيم (قبل Android 15) أو شفاف يتلوّن بالمحتوى (15+).
  *  • overlaysWebView: true — يرسم الـ WebView فوق شريط الحالة،
- *    فتعمل قواعد safe-area-inset-top الموجودة في globals.css بلا تغيير.
+ *    فتعمل قواعد safe-area (pt-safe/max(env,var(--cap-safe-top)))
+ *    — انظر globals.css.
+ *  يُستدعى من NativeBridge عند الإقلاع + عند كل تبديل ثيم.
  */
-export async function setupNativeStatusBar(): Promise<void> {
+export async function setupNativeStatusBar(
+  theme?: "light" | "dark",
+): Promise<void> {
   if (!isNativePlatform()) return;
+  const dark = theme !== "light";
   try {
     const { StatusBar, Style } = await import("@capacitor/status-bar");
-    await StatusBar.setStyle({ style: Style.Dark });
-    await StatusBar.setBackgroundColor({ color: "#0A1A2F" });
+    /* تسمية @capacitor/status-bar معكوسة: Style.Dark = أيقونات فاتحة
+       للخلفيات الداكنة، Style.Light = أيقونات داكنة للفاتحة. */
+    await StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
+    await StatusBar.setBackgroundColor({
+      color: dark ? "#0A1A2F" : "#F7F7F7",
+    });
     await StatusBar.setOverlaysWebView({ overlay: true });
   } catch {
     /* بيئة لا تدعم المكوّن — صامت */
+  }
+  /* شريط التنقل السفلي — عبر TawfirNative (نفس الثيم) */
+  await setNativeSystemBars(dark);
+}
+
+/** ألوان أشرطة النظام حسب الثيم — نفس لوحة الهوية */
+const BAR_LIGHT = "#F7F7F7";
+const BAR_DARK = "#0A1A2F";
+
+/** شكل إضافة TawfirNative كما يراها الـWebView (طرق اختيارية) */
+type TawfirNativePlugin = {
+  setSystemBars?: (opts: {
+    dark: boolean;
+    statusBarColor: string;
+    navigationBarColor: string;
+  }) => Promise<void>;
+  getSafeAreaInsets?: () => Promise<{
+    top?: number;
+    bottom?: number;
+  }>;
+};
+
+/**
+ * الوصول لإضافة TawfirNative الأصلية عبر جسر Capacitor (بلا حزم npm
+ * إضافية — الإضافة يولّدها patch-android-identity.mjs في الـAPK).
+ */
+function getTawfirNative(): TawfirNativePlugin | undefined {
+  if (typeof globalThis === "undefined") return undefined;
+  const cap = (globalThis as Record<string, unknown>).Capacitor as
+    | { Plugins?: Record<string, unknown> }
+    | undefined;
+  const plugin = cap?.Plugins?.["TawfirNative"];
+  return plugin as unknown as TawfirNativePlugin | undefined;
+}
+
+/**
+ * تطبيق ثيم شريط التنقل السفلي (+شريط الحالة احتياطاً) عبر TawfirNative:
+ *  • أيقونات الأزرار (رجوع/رئيسية/تطبيقات) — داكنة في الفاتح وفاتحة
+ *    في الداكن (WindowInsetsController.isAppearanceLightNavigationBars)
+ *    ← يعمل على كل الإصدارات بما فيها Android 15 Edge-to-Edge.
+ *  • الألوان الصلبة — قبل Android 15 فقط (في 15+ الشريط شفاف يتلوّن
+ *    بخلفية المحتوى ذاته).
+ * يُستدعى من setupNativeStatusBar مع كل تبديل ثيم.
+ */
+async function setNativeSystemBars(dark: boolean): Promise<void> {
+  const plugin = getTawfirNative();
+  if (!plugin || typeof plugin.setSystemBars !== "function") return;
+  try {
+    await plugin.setSystemBars({
+      dark,
+      statusBarColor: dark ? BAR_DARK : BAR_LIGHT,
+      navigationBarColor: dark ? BAR_DARK : BAR_LIGHT,
+    });
+  } catch {
+    /* إصدار APK قديم بلا الإضافة — صامت */
+  }
+}
+
+/**
+ * مزامنة متغيرات Safe-Area (--cap-safe-top/--cap-safe-bottom) من
+ * WindowInsets الأصلية للـWebView عبر TawfirNative.getSafeAreaInsets.
+ * • WebView أندرويد (قبل 15 / بلا Notch) يُرجع env(safe-area-inset-*)
+ *   = 0 لأشرطة النظام — هذه الدالة تضخ القيم الفعلية كمتغيرات CSS
+ *   تستهلكها قواعد max(env(...), var(--cap-safe-*)) في globals.css.
+ * • يعاد النداء عند resize (تدوير/تغيّر أشرطة النظام) من NativeBridge.
+ */
+export async function syncNativeSafeArea(): Promise<void> {
+  if (!isNativePlatform() || typeof document === "undefined") return;
+  const plugin = getTawfirNative();
+  if (!plugin || typeof plugin.getSafeAreaInsets !== "function") return;
+  try {
+    const insets = await plugin.getSafeAreaInsets();
+    if (!insets) return;
+    const root = document.documentElement;
+    if (typeof insets.top === "number" && Number.isFinite(insets.top)) {
+      root.style.setProperty("--cap-safe-top", `${Math.max(0, insets.top)}px`);
+    }
+    if (typeof insets.bottom === "number" && Number.isFinite(insets.bottom)) {
+      root.style.setProperty(
+        "--cap-safe-bottom",
+        `${Math.max(0, insets.bottom)}px`,
+      );
+    }
+  } catch {
+    /* إصدار APK قديم بلا الإضافة — صامت */
   }
 }
 
@@ -179,8 +279,39 @@ export async function watchNativeNetwork(
 }
 
 /**
- * معرّف تطبيق Android — يطابق assetlinks.json (com.tawfir.app).
+ * إصلاح الإشعارات داخل APK (Capacitor Live WebView): الـWebView لا يدعم
+ * PushManager فلا يعمل web push فيه إطلاقاً. إضافة TawfirNative الأصلية
+ * (يولّدها patch-android-identity.mjs) توفّر توكن FCM الأصلي عبر جسر
+ * Capacitor — يقرأه الـWebView ويسجّله في الباك إند بمصادقة المستخدم
+ * الحالي (المسار الطبيعي POST /fcm/token) فتصل الإشعارات المستهدفة
+ * للتطبيق المثبّت. يعيد null على الويب أو إن لم تتوفر الإضافة.
+ */
+export async function getNativeFcmToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const cap = (globalThis as Record<string, unknown>).Capacitor as
+    | {
+        isNativePlatform?: () => boolean;
+        Plugins?: Record<string, { getFcmToken?: () => Promise<{ token?: string; available?: boolean }> }>;
+      }
+    | undefined;
+  if (!cap || typeof cap.isNativePlatform !== "function" || !cap.isNativePlatform()) {
+    return null;
+  }
+  const plugin = cap.Plugins?.["TawfirNative"];
+  if (!plugin || typeof plugin.getFcmToken !== "function") return null;
+  try {
+    const res = await plugin.getFcmToken();
+    if (res?.available && res.token) return String(res.token);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * معرّف تطبيق Android — يطابق assetlinks.json (com.tawfir.ye.app).
+ * (كان قديماً com.tawfir.app — خلاف الـassetlinks والحزمة الفعلية).
  * مرجع مركزي لتجنّب التضارب.
  */
-export const NATIVE_APP_ID = "com.tawfir.app" as const;
+export const NATIVE_APP_ID = "com.tawfir.ye.app" as const;
 export const NATIVE_APP_NAME = "توفير" as const;

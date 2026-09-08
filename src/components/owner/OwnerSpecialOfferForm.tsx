@@ -129,7 +129,7 @@ function ResponsiveOfferShell({
         <SheetContent
           side="bottom"
           className="scroll-area-thin max-h-[85dvh] overflow-y-auto
-            rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+            rounded-t-2xl pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
         >
           <div className="bottom-sheet-grip mt-1" aria-hidden="true" />
           <SheetHeader className="text-right">
@@ -303,221 +303,221 @@ export function OwnerSpecialOfferForm({
       wide
     >
 
-        {productsLoading ? (
-          <div className="space-y-4 py-2">
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-10 w-full rounded-md" />
-            <Skeleton className="h-20 w-full rounded-md" />
-          </div>
-        ) : (
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="space-y-4"
-            aria-label="نموذج إنشاء عرض خاص"
-          >
-            {/* اختيار المنتج */}
-            <div className="space-y-2">
-              <Label htmlFor="offer-product">اختيار المنتج *</Label>
-              <Controller
-                control={control}
-                name="product_id"
-                render={({ field }) => (
-                  <Select
-                    value={field.value ? String(field.value) : ""}
-                    onValueChange={(v) => field.onChange(Number(v))}
-                    dir="rtl"
+      {productsLoading ? (
+        <div className="space-y-4 py-2">
+          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-20 w-full rounded-md" />
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="space-y-4"
+          aria-label="نموذج إنشاء عرض خاص"
+        >
+          {/* اختيار المنتج */}
+          <div className="space-y-2">
+            <Label htmlFor="offer-product">اختيار المنتج *</Label>
+            <Controller
+              control={control}
+              name="product_id"
+              render={({ field }) => (
+                <Select
+                  value={field.value ? String(field.value) : ""}
+                  onValueChange={(v) => field.onChange(Number(v))}
+                  dir="rtl"
+                >
+                  <SelectTrigger
+                    id="offer-product"
+                    className="w-full min-h-[44px]"
+                    aria-invalid={!!errors.product_id}
                   >
-                    <SelectTrigger
-                      id="offer-product"
-                      className="w-full min-h-[44px]"
-                      aria-invalid={!!errors.product_id}
-                    >
-                      <SelectValue placeholder="اختر منتجاً من قائمتك..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableProducts.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          <span className="truncate">{p.name}</span>
-                          <span className="text-muted-foreground text-xs">
-                            {formatCurrency(p.price)}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.product_id && (
-                <p className="text-xs text-destructive" role="alert">
-                  {errors.product_id.message as string}
-                </p>
+                    <SelectValue placeholder="اختر منتجاً من قائمتك..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProducts.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        <span className="truncate">{p.name}</span>
+                        <span className="text-muted-foreground text-xs">
+                          {formatCurrency(p.price)}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               )}
+            />
+            {errors.product_id && (
+              <p className="text-xs text-destructive" role="alert">
+                {errors.product_id.message as string}
+              </p>
+            )}
+          </div>
+
+          {/* عنوان العرض */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="offer-title">عنوان العرض *</Label>
+              <span className="text-xs text-muted-foreground">
+                {watch("title").length}/255
+              </span>
             </div>
+            <Input
+              id="offer-title"
+              placeholder="مثال: عرض حصري — 10 دجاجات بخصم 30%"
+              maxLength={255}
+              aria-invalid={!!errors.title}
+              {...register("title")}
+            />
+            {errors.title && (
+              <p className="text-xs text-destructive" role="alert">
+                {errors.title.message as string}
+              </p>
+            )}
+          </div>
 
-            {/* عنوان العرض */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="offer-title">عنوان العرض *</Label>
-                <span className="text-xs text-muted-foreground">
-                  {watch("title").length}/255
-                </span>
-              </div>
-              <Input
-                id="offer-title"
-                placeholder="مثال: عرض حصري — 10 دجاجات بخصم 30%"
-                maxLength={255}
-                aria-invalid={!!errors.title}
-                {...register("title")}
-              />
-              {errors.title && (
-                <p className="text-xs text-destructive" role="alert">
-                  {errors.title.message as string}
-                </p>
-              )}
+          {/* نسبة الخصم */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="offer-discount">نسبة الخصم *</Label>
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
+                {discountRate}%
+              </span>
             </div>
-
-            {/* نسبة الخصم */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="offer-discount">نسبة الخصم *</Label>
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-sm font-semibold text-primary">
-                  {discountRate}%
-                </span>
-              </div>
-              <Controller
-                control={control}
-                name="offer_discount_rate"
-                render={({ field }) => (
-                  <Slider
-                    id="offer-discount"
-                    min={10}
-                    max={50}
-                    step={5}
-                    value={[field.value]}
-                    onValueChange={(values: number[]) => {
-                      if (values.length > 0) field.onChange(values[0]);
-                    }}
-                    aria-label="نسبة الخصم"
-                  />
-                )}
-              />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>10% (الأدنى)</span>
-                <span>50% (الأقصى)</span>
-              </div>
-              {errors.offer_discount_rate && (
-                <p className="text-xs text-destructive" role="alert">
-                  {errors.offer_discount_rate.message as string}
-                </p>
+            <Controller
+              control={control}
+              name="offer_discount_rate"
+              render={({ field }) => (
+                <Slider
+                  id="offer-discount"
+                  min={10}
+                  max={50}
+                  step={5}
+                  value={[field.value]}
+                  onValueChange={(values: number[]) => {
+                    if (values.length > 0) field.onChange(values[0]);
+                  }}
+                  aria-label="نسبة الخصم"
+                />
               )}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>10% (الأدنى)</span>
+              <span>50% (الأقصى)</span>
+            </div>
+            {errors.offer_discount_rate && (
+              <p className="text-xs text-destructive" role="alert">
+                {errors.offer_discount_rate.message as string}
+              </p>
+            )}
 
-              {/* معاينة السعر */}
-              {pricePreview && (
-                <div className="rounded-lg border bg-muted/30 p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">السعر الأساسي:</span>
-                    <span className="line-through text-muted-foreground">
-                      {formatCurrency(pricePreview.base)}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="font-medium">بعد خصم العضو:</span>
-                    <span className="font-semibold text-primary">
-                      {formatCurrency(pricePreview.final)}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    * السعر النهائي للأعضاء قد يُحسب بخصم إضافي بحسب نسبة
-                    متجرك.
-                  </p>
+            {/* معاينة السعر */}
+            {pricePreview && (
+              <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">السعر الأساسي:</span>
+                  <span className="line-through text-muted-foreground">
+                    {formatCurrency(pricePreview.base)}
+                  </span>
                 </div>
-              )}
-            </div>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="font-medium">بعد خصم العضو:</span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(pricePreview.final)}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  * السعر النهائي للأعضاء قد يُحسب بخصم إضافي بحسب نسبة
+                  متجرك.
+                </p>
+              </div>
+            )}
+          </div>
 
-            {/* كمية محددة */}
-            <div className="space-y-2">
-              <Label htmlFor="offer-quantity">كمية محددة (اختياري)</Label>
-              <Input
-                id="offer-quantity"
-                type="number"
-                min={1}
-                inputMode="numeric"
-                dir="ltr"
-                placeholder="اتركه فارغاً = غير محدود"
-                aria-invalid={!!errors.quantity_limit}
-                {...register("quantity_limit")}
-              />
-              {errors.quantity_limit ? (
-                <p className="text-xs text-destructive" role="alert">
-                  {errors.quantity_limit.message as string}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  عند بيع هذه الكمية يُنهى العرض تلقائياً.
-                </p>
-              )}
-              {quantityLimit && quantityLimit.trim() !== "" && /^\d+$/.test(quantityLimit.trim()) && (
-                <p className="text-xs text-primary">
-                  سيتم إنهاء العرض بعد بيع {parseInt(quantityLimit, 10)} وحدة.
-                </p>
-              )}
-            </div>
+          {/* كمية محددة */}
+          <div className="space-y-2">
+            <Label htmlFor="offer-quantity">كمية محددة (اختياري)</Label>
+            <Input
+              id="offer-quantity"
+              type="number"
+              min={1}
+              inputMode="numeric"
+              dir="ltr"
+              placeholder="اتركه فارغاً = غير محدود"
+              aria-invalid={!!errors.quantity_limit}
+              {...register("quantity_limit")}
+            />
+            {errors.quantity_limit ? (
+              <p className="text-xs text-destructive" role="alert">
+                {errors.quantity_limit.message as string}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                عند بيع هذه الكمية يُنهى العرض تلقائياً.
+              </p>
+            )}
+            {quantityLimit && quantityLimit.trim() !== "" && /^\d+$/.test(quantityLimit.trim()) && (
+              <p className="text-xs text-primary">
+                سيتم إنهاء العرض بعد بيع {parseInt(quantityLimit, 10)} وحدة.
+              </p>
+            )}
+          </div>
 
-            {/* تاريخ الانتهاء */}
-            <div className="space-y-2">
-              <Label htmlFor="offer-ends" className="flex items-center gap-1.5">
-                <CalendarClock className="h-3.5 w-3.5" />
-                تاريخ انتهاء (اختياري)
-              </Label>
-              <Input
-                id="offer-ends"
-                type="date"
-                dir="ltr"
-                aria-invalid={!!errors.ends_at}
-                {...register("ends_at")}
-              />
-              {errors.ends_at ? (
-                <p className="text-xs text-destructive" role="alert">
-                  {errors.ends_at.message as string}
-                </p>
-              ) : endsAt ? (
-                <p className="text-xs text-primary flex items-center gap-1">
-                  <CalendarClock className="h-3 w-3" />
-                  سينتهي العرض في {new Date(endsAt).toLocaleDateString("ar-EG")}
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <InfinityIcon className="h-3 w-3" />
-                  اتركه فارغاً = عرض دائم بدون تاريخ انتهاء.
-                </p>
-              )}
-            </div>
+          {/* تاريخ الانتهاء */}
+          <div className="space-y-2">
+            <Label htmlFor="offer-ends" className="flex items-center gap-1.5">
+              <CalendarClock className="h-3.5 w-3.5" />
+              تاريخ انتهاء (اختياري)
+            </Label>
+            <Input
+              id="offer-ends"
+              type="date"
+              dir="ltr"
+              aria-invalid={!!errors.ends_at}
+              {...register("ends_at")}
+            />
+            {errors.ends_at ? (
+              <p className="text-xs text-destructive" role="alert">
+                {errors.ends_at.message as string}
+              </p>
+            ) : endsAt ? (
+              <p className="text-xs text-primary flex items-center gap-1">
+                <CalendarClock className="h-3 w-3" />
+                سينتهي العرض في {new Date(endsAt).toLocaleDateString("ar-EG")}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <InfinityIcon className="h-3 w-3" />
+                اتركه فارغاً = عرض دائم بدون تاريخ انتهاء.
+              </p>
+            )}
+          </div>
 
-            {/* أزرار الإجراءات */}
-            <div className="flex flex-row-reverse gap-2 pt-2">
-              <Button
-                type="submit"
-                className="native-tap min-h-[44px] flex-1 gap-2 rounded-full"
-                disabled={submitting || createMutation.isPending}
-              >
-                {(submitting || createMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                <Sparkles className="h-4 w-4" />
-                نشر العرض
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="native-tap min-h-[44px] rounded-full"
-                disabled={submitting || createMutation.isPending}
-                onClick={() => onOpenChange(false)}
-              >
-                إلغاء
-              </Button>
-            </div>
-          </form>
-        )}
+          {/* أزرار الإجراءات */}
+          <div className="flex flex-row-reverse gap-2 pt-2">
+            <Button
+              type="submit"
+              className="native-tap min-h-[44px] flex-1 gap-2 rounded-full"
+              disabled={submitting || createMutation.isPending}
+            >
+              {(submitting || createMutation.isPending) && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              <Sparkles className="h-4 w-4" />
+              نشر العرض
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="native-tap min-h-[44px] rounded-full"
+              disabled={submitting || createMutation.isPending}
+              onClick={() => onOpenChange(false)}
+            >
+              إلغاء
+            </Button>
+          </div>
+        </form>
+      )}
     </ResponsiveOfferShell>
   );
 }

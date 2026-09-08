@@ -26,12 +26,14 @@ interface TawfirLogoProps {
 }
 
 const SOURCES: Record<LogoVariant, { src: string; w: number; h: number }> = {
-  full: { src: "/identity/lockup-full.png", w: 560, h: 373 },
-  lockup_fulltra: { src: "/identity/lockup-fulltra.png", w: 560, h: 373 },
-  horizontal: { src: "/identity/lockup-horizontal.png", w: 900, h: 900 },
-  mark: { src: "/identity/mark.png", w: 640, h: 640 },
-  "mark-gold": { src: "/identity/mark.png", w: 640, h: 640 },
-  "mark-white": { src: "/identity/mark.png", w: 640, h: 640 },
+  /* نسخ محسّنة (إصلاح الشعار): أخف 66× من الأصل (879KB→13KB) وتُخزّن
+     مسبقاً في الـSW — تظهر الشعارات دائماً حتى أوفلاين وأول زيارة. */
+  full: { src: "/identity/lockup-full-640.png", w: 640, h: 427 },
+  lockup_fulltra: { src: "/identity/lockup-fulltra-640.png", w: 640, h: 427 },
+  horizontal: { src: "/identity/lockup-horizontal-256.png", w: 256, h: 256 },
+  mark: { src: "/identity/mark-256.png", w: 256, h: 256 },
+  "mark-gold": { src: "/identity/mark-256.png", w: 256, h: 256 },
+  "mark-white": { src: "/identity/mark-256.png", w: 256, h: 256 },
 };
 
 /** مرشحات CSS للنسخ الملونة — مسموح بها بدل إعادة التوليد */

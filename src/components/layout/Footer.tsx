@@ -24,7 +24,9 @@ export function Footer() {
 
   return (
     /* hide-in-standalone: يُخفي الفوتر كلياً عند تشغيل التطبيق مثبّتاً
-       (display-mode: standalone) — تجربة Native App */
+       (display-mode: standalone — PWA) أو داخل غلاف Capacitor الأصلي
+       (html[data-native] — APK) — مظهر Native خالص: لا «أسفل تمرير»
+       ويب، الشاشة تنتهي بالمحتوى وشريط التنقل السفلي فقط. */
     <footer
       className="hide-in-standalone mt-auto w-full bg-card"
       role="contentinfo"

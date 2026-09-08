@@ -95,7 +95,7 @@ export function StickyMiniCart() {
             className={cn(
               "fixed inset-x-3 z-40 md:hidden",
               // فوق MobileBottomNav (الذي يأخذ h-14 56px + safe-area)
-              "bottom-[calc(4.5rem+env(safe-area-inset-bottom))]"
+              "bottom-[calc(4.5rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))]"
             )}
           >
             <div className="flex items-center justify-between gap-3 rounded-2xl bg-primary px-4 py-3 text-primary-foreground shadow-soft-lg">
@@ -107,12 +107,12 @@ export function StickyMiniCart() {
                   </span>
                 </span>
                 <div className="min-w-0 flex-1 text-right">
-                <p className="text-xs font-bold leading-tight">
-                  {facilityName ?? "سلتك"}
-                </p>
-                <p className="text-[10px] leading-tight text-white/70">
-                  {totalCount} {totalCount === 1 ? "صنف" : "أصناف"} — أكمل الطلب
-                </p>
+                  <p className="text-xs font-bold leading-tight">
+                    {facilityName ?? "سلتك"}
+                  </p>
+                  <p className="text-[10px] leading-tight text-white/70">
+                    {totalCount} {totalCount === 1 ? "صنف" : "أصناف"} — أكمل الطلب
+                  </p>
                 </div>
               </div>
               <div className="shrink-0 text-left" dir="ltr">

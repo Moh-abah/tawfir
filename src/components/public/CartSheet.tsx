@@ -143,7 +143,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         className={cn(
           "flex flex-col gap-0 p-0",
           isMobile
-            ? "max-h-[88dvh] rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+            ? "max-h-[88dvh] rounded-t-2xl pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
             : "w-full sm:max-w-md"
         )}
       >

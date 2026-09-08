@@ -12,6 +12,7 @@ import {
   getFcmMessaging,
   getFcmToken,
   subscribeFcmMessages,
+  subscribeFcmTokenRefresh,
   isFcmSupported,
 } from "@/lib/firebase";
 import {
@@ -20,6 +21,7 @@ import {
   type SoundRole,
   type SoundType,
 } from "@/lib/sound-service";
+import { isNativePlatform, getNativeFcmToken } from "@/lib/capacitor";
 import {
   getNotificationMeta,
   getNotificationHref,
@@ -44,6 +46,10 @@ import type { MessagePayload } from "firebase/messaging";
  * ============ الإشعارات الأمامية (foreground) ============
  *  - عند كل جلسة دخول نشطة: يشترك في `onMessage(messaging, cb)` عبر
  *    `subscribeFcmMessages(...)`.
+ *  - إصلاح onTokenRefresh: يشترك في `onTokenRefresh(messaging, cb)` عبر
+ *    `subscribeFcmTokenRefresh(...)` — عند تجدّد توكن FCM أثناء الجلسة
+ *    يطلب توكناً جديداً ويُعيد تسجيله في الباك إند ويحذف تسجيل القديم
+ *    (كان التوكن المتقادم يبقى مسجلاً فتتوقف الإشعارات بصمت).
  *  - عند وصول رسالة FCM في المقدمة: يستخرج العنوان/المحتوى/النوع
  *    من `payload.notification` أو `payload.data`، يُشغّل الصوت المناسب
  *    (إن كان النوع ضمن أصوات الإشعارات المُبقاة — SoundService)، ويعرض
@@ -161,6 +167,10 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
   const attemptedRef = useRef(false);
   // نُحتفظ بدالة إلغاء اشتراك onMessage لتنظيفها عند الخروج/إعادة التسجيل.
   const unsubscribeFcmRef = useRef<(() => void) | null>(null);
+  // إلغاء اشتراك onTokenRefresh (إصلاح إعادة الاشتراك عند تجدّد التوكن).
+  const unsubscribeTokenRefreshRef = useRef<(() => void) | null>(null);
+  // قفل أثناء معالجة تجدد التوكن حتى لا تتزاحم المعالجات.
+  const refreshingTokenRef = useRef(false);
 
   /**
    * معالج رسالة FCM الأمامية — يعرض توست بنمط توفير + يُشغّل الصوت المناسب.
@@ -247,7 +257,7 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
         clearStoredToken();
       }
       attemptedRef.current = false;
-      // إيقاف اشتراك onMessage عند الخروج
+      // إيقاف اشتراك onMessage و onTokenRefresh عند الخروج
       if (unsubscribeFcmRef.current) {
         try {
           unsubscribeFcmRef.current();
@@ -255,6 +265,14 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
           /* تجاهل */
         }
         unsubscribeFcmRef.current = null;
+      }
+      if (unsubscribeTokenRefreshRef.current) {
+        try {
+          unsubscribeTokenRefreshRef.current();
+        } catch {
+          /* تجاهل */
+        }
+        unsubscribeTokenRefreshRef.current = null;
       }
       return;
     }
@@ -306,26 +324,78 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
       //    فقط يحتاج الإذن، أما onMessage فيعمل بلا إذن صريح طالما المتصفح
       //    يدعم FCM. (في الواقع onMessage يعمل حتى لو رُفض الإذن طالما
       //    التطبيق في المقدمة.)
+      // 1.5) إصلاح onTokenRefresh — إعادة الاشتراك عند تجدّد التوكن:
+      //      FCM يُجددّ توكن الجهاز أحياناً؛ الاشتراك القديم يصبح غير صالح
+      //      فيتوقف وصول الإشعارات بصمت. عند التجدد نطلب توكناً جديداً
+      //      ونسجّله في الباك إند ونحذف تسجيل القديم ونحدّث المخزن.
       try {
         if (isFcmSupported()) {
           getFcmMessaging(); // يهيّئ المثيل + يُسجّل SW فوراً عند الحاجة
-          unsubscribeFcmRef.current = subscribeFcmMessages(
-            handleFcmForeground
-          );
+          /* إصلاح تسريب ذاكرة (التدقيق 3-a / H-1): كانت السطر التالي
+             تُعوّض (overwrite) مرجع التفكيك الذي يُزيل مستمع
+             navigator.serviceWorker "message" أعلاه — فيبقى المستمع
+             القديم حياً على كل دورة دخول/خروج (يتراكم مع إغلاق على
+             router/toast قديمين). الحل: تركيب سلسلة التفكيك بدل
+             التعويض — كل تفكيك جديد يُنفّذ السابقة ثم يُزيّل المستمع. */
+          const prevCleanup = unsubscribeFcmRef.current;
+          const unsubFcm = subscribeFcmMessages(handleFcmForeground);
+          unsubscribeFcmRef.current = () => {
+            unsubFcm();
+            prevCleanup?.();
+          };
+          /* اشتراك onTokenRefresh — إصلاح إعادة الاشتراك عند التجدد */
+          unsubscribeTokenRefreshRef.current = subscribeFcmTokenRefresh(() => {
+            if (refreshingTokenRef.current) return; /* قفل ضد التزاحم */
+            refreshingTokenRef.current = true;
+            void (async () => {
+              try {
+                const oldToken = readStoredToken();
+                const newToken = await getFcmToken();
+                if (
+                  newToken &&
+                  newToken !== oldToken
+                ) {
+                  /* سجّل الجديد ثم احذف القديم من الباك إند */
+                  writeStoredToken(newToken);
+                  registerFcmToken({
+                    token: newToken,
+                    device_info: getDeviceInfo(),
+                  });
+                  if (oldToken) {
+                    unregisterFcmToken({ token: oldToken });
+                  }
+                  console.info(
+                    "[FCM] جُدّد توكن FCM وأُعيد تسجيله في الباك إند"
+                  );
+                }
+              } catch (err) {
+                console.warn("[FCM] token refresh handling failed:", err);
+              } finally {
+                refreshingTokenRef.current = false;
+              }
+            })();
+          });
         }
       } catch (err) {
         console.warn("[FCM] onMessage setup failed:", err);
       }
 
       // 2) اطلب إذن الإشعارات (لا يُطلب التوكن بلا إذن)
-      const perm = await requestNotificationPermission();
+      //    إصلاح APK: داخل WebView الكاباسيتور نتجاوز طلب الإذن — الإذن
+      //    الأصلي POST_NOTIFICATIONS يطلبه MainActivity نفسه، وواجهة
+      //    Notification داخل WebView لا تعمل أصلاً (بلا PushManager).
+      const perm = isNativePlatform()
+        ? ("granted" as NotificationPermission)
+        : await requestNotificationPermission();
       if (perm !== "granted") {
         console.warn("[FCM] إذن الإشعارات لم يُمنح:", perm);
         return;
       }
 
-      // 3) تأكّد من دعم المتصفح لـ FCM
-      if (!isFcmSupported()) {
+      // 3) تأكّد من دعم المتصفح لـ FCM (إصلاح APK: الـWebView بلا
+      //    PushManager — المسار الأصلي في الخطوة 5 يتجاوز هذا الحرس)
+      const nativeToken = await getNativeFcmToken();
+      if (!nativeToken && !isFcmSupported()) {
         console.warn("[FCM] المتصفح لا يدعم FCM — يُتخطّى التسجيل");
         return;
       }
@@ -335,8 +405,10 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
       const existingToken = readStoredToken();
       if (existingToken) return;
 
-      // 5) اطلب توكن FCM الحقيقي عبر Firebase (getToken + VAPID)
-      const token = await getFcmToken();
+      // 5) اطلب توكن FCM (إصلاح APK): الأصلي أولاً عبر TawfirNative
+      //    (WebView لا يدعم PushManager) ثم مسار الويب (getToken+VAPID).
+      let token = nativeToken;
+      if (!token) token = await getFcmToken();
       if (!token) {
         console.warn(
           "[FCM] لم يُعِد getToken توكناً (قد يكون الإذن مرفوض على مستوى النظام أو فشل SW) — يُتخطّى التسجيل"
@@ -357,6 +429,14 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
           /* تجاهل */
         }
         unsubscribeFcmRef.current = null;
+      }
+      if (unsubscribeTokenRefreshRef.current) {
+        try {
+          unsubscribeTokenRefreshRef.current();
+        } catch {
+          /* تجاهل */
+        }
+        unsubscribeTokenRefreshRef.current = null;
       }
     };
   }, [activeToken, isHydrated, registerFcmToken, unregisterFcmToken]);

@@ -34,7 +34,10 @@ export default function OfflinePage() {
         {...anim}
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative z-10 flex w-full max-w-sm flex-col items-center gap-6 text-center"
-        style={{ paddingTop: "env(safe-area-inset-top)" }}
+        style={{
+          /* Safe-Area مزدوجة المصدر: env() + --cap-safe-top (جسر الـAPK) */
+          paddingTop: "max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px))",
+        }}
       >
         <div className="login-logo-glow">
           <TawfirLogo variant="mark" className="h-24 w-auto" />

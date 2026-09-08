@@ -10,7 +10,13 @@ import type {
 import { SoundService } from "@/lib/sound-service"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+/* إصلاح تسريب الذاكرة (التدقيق 3-a / M-2): كانت القيمة 1000000ms
+   (~16.7 دقيقة!) — إعداد shadcn الافتراضي الشهير. كل توست (حتى
+   المستبعد من العرض) يترك مدخلاً في Map + مؤقتاً حياً 16.7 دقيقة:
+   جلسة كثيفة الإشعارات (WS + FCM + fallback) تراكم مئات المؤقتات
+   والمداخل الحية. الأنميشن يحتاج ~5s كحد أقصى — 4000ms قيمة معيارية
+   آمنة تحرّر التوست فور اختفائه. */
+const TOAST_REMOVE_DELAY = 4000
 
 type ToasterToast = Omit<ToastProps, "title" | "description"> & {
   id: string

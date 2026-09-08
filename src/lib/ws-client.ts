@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * عميل WebSocket للإشعارات الفورية — الجولة 3.
+ * عميل WebSocket للإشعارات الفورية — الجولة 3 + إصلاح الإحياء.
  *
  * يتصل بـ wss://api.tawfir.giize.com/api/v1/ws/notifications?token=XXX
  * عند استدعاء connect(token). يقطع الاتصال عند disconnect().
@@ -10,6 +10,11 @@
  *  - إعادة اتصال تلقائية: exponential backoff (1s → 2s → 4s → max 30s)
  *  - لا يستخدم socket.io — WebSocket أصلي (الخادم يدعمه مباشرة).
  *  - يدعم role token (customer/owner/admin) — أي توكن Bearer صالح.
+ *  - إصلاح الإحياء: بعد نفاد المحاولات (شبكة مقطوعة طويلاً) كان
+ *    الاتصال يتوقف نهائياً حتى تحديث الصفحة. الآن عند عودة النشاط
+ *    (الصفحة تصبح مرئية) أو عودة الاتصال (online) نُصفّر العدّاد
+ *    ونعيد الاتصال فوراً إن كان هناك توكن نشط — فلا تفقد الإشعارات
+ *    الفورية بعد انقطاع طويل.
  */
 
 type WsMessageHandler = (msg: unknown) => void;
@@ -31,6 +36,36 @@ class NotificationWebSocketClient {
   private intentionallyClosed = false;
   private messageHandlers = new Set<WsMessageHandler>();
   private statusHandlers = new Set<WsStatusHandler>();
+
+  constructor() {
+    if (typeof window === "undefined") return;
+    /* إصلاح الإحياء — مستمعان دائمان (مرة واحدة مع المُنشئ):
+       1) عند عودة الصفحة للمرئية (المستخدم عاد للتطبيق)
+       2) عند عودة الاتصال بالشبكة (حدث online)
+       كلاهما: تصفير عدّاد المحاولات + إعادة اتصال فورية إن وُجد توكن
+       ولم يكن الاتصال مقصود قطعه (تسجيل خروج). */
+    const revive = () => {
+      if (this.intentionallyClosed || !this.currentToken) return;
+      if (
+        this.socket &&
+        (this.socket.readyState === WebSocket.OPEN ||
+          this.socket.readyState === WebSocket.CONNECTING)
+      ) {
+        return; /* حي بالفعل */
+      }
+      this.reconnectAttempts = 0;
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer);
+        this.reconnectTimer = null;
+      }
+      this.emitStatus("reconnecting");
+      this.connect(this.currentToken);
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") revive();
+    });
+    window.addEventListener("online", revive);
+  }
 
   /** يسجّل مستمعاً للرسائل القادمة. يُرجع دالة إلغاء التسجيل. */
   onMessage(handler: WsMessageHandler): () => void {

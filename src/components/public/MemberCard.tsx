@@ -25,7 +25,7 @@ function CardArtBackdrop() {
   return (
     <>
       <Image
-        src="/identity/tawfir-membership-card-art.png"
+        src="/identity/tawfir-membership-card-art-1120.png"
         alt=""
         fill
         draggable={false}

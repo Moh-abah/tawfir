@@ -31,7 +31,7 @@ export function Logo({ className, href = "/", showPill = false, size = "md" }: L
       aria-label="توفير — الصفحة الرئيسية"
     >
       <Image
-        src="/identity/lockup-horizontal.png"
+        src="/identity/lockup-horizontal-256.png"
         alt="شعار توفير"
         width={669}
         height={232}

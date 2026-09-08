@@ -62,7 +62,11 @@ export function ScreenHeader({
         sticky && "sticky top-0",
         className,
       )}
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{
+        /* Safe-Area مزدوجة المصدر: env() (iOS/Android15) + --cap-safe-top
+           (يضخها الجسر الأصلي في الـAPK — env()=0 في WebView قبل 15) */
+        paddingTop: "max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px))",
+      }}
       role="banner"
     >
       <div className="grid h-14 w-full grid-cols-[44px_1fr_44px] items-center px-2">
@@ -103,7 +107,9 @@ export function ScreenHeaderSkeleton({ children }: { children?: ReactNode }) {
   return (
     <header
       className="sticky top-0 z-40 flex h-14 items-center border-b border-border/50 bg-background/95 backdrop-blur-lg"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{
+        paddingTop: "max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px))",
+      }}
       role="banner"
       aria-busy="true"
     >

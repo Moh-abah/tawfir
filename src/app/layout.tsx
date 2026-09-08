@@ -50,11 +50,19 @@ const geistMono = localFont({
  *
  * الترويسات المغروسة:
  *  • manifest: /manifest.webmanifest (ديناميكي حسب Host)
- *  • appleWebApp: capable + statusBarStyle default + title «توفير»
+ *  • appleWebApp: capable + statusBarStyle black-translucent + title «توفير»
+ *    (يوافق viewportFit cover — المحتوى يمتد تحت شريط الحالة ويعالجه
+ *    safe-area-inset-top في المكونات؛ أزلنا نسخة يدوية مكررة كانت
+ *    تسبب تعارضاً مع statusBarStyle من الـmetadata)
  *  • apple-touch-icon: /icons/apple-touch-icon.png
  *  • apple-touch-startup-image (splash): يُحقنها (public)/layout.tsx
  *    للأحجام المختلفة — تظهر عند إطلاق التطبيق المثبت على iPhone/iPad
- *  • theme-color: #0A1A2F (الزمردي — هوية توفير)
+ *  • theme-color: ثنائي الوضع عبر media (prefers-color-scheme) —
+ *    فاتح #F7F7F7 / داكن #0A1A2F — يتبع وضع النظام قبل أي JS،
+ *    ثم يحدّثه ThemeProvider ديناميكياً عند تبديل المستخدم.
+ *    (PWABuilder/Bubblewrap يقرأ هذين الميتا ليعيّن ألوان شريط
+ *    الحالة والتنقل light/dark في حزمة أندرويد — إصلاح «أزرار
+ *    النظام داكنة في الوضع الفاتح».)
  */
 export const metadata: Metadata = {
   // الجولة 21 — metadataBase + canonical لمنع المحتوى المكرر في Google
@@ -73,7 +81,7 @@ export const metadata: Metadata = {
   applicationName: "توفير",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "توفير",
   },
   icons: {
@@ -104,10 +112,8 @@ export const metadata: Metadata = {
       "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم ومقاهي مدينتك، ووفّر حتى 30% على كل طلب مع عضوية توفير.",
     images: ["/identity/tawfir-social-cover.png"],
   },
-  other: {
-    "apple-mobile-web-app-capable": "yes",
-    "theme-color": "#0A1A2F",
-  },
+  /* (أزلنا other: theme-color + apple-mobile-web-app-capable — تولّدهما
+     viewport.themeColor و appleWebApp.capable — كانت مكررة مرتين) */
 };
 
 export const viewport: Viewport = {
@@ -120,7 +126,13 @@ export const viewport: Viewport = {
   minimumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0A1A2F",
+  /* إصلاح الثيم: ميتا theme-color ثنائية (فاتح/داكن) — يتبع وضع النظام
+     تلقائياً قبل تحميل أي JS (مناسب لـPWA والتطبيقات المولدة من
+     PWABuilder — شريط الحالة + أزرار النظام مطابقة لوضع النظام). */
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F7F7F7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A1A2F" },
+  ],
 };
 
 export default function RootLayout({
@@ -131,9 +143,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* (أزلنا الميتا اليدوية المكررة: link manifest + apple-capable +
+            status-bar-style — كلها تُولّد الآن من metadata/viewport بلا
+            تكرار ولا تعارض default مقابل black-translucent) */}
         {/*
           الجولة 16 — إصلاح CLS (0.08): البانر الترحيبي يُرسم في SSR دائماً،
           ثم يُزال بعد الترطيب للمسجّلين/الرافضين → إزاحة محتوى عند كل تحميل.
@@ -151,11 +163,28 @@ export default function RootLayout({
             الجولة 23: بلا اختيار مخزّن ← يتبع وضع النظام
             (prefers-color-scheme) — فشاشة الإقلاع والتطبيق كلاهما
             يطابق وضع الجهاز مثل التطبيقات الأصلية تماماً.
-            يحدّث أيضاً <meta name="theme-color"> ليطابق شريط المتصفح/النظام
-            لون الوضع الحالي (فاتح = فاتح، داكن = كحلي الهوية). */}
+            إصلاح الثيم: يحدّث كل ميتا theme-color (الخفيف والداكن)
+            لتطابق الوضع الفعّالي — بلا تعارض مع الوسم المُولّد من
+            viewport، ويحترم اختيار المستخدم إن خالف وضع النظام. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=window.localStorage.getItem('tawfir-theme');var dk=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(dk){document.documentElement.classList.add('dark')}var m=document.querySelector('meta[name=theme-color]');if(m){m.setAttribute('content',dk?'#0A1A2F':'#F7F7F7')}}catch(e){}`,
+            __html: `try{var t=window.localStorage.getItem('tawfir-theme');var dk=t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(dk){document.documentElement.classList.add('dark')}var ms=document.querySelectorAll('meta[name=theme-color]');for(var i=0;i<ms.length;i++){ms[i].setAttribute('content',dk?'#0A1A2F':'#F7F7F7')}}catch(e){}`,
+          }}
+        />
+        {/*
+          وضع Native (Capacitor APK) — قبل أول طلاء:
+          WebView كاباسيتور لا يُطابق display-mode: standalone، لذلك
+          صنف hide-in-standalone وحده لا يكفي. كاباسيتور يحقن
+          window.Capacitor قبل تنفيذ أي سكربت صفحة — هذا السكربت
+          المتزامن يسم <html data-native> فوراً (قبل رسم أي بكسل)،
+          فيختفي الفوتر الويب وبانر الكوكيز من أول إطار داخل الـAPK
+          بلا وميض (NativeBridge يعيد الوسم ذاته بعد الترطيب —
+          التطبيق المتزامن آمن). على الويب: window.Capacitor غير
+          موجود أو isNativePlatform()=false ← لا شيء يحدث إطلاقاً.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var c=window.Capacitor;if(c&&typeof c.isNativePlatform==='function'&&c.isNativePlatform()){document.documentElement.setAttribute('data-native','1')}}catch(e){}`,
           }}
         />
         {/* الجولة 21 — structured data schema.org/WebSite للـSEO */}

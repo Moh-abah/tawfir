@@ -132,7 +132,7 @@ export default function ImportProductsContent() {
   const params = useParams<{ id: string }>();
   const facilityId = Number(params.id);
   const router = useRouter();
-const prefersReduced = usePrefersReducedMotion();
+  const prefersReduced = usePrefersReducedMotion();
 
   const [file, setFile] = useState<File | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
@@ -205,7 +205,9 @@ const prefersReduced = usePrefersReducedMotion();
     a.href = url;
     a.download = "import_errors.csv";
     a.click();
-    URL.revokeObjectURL(url);
+    /* تحسين (التدقيق 3-a / I1): تأجيل الإلغاء دورة مهام واحدة —
+       الإلغاء الفوري يسبق قراءة سفاري للرابط أحياناً. */
+    setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   const cardAnimation = prefersReduced

@@ -73,7 +73,7 @@ export function ScrollToTop() {
         aria-describedby={tooltipId}
         data-visible={visible ? "1" : "0"}
         className={cn(
-          "fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-4 z-40 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-200 hover:shadow-2xl hover:shadow-primary/50 hover:scale-110 active:scale-95 md:bottom-8 md:left-auto md:right-8",
+          "fixed bottom-[calc(5rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] left-4 z-40 flex items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-all duration-200 hover:shadow-2xl hover:shadow-primary/50 hover:scale-110 active:scale-95 md:bottom-8 md:left-auto md:right-8",
           visible
             ? "opacity-100 scale-100 pointer-events-auto"
             : "opacity-0 scale-50 pointer-events-none",

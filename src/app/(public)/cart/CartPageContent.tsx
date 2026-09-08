@@ -391,7 +391,7 @@ export function CartPageContent() {
       </div>
 
       {/* شريط تأكيد لاصق — الموبايل فقط (فوق شريط التنقل) */}
-      <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 lg:hidden">
+      <div className="fixed inset-x-3 bottom-[calc(4.5rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] z-40 lg:hidden">
         <button
           type="button"
           onClick={() => {

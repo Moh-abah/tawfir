@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import {
   Plus,
   Search,
@@ -310,6 +310,14 @@ const prefersReduced = usePrefersReducedMotion();
       setDebouncedSearch(val);
       setPage(1);
     }, 300);
+  }, []);
+
+  /* تحسين (التدقيق 3-a / L4): تنظيف مؤقّت الـdebounce عند فكّ التركيب
+     — كان يبقى مؤقتاً واحداً حياً يستدعي setPage بعد التركيب. */
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
   }, []);
 
   // Queries & mutations

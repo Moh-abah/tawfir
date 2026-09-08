@@ -23,6 +23,10 @@ import { usePathname } from "next/navigation";
  *  - يبقى ظاهراً حتى في وضع standalone (التطبيقات الأصلية لها هيدر
  *    للوصول للمنطقة والحساب) — الفوتر فقط هو الذي يُخفى.
  *  - الشعار مصغّر على الموبايل (scale-90) ويكبر على الديسكتوب.
+ *  - Safe-Area (إصلاح ملاحظات APK): pt-safe يضيف حشوة علوية
+ *    بمقدار شريط الحالة داخل الـAPK (Edge-to-Edge) فلا تتداخل
+ *    عناصر الهيدر (الشعار/السلة/الدخول) مع أيقونات النظام —
+ *    على الويب العادي القيمة 0 فلا يتغير شيء.
  */
 
 const MAIN_HEADER_ROUTES: ReadonlySet<string> = new Set(["/"]);
@@ -47,7 +51,7 @@ export function MainHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 w-full transition-[background-color,border-color,box-shadow] duration-200",
+        "sticky top-0 z-40 w-full pt-safe transition-[background-color,border-color,box-shadow] duration-200",
         scrolled
           ? "border-b border-border/50 bg-card/95 shadow-sm backdrop-blur-lg supports-[backdrop-filter]:bg-card/80"
           : "border-transparent bg-transparent"
@@ -77,7 +81,7 @@ export function MainHeader() {
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
-      
+
           <CartButton />
           <NetworkStatusIndicator className="hidden sm:inline-flex" />
           {isLoggedIn && <NotificationBell variant="header" />}

@@ -21,9 +21,11 @@
  *   SDK functions so consumers never need to import `firebase/messaging`
  *   directly.
  *
- * Background notifications are handled by `/firebase-messaging-sw.js`
- * (a separate compat service worker, scope `/`). Foreground messages are
- * handled in `FcmRegistrar.tsx` via `subscribeFcmMessages(...)`.
+ * Background notifications are handled by the MAIN service worker
+ * `/sw.js` (scope "/") — it owns the push handler that shows
+ * lock-screen notifications. Foreground messages are handled in
+ * `FcmRegistrar.tsx` via `subscribeFcmMessages(...)`, and token
+ * rotation via `subscribeFcmTokenRefresh(...)` (إصلاح onTokenRefresh).
  */
 
 import type { Messaging, MessagePayload } from "firebase/messaging";
@@ -48,6 +50,51 @@ export const FIREBASE_CONFIG = {
  */
 export const FIREBASE_VAPID_KEY =
   "BB3FJpCjnbenGoHvaH79z-NobkrNcyJuYpQkhKIafoHQKqOKSMnMjjazZ-LgFk166FXBE4T5Ef1Vrv4vS_mOMwM";
+
+/* ── إصلاح فك ترميز VAPID base64url ─────────────────────────────────
+ * Firebase JS SDK 10.12 يقبل سلسلة base64url مباشرة ويفكّها داخلياً،
+ * لكن مفتاحاً مشوهاً (حروف base64 قياسية +/ بدلاً من -_ أو حشو خاطئ
+ * أو نقص بايتات) يفشل بصمت عند getToken. هذه الدوال تتحقق وتوحّد
+ * المفتاح قبل تمريره:
+ *  1) urlBase64ToUint8Array: تحويل قياسي base64url ← Uint8Array
+ *     (استبدال -_ بـ+/ وإزالة الحشو ثم atob).
+ *  2) normalizeVapidKey: تحقق من صحة المفتاح (87 حرفاً = 65 بايتاً
+ *     لمفتاح P-256) وإرجاع الصيغة الموحدة، أو null عند فساده —
+ *     فنسقط التسجيل مبكراً برسالة واضحة بدل فشل صامت. */
+export function urlBase64ToUint8Array(base64url: string): Uint8Array {
+  const normalized = base64url
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .replace(/=+$/, "");
+  const base64 = normalized.padEnd(
+    normalized.length + ((4 - (normalized.length % 4)) % 4),
+    "="
+  );
+  const raw = typeof window !== "undefined"
+    ? window.atob(base64)
+    : Buffer.from(base64, "base64").toString("binary");
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
+/** تحقق من سلامة مفتاح VAPID (65 بايتاً = نقطة P-256 غير مضغوطة). */
+export function normalizeVapidKey(key: string): string | null {
+  try {
+    const bytes = urlBase64ToUint8Array(key);
+    /* مفتاح P-256: 0x04 + X(32) + Y(32) = 65 بايتاً */
+    if (bytes.length !== 65 || bytes[0] !== 0x04) return null;
+    /* نعيد ترميزه صيغة base64url الموحدة (بلا حشو) */
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const b64 = typeof window !== "undefined"
+      ? window.btoa(binary)
+      : Buffer.from(bytes).toString("base64");
+    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch {
+    return null;
+  }
+}
 
 /* ── Lazy singletons (client only) ────────────────────────────────────── */
 
@@ -123,13 +170,58 @@ export function getFcmMessaging(): Messaging | null {
 }
 
 /**
- * يضمن وجود تسجيل Service Worker الرئيسي /sw.js (نطاق "/") ويعيده.
+ * يضمن وجود تسجيل Service Worker الرئيسي /sw.js (نطاق "/") ويعيده
+ * مُفعّلاً بالكامل.
  *
  * الجولة 22 — إصلاح جذر الإشعارات الخارجية: اشتراك Push يجب أن يُربط
  * بعامل /sw.js نفسه (الذي يحتوي معالج push). في السابق كان getToken
  * يلتقط أي تسجيل موجود — وقد يسبقه عامل قديم — فتضيع أحداث push.
  * register() هنا idempotent: إن كان /sw.js مسجلاً يعيد تسجيله نفسه.
+ *
+ * إصلاح سباق «no active Service Worker»: كان الكود ينتظر
+ * navigator.serviceWorker.ready فقط عند غياب active — وready قد يحل
+ * بتسجيلٍ آخر أو يتأخر إلى ما بعد getToken فيفشل بـ
+ * «no active Service Worker available». الآن ننتظر تفعيل هذا التسجيل
+ * تحديداً (installing/waiting ← statechange → activated) قبل إرجاعه،
+ * مع مهلة أمان 10 ثوانٍ حتى لا يعلق التسجيل إلى الأبد.
  */
+async function waitForActivation(
+  reg: ServiceWorkerRegistration
+): Promise<ServiceWorkerRegistration> {
+  if (reg.active) return reg;
+  const target = reg.installing ?? reg.waiting;
+  if (!target) {
+    /* لا installing ولا waiting — fallback إلى ready الخاص بالنطاق */
+    await navigator.serviceWorker.ready;
+    return reg;
+  }
+  await new Promise<void>((resolve) => {
+    /* إصلاح (التدقيق 3-a / L1): عند مسار المهلة (10s) كان مستمع
+       statechange يبقى معلقاً على عامل installing متروك — نزيّله
+       دائماً عند الحسم أياً كان مصدره (تفعيل/تقادم/مهلة). */
+    const cleanup = () => {
+      clearTimeout(timer);
+      target.removeEventListener("statechange", onState);
+    };
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, 10000); /* مهلة أمان 10s */
+    const onState = () => {
+      if (target.state === "activated" || target.state === "redundant") {
+        cleanup();
+        resolve();
+      }
+    };
+    target.addEventListener("statechange", onState);
+    if (target.state === "activated" || target.state === "redundant") {
+      cleanup();
+      resolve();
+    }
+  });
+  return reg;
+}
+
 async function getMainSwRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined") return null;
   if (!("serviceWorker" in navigator)) return null;
@@ -141,17 +233,14 @@ async function getMainSwRegistration(): Promise<ServiceWorkerRegistration | null
       existing?.waiting?.scriptURL ??
       existing?.active?.scriptURL ??
       "";
-    if (existing && swUrl.endsWith("/sw.js")) {
+    if (existing && swUrl.endsWith("/sw.js") && existing.active) {
       return existing;
     }
     /* سجّل /sw.js (يستبدل أي عامل قديم بنفس النطاق — مثل
        firebase-messaging-sw.js المتقادم — بتحديث التسجيل) */
     const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-    /* انتظر تفعيله حتى يصبح قادراً على استقبال push فوراً */
-    if (!reg.active) {
-      await navigator.serviceWorker.ready;
-    }
-    return reg;
+    /* انتظر تفعيل هذا التسجيل تحديداً (إصلاح سباق no active SW) */
+    return await waitForActivation(reg);
   } catch (err) {
     console.warn("[firebase] SW registration failed:", err);
     return null;
@@ -165,22 +254,83 @@ async function getMainSwRegistration(): Promise<ServiceWorkerRegistration | null
  * lock-screen notifications). Resolves to the token string, or `null`
  * if anything goes wrong (unsupported, permission denied, network error,
  * SW registration failure, etc.). Never throws.
+ *
+ * إصلاحات هذه الدالة:
+ *  • VAPID: يوحّد المفتاح عبر normalizeVapidKey (فك ترميز base64url
+ *    موثوق) قبل تمريره لـ getToken — يمنع فشلاً صامتاً بمفتاح مشوه.
+ *  • إعادة محاولة واحدة عند فشل شبكة عابر في getToken.
  */
 export async function getFcmToken(): Promise<string | null> {
   const m = getFcmMessaging();
   if (!m) return null;
   const api = loadMessagingApi();
   if (!api) return null;
+
+  /* توحيد/فحص مفتاح VAPID (إصلاح فك الترميز) */
+  const vapidKey = normalizeVapidKey(FIREBASE_VAPID_KEY) ?? FIREBASE_VAPID_KEY;
+
+  const swReg = await getMainSwRegistration();
+  const options: {
+    vapidKey: string;
+    serviceWorkerRegistration?: ServiceWorkerRegistration;
+  } = { vapidKey };
+  if (swReg) options.serviceWorkerRegistration = swReg;
+
+  /* محاولة أولى + إعادة محاولة واحدة عند الفشل الشبكي العابر */
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const token = await api.getToken(m, options);
+      return token ?? null;
+    } catch (err) {
+      if (attempt === 0) {
+        /* مهلة قصيرة ثم إعادة المحاولة — يفيد بعد تفعيل SW مباشرة */
+        await new Promise((r) => setTimeout(r, 800));
+        continue;
+      }
+      console.warn("[firebase] getToken failed:", err);
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * إصلاح onTokenRefresh — إعادة الاشتراك عند تجدّد التوكن:
+ * FCM يدير توكن الجهاز ويجددّه أحياناً (تغيّر متصفح/إذن/مفتاح VAPID
+ * أو دوران خادم FCM). الاشتراك القديم يصبح غير صالح فيتوقف وصول
+ * الإشعارات بصمت. هذه الدالة تشترك في onTokenRefresh وتبلّغ
+ * المستدعي فوراً — ليطلب FcmRegistrar توكناً جديداً ويعيد تسجيله
+ * في الباك إند (ويحذف القديم). تُرجع دالة إلغاء الاشتراك. لا ترمي.
+ */
+export function subscribeFcmTokenRefresh(
+  onRefresh: () => void
+): () => void {
+  const m = getFcmMessaging();
+  if (!m) return () => {};
+  const api = loadMessagingApi();
+  if (!api || typeof api.onTokenRefresh !== "function") return () => {};
   try {
-    const swReg = await getMainSwRegistration();
-    const token = await api.getToken(m, {
-      vapidKey: FIREBASE_VAPID_KEY,
-      serviceWorkerRegistration: swReg ?? undefined,
-    });
-    return token ?? null;
+    return api.onTokenRefresh(m, onRefresh) as () => void;
   } catch (err) {
-    console.warn("[firebase] getToken failed:", err);
-    return null;
+    console.warn("[firebase] onTokenRefresh failed:", err);
+    return () => {};
+  }
+}
+
+/**
+ * حذف توكن FCM الحالي من هذا الجهاز (يحذف اشتراك Push على مستوى
+ * FCM). يُستخدم عند تسجيل الخروج النهائي أو عند فساد التوكن —
+ * إصلاح تنظيف الاشتراكات المتقادمة. لا ترمي أبداً.
+ */
+export async function deleteFcmToken(): Promise<void> {
+  const m = getFcmMessaging();
+  if (!m) return;
+  const api = loadMessagingApi();
+  if (!api || typeof api.deleteToken !== "function") return;
+  try {
+    await api.deleteToken(m);
+  } catch (err) {
+    console.warn("[firebase] deleteToken failed:", err);
   }
 }
 

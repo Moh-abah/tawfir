@@ -57,6 +57,11 @@ export function ServiceWorkerRegistrar() {
 
     let cancelled = false;
     let intervalId: number | null = null;
+    /* إصلاح تسريب الذاكرة (التدقيق 3-a / M-3): نحتفظ بمرجع مستمع
+       updatefound لإزالته عند فكّ التركيب — التسجيل (registration)
+       كائن يعيش أطول من المكوّن، وفي StrictMode كان كل تركيب يضيف
+       مستمعاً جديداً دائماً بلا إزالة. */
+    let onUpdateFound: (() => void) | null = null;
 
     const watchRegistration = (registration: ServiceWorkerRegistration) => {
       registrationRef.current = registration;
@@ -66,7 +71,7 @@ export function ServiceWorkerRegistrar() {
         setUpdateReady(true);
       }
 
-      registration.addEventListener("updatefound", () => {
+      onUpdateFound = () => {
         const installing = registration.installing;
         if (!installing) return;
         installing.addEventListener("statechange", () => {
@@ -77,7 +82,8 @@ export function ServiceWorkerRegistrar() {
             setUpdateReady(true);
           }
         });
-      });
+      };
+      registration.addEventListener("updatefound", onUpdateFound);
     };
 
     const register = async () => {
@@ -104,7 +110,12 @@ export function ServiceWorkerRegistrar() {
           /* غير حرج */
         }
 
-        /* فحص تحديث دوري (كل ساعة) */
+        /* فحص تحديث دوري (كل ساعة)
+           إصلاح (التدقيق 3-a / M-3): الفاصل كان يُنشأ بعد await —
+           لو فُكّ تركيب المكوّن أثناء الانتظار (StrictMode/تنقل)
+           يكون التنظيف قد قرأ intervalId=null فيبقى المؤقّت الساعي
+           حياً للأبد يحدّث التسجيل. الحارس cancelled يمنع ذلك. */
+        if (cancelled) return;
         intervalId = window.setInterval(() => {
           registration.update().catch(() => undefined);
         }, 60 * 60 * 1000);
@@ -163,6 +174,10 @@ export function ServiceWorkerRegistrar() {
     return () => {
       cancelled = true;
       if (intervalId) window.clearInterval(intervalId);
+      /* إزالة مستمع updatefound من التسجيل المشترك (إصلاح M-3) */
+      if (onUpdateFound && registrationRef.current) {
+        registrationRef.current.removeEventListener("updatefound", onUpdateFound);
+      }
       if (onlineTimerRef.current) {
         window.clearTimeout(onlineTimerRef.current);
       }
@@ -180,10 +195,10 @@ export function ServiceWorkerRegistrar() {
   const slideVariants = prefersReduced
     ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
     : {
-        initial: { y: 72, opacity: 0 },
-        animate: { y: 0, opacity: 1 },
-        exit: { y: 72, opacity: 0 },
-      };
+      initial: { y: 72, opacity: 0 },
+      animate: { y: 0, opacity: 1 },
+      exit: { y: 72, opacity: 0 },
+    };
 
   return (
     <AnimatePresence>
@@ -194,7 +209,7 @@ export function ServiceWorkerRegistrar() {
           {...slideVariants}
           transition={{ duration: 0.3, ease: "easeOut" }}
           className="fixed inset-x-4 bottom-4 z-[60] mx-auto max-w-md rounded-2xl border border-border/60 bg-card p-4 shadow-soft-lg"
-          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px))" }}
         >
           <div className="flex items-start gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/15">

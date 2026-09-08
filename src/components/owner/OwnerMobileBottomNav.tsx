@@ -93,7 +93,10 @@ export function OwnerMobileBottomNav({ onOpenMenu, className }: OwnerMobileBotto
         "fixed bottom-0 inset-x-0 z-40 border-t border-border/50 bg-background/95 backdrop-blur-lg",
         className,
       )}
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        /* Safe-Area مزدوجة المصدر: env() + --cap-safe-bottom (جسر الـAPK) */
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px))",
+      }}
       role="navigation"
       aria-label="التنقّل السفلي للبائع"
     >

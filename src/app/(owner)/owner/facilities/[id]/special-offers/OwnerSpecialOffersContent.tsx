@@ -476,7 +476,7 @@ export default function OwnerSpecialOffersContent() {
         >
           <SheetContent
             side="bottom"
-            className="rounded-t-2xl pb-[env(safe-area-inset-bottom)]"
+            className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
           >
             <div className="bottom-sheet-grip mt-1" aria-hidden="true" />
             <SheetHeader className="text-right">

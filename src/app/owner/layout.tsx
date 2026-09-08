@@ -9,25 +9,23 @@ import type { Metadata, Viewport } from "next";
  *
  * الميتا:
  *  • manifest: /manifest.webmanifest?app=owner (يخدم manifest المالك)
- *  • appleWebApp: title «توفير مالك» + capable + statusBarStyle default
+ *  • appleWebApp: title «توفير مالك» + capable + statusBarStyle black-translucent
  *  • apple-touch-icon: /icons/owner-apple-touch-icon.png
- *  • theme-color: #0A1A2F (زمردي عميق لهوية بوابة المتاجر)
+ *  • theme-color: ثنائي الوضع (فاتح/داكن) — إصلاح الثيم (يتّبع النظام
+ *    ثم يحدّثه ThemeProvider ديناميكياً؛ PWABuilder يقرأه للمالك)
  */
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest?app=owner",
   applicationName: "توفير مالك",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "توفير مالك",
   },
   icons: {
     apple: "/icons/owner-apple-touch-icon.png",
   },
-  other: {
-    "apple-mobile-web-app-capable": "yes",
-    "theme-color": "#0A1A2F",
-  },
+  /* (أزلنا other المكررة — تُولّد من appleWebApp/viewport) */
 };
 
 export const viewport: Viewport = {
@@ -40,7 +38,11 @@ export const viewport: Viewport = {
   minimumScale: 1,
   userScalable: false,
   viewportFit: "cover",
-  themeColor: "#0A1A2F",
+  /* إصلاح الثيم — ثنائي الوضع (نفس الجذر) */
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F7F7F7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0A1A2F" },
+  ],
 };
 
 export default function OwnerEntryLayout({

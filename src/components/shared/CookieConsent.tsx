@@ -4,6 +4,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { isNativePlatform } from "@/lib/capacitor";
 
 const STORAGE_KEY = "tawfir_cookie_consent";
 
@@ -26,7 +27,7 @@ function useCookieConsent() {
 
 export function CookieConsent() {
   const hasConsented = useCookieConsent();
-const prefersReduced = usePrefersReducedMotion();
+  const prefersReduced = usePrefersReducedMotion();
 
   const handleAccept = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "accepted");
@@ -37,6 +38,14 @@ const prefersReduced = usePrefersReducedMotion();
     localStorage.setItem(STORAGE_KEY, "rejected");
     window.dispatchEvent(new StorageEvent("storage"));
   }, []);
+
+  /* وضع Native (Capacitor APK): ملفات تعريف الارتباط مفهوم متصفح —
+     لا معنى لبانر الموافقة داخل غلاف أصلي (التطبيق يخضع لسياسة
+     الخصوصية مباشرة). نُبطِل المكوّن كلياً: لا استماع لأحداث التخزين
+     ولا رسم framer-motion — وصنف hide-in-standalone يغطي الإطار
+     الافتتاحي قبل الترطيب (يُسم <html data-native> من سكربت head).
+     (يُوضع بعد كل الـhooks التزاماً بقواعد rules-of-hooks). */
+  if (isNativePlatform()) return null;
 
   if (hasConsented) return null;
 
@@ -50,7 +59,7 @@ const prefersReduced = usePrefersReducedMotion();
         <motion.div
           {...slideUp}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 px-4 md:bottom-0"
+          className="hide-in-standalone fixed inset-x-0 bottom-[calc(4rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] z-50 px-4 md:bottom-0"
         >
           <div className="glass-card mx-auto max-w-2xl rounded-xl border p-4">
             <p className="text-sm text-foreground leading-relaxed">

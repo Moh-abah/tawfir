@@ -39,7 +39,10 @@ export function AuthShell({
   return (
     <div
       className="login-page-bg relative min-h-[100dvh] overflow-hidden"
-      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      style={{
+        /* Safe-Area مزدوجة المصدر: env() + --cap-safe-top (جسر الـAPK) */
+        paddingTop: "max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px))",
+      }}
     >
       {/* هالات زمرردية/ذهبية/فيروزية عائمة */}
       <div

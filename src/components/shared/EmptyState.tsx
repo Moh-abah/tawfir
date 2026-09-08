@@ -30,7 +30,9 @@ export function EmptyState({
   title,
   description,
   action,
-  image = "/identity/tawfir-empty-state.png",
+  /* إصلاح الشعار: النسخة المحسّنة 480px (61KB بدل 4.3MB) — تُعرض
+     بحد أقصى ~160px فتبدو مثالية على 3x retina وتُخزّن مسبقاً في SW */
+  image = "/identity/tawfir-empty-state-480.png",
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-4 py-16">
@@ -40,8 +42,8 @@ export function EmptyState({
           <Image
             src={image}
             alt=""
-            width={1920}
-            height={1920}
+            width={480}
+            height={480}
             draggable={false}
             className="h-auto w-[148px] select-none object-contain opacity-90 sm:w-[168px]"
           />

@@ -74,6 +74,9 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
     icon: Mail,
     colorClass: "text-teal-500",
     bgClass: "bg-teal-500/10",
+    /* إصلاح التوحيد: مستلم هذا النوع هو المشرف — يُوجَّه لصفحة طلبات
+       العضوية في لوحة الإدارة (نفس سلوك الرابط العميق في SW). */
+    hrefFor: () => "/admin/membership-requests",
   },
   membership_received: {
     icon: Mail,

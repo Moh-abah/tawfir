@@ -319,9 +319,8 @@ function ReceiptActions({ order }: { order: OrderOut }) {
       typeof window !== "undefined"
         ? `${window.location.origin}/orders/${order.id}/receipt`
         : `/orders/${order.id}/receipt`;
-    const shareText = `إيصال طلب #${order.id} من ${
-      order.facility_name ?? "متجر"
-    } — الإجمالي ${formatCurrency(order.total)} | تطبيق توفير`;
+    const shareText = `إيصال طلب #${order.id} من ${order.facility_name ?? "متجر"
+      } — الإجمالي ${formatCurrency(order.total)} | تطبيق توفير`;
 
     try {
       if (navigator.share) {
@@ -345,7 +344,7 @@ function ReceiptActions({ order }: { order: OrderOut }) {
   };
 
   return (
-    <div className="print-hidden sticky bottom-0 z-30 border-t border-border/50 bg-background/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 backdrop-blur-lg">
+    <div className="print-hidden sticky bottom-0 z-30 border-t border-border/50 bg-background/95 px-4 pb-[calc(0.75rem+max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px)))] pt-3 backdrop-blur-lg">
       <div className="mx-auto flex max-w-sm items-center gap-2">
         <Button
           type="button"

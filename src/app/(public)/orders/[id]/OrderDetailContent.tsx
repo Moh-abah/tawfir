@@ -212,7 +212,7 @@ function ReOrderSection({ order }: { order: OrderOut }) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="flex max-h-[88dvh] flex-col gap-0 rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
+          className="flex max-h-[88dvh] flex-col gap-0 rounded-t-2xl p-0 pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
         >
           <div className="bottom-sheet-grip pt-3" aria-hidden="true" />
           <SheetHeader className="border-b p-4 text-right">
@@ -578,9 +578,9 @@ function TrackingFlow({ currentStatus }: { currentStatus: OrderStatus }) {
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-full border-2 bg-card transition-colors",
                 isCompleted &&
-                  "border-secondary bg-secondary text-secondary-foreground",
+                "border-secondary bg-secondary text-secondary-foreground",
                 isCurrent &&
-                  "border-primary bg-primary text-primary-foreground shadow-soft-lg",
+                "border-primary bg-primary text-primary-foreground shadow-soft-lg",
                 isFuture && "border-border bg-card text-muted-foreground"
               )}
             >

@@ -151,7 +151,7 @@ export function RegionSelector() {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl pb-[env(safe-area-inset-bottom)] max-h-[70dvh]"
+          className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))] max-h-[70dvh]"
         >
           <div className="bottom-sheet-grip mt-2" aria-hidden="true" />
           <SheetHeader className="pb-2 text-right">

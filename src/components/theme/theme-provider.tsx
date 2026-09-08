@@ -54,13 +54,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [override, setOverride] = React.useState<Theme | null>(null);
   const theme = override ?? storedTheme;
 
-  /* مزامنة صنف <html> + <meta name=theme-color> مع الثيم الفعلي —
+  /* مزامنة صنف <html> + كل ميتا theme-color مع الثيم الفعلي —
      تحديث نظام خارجي (DOM) داخل effect: مسموح. الجولة 23: شريط
-     المتصفح/النظام يتبع الثيم (فاتح = فاتح، داكن = كحلي الهوية). */
+     المتصفح/النظام يتبع الثيم (فاتح = فاتح، داكن = كحلي الهوية).
+     إصلاح الثيم: كان يحدّث أول ميتا فقط بينما viewport.themeColor
+     الثنائي يولّد اثنين (light+dark) — الثاني ظل داكناً للأبد.
+     الآن نحدّث كل الميتا معاً فلا تضارب بين المتصفحات/PWABuilder. */
   React.useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "dark" ? "#0A1A2F" : "#F7F7F7");
+    const metas = document.querySelectorAll('meta[name="theme-color"]');
+    metas.forEach((meta) => {
+      meta.setAttribute("content", theme === "dark" ? "#0A1A2F" : "#F7F7F7");
+    });
   }, [theme]);
 
   const setTheme = React.useCallback((next: Theme) => {

@@ -83,7 +83,11 @@ export function MobileBottomNav() {
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-50 border-t border-border/50 bg-card/95 backdrop-blur-lg md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      style={{
+        /* Safe-Area مزدوجة المصدر: env() + --cap-safe-bottom (جسر الـAPK
+           Edge-to-Edge — فوق أزرار أندرويد السفلية لا تحتها) */
+        paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px))",
+      }}
       role="navigation"
       aria-label="التنقل الرئيسي"
     >

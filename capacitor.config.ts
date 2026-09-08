@@ -43,15 +43,20 @@ const config: CapacitorConfig = {
       keystoreAlias: "tawfeer",
     },
     allowMixedContent: false,
-    backgroundColor: "#0A1A2F",
+    /* إصلاح الثيم: خلفية الـWebView قبل تحميل المحتوى — فاتحة
+       (السبلاش الأصلي الآن ثنائي الوضع عبر values/values-night في
+       patch-android-identity.mjs؛ NativeBridge يضبط شريط الحالة
+       الفعلي فور جهوزية الثيم). */
+    backgroundColor: "#F7F7F7",
   },
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,
       launchAutoHide: false,
-      // #005B82 — نفس خلفية drawable/splash.xml الصلبة (سكربت
-      // patch-android-identity.mjs) حتى لا يومض لون مختلف بينهما
-      backgroundColor: "#005B82",
+      /* إصلاح الثيم: فاتح — يطابق خلفية شاشة إقلاع الويب الفاتحة
+       (#F7F7F7). كان #005B82 (أزرق مختلف عن الهوية) يسبب وميض
+       لونين متتاليين. الوضع الداكن يعالجه values-night في الباتش. */
+      backgroundColor: "#F7F7F7",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
@@ -59,8 +64,12 @@ const config: CapacitorConfig = {
       splashImmersive: true,
     },
     StatusBar: {
-      style: "DARK",
-      backgroundColor: "#0A1A2F",
+      /* إصلاح الثيم: إعداد أولي فاتح (أيقونات داكنة على خلفية فاتحة) —
+         NativeBridge يضبطه فوراً على الوضع الفعلي بعد الترطيب، ويُزامنه
+         مع كل تبديل. كان ثابتاً DARK/#0A1A2F فيظهر شريط داكن على تطبيق
+         فاتح وأزرار نظام داكنة لا تتبع ثيم الجهاز. */
+      style: "LIGHT",
+      backgroundColor: "#F7F7F7",
       overlaysWebView: true,
     },
   },

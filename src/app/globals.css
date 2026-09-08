@@ -293,6 +293,7 @@
    التمرير يعمل بالإصبع بلا أي شريط ظاهر — الديسكتوب تحتفظ بأشرطته الرفيعة
    ═══════════════════════════════════════════════════════════════ */
 @media (max-width: 640px) {
+
   .scroll-area-thin::-webkit-scrollbar,
   .no-mobile-scrollbar::-webkit-scrollbar {
     display: none;
@@ -300,8 +301,10 @@
 
   .scroll-area-thin,
   .no-mobile-scrollbar {
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge legacy */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge legacy */
   }
 
   /* أشرطة Radix ScrollArea المخصصة (viewport داخلي) — تختفي على الموبايل */
@@ -532,13 +535,11 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(212, 175, 55, 0.08) 45%,
-    rgba(14, 125, 98, 0.06) 55%,
-    transparent 70%
-  );
+  background: linear-gradient(105deg,
+      transparent 30%,
+      rgba(212, 175, 55, 0.08) 45%,
+      rgba(14, 125, 98, 0.06) 55%,
+      transparent 70%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite linear;
   pointer-events: none;
@@ -565,15 +566,41 @@
 }
 
 /* Stagger delays — تظهر البطاقات بالتتابع */
-.tawfir-card-enter[data-stagger="0"] { animation-delay: 0ms; }
-.tawfir-card-enter[data-stagger="1"] { animation-delay: 50ms; }
-.tawfir-card-enter[data-stagger="2"] { animation-delay: 100ms; }
-.tawfir-card-enter[data-stagger="3"] { animation-delay: 150ms; }
-.tawfir-card-enter[data-stagger="4"] { animation-delay: 200ms; }
-.tawfir-card-enter[data-stagger="5"] { animation-delay: 250ms; }
-.tawfir-card-enter[data-stagger="6"] { animation-delay: 300ms; }
-.tawfir-card-enter[data-stagger="7"] { animation-delay: 350ms; }
-.tawfir-card-enter[data-stagger="8"] { animation-delay: 400ms; }
+.tawfir-card-enter[data-stagger="0"] {
+  animation-delay: 0ms;
+}
+
+.tawfir-card-enter[data-stagger="1"] {
+  animation-delay: 50ms;
+}
+
+.tawfir-card-enter[data-stagger="2"] {
+  animation-delay: 100ms;
+}
+
+.tawfir-card-enter[data-stagger="3"] {
+  animation-delay: 150ms;
+}
+
+.tawfir-card-enter[data-stagger="4"] {
+  animation-delay: 200ms;
+}
+
+.tawfir-card-enter[data-stagger="5"] {
+  animation-delay: 250ms;
+}
+
+.tawfir-card-enter[data-stagger="6"] {
+  animation-delay: 300ms;
+}
+
+.tawfir-card-enter[data-stagger="7"] {
+  animation-delay: 350ms;
+}
+
+.tawfir-card-enter[data-stagger="8"] {
+  animation-delay: 400ms;
+}
 
 /* احترام تقليل الحركة */
 @media (prefers-reduced-motion: reduce) {
@@ -581,6 +608,7 @@
     animation: none;
     opacity: 1;
   }
+
   .skeleton-branded::after {
     animation: none;
   }
@@ -738,9 +766,11 @@
   0% {
     opacity: 0;
   }
+
   99% {
     opacity: 0;
   }
+
   100% {
     opacity: 1;
   }
@@ -1237,9 +1267,10 @@ a:focus-visible,
   background: radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent) 0%, transparent 70%);
 }
 
-/* ── خلفية الموج المعتمدة من الهوية (tawfir-wave-background) ── */
+/* ── خلفية الموج المعتمدة من الهوية (tawfir-wave-background) ──
+   (إصلاح الشعار: النسخة المحسّنة 1600px — 146KB بدل 3.4MB) */
 .wave-bg {
-  background-image: url("/identity/tawfir-wave-background.png");
+  background-image: url("/identity/tawfir-wave-background-1600.png");
   background-size: cover;
   background-position: center;
 }
@@ -1254,13 +1285,59 @@ a:focus-visible,
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   وضع APK (Capacitor) — إخفاء كل ما يخص الويب داخل الغلاف الأصلي
+   ═══════════════════════════════════════════════════════════════
+   الجذر: WebView كاباسيتور لا يُطابق (display-mode: standalone) —
+   فهو يُبلّغ browser دائماً — لذلك صنف hide-in-standalone وحده
+   لا يخفي الفوتر ويب / بانر الكوكيز داخل الـAPK.
+   الإصلاح: NativeBridge يسم <html data-native="1"> بعد الترطيب،
+   وسكربت inline في head يفعل الشيء ذاته قبل أول طلاء (منع الوميض).
+   هذه القاعدة = نفس إخفاء Standalone لكن لوضع Native:
+   فوتر الويب (روابط/تواصل) وبانر الكوكيز وعناصر PWA تختفي كلياً
+   فيتحقق مظهر Native خالص — الشاشة تنتهي بالمحتوى + شريط التنقل
+   السفلي (MobileBottomNav) دون أي «أسفل تمرير» ويب. */
+html[data-native] .hide-in-standalone {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Safe Area Insets — Edge-to-Edge (Capacitor APK + iOS PWA)
+   ═══════════════════════════════════════════════════════════════
+   المشكلة (ملاحظات المستخدم): داخل APK كاباسيتور يُرسم الـWebView
+   من حافة إلى حافة (Edge-to-Edge — إلزامي في Android 15+) فيمتد
+   المحتوى تحت شريط الحالة العلوي وشريط التنقل السفلي — فتتداخل
+   عناصر الهيدر (الشعار/السلة/زر الدخول) مع أيقونات النظام،
+   ويلتصق شريط التنقل السفلي بأزرار أندرويد.
+   الحل مزدوج المصدر (يأخذ الأكبر دائماً عبر max()):
+   1) env(safe-area-inset-*) — يعمل في iOS PWA + WebView أندرويد 15
+      الحديث (viewport-fit=cover مفعّل في layout.tsx).
+   2) --cap-safe-top/--cap-safe-bottom — يضخّها الجسر الأصلي
+      (TawfirNative من WindowInsets الفعلية للـWebView) لأن WebView
+      أندرويد (قبل 15 أو بلا Notch) يُرجع env() = 0 لأشرطة النظام.
+   القيم الافتراضية 0 على الويب العادي (سلوك unchanged). */
+:root {
+  --cap-safe-top: 0px;
+  --cap-safe-bottom: 0px;
+}
+
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top, 0px), var(--cap-safe-top, 0px));
+}
+
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px));
+}
+
+/* ═══════════════════════════════════════════════════════════════
    سلوك Native على اللمس (YouTube / Netflix style)
    ═══════════════════════════════════════════════════════════════ */
 @media (pointer: coarse) {
+
   button:not(:disabled):active,
   [role="button"]:not(:disabled):active {
     scale: 0.96;
   }
+
   a:active {
     scale: 0.97;
   }
@@ -1270,13 +1347,16 @@ a:focus-visible,
     /* Native: touch-action manipulation يلغي تأخير 300ms على النقر */
     touch-action: manipulation;
   }
+
   .native-tap:active:not(:disabled) {
     scale: 0.95;
   }
+
   .native-tap-card {
     transition: scale 150ms ease;
     touch-action: manipulation;
   }
+
   .native-tap-card:active:not(:disabled) {
     scale: 0.97;
   }
@@ -1284,6 +1364,7 @@ a:focus-visible,
 
 /* احترام تفضيل تقليل الحركة: بلا تكبير/تصغير لمس */
 @media (pointer: coarse) and (prefers-reduced-motion: reduce) {
+
   button:not(:disabled):active,
   [role="button"]:not(:disabled):active,
   a:active,
@@ -1355,6 +1436,7 @@ a:focus-visible,
 }
 
 @keyframes tawfir-ptr-pulse {
+
   0%,
   100% {
     opacity: 1;
@@ -1381,6 +1463,7 @@ html {
    viewport (maximum-scale=1) على أندرويد؛ iOS يُكمل بمنع gesturestart
    في NativeZoomGuard. هذا هو السلوك المطلوب: تطبيق Native لا ويب. */
 @media (pointer: coarse) {
+
   html,
   body {
     touch-action: manipulation;
@@ -1444,11 +1527,9 @@ html[data-wb-hide] [data-welcome-banner] {
 /* أسنان ورق متجهة لأعلى — للحافة العلوية الممزقة للإيصال */
 .receipt-edge-up {
   height: 12px;
-  background: conic-gradient(
-    from 135deg at 50% 0%,
-    var(--card) 90deg,
-    transparent 90deg
-  );
+  background: conic-gradient(from 135deg at 50% 0%,
+      var(--card) 90deg,
+      transparent 90deg);
   background-size: 24px 100%;
   background-repeat: repeat-x;
 }
@@ -1456,11 +1537,9 @@ html[data-wb-hide] [data-welcome-banner] {
 /* أسنان ورق متجهة لأسفل — للحافة السفلية الممزقة للإيصال */
 .receipt-edge-down {
   height: 12px;
-  background: conic-gradient(
-    from 315deg at 50% 100%,
-    var(--card) 90deg,
-    transparent 90deg
-  );
+  background: conic-gradient(from 315deg at 50% 100%,
+      var(--card) 90deg,
+      transparent 90deg);
   background-size: 24px 100%;
   background-repeat: repeat-x;
 }
@@ -1474,40 +1553,38 @@ html[data-wb-hide] [data-welcome-banner] {
 /* باركود زخرفي — أشرطة متفاوتة العرض (غير قابل للمسح — ديكور صرف) */
 .receipt-barcode {
   height: 46px;
-  background-image: repeating-linear-gradient(
-    90deg,
-    var(--foreground) 0 2px,
-    transparent 2px 4px,
-    var(--foreground) 4px 7px,
-    transparent 7px 8px,
-    var(--foreground) 8px 9px,
-    transparent 9px 13px,
-    var(--foreground) 13px 16px,
-    transparent 16px 17px,
-    var(--foreground) 17px 18px,
-    transparent 18px 21px,
-    var(--foreground) 21px 23px,
-    transparent 23px 25px
-  );
+  background-image: repeating-linear-gradient(90deg,
+      var(--foreground) 0 2px,
+      transparent 2px 4px,
+      var(--foreground) 4px 7px,
+      transparent 7px 8px,
+      var(--foreground) 8px 9px,
+      transparent 9px 13px,
+      var(--foreground) 13px 16px,
+      transparent 16px 17px,
+      var(--foreground) 17px 18px,
+      transparent 18px 21px,
+      var(--foreground) 21px 23px,
+      transparent 23px 25px);
 }
 
 /* ورق الإيصال — ملمس خفيف جداً من الخطوط الأفقية (محاكاة حرارية) */
 .receipt-paper {
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent 0 3px,
-    color-mix(in srgb, var(--foreground) 1.5%, transparent) 3px 4px
-  );
+  background-image: repeating-linear-gradient(0deg,
+      transparent 0 3px,
+      color-mix(in srgb, var(--foreground) 1.5%, transparent) 3px 4px);
 }
 
 /* طباعة الإيصال — إخفاء كل واجهة التطبيق والاكتفاء بالورقة */
 @media print {
+
   .print-hidden,
   header[role="banner"],
   footer,
   nav {
     display: none !important;
   }
+
   body {
     background: #fff !important;
   }

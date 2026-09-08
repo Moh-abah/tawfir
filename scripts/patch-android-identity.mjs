@@ -5,12 +5,15 @@
  * يُشغَّل بعد:  npx cap add android  &&  npx capacitor-assets generate --android
  * (محلياً أو داخل GitHub Actions — انظر .github/workflows/build-android.yml)
  *
- * ماذا يفعل؟
- *   1) values/colors.xml     : colorPrimary   #005B82  (توفير الرسمي)
- *                              colorPrimaryDark #003B55  (شريط الحالة عند الإطلاق)
- *                              colorAccent    #10B981  (النعناعي — هوية الويب)
+ * ماذا يفعل؟ (بعد الإصلاح الشامل)
+ *   1) values/colors.xml + values-night/ : هوية توفير ثنائية الوضع — فاتح
+ *                              #F7F7F7 (statusBar/nav/splash) وداكن #0A1A2F
+ *                              ← أندرويد يطبّق وضع النظام تلقائياً (كان #005B82
+ *                              ثابتاً فيفرض أشرطة داكنة دائماً).
  *     ← ضروري: مكتبة Capacitor تُغرق القيم ببنفسجي #3F51B5 إن لم نتجاوزها.
- *   2) values/styles.xml     : خلفية إطلاق صلبة عبر @drawable/splash.
+ *   2) values/styles.xml + values-night/: سبلاش + أشرطة نظام بأيقونات
+ *                              داكنة في الفاتح (windowLightStatusBar)
+ *                              وفاتحة في الداكن.
  *   3) drawable/splash.xml   : layer-list صلب #005B82 (بلا أي وميض أبيض)،
  *                              مع حذف كل splash.png المولَّدة (يوفر ~13MB
  *                              من حجم الـAPK — الصورة الفاخرة مسؤولية سبلاش
@@ -26,11 +29,25 @@
  *                              الملف إلى android/app/ مع توطين
  *                              package_name = applicationId، إضافة اعتماد
  *                              firebase-messaging، وكتابة ملفات Java أصلية:
- *                              TawfirApp (قنوات الإشعارات فور بدء أي عملية)،
+ *                              TawfirApp (5 قنوات إشعارات فور بدء أي عملية)،
  *                              TawfirFirebaseMessagingService (يعمل والتطبيق
- *                              مفتوح/بالخلفية/مُغلق + موضوع tawfir_all)،
- *                              MainActivity (طلب إذن 13+ + ألوان أشرطة
- *                              النظام) + أيقونة إشعار Vector نيتفة.
+ *                              مفتوح/بالخلفية/مُغلق + قنوات حسب
+ *                              notification_type + روابط عميقة + أيقونة
+ *                              شعار توفير المفرغ PNG بكل الكثافات بدل
+ *                              جرس Vector عام + أيقونة كبيرة ملونة +
+ *                              اهتزاز لكل نوع + حفظ التوكن للـWebView)،
+ *                              TawfirNative (إضافة Capacitor تُولَّد دائماً:
+ *                              setSystemBars — ثيم أشرطة النظام (شريط
+ *                              الحالة + شريط التنقل: أيقونات داكنة في
+ *                              الفاتح/فاتحة في الداكن + ألوان) من الـWebView
+ *                              حسب ثيم المستخدم الفعّال، وgetSafeAreaInsets
+ *                              — Safe-Area الحقيقية للـWebView كمتغيرات CSS
+ *                              في وضع Edge-to-Edge (إصلاح تداخل الهيدر مع
+ *                              أيقونات النظام)، وإن فُعّل FCM أيضاً توكن FCM
+ *                              للـWebView الحي ليسجّله في الباك إند بمصادقة
+ *                              المستخدم)، MainActivity (طلب إذن 13+ +
+ *                              تسجيل الإضافة دائماً + توجيه الروابط العميقة +
+ *                              ثيم أشرطة يتبع النظام).
  *   6) app/build.gradle      : versionCode/versionName من متغيرات البيئة +
  *                              إدخال إعدادات التوقيع من Keystore الخاص
  *                              (tawfeer-release.keystore) عبر متغيرات سرّية.
@@ -80,12 +97,27 @@ const GS_CANDIDATES = [
   path.join(ROOT, "android-config", "google-services.json"),
 ];
 
-/** ألوان هوية «توفير» — مطابقة للويب و PWABuilder */
+/** ألوان هوية «توفير» — مطابقة للويب تماماً (إصلاح الثيم):
+ *  كان السكربت يستخدم #005B82/#003B55 (لوحة قديمة مختلفة عن كحلي
+ *  الهوية #0A1A2F) + يفرضها بلا تمييز فاتح/داكن ← أشرطة نظام داكنة
+ *  دائماً حتى في الوضع الفاتح (مشكلة «أزرار النظام الداكنة»).
+ *  الآن: القيم الفاتحة في values/ والداكنة في values-night/ فيتبع
+ *  أندرويد وضع النظام تلقائياً (السبلاش وشريط الحالة والتنقل). */
 const BRAND = {
-  colorPrimary: "#005B82",
-  colorPrimaryDark: "#003B55",
+  colorPrimary: "#0A1A2F",
   colorAccent: "#10B981",
-  splashBackground: "#005B82",
+  /* فاتح (values/) */
+  light: {
+    statusBar: "#F7F7F7",
+    navigationBar: "#F7F7F7",
+    splash: "#F7F7F7",
+  },
+  /* داكن (values-night/) */
+  dark: {
+    statusBar: "#0A1A2F",
+    navigationBar: "#0A1A2F",
+    splash: "#071426",
+  },
 };
 
 const VERSION_NAME = process.env.VERSION_NAME || "1.2.0";
@@ -154,18 +186,34 @@ if (FCM_ENABLED) {
   log("🔥", `google-services.json مكتشف (${path.relative(ROOT, GS_SOURCE)}) → الإشعارات الأصلية ستُفعَّل`);
 }
 
-/* ─── 1) colors.xml ────────────────────────────────────────────────── */
+/* ─── 1) colors.xml — فاتح + values-night داكن (إصلاح الثيم) ───── */
 const colorsXml = `<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- هوية «توفير» — تجاوز القيم البنفسجية الافتراضية في مكتبة Capacitor -->
+    <!-- هوية «توفير» — تجاوز القيم البنفسجية الافتراضية في مكتبة Capacitor
+         + تتبّع وضع النظام: هذه القيم الفاتحة، والدكنة في values-night/ -->
     <color name="colorPrimary">${BRAND.colorPrimary}</color>
-    <color name="colorPrimaryDark">${BRAND.colorPrimaryDark}</color>
+    <color name="colorPrimaryDark">${BRAND.dark.statusBar}</color>
     <color name="colorAccent">${BRAND.colorAccent}</color>
-    <color name="splash_background">${BRAND.splashBackground}</color>
+    <color name="splash_background">${BRAND.light.splash}</color>
+    <color name="status_bar_color">${BRAND.light.statusBar}</color>
+    <color name="navigation_bar_color">${BRAND.light.navigationBar}</color>
 </resources>
 `;
 fs.writeFileSync(path.join(RES_DIR, "values", "colors.xml"), colorsXml);
-log("🎨", `values/colors.xml ← colorPrimary ${BRAND.colorPrimary} / Dark ${BRAND.colorPrimaryDark} / Accent ${BRAND.colorAccent}`);
+
+/* القيم الليلية — يطبّقها أندرويد 10+ تلقائياً حسب وضع النظام */
+const colorsNightXml = `<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimaryDark">${BRAND.dark.statusBar}</color>
+    <color name="splash_background">${BRAND.dark.splash}</color>
+    <color name="status_bar_color">${BRAND.dark.statusBar}</color>
+    <color name="navigation_bar_color">${BRAND.dark.navigationBar}</color>
+</resources>
+`;
+const valuesNightDir = path.join(RES_DIR, "values-night");
+if (!fs.existsSync(valuesNightDir)) fs.mkdirSync(valuesNightDir, { recursive: true });
+fs.writeFileSync(path.join(valuesNightDir, "colors.xml"), colorsNightXml);
+log("🎨", `values/colors.xml ← فاتح ${BRAND.light.statusBar} + values-night/colors.xml ← داكن ${BRAND.dark.statusBar} (يتّبع وضع النظام)`);
 
 /* ─── 2) styles.xml — خلفية إطلاق صلبة ─────────────────────────────── */
 const stylesPath = path.join(RES_DIR, "values", "styles.xml");
@@ -194,7 +242,8 @@ const target = '    <item name="android:background">@drawable/splash</item>';
   }
   styles = styles.replace(block[0], patchedBlock);
 
-  // ألوان أشرطة النظام (الحالة/التنقل) على ثيم التشغيل — هوية توفير
+  // ألوان أشرطة النظام (الحالة/التنقل) — موارد متغيّرة حسب وضع النظام
+  // (إصلاح الثيم): values/ فاتح بأيقونات داكنة + values-night/ داكن.
   {
     const naBlock = styles.match(/<style[^>]+name="AppTheme\.NoActionBar"[^>]*>[\s\S]*?<\/style>/);
     if (!naBlock) fail("تعذر عزل كتلة AppTheme.NoActionBar في styles.xml.");
@@ -202,19 +251,49 @@ const target = '    <item name="android:background">@drawable/splash</item>';
     if (!patchedNa.includes("statusBarColor")) {
       patchedNa = patchedNa.replace(
         /<\/style>/,
-        '    <item name="android:statusBarColor">@color/colorPrimary</item>\n    </style>',
+        '    <item name="android:statusBarColor">@color/status_bar_color</item>\n    </style>',
       );
     }
     if (!patchedNa.includes("navigationBarColor")) {
       patchedNa = patchedNa.replace(
         /<\/style>/,
-        '    <item name="android:navigationBarColor">@color/colorPrimaryDark</item>\n    </style>',
+        '    <item name="android:navigationBarColor">@color/navigation_bar_color</item>\n    </style>',
+      );
+    }
+    /* أيقونات شريط الحالة/التنقل داكنة في الوضع الفاتح (Android 6+/8.1+) */
+    if (!patchedNa.includes("windowLightStatusBar")) {
+      patchedNa = patchedNa.replace(
+        /<\/style>/,
+        '    <item name="android:windowLightStatusBar">true</item>\n    <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true</item>\n    </style>',
       );
     }
     styles = styles.replace(naBlock[0], patchedNa);
+    /* xmlns:tools مطلوب لـ tools:targetApi في windowLightNavigationBar */
+    if (!styles.includes("xmlns:tools")) {
+      styles = styles.replace(/<resources>/, '<resources xmlns:tools="http://schemas.android.com/tools">');
+    }
   }
   fs.writeFileSync(stylesPath, styles);
-  log("🖼️", "values/styles.xml ← سبلاش صلب + شريط الحالة #005B82 + شريط التنقل #003B55");
+
+  /* نسخة values-night من styles — نفس الثيم بأيقونات فاتحة (إصلاح الثيم) */
+  {
+    const nightStylesPath = path.join(RES_DIR, "values-night", "styles.xml");
+    const baseStyles = fs.readFileSync(stylesPath, "utf8");
+    /* استبدال windowLight* بـ false للوضع الداكن (أيقونات بيضاء) */
+    const nightStyles = baseStyles
+      .replace(/<style[^>]+name="AppTheme\.NoActionBar"[^>]*>[\s\S]*?<\/style>/, (m) =>
+        m
+          .replace(/<item name="android:windowLightStatusBar">true<\/item>/,
+            '<item name="android:windowLightStatusBar">false</item>')
+          .replace(/<item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">true<\/item>/,
+            '<item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">false</item>'),
+      )
+      /* تعريف xmlns:tools إن لم يوجد (مطلوب لـ tools:targetApi) */
+      .replace(/<resources>/,
+        '<resources xmlns:tools="http://schemas.android.com/tools">');
+    fs.writeFileSync(nightStylesPath, nightStyles);
+  }
+  log("🖼️", "values/styles.xml + values-night/styles.xml ← سبلاش + أشرطة نظام ثنائية الوضع (تتبع وضع النظام)");
 }
 
 /* ─── 3) splash.xml صلب + حذف splash.png المولّدة ───────────────────── */
@@ -241,7 +320,7 @@ const splashXml = `<?xml version="1.0" encoding="utf-8"?>
 </layer-list>
 `;
 fs.writeFileSync(path.join(RES_DIR, "drawable", "splash.xml"), splashXml);
-log("✨", `drawable/splash.xml ← خلفية صلبة ${BRAND.splashBackground} (نهارية/ليلية/أفقية/رأسية)`);
+log("✨", `drawable/splash.xml ← @color/splash_background ثنائي الوضع (فاتح ${BRAND.light.splash} / داكن ${BRAND.dark.splash})`);
 
 /* ─── 4) AndroidManifest.xml — الأذونات + روابط أندرويد العميقة ─────── */
 const DEEP_LINK_HOST = "tawfir.giize.com";
@@ -443,10 +522,53 @@ if (FCM_ENABLED) {
   );
 }
 
-/* 5-ب) أيقونة الإشعار Vector — جرس أبيض (المعيار الأصيل لشريط الحالة) */
+/* 5-ب) أيقونة الإشعار — شعار توفير المفرغ الأبيض على شفاف (إصلاح
+ *      المربع الأبيض): معيار أندرويد API 21+ يتطلب Small Icon أحادية
+ *      بيضاء بخلفية شفافة. نولّد ic_stat_tawfir.png بكل الكثافات من
+ *      public/identity/notification_icon_white_96.png (شعار توفير
+ *      الحقيقي — كان جرساً عاماً) + ic_tawfir_large.png الملونة من
+ *      tawfir-app-icon-192.png للأيقونة الكبيرة في درج الإشعارات.
+ *      احتياط: لو تعذّر sharp ← جرس Vector أبيض (كما كان سابقاً). */
 if (FCM_ENABLED) {
-  const notifIcon = `<?xml version="1.0" encoding="utf-8"?>
-<!-- أيقونة إشعار توفير — جرس Vector أبيض (يُستخدم كقناع ألفا في شريط الحالة) -->
+  const drawableDir = path.join(RES_DIR, "drawable");
+  if (!fs.existsSync(drawableDir)) fs.mkdirSync(drawableDir, { recursive: true });
+
+  /* كثافات أندرويد القياسية لأيقونة الحالة 24dp */
+  const DENSITIES = [
+    { dir: "drawable-mdpi", px: 24 },
+    { dir: "drawable-hdpi", px: 36 },
+    { dir: "drawable-xhdpi", px: 48 },
+    { dir: "drawable-xxhdpi", px: 72 },
+    { dir: "drawable-xxxhdpi", px: 96 },
+  ];
+  const SMALL_SRC = path.join(ROOT, "public", "identity", "notification_icon_white_512.png");
+  const LARGE_SRC = path.join(ROOT, "public", "identity", "tawfir-app-icon-512.png");
+
+  let smallIconGenerated = false;
+  if (fs.existsSync(SMALL_SRC)) {
+    try {
+      const { default: sharp } = await import("sharp");
+      for (const d of DENSITIES) {
+        const dir = path.join(RES_DIR, d.dir);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        /* Small icon: شعار مفرغ أبيض شفاف (resize من 512 لجودة أفضل) */
+        await sharp(SMALL_SRC).resize(d.px, d.px).png().toFile(path.join(dir, "ic_stat_tawfir.png"));
+        /* Large icon: أيقونة التطبيق الملونة (64dp نمطياً — 2× الأيقونة) */
+        if (fs.existsSync(LARGE_SRC)) {
+          await sharp(LARGE_SRC).resize(d.px * 2, d.px * 2).png().toFile(path.join(dir, "ic_tawfir_large.png"));
+        }
+      }
+      smallIconGenerated = true;
+      log("🔔", `ic_stat_tawfir.png (شعار توفير المفرغ الأبيض) + ic_tawfir_large.png (الملونة) بكل الكثافات — إصلاح مربع أندرويد الأبيض`);
+    } catch (err) {
+      log("⚠️", `تعذّر توليد أيقونات PNG عبر sharp (${err?.message ?? err}) — الرجوع لأيقونة Vector`);
+    }
+  }
+
+  if (!smallIconGenerated) {
+    /* احتياط: أيقونة Vector (جرس أبيض) — تعمل من API 24 */
+    const notifIcon = `<?xml version="1.0" encoding="utf-8"?>
+<!-- أيقونة إشعار توفير (احتياط) — Vector أبيض (قناع ألفا لشريط الحالة) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -457,10 +579,9 @@ if (FCM_ENABLED) {
         android:pathData="M12,22c1.1,0 2,-0.9 2,-2h-4c0,1.1 0.9,2 2,2zM18,16v-5c0,-3.07 -1.63,-5.64 -4.5,-6.32V4c0,-0.83 -0.67,-1.5 -1.5,-1.5s-1.5,0.67 -1.5,1.5v0.68C7.63,5.36 6,7.92 6,11v5l-2,2v1h16v-1l-2,-2z" />
 </vector>
 `;
-  const drawableDir = path.join(RES_DIR, "drawable");
-  if (!fs.existsSync(drawableDir)) fs.mkdirSync(drawableDir, { recursive: true });
-  fs.writeFileSync(path.join(drawableDir, "ic_stat_tawfir.xml"), notifIcon);
-  log("🔔", "drawable/ic_stat_tawfir.xml ← أيقونة إشعار Vector (جرس — تعمل من API 24)");
+    fs.writeFileSync(path.join(drawableDir, "ic_stat_tawfir.xml"), notifIcon);
+    log("🔔", "drawable/ic_stat_tawfir.xml ← أيقونة إشعار Vector (احتياط)");
+  }
 }
 
 /* 5-ج) TawfirApp.java — يضمن وجود القنوات قبل أي إشعار (حتى لو وصل
@@ -472,7 +593,8 @@ if (FCM_ENABLED) {
 import android.app.Application;
 
 /**
- * توفير — فئة التطبيق: تهيئة قنوات الإشعارات فور بدء أي عملية (أصلية 100%).
+ * توفير — فئة التطبيق: تهيئة قنوات الإشعارات (5 قنوات حسب النوع)
+ * فور بدء أي عملية (أصلية 100%).
  */
 public class TawfirApp extends Application {
 
@@ -485,10 +607,12 @@ public class TawfirApp extends Application {
 }
 `;
   fs.writeFileSync(path.join(JAVA_PKG_DIR, "TawfirApp.java"), tawfirApp);
-  log("🧩", `TawfirApp.java ← تهيئة القنوات + الاشتراك بموضوع tawfir_all (${APP_PACKAGE})`);
+  log("🧩", `TawfirApp.java ← تهيئة 5 قنوات + الاشتراك بموضوع tawfir_all (${APP_PACKAGE})`);
 }
 
-/* 5-د) TawfirFirebaseMessagingService.java — قلب الإشعارات الأصلي */
+/* 5-د) TawfirFirebaseMessagingService.java — قلب الإشعارات الأصلي
+ *      (الإصلاح الشامل: قنوات حسب notification_type + روابط عميقة +
+ *      أيقونات الهوية + اهتزاز لكل نوع + حفظ التوكن للـWebView) */
 if (FCM_ENABLED) {
   const fcmService = `package ${APP_PACKAGE};
 
@@ -497,6 +621,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.util.Log;
 
@@ -506,72 +632,199 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 
+import java.util.Map;
+
 /**
  * توفير — خدمة إشعارات FCM الأصلية.
  * تعمل في كل حالات التطبيق: مفتوح أمام المستخدم، بالخلفية، أو مُغلق تماماً.
  *
- * الإرسال من Firebase Console (بلا خادم): الموضوع «tawfir_all».
- * الرسائل بالبيانات (data): channel=orders → قناة «تحديثات الطلبات» العالية،
- * وإلا قناة «إشعارات عامة». مفاتيح اختيارية: title / body بالعربية.
+ * الإصلاح الشامل:
+ *  • 5 قنوات حسب notification_type (طلبات/عضوية/متاجر/عروض/عام) —
+ *    قناة الطلبات IMPORTANCE_HIGH (صوت + اهتزاز + أضواء).
+ *  • أيقونة صغيرة = شعار توفير المفرغ الأبيض (ic_stat_tawfir) —
+ *    معيار أندرويد API 21+ (أحادية/شفافة) بدل مربع أبيض.
+ *  • أيقونة كبيرة ملونة (ic_tawfir_large) في درج الإشعارات.
+ *  • رابط عميق من نوع الإشعار + order_id/product_id/facility_id —
+ *    النقر يفتح الصفحة الصحيحة داخل WebView الحي.
+ *  • اهتزاز مخصّص لكل نوع (نفس أنماط الويب).
+ *  • onNewToken يحفظ التوكن في SharedPreferences ليقرأه الـWebView
+ *    عبر إضافة TawfirNative ويسجّله في الباك إند بمصادقة المستخدم.
  */
 public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
 
     public static final String CHANNEL_ORDERS = "tawfir_orders";
+    public static final String CHANNEL_MEMBERSHIP = "tawfir_membership";
+    public static final String CHANNEL_STORES = "tawfir_stores";
+    public static final String CHANNEL_OFFERS = "tawfir_offers";
     public static final String CHANNEL_GENERAL = "tawfir_general";
     public static final String TOPIC_ALL = "tawfir_all";
+    public static final String PREFS_NAME = "tawfir_native";
+    public static final String PREF_TOKEN = "fcm_token";
+    public static final String EXTRA_DEEP_LINK = "tawfir_deep_link";
     private static final String TAG = "TawfirFCM";
+    private static final int BRAND_NAVY = 0xFF0A1A2F;
     private static final java.util.concurrent.atomic.AtomicInteger NEXT_ID =
             new java.util.concurrent.atomic.AtomicInteger(1000);
 
     @Override
     public void onNewToken(String token) {
         super.onNewToken(token);
-        Log.i(TAG, "FCM_TOKEN=" + token);
+        /* حفظ التوكن — يقرأه الـWebView (TawfirNative) ويسجّله في
+           الباك إند بوسم مصادقة المستخدم الحالي (POST /fcm/token) */
+        SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+        String previous = prefs.getString(PREF_TOKEN, null);
+        prefs.edit().putString(PREF_TOKEN, token).apply();
+        Log.i(TAG, "FCM token stored for WebView registration"
+                + (previous != null && !previous.equals(token) ? " (rotated)" : ""));
         subscribeToAllTopic();
+    }
+
+    /** التوكن المحفوظ (null إن لم يصل بعد) — تستخدمه إضافة TawfirNative */
+    public static String getStoredToken(Context context) {
+        if (context == null) return null;
+        return context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getString(PREF_TOKEN, null);
     }
 
     @Override
     public void onMessageReceived(RemoteMessage message) {
         super.onMessageReceived(message);
-        String channel = CHANNEL_GENERAL;
+        Map<String, String> data = message.getData();
+
+        String type = data.get("notification_type");
+        if (type == null || type.length() == 0) type = data.get("type");
+        if (type == null) type = "";
+
         String title = null;
         String body = null;
-
         RemoteMessage.Notification notification = message.getNotification();
         if (notification != null) {
             title = notification.getTitle();
             body = notification.getBody();
         }
-        if (!message.getData().isEmpty()) {
-            String ch = message.getData().get("channel");
-            if ("orders".equals(ch)) channel = CHANNEL_ORDERS;
-            if (message.getData().containsKey("title")) title = message.getData().get("title");
-            if (message.getData().containsKey("body")) body = message.getData().get("body");
-        }
+        if (data.containsKey("title") && title == null) title = data.get("title");
+        if (data.containsKey("body") && body == null) body = data.get("body");
         if (title == null || title.length() == 0) title = getString(R.string.app_name);
         if (body == null || body.length() == 0) body = "لديك تحديث جديد من توفير";
-        showNotification(this, channel, title, body);
+
+        String channel = channelForType(type);
+        String deepLink = resolveDeepLink(type, data);
+        long[] pattern = vibrationFor(type);
+
+        showNotification(this, channel, title, body, deepLink, pattern, type);
     }
 
-    /** إنشاء قناتي الإشعارات — آمن للتكرار ويعمل من API 24 */
+    /** اختيار القناة حسب نوع الإشعار (نفس تصنيف الواجهة) */
+    public static String channelForType(String type) {
+        if (type == null || type.length() == 0) return CHANNEL_GENERAL;
+        if (type.startsWith("order_")) return CHANNEL_ORDERS;
+        if (type.startsWith("membership_")) return CHANNEL_MEMBERSHIP;
+        if (type.startsWith("facility_") || "owner_registered".equals(type)) return CHANNEL_STORES;
+        if (type.startsWith("special_offer_")) return CHANNEL_OFFERS;
+        return CHANNEL_GENERAL;
+    }
+
+    /** الرابط العميق — نفس منطق resolveClickUrl في الويب (مُوحّد) */
+    public static String resolveDeepLink(String type, Map<String, String> data) {
+        if (data == null) return "/";
+        String url = data.get("url");
+        if (url != null && url.startsWith("/")) return url;
+        if ("order_new".equals(type)) {
+            String fid = data.get("facility_id");
+            if (fid != null && fid.length() > 0) return "/owner/facilities/" + fid + "/orders";
+            String oid = data.get("order_id");
+            if (oid != null && oid.length() > 0) return "/orders/" + oid;
+            return "/orders";
+        }
+        String oid = data.get("order_id");
+        if (oid != null && oid.length() > 0) return "/orders/" + oid;
+        String pid = data.get("product_id");
+        if (pid != null && pid.length() > 0) return "/products/" + pid;
+        if (type == null || type.length() == 0) return "/";
+        switch (type) {
+            case "membership_new_request": return "/admin/membership-requests";
+            case "membership_received":
+            case "membership_approved":
+            case "membership_rejected":
+            case "membership_expiring": return "/account";
+            case "facility_approved":
+            case "facility_rejected":
+            case "owner_registered": return "/owner";
+            case "special_offer_new":
+            case "special_offer_ending":
+            case "special_offer_soldout": return "/offers";
+            default: return "/";
+        }
+    }
+
+    /** نمط الاهتزاز — نفس أنماط الويب (TYPE_META في sw-source.ts) */
+    public static long[] vibrationFor(String type) {
+        if (type == null || type.length() == 0) return new long[]{0, 180, 90, 180};
+        switch (type) {
+            case "order_new":
+                return new long[]{0, 250, 120, 250, 120, 250, 120, 250};
+            case "order_confirmed":
+            case "order_preparing":
+            case "membership_received":
+            case "membership_new_request":
+            case "owner_registered":
+            case "special_offer_new":
+                return new long[]{0, 180, 90, 180};
+            case "order_out_for_delivery":
+                return new long[]{0, 180, 90, 180, 250};
+            case "order_delivered":
+            case "membership_approved":
+            case "facility_approved":
+                return new long[]{0, 220, 110, 220, 110, 220};
+            case "order_cancelled":
+            case "membership_rejected":
+            case "facility_rejected":
+            case "special_offer_soldout":
+                return new long[]{0, 350, 150, 350};
+            case "membership_expiring":
+            case "special_offer_ending":
+                return new long[]{0, 280, 130, 280};
+            default:
+                return new long[]{0, 180, 90, 180};
+        }
+    }
+
+    /** إنشاء قنوات الإشعارات الخمس — آمن للتكرار ويعمل من API 26+ */
     public static void createChannels(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
         NotificationManager manager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager == null) return;
 
+        /* الطلبات: أهمية عالية (رأس الشاشة + صوت + اهتزاز + أضواء) */
         NotificationChannel orders = new NotificationChannel(
                 CHANNEL_ORDERS, "تحديثات الطلبات", NotificationManager.IMPORTANCE_HIGH);
-        orders.setDescription("إشعارات حالة طلباتك وعروض توفير");
+        orders.setDescription("طلبات جديدة وتأكيد وتجهيز وتوصيل وتسليم وإلغاء");
         orders.enableVibration(true);
+        orders.setVibrationPattern(new long[]{0, 250, 120, 250, 120, 250, 120, 250});
         orders.enableLights(true);
-        orders.setLightColor(0xFF005B82);
+        orders.setLightColor(BRAND_NAVY);
+
+        NotificationChannel membership = new NotificationChannel(
+                CHANNEL_MEMBERSHIP, "العضوية", NotificationManager.IMPORTANCE_DEFAULT);
+        membership.setDescription("طلبات العضوية والموافقة والرفض والانتهاء");
+
+        NotificationChannel stores = new NotificationChannel(
+                CHANNEL_STORES, "المتاجر والملاك", NotificationManager.IMPORTANCE_DEFAULT);
+        stores.setDescription("موافقات المتاجر وتسجيل الملاك");
+
+        NotificationChannel offers = new NotificationChannel(
+                CHANNEL_OFFERS, "العروض الخاصة", NotificationManager.IMPORTANCE_DEFAULT);
+        offers.setDescription("عروض جديدة وقرب انتهاء ونفاد العرض");
 
         NotificationChannel general = new NotificationChannel(
                 CHANNEL_GENERAL, "إشعارات عامة", NotificationManager.IMPORTANCE_DEFAULT);
-        general.setDescription("أخبار توفير والعروض الجديدة");
+        general.setDescription("أخبار توفير والإشعارات العامة");
 
         manager.createNotificationChannel(orders);
+        manager.createNotificationChannel(membership);
+        manager.createNotificationChannel(stores);
+        manager.createNotificationChannel(offers);
         manager.createNotificationChannel(general);
     }
 
@@ -586,10 +839,14 @@ public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
         }
     }
 
-    /** عرض إشعار أصيل: نص عربي، لون توفير، اهتزاز/صوت، نقرة تفتح التطبيق */
-    public static void showNotification(Context context, String channel, String title, String body) {
+    /** عرض إشعار أصيل: شعار توفير + رابط عميق + اهتزاز + لون الهوية */
+    public static void showNotification(Context context, String channel, String title,
+                                        String body, String deepLink, long[] pattern, String type) {
         int id = NEXT_ID.incrementAndGet();
         Intent launch = new Intent(context, MainActivity.class);
+        if (deepLink != null && deepLink.length() > 0) {
+            launch.putExtra(EXTRA_DEEP_LINK, deepLink);
+        }
         launch.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent = PendingIntent.getActivity(
                 context, id, launch,
@@ -600,13 +857,32 @@ public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
-                .setColor(0xFF005B82)
+                .setColor(BRAND_NAVY)
                 .setAutoCancel(true)
                 .setContentIntent(contentIntent)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
+                .setSound(android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
+                .setVibrate(pattern)
                 .setPriority(CHANNEL_ORDERS.equals(channel)
                         ? NotificationCompat.PRIORITY_HIGH
-                        : NotificationCompat.PRIORITY_DEFAULT);
+                        : NotificationCompat.PRIORITY_DEFAULT)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+                .setShowWhen(true);
+
+        /* طلب جديد للمالك: إشعار ثابت (requireInteraction في الويب) —
+           يبقى في شاشة القفل/الدرج حتى ينقره المستخدم */
+        if ("order_new".equals(type)) {
+            builder.setOngoing(true);
+        }
+
+        /* الأيقونة الكبيرة الملونة (أيقونة التطبيق) إن وُجد المورد */
+        try {
+            int largeResId = context.getResources()
+                    .getIdentifier("ic_tawfir_large", "drawable", context.getPackageName());
+            if (largeResId != 0) {
+                builder.setLargeIcon(BitmapFactory.decodeResource(context.getResources(), largeResId));
+            }
+        } catch (Exception ignored) {
+        }
 
         NotificationManager manager =
                 (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -618,10 +894,247 @@ public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
     path.join(JAVA_PKG_DIR, "TawfirFirebaseMessagingService.java"),
     fcmService,
   );
-  log("🧩", "TawfirFirebaseMessagingService.java ← استقبال FCM في كل الحالات + قناتا الطلبات/العام");
+  log("🧩", "TawfirFirebaseMessagingService.java ← 5 قنوات حسب النوع + روابط عميقة + أيقونات الهوية + اهتزاز لكل نوع");
 }
 
-/* 5-هـ) MainActivity.java — طلب إذن الإشعارات (13+) + ألوان أشرطة النظام */
+/* 5-د2) TawfirNative.java — إضافة Capacitor أصيلة (تُولَّد دائماً):
+ *        • setSystemBars: ثيم أشرطة النظام من الـWebView — أيقونات
+ *          شريط الحالة وشريط التنقل (داكنة/فاتحة) + الألوان حسب
+ *          ثيم التطبيق الفعّال (إصلاح ملاحظات المستخدم 2 و 3 —
+ *          @capacitor/status-bar لا يغطي شريط التنقل إطلاقاً).
+ *        • getSafeAreaInsets: WindowInsets الفعلية للـWebView (CSS px)
+ *          — يضخّها الـWebView كمتغيرات CSS --cap-safe-top/bottom
+ *          (إصلاح الملاحظة 1: تداخل الهيدر مع شريط الحالة في
+ *          Edge-to-Edge؛ env() = 0 في WebView قبل Android 15).
+ *        • getFcmToken / isNativePushAvailable: توكن FCM الأصلي
+ *          (FCM فقط — لا يعمل web push داخل WebView بلا PushManager). */
+{
+  const fcmMethods = FCM_ENABLED
+    ? `
+    /** توكن FCM الأصلي المحفوظ (يحفظه onNewToken) — يسجّله الـWebView
+     *  في الباك إند بمصادقة المستخدم الحالي (POST /fcm/token). */
+    @PluginMethod
+    public void getFcmToken(PluginCall call) {
+        Context context = getContext();
+        String token = TawfirFirebaseMessagingService.getStoredToken(context);
+        JSObject ret = new JSObject();
+        ret.put("token", token == null ? "" : token);
+        ret.put("available", token != null);
+        call.resolve(ret);
+    }
+
+    @PluginMethod
+    public void isNativePushAvailable(PluginCall call) {
+        Context context = getContext();
+        String token = TawfirFirebaseMessagingService.getStoredToken(context);
+        JSObject ret = new JSObject();
+        ret.put("available", token != null);
+        call.resolve(ret);
+    }
+`
+    : "";
+  const tawfirNative = `package ${APP_PACKAGE};
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.os.Build;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+
+/**
+ * توفير — الجسر الأصلي للـWebView الحي:
+ *  • setSystemBars(dark, statusBarColor, navigationBarColor): يطبّق ثيم
+ *    أشرطة النظام — أيقونات داكنة في الفاتح وفاتحة في الداكن لشريط
+ *    الحالة وشريط التنقل معاً (WindowInsetsController — يعمل في كل
+ *    الإصدارات بما فيها Android 15 Edge-to-Edge)، والألوان الصلبة
+ *    قبل Android 15 فقط (في 15+ الأشرطة شفافة يتلوّن بها المحتوى).
+ *  • getSafeAreaInsets(): WindowInsets الفعلية للـWebView بوحدة CSS px
+ *    (بكسل CSS = dp في WebView كاباسيتور) — يستهلكها الـWebView عبر
+ *    متغيرات CSS (--cap-safe-top/--cap-safe-bottom) لأن env() يُرجع 0
+ *    لأشرطة النظام في WebView قبل Android 15.
+ *  • مستمع Insets في load(): يضخّ المتغيرات تلقائياً في الصفحة كلما
+ *    تغيّرت الأشرطة (إقلاع/تدوير/لوحة مفاتيح).
+ *  • مظهر أولي عند load() حسب وضع النظام — ثم يصحّحه الـWebView حسب
+ *    ثيم المستخدم الفعّال فور الترطيب (setupNativeStatusBar).
+ */
+@CapacitorPlugin(name = "TawfirNative")
+public class TawfirNative extends Plugin {
+
+    /** آخر Safe-Area معروفة (CSS px) — يحدّثها مستمع Insets؛ -1 = غير معروفة */
+    private volatile float lastSafeTop = -1f;
+    private volatile float lastSafeBottom = -1f;
+
+    @Override
+    public void load() {
+        try {
+            Activity activity = getActivity();
+            if (activity == null || bridge == null || bridge.getWebView() == null) return;
+            final Window window = activity.getWindow();
+            final View webView = bridge.getWebView();
+
+            /* المظهر الأولي لأشرطة النظام من وضع النظام (windowLight*
+               في styles.xml يُتجاهَل في Android 15 Edge-to-Edge —
+               WindowInsetsController هو المصدر الوحيد للحقيقة).
+               الـWebView يصحّحه حسب ثيم المستخدم فور الترطيب. */
+            applyBarsAppearance(window, isSystemDark());
+
+            /* مستمع Insets على الـWebView نفسه: القيم التي «يرىها»
+               الـWebView هي بالضبط ما يحتاج حشوه (قبل 15: الشريط
+               السفلي مستهلك من الديكور = 0؛ 15+: كاملان Edge-to-Edge). */
+            ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+                pushSafeAreaVars(webView, insets);
+                return insets;
+            });
+        } catch (Exception ignored) {
+        }
+    }
+
+    /* ═══ Safe Area (إصلاح الملاحظة 1 — تداخل الهيدر) ═══ */
+
+    @PluginMethod
+    public void getSafeAreaInsets(PluginCall call) {
+        Activity activity = getActivity();
+        if (activity == null || bridge == null || bridge.getWebView() == null) {
+            JSObject ret = new JSObject();
+            ret.put("top", 0);
+            ret.put("bottom", 0);
+            call.resolve(ret);
+            return;
+        }
+        final View webView = bridge.getWebView();
+        activity.runOnUiThread(() -> {
+            JSObject ret = new JSObject();
+            try {
+                float top = lastSafeTop;
+                float bottom = lastSafeBottom;
+                if (top < 0f || bottom < 0f) {
+                    WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(webView);
+                    if (insets != null) {
+                        float d = cssPixelScale();
+                        Insets st = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+                        Insets nb = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+                        top = st.top / d;
+                        bottom = nb.bottom / d;
+                    }
+                }
+                ret.put("top", Math.max(0f, top < 0f ? 0f : top));
+                ret.put("bottom", Math.max(0f, bottom < 0f ? 0f : bottom));
+            } catch (Exception e) {
+                ret.put("top", 0);
+                ret.put("bottom", 0);
+            }
+            call.resolve(ret);
+        });
+    }
+
+    /** يضخّ قيم Safe-Area كمتغيرات CSS في الصفحة الحية + يحدّث الكاش */
+    private void pushSafeAreaVars(View webView, WindowInsetsCompat insets) {
+        try {
+            float d = cssPixelScale();
+            Insets st = insets.getInsets(WindowInsetsCompat.Type.statusBars());
+            Insets nb = insets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            float topCss = Math.max(0, st.top) / d;
+            float bottomCss = Math.max(0, nb.bottom) / d;
+            lastSafeTop = topCss;
+            lastSafeBottom = bottomCss;
+            final String js = "try{var r=document.documentElement.style;"
+                    + "r.setProperty('--cap-safe-top','" + topCss + "px');"
+                    + "r.setProperty('--cap-safe-bottom','" + bottomCss + "px');"
+                    + "}catch(e){}";
+            webView.post(() -> webView.evaluateJavascript(js, null));
+        } catch (Exception ignored) {
+        }
+    }
+
+    /** 1 CSS px في WebView كاباسيتور = 1 dp (كثافة الجهاز) */
+    private float cssPixelScale() {
+        float density = getContext().getResources().getDisplayMetrics().density;
+        return density > 0f ? density : 1f;
+    }
+
+    /* ═══ ثيم أشرطة النظام (إصلاح الملاحظتين 2 و 3) ═══ */
+
+    @PluginMethod
+    public void setSystemBars(PluginCall call) {
+        Boolean dark = call.getBoolean("dark", Boolean.TRUE);
+        String statusBarColor = call.getString("statusBarColor");
+        String navigationBarColor = call.getString("navigationBarColor");
+        Activity activity = getActivity();
+        if (activity == null) {
+            call.resolve();
+            return;
+        }
+        final boolean darkBars = dark == null || dark;
+        final String sbColor = statusBarColor;
+        final String nbColor = navigationBarColor;
+        activity.runOnUiThread(() -> {
+            try {
+                Window window = activity.getWindow();
+                /* أيقونات شريط الحالة + شريط التنقل: داكنة في الفاتح
+                   وفاتحة في الداكن — عبر WindowInsetsController (يعمل
+                   في Android 15 Edge-to-Edge حيث windowLight* مهمل) */
+                applyBarsAppearance(window, darkBars);
+
+                /* الألوان الصلبة — قبل Android 15 فقط (15+ فرض
+                   Edge-to-Edge: الأشرطة شفافة والمحتوى يلوّنها) */
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                    if (sbColor != null) {
+                        window.setStatusBarColor(Color.parseColor(sbColor));
+                    }
+                    if (nbColor != null) {
+                        window.setNavigationBarColor(Color.parseColor(nbColor));
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+            call.resolve();
+        });
+    }
+
+    /** مظهر الأيقونات لكلا الشريطين: dark=true → أيقونات فاتحة */
+    private void applyBarsAppearance(Window window, boolean dark) {
+        WindowInsetsControllerCompat controller =
+                WindowCompat.getInsetsController(window, window.getDecorView());
+        controller.setAppearanceLightStatusBars(!dark);
+        controller.setAppearanceLightNavigationBars(!dark);
+    }
+
+    private boolean isSystemDark() {
+        int nightMode = getContext().getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == Configuration.UI_MODE_NIGHT_YES;
+    }
+${fcmMethods}}
+`;
+  fs.writeFileSync(path.join(JAVA_PKG_DIR, "TawfirNative.java"), tawfirNative);
+  log(
+    "🧩",
+    `TawfirNative.java ← ثيم أشرطة النظام (setSystemBars) + Safe-Area (getSafeAreaInsets + مستمع Insets)${FCM_ENABLED ? " + توكن FCM للـWebView" : " (بلا FCM — google-services.json غائب)"} (${APP_PACKAGE})`,
+  );
+}
+
+/* 5-هـ) MainActivity.java — طلب إذن الإشعارات (13+) + تسجيل إضافة
+ *      TawfirNative (دائماً — ثيم أشرطة النظام + Safe-Area + FCM)
+ *      + توجيه الروابط العميقة من الإشعارات.
+ *      (إصلاح الثيم): لا نفرض ألوان أشرطة النظام من الكود — تتولاها
+ *      resources values/ + values-night/ (وضع النظام) + TawfirNative
+ *      setSystemBars (ثيم المستخدم الفعّال من الـWebView). */
 {
   const fcmPermissionBlock = FCM_ENABLED
     ? `
@@ -637,33 +1150,64 @@ public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
     : "";
   const mainActivity = `package ${APP_PACKAGE};
 
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.Window;
 ${FCM_ENABLED ? "import android.Manifest;\nimport android.content.pm.PackageManager;\n" : ""}
 import com.getcapacitor.BridgeActivity;
 
 /**
  * توفير — النشاط الرئيسي: تجربة أندرويد أصلية بالكامل.
- * ألوان أشرطة النظام بهوية توفير${FCM_ENABLED ? " + طلب إذن الإشعارات على 13+" : ""}.
+ * ${FCM_ENABLED ? "طلب إذن الإشعارات على 13+ + توجيه الروابط العميقة من الإشعارات. " : ""}إضافة TawfirNative (ثيم أشرطة النظام setSystemBars + Safe-Area getSafeAreaInsets${FCM_ENABLED ? " + توكن FCM" : ""}) — ألوان الأشرطة الأولية من الثيم (values/values-night — تتبع وضع النظام) ثم يزامنها الـWebView مع ثيم المستخدم.
  */
 public class MainActivity extends BridgeActivity {
 
     private static final int REQUEST_POST_NOTIFICATIONS = 1001;
+    private static final String EXTRA_DEEP_LINK = "tawfir_deep_link";
+    private boolean deepLinkConsumed = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        applySystemBarColors();${fcmPermissionBlock}    }
+        registerPlugin(TawfirNative.class); // ثيم الأشرطة + Safe-Area (+ FCM إن مفعّل) للـWebView الحي
+        ${fcmPermissionBlock.trim()}
+    }
 
-    /** هوية توفير على أشرطة النظام: الحالة #005B82 والتنقل #003B55 */
-    private void applySystemBarColors() {
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        routeDeepLink(intent);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        /* الإطلاق البارد من إشعار: الجسر جاهز الآن — وجّه الرابط (مرة) */
+        routeDeepLink(getIntent());
+    }
+
+    /**
+     * توجيه رابط عميق من إشعار (extra tawfir_deep_link) إلى WebView الحي.
+     * يعمل للإطلاق البارد (onResume بعد onCreate) وللتطبيق المفتوح
+     * (onNewIntent). يُستهلك الرابط مرة واحدة (removeExtra).
+     */
+    private void routeDeepLink(Intent intent) {
         try {
-            Window window = getWindow();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                window.setStatusBarColor(0xFF005B82);
-                window.setNavigationBarColor(0xFF003B55);
+            if (intent == null) return;
+            String url = intent.getStringExtra(EXTRA_DEEP_LINK);
+            if (url == null || url.length() == 0) return;
+            if (deepLinkConsumed) {
+                intent.removeExtra(EXTRA_DEEP_LINK);
+                return;
             }
+            deepLinkConsumed = true;
+            intent.removeExtra(EXTRA_DEEP_LINK);
+            if (bridge == null || bridge.getWebView() == null) return;
+            final String target = url.startsWith("http")
+                    ? url
+                    : "https://tawfir.giize.com" + url;
+            bridge.getWebView().post(() -> bridge.getWebView().loadUrl(target));
         } catch (Exception ignored) {
         }
     }
@@ -672,7 +1216,7 @@ public class MainActivity extends BridgeActivity {
   fs.writeFileSync(MAIN_ACTIVITY_FILE, mainActivity);
   log(
     "🧩",
-    `MainActivity.java ← ألوان أشرطة النظام${FCM_ENABLED ? " + طلب إذن الإشعارات (13+)" : ""} (${APP_PACKAGE})`,
+    `MainActivity.java ← إذن الإشعارات${FCM_ENABLED ? " + روابط عميقة" : ""} + TawfirNative (ثيم أشرطة النظام + Safe-Area) (${APP_PACKAGE})`,
   );
 }
 
@@ -982,7 +1526,26 @@ fs.writeFileSync(GRADLE_FILE, gradle);
   if (!vc) problems.push(`versionCode ${VERSION_CODE} غير موجود داخل defaultConfig`);
   if (!vn) problems.push(`versionName "${VERSION_NAME}" غير موجود داخل defaultConfig`);
 
-  // 6) عناصر FCM الأصلية (إن كانت مفعّلة)
+  // 6) TawfirNative — يجب أن يوجد دائماً (ثيم أشرطة النظام + Safe-Area)
+  {
+    const p = path.join(JAVA_PKG_DIR, "TawfirNative.java");
+    if (!fs.existsSync(p)) {
+      problems.push("TawfirNative.java غير موجود (مطلوب دائماً — setSystemBars/getSafeAreaInsets)!");
+    } else {
+      const content = fs.readFileSync(p, "utf8");
+      for (const marker of ["setSystemBars", "getSafeAreaInsets", "setAppearanceLightNavigationBars"]) {
+        if (!content.includes(marker)) {
+          problems.push(`TawfirNative.java لا يحوي ${marker}!`);
+        }
+      }
+    }
+    const mainContent = fs.readFileSync(MAIN_ACTIVITY_FILE, "utf8");
+    if (!mainContent.includes("registerPlugin(TawfirNative.class)")) {
+      problems.push("MainActivity.java لا يسجّل TawfirNative!");
+    }
+  }
+
+  // 7) عناصر FCM الأصلية (إن كانت مفعّلة)
   if (FCM_ENABLED) {
     const gsTarget = path.join(ROOT, "android", "app", "google-services.json");
     if (!fs.existsSync(gsTarget)) {
@@ -1040,7 +1603,7 @@ console.log(
     "✅ اكتمل تفعيل هوية «توفير» في مشروع Android",
     `   • التطبيق        : ${APPLICATION_ID} (${APPLICATION_ID.includes("owner") ? "توفير مالك" : "توفير"})`,
     `   • الألوان        : Primary ${BRAND.colorPrimary} · Dark ${BRAND.colorPrimaryDark} · Accent ${BRAND.colorAccent} · أشرطة النظام ✓`,
-    `   • السبلاش        : خلفية صلبة ${BRAND.splashBackground} (${removedCount} صورة حُذفت)`,
+    `   • السبلاش        : @color/splash_background ثنائي الوضع (${removedCount} صورة حُذفت)`,
     `   • الإصدار        : ${VERSION_NAME} (${VERSION_CODE})`,
     `   • التوقيع        : ${signRequested ? "مفعَّل (APK + AAB يُوقَّعان تلقائياً)" : "غير مفعَّل"}`,
     `   • الروابط         : Deep Links فلتر https://${DEEP_LINK_HOST} (autoVerify) ✓`,

@@ -213,9 +213,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
               }}
             />
           )}
-          {/* شعار توفير الرسمي — /identity/mark.png المفرغ (الجولة 22) */}
+          {/* شعار توفير الرسمي — المفرغ المحسّن 256px (إصلاح الشعار) */}
           <Image
-            src="/identity/mark.png"
+            src="/identity/mark-256.png"
             alt=""
             width={48}
             height={48}
