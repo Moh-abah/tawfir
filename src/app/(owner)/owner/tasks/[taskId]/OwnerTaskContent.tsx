@@ -30,10 +30,13 @@ import {
   CheckCircle2,
   ChevronLeft,
   Clock,
+  Copy,
   Handshake,
   Loader2,
+  MapPin,
   MessageSquareWarning,
   Package,
+  Phone,
   RefreshCw,
   Star,
   Timer,
@@ -54,8 +57,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { OpenInMapsButton } from "@/components/shared/OpenInMapsButton";
 import {
   useOwnerTask,
+  useOwnerOrderCustomerView,
   useOwnerHandover,
   useOwnerProblemDecision,
   useOwnerTaskAction,
@@ -148,6 +153,163 @@ function TaskSkeleton() {
       <Skeleton className="h-40 rounded-3xl" />
       <Skeleton className="h-56 rounded-3xl" />
     </div>
+  );
+}
+
+/* ─── موقع العميل — لقرار التوصيل الذاتي ────────────────
+   قبل حجز مندوب يقرر المالك: نداء؟ أم توصيل ذاتي بيده؟ هنا
+   يرى موقع العميل وعنوانه وهاتفه (GET /orders/{id} — يُسمح
+   للمالك حرفياً) ليختار الطريق المناسب قبل الانطلاق. بعد
+   حجز المندوب تختفي البطاقة — الملاحة حينها مسؤولية المندوب
+   من شاشته (مبدأ المصدر الواحد — لا ازدواج خصوصية). */
+
+function CustomerLocationCard({
+  orderId,
+  distanceDisplay,
+}: {
+  orderId: number;
+  distanceDisplay: string | null;
+}) {
+  const { data: order, isLoading, isError } = useOwnerOrderCustomerView(orderId);
+
+  const copyAddress = async () => {
+    if (!order?.delivery_address) return;
+    haptic("light");
+    try {
+      await navigator.clipboard.writeText(order.delivery_address);
+      toast({ title: "تم نسخ عنوان العميل" });
+    } catch {
+      toast({
+        title: "انسخ العنوان يدوياً",
+        description: order.delivery_address,
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <section
+        aria-label="جارٍ جلب موقع العميل"
+        className="rounded-3xl border border-border/60 bg-card p-5 shadow-soft"
+      >
+        <Skeleton className="h-6 w-40 rounded-xl" />
+        <Skeleton className="mt-3 h-11 w-full rounded-2xl" />
+        <Skeleton className="mt-2 h-11 w-full rounded-2xl" />
+      </section>
+    );
+  }
+
+  /* بطاقة تحسينية — فشلها لا يعطّل الصفحة (شريط الحالة الأساسي كافٍ) */
+  if (isError || !order) return null;
+
+  const hasCoords = order.delivery_lat != null && order.delivery_lng != null;
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      aria-label="موقع العميل للتوصيل الذاتي"
+      className="rounded-3xl border-2 border-accent/35 bg-accent/[0.04] p-5 shadow-soft"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/15 text-accent-ink">
+            <MapPin className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-sm font-extrabold text-foreground">
+              موقع العميل — إن اخترت التوصيل الذاتي
+            </h2>
+            <p className="text-[11px] text-muted-foreground">
+              {order.customer_name ?? "عميل"} ·{" "}
+              {distanceDisplay ?? "المسافة ضمن سطر التسعير"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* هاتف العميل — نقر كبير = اتصال مباشر */}
+      {order.customer_phone && (
+        <Button
+          asChild
+          size="lg"
+          variant="outline"
+          className="mt-4 h-14 w-full gap-3 rounded-2xl font-black native-tap"
+        >
+          <a
+            href={`tel:${order.customer_phone}`}
+            dir="ltr"
+            onClick={() => haptic("light")}
+            aria-label={`اتصال بالعميل ${order.customer_phone}`}
+          >
+            <Phone className="h-5 w-5 text-primary" aria-hidden="true" />
+            {order.customer_phone}
+          </a>
+        </Button>
+      )}
+
+      {/* العنوان النصي */}
+      {order.delivery_address && (
+        <div className="mt-3 rounded-2xl border border-border/60 bg-card p-4">
+          <p className="text-[11px] font-bold text-muted-foreground">
+            عنوان التوصيل
+          </p>
+          <p className="mt-1 text-sm font-bold leading-relaxed text-foreground">
+            {order.delivery_address}
+          </p>
+          {order.address_imprecise && (
+            <p
+              role="note"
+              className="mt-2 flex items-start gap-1.5 rounded-xl bg-accent/10 px-3 py-2 text-[11px] font-bold leading-relaxed text-accent-ink"
+            >
+              <MessageSquareWarning
+                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              العميل وصف عنوانه تقريبياً — اتصل به قبل الانطلاق لضبط
+              الاتجاه
+            </p>
+          )}
+          {order.notes && (
+            <p className="mt-2 border-t border-border/50 pt-2 text-xs leading-relaxed text-muted-foreground">
+              ملاحظة العميل: {order.notes}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* الملاحة الخارجية (توجيه المالك — لا خريطة داخل المنصة) */}
+      {hasCoords ? (
+        <OpenInMapsButton
+          lat={order.delivery_lat!}
+          lng={order.delivery_lng!}
+          label={order.delivery_address ?? order.customer_name ?? "العميل"}
+          mode="navigate"
+          className="mt-3 h-12 w-full gap-2 rounded-2xl font-black"
+          aria-label="فتح الملاحة نحو موقع العميل في تطبيق الخرائط"
+        >
+          <MapPin className="h-4.5 w-4.5" aria-hidden="true" />
+          الملاحة إلى موقع العميل
+        </OpenInMapsButton>
+      ) : (
+        order.delivery_address && (
+          <Button
+            variant="outline"
+            onClick={copyAddress}
+            className="mt-3 h-12 w-full gap-2 rounded-2xl font-bold native-tap"
+          >
+            <Copy className="h-4.5 w-4.5" aria-hidden="true" />
+            نسخ عنوان العميل
+          </Button>
+        )
+      )}
+
+      <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
+        تظهر هذه البطاقة قبل حجز المندوب فقط — بعد الحجز يتولى المندوب
+        الملاحة من شاشته
+      </p>
+    </motion.section>
   );
 }
 
@@ -349,6 +511,14 @@ function TaskBody({ task, isActive }: { task: OwnerTaskCard; isActive: boolean }
           </p>
         )}
       </section>
+
+      {/* موقع العميل — قبل حجز المندوب حصراً (قرار التوصيل الذاتي) */}
+      {isActive && task.courier == null && (
+        <CustomerLocationCard
+          orderId={task.order_id}
+          distanceDisplay={task.distance_display}
+        />
+      )}
 
       {/* ملف المندوب العام */}
       {task.courier && (

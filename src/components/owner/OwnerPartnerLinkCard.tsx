@@ -14,6 +14,7 @@ import {
   Cable,
   CheckCircle2,
   Clock,
+  ExternalLink,
   Loader2,
   Plug,
   ShieldQuestion,
@@ -201,6 +202,29 @@ export function OwnerPartnerLinkCard({ facilityId }: { facilityId: number }) {
           تعذّر جلب حالة الربط — أعد تحميل الصفحة لاحقاً
         </p>
       )}
+
+      {/* دليل الشركاء العلني (م28) — الأنماط والحدود والردود وأمثلة الأجسام */}
+      <a
+        href="/api/partners-guide"
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => haptic("light")}
+        className="mt-4 flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/40 px-3.5 py-3 text-xs font-bold text-foreground transition-colors hover:bg-muted/70 native-tap"
+        aria-label="دليل تكامل الشركاء الكامل — علني من الخادم"
+      >
+        <Plug className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <span className="min-w-0 flex-1 leading-relaxed">
+          دليل التكامل الكامل للشركاء
+          <span className="block text-[10px] font-medium text-muted-foreground">
+            الأنماط والحدود والردود + أمثلة الأجسام — علني من الخادم،
+            اعرضه على مطوّر نظامك قبل البناء
+          </span>
+        </span>
+        <ExternalLink
+          className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </a>
     </section>
   );
 }

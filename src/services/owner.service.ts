@@ -152,6 +152,13 @@ export const ownerService = {
       `/owner/facilities/${facilityId}/courier-radar`
     ),
 
+  /**
+   * تفاصيل طلب (بعين المالك — يُسمح له حرفياً على GET /orders/{id}):
+   * موقع العميل وعنوانه وهاتفه — لعرض المسار عند التوصيل الذاتي.
+   */
+  getOwnerOrder: (orderId: number) =>
+    ownerApiClient.get<OwnerOrderCustomerView>(`/orders/${orderId}`),
+
   /** الزر الذهبي: طلب مندوب لطلب مؤكد/قيد تحضير. POST /owner/orders/{oid}/request-courier */
   requestCourier: (orderId: number) =>
     ownerApiClient.post<OwnerTaskCard>(`/owner/orders/${orderId}/request-courier`),
@@ -280,6 +287,29 @@ export interface CourierRatingOut {
   review_state: string;
   created_at: string;
   edited_at: string | null;
+}
+
+/**
+ * تفاصيل طلب بعين المالك — GET /orders/{id} (يُسمح حرفياً لصاحب الطلب
+ * أو مالك المنشأة أو المشرف — من openapi الحي). نستخدمها لعرض موقع
+ * العميل عند قرار التوصيل الذاتي: الإحداثيات + العنوان + الهاتف +
+ * ملاحظات الطلب. (OrderOut المحلي المولّد قديم — هذا العقد مقصوص من
+ * السكمة الحية ويُحدَّث مع أي إعادة توليد.)
+ */
+export interface OwnerOrderCustomerView {
+  id: number;
+  facility_id: number;
+  status: string;
+  delivery_lat: number | null;
+  delivery_lng: number | null;
+  delivery_address: string | null;
+  customer_name: string | null;
+  customer_phone: string | null;
+  notes: string | null;
+  address_imprecise: boolean | null;
+  self_delivery: boolean | null;
+  payment_method: string;
+  total: number;
 }
 
 /** تقدير أجرة المالك — نفس شكل تقدير العميل. */

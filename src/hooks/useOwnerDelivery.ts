@@ -98,6 +98,26 @@ export function useOwnerTask(taskId: number | null | undefined) {
   });
 }
 
+/* ─── موقع العميل (قرار التوصيل الذاتي) ─────────────────── */
+
+/**
+ * تفاصيل الطلب بعين المالك (GET /orders/{id} — يُسمح له حرفياً):
+ * إحداثيات العميل + عنوانه + هاتفه + ملاحظاته. تُجلب مرة واحدة
+ * (الموقع لا يتغير أثناء الطلب) وبلا استطلاع — بطاقة المهمة
+ * الحية 10ث هي التي تحكم الإيقاع.
+ */
+export function useOwnerOrderCustomerView(orderId: number | null | undefined) {
+  const hydrated = useOwnerAuthStore((s) => s.hydrated);
+  const hasToken = useOwnerAuthStore((s) => Boolean(s.accessToken));
+  return useQuery({
+    queryKey: ["owner-order-customer", orderId],
+    queryFn: () => ownerService.getOwnerOrder(orderId!),
+    enabled: orderId != null && orderId > 0 && hydrated && hasToken,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+}
+
 /* ─── الزر الذهبي ─────────────────────────────────────── */
 
 export function useRequestCourier() {
