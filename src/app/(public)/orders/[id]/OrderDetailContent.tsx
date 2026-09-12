@@ -45,6 +45,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { OrderTrackingCard } from "@/components/public/OrderTrackingCard";
+import { GeoLocationField } from "@/components/shared/GeoLocationField";
+import { MISSING_LOCATION_MSG } from "@/components/public/DeliveryFields";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,8 +117,10 @@ function ReOrderSection({ order }: { order: OrderOut }) {
   const createOrder = useCreateOrder();
   const router = useRouter();
 
-  /* الجولة 12: تعبئة مسبقة من الطلب القديم (عنوان/ملاحظات/طريقة دفع) */
+  /* الجولة 12: تعبئة مسبقة من الطلب القديم (موقع/عنوان/ملاحظات/دفع) */
   const [lines, setLines] = useState<ReorderLine[]>([]);
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -130,6 +135,10 @@ function ReOrderSection({ order }: { order: OrderOut }) {
         unit_price: i.unit_price,
       }))
     );
+    /* موقع بابك من الطلب السابق — يظهر محمّلاً (حدّثه بزر تحميل موقعي
+       إن تحركت) — §6-3 الإحداثيات إلزامية دائماً */
+    setLat(order.delivery_lat ?? null);
+    setLng(order.delivery_lng ?? null);
     setAddress(order.delivery_address ?? "");
     setNotes(order.notes ?? "");
     setPaymentMethod(order.payment_method);
@@ -157,6 +166,21 @@ function ReOrderSection({ order }: { order: OrderOut }) {
 
   const handleConfirm = () => {
     if (lines.length === 0) return;
+    if (lat == null || lng == null) {
+      toast({
+        title: MISSING_LOCATION_MSG,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (address.trim().length === 0) {
+      toast({
+        title: "اكتب عنوانك النصي المختصر",
+        description: "يساعد المندوب عند وصوله لبابك",
+        variant: "destructive",
+      });
+      return;
+    }
     createOrder.mutate(
       {
         facility_id: order.facility_id,
@@ -164,6 +188,8 @@ function ReOrderSection({ order }: { order: OrderOut }) {
           product_id: l.product_id,
           quantity: l.quantity,
         })),
+        delivery_lat: lat,
+        delivery_lng: lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
         notes: notes.trim() || null,
@@ -295,10 +321,44 @@ function ReOrderSection({ order }: { order: OrderOut }) {
               </ul>
             </div>
 
+            {/* موقع التوصيل — زر تحميل الموقع (مُعبّأ مسبقاً من طلبك
+                السابق — حدّثه إن تحركت) — §6-3 إلزامي */}
+            <div className="space-y-2">
+              <Label className="text-xs font-bold">
+                موقع التوصيل
+                <span className="text-destructive" aria-hidden="true">
+                  *
+                </span>
+              </Label>
+              <GeoLocationField
+                value={
+                  lat != null && lng != null
+                    ? { lat, lng }
+                    : null
+                }
+                onLocated={(p) => {
+                  setLat(p.lat);
+                  setLng(p.lng);
+                }}
+                idPrefix="reorder-"
+              />
+              <p
+                role="note"
+                className="text-[10px] leading-relaxed text-muted-foreground"
+              >
+                {lat != null
+                  ? "من طلبك السابق — حدّثه بـ«تحديث» إن تغيّر مكان استلامك"
+                  : "حمّل موقعك لتصل شحنتك إلى بابك"}
+              </p>
+            </div>
+
             {/* عنوان التوصيل — معبّأ مسبقاً من الطلب القديم */}
             <div className="space-y-2">
               <Label htmlFor="reorder-address" className="text-xs font-bold">
-                عنوان التوصيل (اختياري)
+                عنوان التوصيل
+                <span className="text-destructive" aria-hidden="true">
+                  *
+                </span>
               </Label>
               <Textarea
                 id="reorder-address"
@@ -307,6 +367,7 @@ function ReOrderSection({ order }: { order: OrderOut }) {
                 placeholder="الحي / الشارع / معلّم مميّز..."
                 className="min-h-[64px] resize-none"
                 rows={2}
+                aria-required="true"
               />
             </div>
 
@@ -398,7 +459,13 @@ function ReOrderSection({ order }: { order: OrderOut }) {
                 haptic("light");
                 handleConfirm();
               }}
-              disabled={createOrder.isPending || lines.length === 0}
+              disabled={
+                createOrder.isPending ||
+                lines.length === 0 ||
+                lat == null ||
+                lng == null ||
+                address.trim().length === 0
+              }
               className="w-full min-h-[48px] gap-2 rounded-full text-base font-extrabold shadow-soft"
               size="lg"
             >
@@ -796,6 +863,15 @@ function OrderView({ order }: { order: OrderOut }) {
           <CancelledNotice />
         ) : (
           <TrackingFlow currentStatus={order.status} />
+        )}
+
+        {/* بطاقة الحالة المنقحة — الوسم المركب + كود التسليم الضخم +
+            المدة عند الإغلاق (حرفياً من /orders/{id}/tracking — صفر
+            بيان مندوب §6-1). تسكت رشيقًا عند غياب البيانات. */}
+        {!isCancelled && (
+          <div className="mt-4">
+            <OrderTrackingCard orderId={order.id} status={order.status} />
+          </div>
         )}
 
         {/* الجولة 10 — تلميح الوقت المتوقع للطلبات النشطة (تحت شريط التتبّع) */}

@@ -25,7 +25,10 @@ import { Button } from "@/components/ui/button";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { useCartStore } from "@/store/cart.store";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
-import { DeliveryFields } from "@/components/public/DeliveryFields";
+import {
+  DeliveryFields,
+  MISSING_LOCATION_MSG,
+} from "@/components/public/DeliveryFields";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
@@ -80,6 +83,10 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const createOrder = useCreateOrder();
   const isMobile = useIsMobile();
 
+  /* §6-3 — الموقع والعنوان إلزاميان قبل الإرسال */
+  const deliveryIncomplete =
+    lat == null || lng == null || address.trim().length === 0;
+
   /* إعادة الضبط عند الإغلاق */
   useEffect(() => {
     if (open) return;
@@ -97,6 +104,15 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
   const handleSubmit = () => {
     if (items.length === 0 || !facilityId) return;
+    /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
+    if (lat == null || lng == null) {
+      setErrorMsg(MISSING_LOCATION_MSG);
+      return;
+    }
+    if (address.trim().length === 0) {
+      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      return;
+    }
     setErrorMsg(null);
     createOrder.mutate(
       {
@@ -218,6 +234,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
               idPrefix="cart-"
+              facilityId={facilityId}
             />
 
             {/* رسالة الخطأ */}
@@ -275,15 +292,27 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   </span>
                 </div>
               </div>
+              {/* بوابة الإرسال §6-3 — الزر معطّل حتى تحميل الموقع والعنوان */}
+              {deliveryIncomplete && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="text-center text-[11px] font-bold text-muted-foreground"
+                >
+                  {lat == null || lng == null
+                    ? MISSING_LOCATION_MSG
+                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                </p>
+              )}
               <Button
                 type="button"
                 onClick={() => {
                   haptic("light");
                   handleSubmit();
                 }}
-                disabled={createOrder.isPending}
+                disabled={createOrder.isPending || deliveryIncomplete}
                 className="w-full min-h-[48px] gap-2 rounded-full text-base font-extrabold shadow-soft"
                 size="lg"
+                aria-disabled={createOrder.isPending || deliveryIncomplete}
               >
                 {createOrder.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />

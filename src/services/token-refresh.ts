@@ -12,9 +12,11 @@ const API_BASE = "/api";
  *
  * القفل لكل دور على حدة (عميل/مشرف/مالك) لأن التوكنات مستقلة تماماً.
  */
-const inFlight: Partial<Record<"customer" | "admin" | "owner", Promise<TokenOut>>> = {};
+const inFlight: Partial<
+  Record<"customer" | "admin" | "owner" | "courier", Promise<TokenOut>>
+> = {};
 
-export type PortalRole = "customer" | "admin" | "owner";
+export type PortalRole = "customer" | "admin" | "owner" | "courier";
 
 export function refreshTokens(role: PortalRole, refreshToken: string): Promise<TokenOut> {
   if (!inFlight[role]) {

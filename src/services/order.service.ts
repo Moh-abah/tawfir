@@ -48,4 +48,48 @@ export const orderService = {
    */
   cancelOrder: (id: number) =>
     customerApiClient.post<OrderOut>(`/orders/${id}/cancel`),
+
+  /**
+   * تقدير أجرة التوصيل الحي — GET /orders/delivery-estimate (م1.23).
+   * «التقدير للعرض فقط» (§7-9): الحساب النهائي سيرفر-سايد عند إنشاء
+   * الطلب — نعرض breakdown النصي العربي كما يرد حرفياً.
+   */
+  deliveryEstimate: (facilityId: number, lat: number, lng: number) =>
+    customerApiClient.get<DeliveryEstimateOut>(
+      `/orders/delivery-estimate?facility_id=${facilityId}&lat=${lat}&lng=${lng}`
+    ),
+
+  /**
+   * تتبع طلبي المنقَّح — GET /orders/{id}/tracking (§19.1 عدسة الخصوصية):
+   * وسوم الحالة + كود التسليم عند وصول المندوب + المدة عند الإغلاق —
+   * صفر حقول مندوب من المصدر.
+   */
+  trackOrder: (id: number) =>
+    customerApiClient.get<OrderTrackingOut>(`/orders/${id}/tracking`),
 };
+
+/* ─── عقد التسعير والتتبع (من openapi الحي — صيغ مجرّبة) ─── */
+
+export interface DeliveryEstimateOut {
+  distance_km: number;
+  distance_display: string;
+  billed_km: number;
+  fee: number;
+  per_km_price: number;
+  breakdown: string;
+  imprecise_address: boolean;
+  max_km_applied: number;
+  exceeds_cap: boolean;
+  note: string | null;
+}
+
+export interface OrderTrackingOut {
+  order_id: number;
+  status: string;
+  status_ar: string;
+  composite_status_ar: string | null;
+  delivery_code: string | null;
+  delivery_duration_minutes: number | null;
+  distance_display: string | null;
+  breakdown: string | null;
+}

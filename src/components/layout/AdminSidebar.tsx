@@ -17,6 +17,9 @@ import {
   Hourglass,
   ShoppingBag,
   BadgeCheck,
+  Bike,
+  Banknote,
+  Cable,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -51,6 +54,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "لوحة المعلومات", icon: LayoutDashboard },
   { href: "/admin/orders", label: "الطلبات", icon: ShoppingBag, badgeKey: "orders" },
+  { href: "/admin/couriers", label: "أسطول المناديب", icon: Bike },
+  { href: "/admin/pricing", label: "تسعير التوصيل", icon: Banknote },
+  { href: "/admin/partners", label: "روابط الشركاء", icon: Cable },
   { href: "/admin/membership-requests", label: "طلبات العضوية", icon: BadgeCheck, badgeKey: "membership-requests" },
   { href: "/admin/facilities", label: "المتاجر", icon: Store, badgeKey: "facilities" },
   { href: "/admin/facilities/pending", label: "طلبات المتاجر المعلّقة", icon: Hourglass, badgeKey: "pending" },

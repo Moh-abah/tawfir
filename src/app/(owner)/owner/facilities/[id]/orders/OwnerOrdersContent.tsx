@@ -40,6 +40,10 @@ import { ownerService } from "@/services/owner.service";
 import { useOwnerOrders } from "@/hooks/useOwnerOrders";
 import { useUpdateOrderStatus } from "@/hooks/useUpdateOrderStatus";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
+import {
+  OwnerRadarCard,
+  RequestCourierButton,
+} from "@/components/owner/OwnerDeliveryWidgets";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useDebounce } from "@/hooks/useDebounce";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -292,6 +296,18 @@ function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
             }
             onStatusChange={onStatusChange}
           />
+
+          {/* الزر الذهبي — طلب مندوب توصيل (طلبات مؤكدة/قيد تحضير حصراً —
+              قيد الخادم) · بطاقة المهمة إن وُجدت محلياً لهذا الطلب */}
+          {(order.status === "confirmed" || order.status === "preparing") && (
+            <div className="mt-4 border-t border-border/40 pt-4">
+              <RequestCourierButton orderId={order.id} />
+              <p className="mt-1.5 text-center text-[10px] leading-relaxed text-muted-foreground">
+                يفتح نداءً للمناديب المتاحين حول متجرك — يظهر المندوب وتقييمه
+                بعد قبوله، وأجرته على العميل ضمن فاتورته
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
@@ -623,6 +639,9 @@ export default function OwnerOrdersContent() {
           </Link>
         </div>
       </div>
+
+      {/* رادار المناديب حول المتجر — عدّاد فقط (خصوصية من المصدر) */}
+      <OwnerRadarCard facilityId={facilityId} />
 
       {/* تنبيه حالة المتجر (معلّقة/مرفوضة) */}
       {(isPending || isRejected) && (

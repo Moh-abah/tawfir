@@ -21,7 +21,10 @@ import { Button } from "@/components/ui/button";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { DeliveryFields } from "@/components/public/DeliveryFields";
+import {
+  DeliveryFields,
+  MISSING_LOCATION_MSG,
+} from "@/components/public/DeliveryFields";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
 import { useCartStore } from "@/store/cart.store";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
@@ -78,10 +81,23 @@ export function CartPageContent() {
 
   const isLoggedIn = hydrated && !!accessToken;
 
+  /* §6-3 — الموقع والعنوان إلزاميان قبل الإرسال */
+  const deliveryIncomplete =
+    lat == null || lng == null || address.trim().length === 0;
+
   const handleSubmit = () => {
     if (items.length === 0 || !facilityId) return;
     if (!isLoggedIn) {
       router.push("/login?next=/cart");
+      return;
+    }
+    /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
+    if (lat == null || lng == null) {
+      setErrorMsg(MISSING_LOCATION_MSG);
+      return;
+    }
+    if (address.trim().length === 0) {
+      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
       return;
     }
     setErrorMsg(null);
@@ -258,6 +274,7 @@ export function CartPageContent() {
                 onPaymentMethodChange={setPaymentMethod}
                 variant="plain"
                 idPrefix="page-cart-"
+                facilityId={facilityId}
               />
 
               {!isLoggedIn && (
@@ -357,6 +374,18 @@ export function CartPageContent() {
                 </div>
               </div>
 
+              {/* بوابة الإرسال §6-3 — الزر معطّل حتى تحميل الموقع والعنوان */}
+              {deliveryIncomplete && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="text-center text-[11px] font-bold text-muted-foreground"
+                >
+                  {lat == null || lng == null
+                    ? MISSING_LOCATION_MSG
+                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                </p>
+              )}
+
               {/* زر التأكيد — الديسكتوب (الموبايل له الشريط اللاصق أسفل) */}
               <Button
                 type="button"
@@ -364,7 +393,8 @@ export function CartPageContent() {
                   haptic("light");
                   handleSubmit();
                 }}
-                disabled={createOrder.isPending}
+                disabled={createOrder.isPending || deliveryIncomplete}
+                aria-disabled={createOrder.isPending || deliveryIncomplete}
                 className="hidden min-h-[48px] w-full gap-2 rounded-full text-base font-extrabold shadow-soft lg:inline-flex"
                 size="lg"
               >
@@ -398,7 +428,8 @@ export function CartPageContent() {
             haptic("light");
             handleSubmit();
           }}
-          disabled={createOrder.isPending}
+          disabled={createOrder.isPending || deliveryIncomplete}
+          aria-disabled={createOrder.isPending || deliveryIncomplete}
           className="native-tap flex min-h-[52px] w-full items-center justify-between gap-3 rounded-2xl bg-primary px-4 text-primary-foreground shadow-soft-lg transition-transform active:scale-[0.98] disabled:opacity-70"
         >
           <span className="flex items-center gap-2 text-sm font-extrabold">

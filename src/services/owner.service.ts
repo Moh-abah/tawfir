@@ -143,4 +143,179 @@ export const ownerService = {
   /** تحديث حالة طلب. PATCH /orders/{id}/status (مالك/مشرف). */
   updateOrderStatus: (orderId: number, status: string) =>
     ownerApiClient.patch<OrderOut>(`/orders/${orderId}/status`, { status }),
+
+  /* ─── التوصيل عبر المناديب (توسعة الجولة الرابعة — عقد حي 100%) ── */
+
+  /** رادار المناديب حول متجري. GET /owner/facilities/{fid}/courier-radar */
+  getCourierRadar: (facilityId: number) =>
+    ownerApiClient.get<OwnerCourierRadar>(
+      `/owner/facilities/${facilityId}/courier-radar`
+    ),
+
+  /** الزر الذهبي: طلب مندوب لطلب مؤكد/قيد تحضير. POST /owner/orders/{oid}/request-courier */
+  requestCourier: (orderId: number) =>
+    ownerApiClient.post<OwnerTaskCard>(`/owner/orders/${orderId}/request-courier`),
+
+  /** بطاقة مهمة التوصيل (ملف المندوب العام + الأزرار المتاحة). GET /owner/tasks/{tid} */
+  getOwnerTask: (taskId: number) =>
+    ownerApiClient.get<OwnerTaskCard>(`/owner/tasks/${taskId}`),
+
+  /** تأكيد تسليم الطلب للمندوب عند المتجر. POST /owner/tasks/{tid}/handover */
+  confirmHandover: (taskId: number, confirmed: boolean) =>
+    ownerApiClient.post<OwnerTaskCard>(`/owner/tasks/${taskId}/handover`, {
+      confirmed,
+    }),
+
+  /** قرار المالك على مشكلة تسليم. POST /owner/tasks/{tid}/problem-decision */
+  decideProblem: (
+    taskId: number,
+    decision: "wait" | "cancel_customer" | "cancel_compensate" | "force_complete",
+    reason?: string | null
+  ) =>
+    ownerApiClient.post<OwnerTaskCard>(`/owner/tasks/${taskId}/problem-decision`, {
+      decision,
+      reason: reason?.trim() || null,
+    }),
+
+  /** إجراء المالك على المهمة (إلغاء قبل/بعد، إعادة نداء، توصيل ذاتي). POST /owner/tasks/{tid}/action */
+  ownerTaskAction: (
+    taskId: number,
+    action: "cancel_before_assignment" | "cancel_after_assignment" | "recall" | "self_delivery",
+    reason?: string | null
+  ) =>
+    ownerApiClient.post<OwnerTaskCard>(`/owner/tasks/${taskId}/action`, {
+      action,
+      reason: reason?.trim() || null,
+    }),
+
+  /** تقييم المندوب بعد إتمام المهمة. POST /owner/courier-ratings */
+  rateCourier: (data: CourierRatingInput) =>
+    ownerApiClient.post<CourierRatingOut>("/owner/courier-ratings", data),
+
+  /** تقدير أجرة توصيل من متجري. POST /owner/delivery-estimate */
+  deliveryEstimate: (data: { facility_id: number; lat?: number | null; lng?: number | null }) =>
+    ownerApiClient.post<OwnerDeliveryEstimateOut>("/owner/delivery-estimate", data),
+
+  /* ─── ربط الشريك (واجهة شريك الخدمات) ───────────────── */
+
+  /** طلب ربط نظام خارجي بمتجري. POST /partner/facilities/{fid}/link-request */
+  partnerLinkRequest: (
+    facilityId: number,
+    data: { system_name: string; contact_email: string; link_mode?: "internal_system" | "mobile_backend" }
+  ) =>
+    ownerApiClient.post<{ detail: string; status_code: number }>(
+      `/partner/facilities/${facilityId}/link-request`,
+      data
+    ),
+
+  /** حالة الربط + صحة الشريك + آخر مزامنات. GET /partner/facilities/{fid}/link-status */
+  partnerLinkStatus: (facilityId: number) =>
+    ownerApiClient.get<PartnerLinkStatusOut>(`/partner/facilities/${facilityId}/link-status`),
 };
+
+/* ─── عقد التوصيل للمالك (من openapi الحي + ردود مجرّبة) ─── */
+
+/** رادار المناديب — عدّاد فقط (عدسة خصوصية: لا أسماء ولا هواتف). */
+export interface OwnerCourierRadar {
+  available_count: number;
+  radius_km: number;
+  message: string;
+}
+
+/** الملف العام للمندوب — كما يراه المالك (بلا هاتف/اسم كامل). */
+export interface OwnerCourierPublic {
+  courier_id: number;
+  public_name: string;
+  photo_url: string | null;
+  vehicle_type: string | null;
+  verified_badge: boolean;
+  avg_rating: number | null;
+  rating_count: number;
+  completed_tasks: number;
+  level: string;
+  level_ar: string;
+  joined_year: number;
+}
+
+/** بطاقة مهمة المالك — الرد الموحّد من كل مسارات التوصيل. */
+export interface OwnerTaskCard {
+  task_id: number;
+  order_id: number;
+  status: string;
+  status_ar: string;
+  courier: OwnerCourierPublic | null;
+  distance_display: string | null;
+  billed_km: number | null;
+  fee: number | null;
+  per_km_price: number | null;
+  breakdown: string | null;
+  delivery_code: string | null;
+  reserved_at: string | null;
+  picked_up_at: string | null;
+  completed_at: string | null;
+  delivery_duration_minutes: number | null;
+  owner_actions: string[];
+}
+
+/** مدخلات تقييم المندوب (نجوم إلزامية + 3 محاور اختيارية + تعليق). */
+export interface CourierRatingInput {
+  task_id: number;
+  stars: number;
+  timeliness?: number | null;
+  care?: number | null;
+  conduct?: number | null;
+  comment?: string | null;
+}
+
+export interface CourierRatingOut {
+  id: number;
+  task_id: number;
+  courier_id: number;
+  facility_id: number;
+  stars: number;
+  timeliness: number | null;
+  care: number | null;
+  conduct: number | null;
+  comment: string | null;
+  review_state: string;
+  created_at: string;
+  edited_at: string | null;
+}
+
+/** تقدير أجرة المالك — نفس شكل تقدير العميل. */
+export interface OwnerDeliveryEstimateOut {
+  distance_km: number;
+  distance_display: string;
+  billed_km: number;
+  fee: number;
+  per_km_price: number;
+  breakdown: string;
+  imprecise_address: boolean;
+  max_km_applied: number;
+  exceeds_cap: boolean;
+  note: string | null;
+}
+
+/** صحة الشريك داخل حالة الربط. */
+export interface PartnerHealthOut {
+  partner_id: number;
+  facility_id: number;
+  system_name: string;
+  status: string;
+  status_reason: string | null;
+  last_call_at: string | null;
+  success_count_7d: number;
+  synced_products_count: number;
+  idle_days: number | null;
+}
+
+/** حالة ربط الشريك — GET /partner/facilities/{fid}/link-status */
+export interface PartnerLinkStatusOut {
+  linked: boolean;
+  request_status: string | null;
+  status: string | null;
+  key_prefix: string;
+  system_name: string | null;
+  health: PartnerHealthOut | null;
+  recent_syncs: unknown[];
+}

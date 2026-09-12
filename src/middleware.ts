@@ -8,8 +8,19 @@ const OWNER_HOST = "facility.tawfir.giize.com";
 /** صفحات بوابة المالك العامة (بلا حراسة): الدخول + تسجيل متجر جديد */
 const OWNER_PUBLIC_PATHS = new Set(["/owner/login", "/owner/register"]);
 
+/** صفحات بوابة المندوب العامة (بلا حراسة): التعريف + الدخول + التسجيل */
+const COURIER_PUBLIC_PATHS = new Set([
+  "/courier",
+  "/courier/login",
+  "/courier/register",
+]);
+
 function isOwnerPublicPath(pathname: string): boolean {
   return OWNER_PUBLIC_PATHS.has(pathname);
+}
+
+function isCourierPublicPath(pathname: string): boolean {
+  return COURIER_PUBLIC_PATHS.has(pathname);
 }
 
 export function middleware(request: NextRequest) {
@@ -103,7 +114,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 5) Unknown hosts (localhost, Vercel preview): no rewrites, just protect admin/owner
+  // 5) Unknown hosts (localhost, Vercel preview): no rewrites, just protect admin/owner/courier
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     const token = request.cookies.get("tawfir_admin_token")?.value;
     if (!token) {
@@ -116,6 +127,16 @@ export function middleware(request: NextRequest) {
     const token = request.cookies.get("tawfir_owner_token")?.value;
     if (!token) {
       url.pathname = "/owner/login";
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+  }
+  /* 6) بوابة المندوب — حراسة على كل النطاقات (شاشة التوثيق الحساسة داخلها):
+     ما عدا شاشاتها العامة الثلاث (تعريف/دخول/تسجيل) */
+  if (pathname.startsWith("/courier") && !isCourierPublicPath(pathname)) {
+    const token = request.cookies.get("tawfir_courier_token")?.value;
+    if (!token) {
+      url.pathname = "/courier/login";
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }

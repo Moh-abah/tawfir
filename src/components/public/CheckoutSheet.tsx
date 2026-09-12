@@ -23,7 +23,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
-import { DeliveryFields } from "@/components/public/DeliveryFields";
+import {
+  DeliveryFields,
+  MISSING_LOCATION_MSG,
+} from "@/components/public/DeliveryFields";
 import { useMe } from "@/hooks/useMe";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -330,6 +333,11 @@ export function CheckoutSheet({
   const outOfStock =
     !product.is_available || product.available_quantity === 0;
 
+  /* §6-3 — الموقع والعنوان إلزاميان قبل الإرسال (زر التأكيد معطّل حتى اكتمالهما) */
+  const locationMissing = lat == null || lng == null;
+  const addressMissing = address.trim().length === 0;
+  const deliveryIncomplete = locationMissing || addressMissing;
+
   const maxQty =
     product.available_quantity && product.available_quantity > 0
       ? product.available_quantity
@@ -353,6 +361,15 @@ export function CheckoutSheet({
 
   const handleSubmit = () => {
     if (outOfStock) return;
+    /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
+    if (locationMissing) {
+      setErrorMsg(MISSING_LOCATION_MSG);
+      return;
+    }
+    if (addressMissing) {
+      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      return;
+    }
     setErrorMsg(null);
     createOrder.mutate(
       {
@@ -578,6 +595,7 @@ export function CheckoutSheet({
               paymentMethod={paymentMethod}
               onPaymentMethodChange={setPaymentMethod}
               disabled={outOfStock}
+              facilityId={product.facility_id}
             />
 
             {/* رسالة الخطأ */}
@@ -596,14 +614,25 @@ export function CheckoutSheet({
               </div>
             )}
 
-            {/* زر التأكيد */}
+            {/* زر التأكيد — معطّل حتى تحميل الموقع وكتابة العنوان (§6-3) */}
             <div className="sticky bottom-0 mt-auto border-t bg-background p-4">
+              {deliveryIncomplete && !outOfStock && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="mb-2 text-center text-[11px] font-bold text-muted-foreground"
+                >
+                  {locationMissing
+                    ? MISSING_LOCATION_MSG
+                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                </p>
+              )}
               <Button
                 type="button"
                 size="lg"
                 onClick={handleSubmit}
-                disabled={outOfStock || createOrder.isPending}
+                disabled={outOfStock || deliveryIncomplete || createOrder.isPending}
                 className="min-h-[48px] w-full gap-2 rounded-full"
+                aria-disabled={outOfStock || deliveryIncomplete || createOrder.isPending}
               >
                 {createOrder.isPending ? (
                   <>

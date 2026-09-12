@@ -6,6 +6,7 @@ import { useForm, Controller } from "react-hook-form";
 import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { OwnerMetricsCard } from "@/components/owner/OwnerMetricsCard";
+import { OwnerPartnerLinkCard } from "@/components/owner/OwnerPartnerLinkCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -357,6 +358,9 @@ const prefersReduced = usePrefersReducedMotion();
           </form>
         </CardContent>
       </Card>
+
+      {/* ربط نظام شريك خارجي — POST /partner/facilities/{fid}/link-request */}
+      <OwnerPartnerLinkCard facilityId={facilityId} />
     </motion.div>
   );
 }
