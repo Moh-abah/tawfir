@@ -156,7 +156,15 @@ async function fetchWithOwnerAuth<T>(
     throw new OwnerApiError(message, response.status, data);
   }
 
-  if (response.status === 204 || data === null) {
+  /* 204 = «بلا محتوى» مشروع — بيانات استعلامات GET لا تُحلّ بـ undefined
+     أبداً (React Query v5 يرفضها): 2xx بلا JSON صالح → خطأ صريح. */
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  if (data === null) {
+    if (method === "GET") {
+      throw new OwnerApiError("استجابة غير صالحة من الخادم — أعد المحاولة", response.status, null);
+    }
     return undefined as T;
   }
   return data as T;

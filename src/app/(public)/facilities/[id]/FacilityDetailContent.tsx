@@ -36,6 +36,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { haptic } from "@/lib/haptic";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -112,9 +113,13 @@ function ProductCard({
         {product.image_url ? (
           <ImageWithSkeleton src={resolveImageUrl(product.image_url)} alt={product.name} fill className="h-full w-full" />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground/30">
-            <UtensilsCrossed className="h-12 w-12" />
-          </div>
+          /* الجولة 25 — بديل جذاب بدل الرماد المسطح */
+          <ImagePlaceholder
+            seed={product.id}
+            label={product.name}
+            icon={UtensilsCrossed}
+            size="md"
+          />
         )}
         {!product.is_available && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-bold text-white">
@@ -631,11 +636,15 @@ const prefersReduced = usePrefersReducedMotion();
           style={{ transform: "scale(var(--cover-scale, 1))" }}
         >
           {facility.image_url ? (
-            <ImageWithSkeleton src={resolveImageUrl(facility.image_url)} alt={facility.name} fill className="h-full w-full" />
+            <ImageWithSkeleton src={resolveImageUrl(facility.image_url)} alt={facility.name} fill priority className="h-full w-full" />
           ) : (
-              <div className="flex h-full items-center justify-center bg-primary-deep">
-              <Landmark className="h-16 w-16 text-white/20" />
-            </div>
+            /* الجولة 25 — هيرو بديل جذاب بدل الرماد الداكن المسطح */
+            <ImagePlaceholder
+              seed={facility.id}
+              label={facility.name}
+              icon={PLACEHOLDER_ICONS.facility}
+              size="lg"
+            />
           )}
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent" />

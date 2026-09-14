@@ -269,7 +269,7 @@ export default function CourierProfilePage() {
         size="sm"
         onClick={() => {
           logout();
-          router.replace("/courier/login");
+          router.replace("/login?mode=courier");
         }}
         className="mx-auto block text-muted-foreground native-tap"
         aria-label="تسجيل الخروج"

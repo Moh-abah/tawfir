@@ -18,6 +18,7 @@ import { useFavoritesStore } from "@/store/favorites.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { useCartStore } from "@/store/cart.store";
 import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
+import { useRegions } from "@/hooks/useRegions";
 
 /**
  * شاشات انطلاق iOS لتطبيق العميل — يرفعها React 19 إلى <head> تلقائياً.
@@ -77,6 +78,14 @@ export default function PublicLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  /* الجولة 26 — إصلاح الروابط المباشرة لزائر جديد: كان اختيار المنطقة
+     التلقائي يحدث فقط في هيدر الرئيسية (MAIN_HEADER_ROUTES = ["/"])، فأي
+     رابط مباشر (مشاركة متجر/إعلان/SEO) لزائر بلا منطقة مخزّنة يعرض
+     «المتجر غير موجود» لأن استعلام المتاجر معطّل بلا منطقة. الآن نستدعي
+     useRegions في التخطيط نفسه — يختار أول منطقة تلقائياً في كل الصفحات
+     (الاستعلام مشترك مع منتقي الهيدر عبر react-query فلا طلب مزدوج). */
+  useRegions();
 
   const isReceiptRoute = /^\/orders\/\d+\/receipt$/.test(pathname ?? "");
 

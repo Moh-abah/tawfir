@@ -166,7 +166,21 @@ async function fetchWithCustomerAuth<T>(
     throw new CustomerApiError(message, response.status, data);
   }
 
-  if (response.status === 204 || data === null) {
+  /* 204 = «بلا محتوى» مشروع — بيانات استعلامات GET لا تُحلّ بـ undefined
+     أبداً (React Query v5 يرفضها: «Query data cannot be undefined»): استجابة
+     2xx بلا JSON صالح (وكيل وسيط/SW قديم أثناء التطوير) → خطأ صريح قابل
+     لإعادة المحاولة بدل تعطيل الاستعلام نهائياً. */
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  if (data === null) {
+    if (method === "GET") {
+      throw new CustomerApiError(
+        "استجابة غير صالحة من الخادم — أعد المحاولة",
+        response.status,
+        null,
+      );
+    }
     return undefined as T;
   }
   return data as T;

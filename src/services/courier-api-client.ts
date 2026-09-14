@@ -6,7 +6,7 @@
  * - كل نداء يمر عبر وكيل Next.js (rewrites): /api/courier/... →
  *   {BASE}/api/v1/courier/... — بلا CORS وبلا كشف قيم حساسة.
  * - 401 → تجديد شفاف (قفل سباق التدوير) → إعادة الطلب → عند الفشل:
- *   خروج حقيقي إلى /courier/login (رسالة عربية + توست).
+ *   خروج حقيقي إلى الدخول الموحّد /login?mode=courier (رسالة عربية + توست).
  * - أخطاء الخادم {detail} العربية تُعرض كما وردت حرفياً (قاعدة §7-7/8).
  * - 422 validation يُفكّ مصفوفة detail إلى رسالة واحدة مقروءة.
  * - 403 لعلم مطفأ أو صلاحية: رسالة واضحة يستهلكها «وضع الانتظار الرشيق».
@@ -74,7 +74,7 @@ function forceLogout(hadSession: boolean): void {
       description: "يرجى تسجيل الدخول من جديد",
     });
     if (isOnProtectedPage()) {
-      window.location.assign("/courier/login?expired=1");
+      window.location.assign("/login?mode=courier&expired=1");
     }
   }
 }
@@ -197,7 +197,15 @@ async function fetchWithCourierAuth<T>(
     throw new CourierApiError(message, response.status, data);
   }
 
-  if (response.status === 204 || data === null) {
+  /* 204 = «بلا محتوى» مشروع — بيانات استعلامات GET لا تُحلّ بـ undefined
+     أبداً (React Query v5 يرفضها): 2xx بلا JSON صالح → خطأ صريح. */
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  if (data === null) {
+    if (method === "GET") {
+      throw new CourierApiError("استجابة غير صالحة من الخادم — أعد المحاولة", response.status, null);
+    }
     return undefined as T;
   }
   return data as T;

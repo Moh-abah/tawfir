@@ -90,6 +90,7 @@ export function StickyMiniCart() {
             initial={prefersReduced ? { opacity: 0 } : { y: 80, opacity: 0 }}
             animate={prefersReduced ? { opacity: 1 } : { y: 0, opacity: 1 }}
             exit={prefersReduced ? { opacity: 0 } : { y: 80, opacity: 0 }}
+            whileTap={prefersReduced ? undefined : { scale: 0.98 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             aria-label={`عرض السلة — ${totalCount} أصناف`}
             className={cn(

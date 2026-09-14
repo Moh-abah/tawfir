@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Crown, MapPin, ShoppingBag, UtensilsCrossed, ZoomIn } from "lucide-react";
+import { Crown, MapPin, ShoppingBag, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
 import { ImageLightbox } from "@/components/shared/ImageLightbox";
 import { AddToCartButton } from "@/components/public/AddToCartButton";
@@ -148,16 +149,14 @@ export function ProductCard({ product, className, priority = false, staggerIndex
                 skeletonClassName="rounded-none"
               />
             ) : (
-              <div
-                className="flex h-full w-full items-center justify-center bg-muted"
-                role="img"
-                aria-label={product.name}
-              >
-                <UtensilsCrossed
-                  className="h-8 w-8 text-muted-foreground/40"
-                  aria-hidden="true"
-                />
-              </div>
+              /* الجولة 25 — بديل بصري جذاب بدل الرماد المسطح: تدرّج حتمي
+                 + monogram الحرف الأول + زخارف شفافة (انظر ImagePlaceholder) */
+              <ImagePlaceholder
+                seed={product.id}
+                label={product.name}
+                icon={PLACEHOLDER_ICONS.product}
+                size="sm"
+              />
             )}
             <div className="absolute right-2 top-2 flex flex-col items-end gap-1">
               <AvailabilityBadge product={product} />

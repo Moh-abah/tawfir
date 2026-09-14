@@ -191,3 +191,53 @@ export function formatRelativeTime(iso: string): string {
   }
   return new Date(iso).toLocaleDateString("ar-SA");
 }
+
+/* ═══ تصنيفات الإشعارات (فلترة صفحة الإشعارات — الجولة 25) ═══ */
+
+/** فئات الإشعارات المعروضة كرقائق فلترة في صفحة الإشعارات */
+export type NotificationCategory = "orders" | "offers" | "membership" | "system";
+
+export const NOTIFICATION_CATEGORIES: ReadonlyArray<{
+  key: NotificationCategory;
+  label: string;
+}> = [
+  { key: "orders", label: "الطلبات" },
+  { key: "offers", label: "العروض" },
+  { key: "membership", label: "العضوية" },
+  { key: "system", label: "النظام" },
+];
+
+/** يرجع فئة الإشعار حسب نوعه — افتراضياً «النظام». */
+export function getNotificationCategory(
+  type: string | undefined
+): NotificationCategory {
+  if (!type) return "system";
+  if (type.startsWith("order_")) return "orders";
+  if (type.startsWith("special_offer_")) return "offers";
+  if (type.startsWith("membership_")) return "membership";
+  return "system";
+}
+
+/**
+ * عنوان تجميع تاريخي للإشعار: «اليوم» / «أمس» / «أقدم».
+ * يستخدم كعناوين أقسام داخل صفحة الإشعارات — تجميع بصري مألوف
+ * من تطبيقات المحادثة الأصيلة.
+ */
+export function getNotificationDateGroup(iso: string): "today" | "yesterday" | "older" {
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return "older";
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = then.getTime();
+  if (t >= startOfToday) return "today";
+  if (t >= startOfToday - 24 * 60 * 60 * 1000) return "yesterday";
+  return "older";
+}
+
+export const NOTIFICATION_DATE_GROUP_LABELS: Readonly<
+  Record<"today" | "yesterday" | "older", string>
+> = {
+  today: "اليوم",
+  yesterday: "أمس",
+  older: "أقدم",
+};

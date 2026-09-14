@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback } from "react";
 // (الجولة 20) useQueryClient لم يعد لازماً بعد نقل PTR للـlayout
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
@@ -12,6 +13,7 @@ import {
   UtensilsCrossed,
   Search,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 // (الجولة 20) PullToRefresh نُقل لـ (public)/layout.tsx (GlobalPullToRefresh)
 import { ScreenHeader, ScreenHeaderSkeleton } from "@/components/shared/ScreenHeader";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { LiveElapsedBadge } from "@/components/shared/LiveElapsedBadge";
 import { useMyOrders } from "@/hooks/useMyOrders";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -29,6 +32,7 @@ import {
   ORDER_STATUS_TONE,
 } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { haptic } from "@/lib/haptic";
 import type { OrderListOut, OrderStatus } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
@@ -56,11 +60,18 @@ const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
 /* ─── بطاقة طلب واحد ──────────────────────────────── */
 function OrderCard({ order }: { order: OrderListOut }) {
   const prefersReduced = usePrefersReducedMotion();
+  const router = useRouter();
   const cardAnim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
 
   const isPending = order.status === "pending";
+
+  /* الجولة 27 — زر «أعد الطلب»: للطلبات المكتملة أو الملغاة فقط.
+   * ينقل لتفاصيل الطلب مع ?reorder=1 ← تُفتح ورقة إعادة الطلب تلقائياً
+   * معبّأة مسبقاً (الأصناف/الموقع/العنوان/الدفع) — نفس مسار الجولة 12. */
+  const canReorder =
+    order.status === "delivered" || order.status === "cancelled";
 
   return (
     <motion.div {...cardAnim} transition={{ duration: 0.25, ease: "easeOut" }}>
@@ -145,8 +156,30 @@ function OrderCard({ order }: { order: OrderListOut }) {
             </div>
           </div>
 
-          {/* شريط سفلي: زر التفاصيل */}
-          <div className="mt-3 flex items-center justify-end border-t border-border/40 pt-3">
+          {/* شريط سفلي — الجولة 27: زر «أعد الطلب» (للمكتملة/الملغاة)
+              + زر التفاصيل */}
+          <div
+            className={cn(
+              "mt-3 flex items-center border-t border-border/40 pt-3",
+              canReorder ? "justify-between gap-2" : "justify-end"
+            )}
+          >
+            {canReorder && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  haptic("light");
+                  router.push(`/orders/${order.id}?reorder=1`);
+                }}
+                className="native-tap inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-4 text-xs font-extrabold text-primary transition-all hover:border-primary/45 hover:bg-primary/20 active:scale-95"
+                aria-label={`إعادة طلب رقم ${order.id} بنفس الأصناف`}
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                أعد الطلب
+              </button>
+            )}
             <span className="inline-flex min-h-[44px] items-center gap-1 text-xs font-bold text-secondary">
               عرض التفاصيل
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
@@ -327,12 +360,20 @@ function ActiveOrderBanner() {
             <p className="mt-0.5 truncate text-sm font-extrabold text-foreground">
               طلب #{activeOrder.id} — {activeOrder.facility_name ?? "المتجر"}
             </p>
-            <p className="text-[11px] text-muted-foreground">
-              {ORDER_STATUS_LABEL[activeOrder.status]}
-              {" · "}
-              <span dir="ltr" className="font-bold tabular-nums text-foreground">
-                {formatCurrency(activeOrder.total)}
+            <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                {ORDER_STATUS_LABEL[activeOrder.status]}
+                {" · "}
+                <span dir="ltr" className="font-bold tabular-nums text-foreground">
+                  {formatCurrency(activeOrder.total)}
+                </span>
               </span>
+              {/* الجولة 26 — شارة الوقت المنقضي الحيّة (تتحدث كل 30 ثانية) */}
+              <LiveElapsedBadge
+                since={activeOrder.created_at}
+                className="bg-primary/10 text-primary"
+                suffix="على طلبك"
+              />
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-extrabold text-primary-foreground shadow-soft transition-transform group-hover:scale-105">

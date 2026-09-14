@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -399,6 +400,9 @@ export default function ProductDetailContent() {
                   src={resolveImageUrl(product.image_url)}
                   alt={product.name}
                   fill
+                  /* الصورة الرئيسية فوق الطية = عنصر LCP في هذه الصفحة —
+                     تحميل فوري (eager) بدل lazy الافتراضي (تحذير Next.js). */
+                  priority
                   className="h-full w-full transition-transform duration-500 ease-out group-hover/img:scale-[1.04] group-active/img:scale-[0.98]"
                   skeletonClassName="rounded-none"
                 />
@@ -412,16 +416,13 @@ export default function ProductDetailContent() {
                 </span>
               </>
             ) : (
-              <span
-                className="flex h-full w-full items-center justify-center bg-muted"
-                role="img"
-                aria-label={product.name}
-              >
-                <UtensilsCrossed
-                  className="h-16 w-16 text-muted-foreground/30"
-                  aria-hidden="true"
-                />
-              </span>
+              /* الجولة 25 — هيرو بديل جذاب بدل الرماد المسطح (تدرّج + monogram) */
+              <ImagePlaceholder
+                seed={product.id}
+                label={product.name}
+                icon={PLACEHOLDER_ICONS.product}
+                size="lg"
+              />
             )}
           </button>
 

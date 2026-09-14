@@ -38,7 +38,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MemberCard } from "@/components/public/MemberCard";
+import { AccountProfileHero } from "@/components/public/AccountProfileHero";
 import { AccountFaqContactSection } from "@/components/public/AccountFaqContactSection";
+import { CourierModeCard } from "@/components/shared/CourierModeCard";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
@@ -105,6 +107,11 @@ function GuestAccount() {
             </Button>
           </div>
           <PWAInstallButton portal="customer" variant="full" className="w-full" />
+
+          {/* بوابة المندوب — نفس التطبيق بصلاحيات المندوب (الجولة 24) */}
+          <div className="w-full">
+            <CourierModeCard />
+          </div>
 
           {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
           <div className="mt-8 w-full">
@@ -406,15 +413,8 @@ function NoMembershipState({ me }: { me: MeOut }) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6"
     >
-      {/* الترحيب */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-foreground">
-          مرحباً، {me.full_name}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          هذه بياناتك في منصة توفير
-        </p>
-      </div>
+      {/* الجولة 26 — بطاقة الترحيب الذكية (أفاتار + إحصائيات حيّة) */}
+      <AccountProfileHero me={me} isMember={false} />
 
       {/* دعوة الاشتراك في العضوية */}
       <Card
@@ -459,6 +459,9 @@ function NoMembershipState({ me }: { me: MeOut }) {
         </CardContent>
       </Card>
 
+      {/* بوابة المندوب — نفس التطبيق بصلاحيات المندوب (الجولة 24) */}
+      <CourierModeCard />
+
       {/* تثبيت التطبيق */}
       <PWAInstallButton portal="customer" variant="full" />
 
@@ -493,25 +496,23 @@ function ActiveMemberState({ me }: { me: MeOut }) {
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6"
     >
-      {/* الترحيب */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-extrabold text-foreground">
-            مرحباً، {me.full_name}
-          </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            هذه بطاقتك وبياناتك في منصة توفير
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={logout}
-          className="min-h-[44px] gap-2 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-        >
-          <LogOut className="h-4 w-4" aria-hidden="true" />
-          تسجيل الخروج
-        </Button>
-      </div>
+      {/* الجولة 26 — بطاقة الترحيب الذكية: أفاتار + تحية + إحصائيات
+          (طلباتي/وفّرت/المفضلة) + زر الخروج المدمج */}
+      <AccountProfileHero
+        me={me}
+        isMember
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={logout}
+            className="min-h-[40px] gap-1.5 rounded-full border-border/60 bg-card/70 text-xs text-destructive shadow-sm backdrop-blur transition-colors hover:bg-destructive/10 hover:text-destructive"
+          >
+            <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
+            خروج
+          </Button>
+        }
+      />
 
       {/* بطاقة العضوية */}
       <MemberCard />
@@ -549,6 +550,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
           </Link>
         </Button>
       </div>
+
+      {/* بوابة المندوب — نفس التطبيق بصلاحيات المندوب (الجولة 24) */}
+      <CourierModeCard />
 
       {/* تثبيت التطبيق */}
       <PWAInstallButton portal="customer" variant="full" />
@@ -664,15 +668,8 @@ export default function AccountPage() {
           animate={{ opacity: 1 }}
           className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6"
         >
-          {/* الترحيب */}
-          <div>
-            <h2 className="text-2xl font-extrabold text-foreground">
-              مرحباً، {me.data.full_name}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              هذه بياناتك في منصة توفير
-            </p>
-          </div>
+          {/* الجولة 26 — بطاقة الترحيب الذكية (بلا بلاطة التوفير — لا عضوية بعد) */}
+          <AccountProfileHero me={me.data} isMember={false} />
 
           {/* شارة قيد المراجعة */}
           <PendingReviewBadge pending={pendingRequest} />

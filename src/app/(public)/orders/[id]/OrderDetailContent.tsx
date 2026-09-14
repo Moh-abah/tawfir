@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   ChevronLeft,
@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/sheet";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { OrderTrackingCard } from "@/components/public/OrderTrackingCard";
+import { LiveElapsedBadge } from "@/components/shared/LiveElapsedBadge";
 import { GeoLocationField } from "@/components/shared/GeoLocationField";
 import { MISSING_LOCATION_MSG } from "@/components/public/DeliveryFields";
 import {
@@ -104,6 +105,14 @@ const ACTIVE_ETA_HINT: Partial<Record<OrderStatus, string>> = {
   out_for_delivery: "طلبك في الطريق إليك 🛵 — عادةً خلال 15-25 دقيقة",
 };
 
+/* ─── الجولة 26 — الحالات النشطة (تُظهر شارة الوقت المنقضي الحيّة) ── */
+const ACTIVE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
+  "pending",
+  "confirmed",
+  "preparing",
+  "out_for_delivery",
+]);
+
 /* ─── الجولة 12 — إعادة الطلب بتأكيد ذكي (Sheet كامل) ── */
 interface ReorderLine {
   product_id: number;
@@ -112,18 +121,49 @@ interface ReorderLine {
   unit_price: number;
 }
 
-function ReOrderSection({ order }: { order: OrderOut }) {
-  const [open, setOpen] = useState(false);
+function ReOrderSection({
+  order,
+  autoOpen = false,
+}: {
+  order: OrderOut;
+  autoOpen?: boolean;
+}) {
   const createOrder = useCreateOrder();
   const router = useRouter();
 
-  /* الجولة 12: تعبئة مسبقة من الطلب القديم (موقع/عنوان/ملاحظات/دفع) */
-  const [lines, setLines] = useState<ReorderLine[]>([]);
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [address, setAddress] = useState("");
-  const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  /* الجولة 12: تعبئة مسبقة من الطلب القديم (موقع/عنوان/ملاحظات/دفع).
+   * الجولة 27 — عند القدوم من زر «أعد الطلب» في قائمة الطلبات
+   * (?reorder=1): تُفتح الورقة معبّأة مسبقاً منذ أول تركيب عبر
+   * مُهيّئات حالة مباشرة — بلا تأثيرات جانبية ولا setState داخل
+   * effect (متوافق مع قواعد React Compiler الصارمة). */
+  const [open, setOpen] = useState(autoOpen);
+  const [lines, setLines] = useState<ReorderLine[]>(() =>
+    autoOpen
+      ? order.items.map((i) => ({
+          product_id: i.product_id,
+          product_name: i.product_name ?? "صنف",
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        }))
+      : []
+  );
+  /* موقع بابك من الطلب السابق — يظهر محمّلاً (حدّثه بزر تحميل موقعي
+     إن تحركت) — §6-3 الإحداثيات إلزامية دائماً */
+  const [lat, setLat] = useState<number | null>(() =>
+    autoOpen ? order.delivery_lat : null
+  );
+  const [lng, setLng] = useState<number | null>(() =>
+    autoOpen ? order.delivery_lng : null
+  );
+  const [address, setAddress] = useState(() =>
+    autoOpen ? order.delivery_address ?? "" : ""
+  );
+  const [notes, setNotes] = useState(() =>
+    autoOpen ? order.notes ?? "" : ""
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
+    () => (autoOpen ? order.payment_method : "cash")
+  );
 
   const openSheet = () => {
     haptic("tick");
@@ -155,6 +195,7 @@ function ReOrderSection({ order }: { order: OrderOut }) {
       )
     );
   };
+
   const removeLine = (productId: number) => {
     haptic("tick");
     setLines((prev) => prev.filter((l) => l.product_id !== productId));
@@ -787,7 +828,13 @@ function OrderDetailSkeleton() {
 }
 
 /* ─── العرض الكامل لطلب ──────────────────────────────── */
-function OrderView({ order }: { order: OrderOut }) {
+function OrderView({
+  order,
+  reorderRequested = false,
+}: {
+  order: OrderOut;
+  reorderRequested?: boolean;
+}) {
   const prefersReduced = usePrefersReducedMotion();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const cancelMutation = useCancelOrder(order.id);
@@ -810,6 +857,16 @@ function OrderView({ order }: { order: OrderOut }) {
           <h2 className="text-2xl font-extrabold text-foreground tabular-nums sm:text-3xl">
             #{order.id}
           </h2>
+          {/* الجولة 26 — شارة الوقت المنقضي الحيّة للطلبات النشطة */}
+          {ACTIVE_ORDER_STATUSES.has(order.status) && (
+            <div className="mt-2">
+              <LiveElapsedBadge
+                since={order.created_at}
+                suffix="على طلبك"
+                className="bg-primary/10 text-primary"
+              />
+            </div>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {/* الجولة 15 — زر الإيصال (متاح لكل الحالات) */}
@@ -1024,11 +1081,13 @@ function OrderView({ order }: { order: OrderOut }) {
       </section>
 
       {/* الجولة 10 — إعادة الطلب: للطلبات المكتملة أو الملغاة فقط
-          (الطلبات النشطة قيد المعالجة أصلاً — لا معنى لتكرارها) */}
+          (الطلبات النشطة قيد المعالجة أصلاً — لا معنى لتكرارها).
+          الجولة 27: autoOpen يفتح الـSheet تلقائياً عند القدوم من
+          زر «أعد الطلب» في قائمة الطلبات (?reorder=1). */}
       {(order.status === "delivered" || order.status === "cancelled") &&
         order.items.length > 0 && (
           <div id="reorder" className="scroll-mt-20">
-            <ReOrderSection order={order} />
+            <ReOrderSection order={order} autoOpen={reorderRequested} />
           </div>
         )}
     </motion.div>
@@ -1098,11 +1157,23 @@ export default function OrderDetailContent({
     );
   }
 
-  return <OrderDetailInner id={numericId} />;
+  return (
+    <Suspense fallback={null}>
+      <OrderDetailInner id={numericId} />
+    </Suspense>
+  );
 }
 
 function OrderDetailInner({ id }: { id: number }) {
   const { data, isLoading, isError, error, refetch } = useOrderDetail(id);
+
+  /* الجولة 27 — طلب فتح «أعد الطلب» تلقائياً عند القدوم من قائمة
+   * الطلبات (?reorder=1). useSearchParams يقرأ من حالة الراوتر لا من
+   * window.location — متاح فوراً أثناء التنقل الناعم (على عكس
+   * window.location الذي لا يتحدّث إلا بعد الالتزام)، ومغلّف بـSuspense
+   * أعلاه كما في صفحة الدخول (نمط Next الرسمي). */
+  const searchParams = useSearchParams();
+  const reorderRequested = searchParams.get("reorder") === "1";
 
   /* الجولة 17 — اهتزاز لمسي عند تغيّر حالة الطلب أثناء المراقبة:
    * polling كل 15 ثانية للطلبات النشطة — عند انتقال الحالة (تأكيد/تحضير/
@@ -1189,7 +1260,7 @@ function OrderDetailInner({ id }: { id: number }) {
     <>
       <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
       <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
-        <OrderView order={data} />
+        <OrderView order={data} reorderRequested={reorderRequested} />
 
         {/* ذيل سفلي — زر تصفّح الوجبات */}
         <div className="mt-6 flex justify-center">

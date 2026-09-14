@@ -6,7 +6,14 @@
 #
 #    1) تثبيت Bun + Java 21 + Android SDK في السحابة (Capacitor 8 يتطلب
 #       Java 21 — مكتبة capacitor-android تستهدف sourceCompatibility 21)
-#    2) bun install ثم npx cap add android       (إنشاء مجلد android من الصفر)
+#    2) bun install ثم إصلاح sharp ثم npx cap add android
+#       ⚠ إصلاح sharp (خطوة إلزامية): @capacitor/assets يعتمد على
+#       sharp@^0.32 «متداخلة» داخله (لأن الجذر فيه sharp@0.34)، وsharp@0.32
+#       القديمة تحتاج سكربت تثبيت لتحميل ثنائي linux-x64 — وbun لا يشغّل
+#       سكربتات التبعيات غير الموثوقة ← الثنائي مفقود ← capacitor-assets
+#       يفشل بـ "Cannot find module ../build/Release/sharp-linux-x64.node".
+#       الحل المُختبر: حذف النسخة المتداخلة المعطوبة فيستخدم capacitor-assets
+#       نسخة الجذر 0.34+ (ثنائيات @img جاهزة بلا سكربتات) + شبكة أمان npm.
 #    3) npx capacitor-assets generate --android   (كل الأيقونات/السبلاش من resources/)
 #    4) bun scripts/patch-android-identity.mjs    (هوية توفير: الألوان + سبلاش
 #       صلب #005B82 + الإصدار + التوقيع + فلتر روابط أندرويد العميقة
@@ -122,6 +129,30 @@ jobs:
 
       - name: "📦 تثبيت الاعتماديات (bun install)"
         run: bun install --frozen-lockfile
+
+      - name: "🔧 إصلاح sharp لبيئة linux-x64 (إلزامي — بدونه يفشل capacitor-assets)"
+        run: |
+          # السبب الجذري لفشل البناء السابق:
+          #   @capacitor/assets يعتمد على sharp@^0.32 «متداخلة» داخله (لأن الجذر
+          #   فيه sharp@0.34 فلا يتطابق النطاق)، وsharp@0.32 القديمة تحتاج سكربت
+          #   تثبيت (node-pre-gyp) لتحميل ثنائي linux-x64 — وbun لا يشغّل سكربتات
+          #   التبعيات غير الموثوقة ← الثنائي مفقود ← capacitor-assets يفشل.
+          #
+          # الحل المُختبر محلياً على linux-x64 (نفس بيئة ubuntu-latest):
+          #   حذف النسخة المتداخلة المعطوبة ← يرث capacitor-assets نسخة الجذر
+          #   sharp 0.34+ التي تحمل ثنائياتها ضمن حزم @img الجاهزة بلا سكربتات.
+          rm -rf node_modules/@capacitor/assets/node_modules/sharp \
+                 node_modules/@capacitor/assets/node_modules/@img
+          # شبكة أمان: إن كانت ثنائيات نسخة الجذر ناقصة أيضاً (lockfile من منصة
+          # أخرى) نثبّتها عبر npm بثنائيات linux-x64 مضمونة الصحة
+          if ! node -e "require('sharp')" 2>/dev/null; then
+            echo "⚠ ثنائيات sharp الجذر ناقصة — تثبيتها عبر npm (linux-x64)"
+            SHARP_REQ="$(node -p "require('./package.json').dependencies.sharp ?? require('./package.json').devDependencies.sharp")"
+            echo "النطاق المطلوب في package.json: $SHARP_REQ"
+            npm install --no-save --no-package-lock --platform=linux --arch=x64 "sharp@${SHARP_REQ#^}"
+          fi
+          # تحقق فعلي قبل إهدار دقائق Gradle: توليد صورة PNG صغيرة بذاكرة sharp
+          node -e "require('sharp')({create:{width:8,height:8,channels:3,background:'#005B82'}}).png().toBuffer().then(()=>console.log('✓ sharp تعمل على linux-x64 — جاهزة لـ capacitor-assets')).catch(e=>{console.error('✗ sharp معطلة:',e.message);process.exit(1)})"
 
       - name: "🏪 هوية التطبيق المختار (تطبيق المالك عند اختياره)"
         if: ${{ inputs.app == 'owner' }}

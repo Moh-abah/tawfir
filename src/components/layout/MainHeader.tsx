@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CircleUserRound, Heart, LogIn, Search } from "lucide-react";
+import { Bike, CircleUserRound, Heart, LogIn, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { RegionSelector } from "@/components/public/RegionSelector";
@@ -11,6 +11,7 @@ import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { NetworkStatusIndicator } from "@/components/shared/NetworkStatusIndicator";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useCourierSession } from "@/hooks/useCourier";
 import { useMe } from "@/hooks/useMe";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
@@ -35,8 +36,12 @@ export function MainHeader() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const { accessToken, hydrated } = useCustomerAuth();
+  const { hasToken: hasCourierToken, hydrated: courierHydrated } =
+    useCourierSession();
   const me = useMe();
   const isLoggedIn = hydrated && !!accessToken;
+  /* جلسة مندوب نشطة على نفس الجهاز — زر الوصول للوحة الميدانية */
+  const isCourier = courierHydrated && hasCourierToken;
   const fullName = me.data?.full_name;
 
   useEffect(() => {
@@ -84,6 +89,23 @@ export function MainHeader() {
 
           <CartButton />
           <NetworkStatusIndicator className="hidden sm:inline-flex" />
+          {/* وضع المندوب — نفس التطبيق بصلاحيات المندوب (الجولة 24) */}
+          {isCourier && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="native-tap h-11 min-w-11 rounded-full px-0 text-primary"
+            >
+              <Link
+                href="/courier/home"
+                aria-label="فتح لوحة المندوب"
+                title="لوحة المندوب"
+              >
+                <Bike className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </Button>
+          )}
           {isLoggedIn && <NotificationBell variant="header" />}
           {isLoggedIn ? (
             <Button

@@ -200,7 +200,16 @@ async function fetchWithAuth<T>(
     throw new ApiError(message, response.status, data);
   }
 
-  if (response.status === 204 || data === null) {
+  /* 204 = «بلا محتوى» مشروع (حذف/تحديث) — بيانات الاستعلامات GET يجب ألا
+     تُحلّ بـ undefined أبداً (React Query v5 يرفضها): استجابة 2xx بلا JSON
+     صالح (وكيل/SW قديم/شبكة وسيطة) → خطأ صريح قابل لإعادة المحاولة. */
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  if (data === null) {
+    if (method === "GET") {
+      throw new ApiError("استجابة غير صالحة من الخادم — أعد المحاولة", response.status, null);
+    }
     return undefined as T;
   }
   return data as T;

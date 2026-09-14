@@ -136,7 +136,8 @@ export function middleware(request: NextRequest) {
   if (pathname.startsWith("/courier") && !isCourierPublicPath(pathname)) {
     const token = request.cookies.get("tawfir_courier_token")?.value;
     if (!token) {
-      url.pathname = "/courier/login";
+      url.pathname = "/login";
+      url.searchParams.set("mode", "courier");
       url.searchParams.set("next", pathname);
       return NextResponse.redirect(url);
     }

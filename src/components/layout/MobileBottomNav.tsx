@@ -104,11 +104,16 @@ export function MobileBottomNav() {
               aria-current={active ? "page" : undefined}
               className="native-tap flex min-w-[64px] flex-col items-center gap-1 py-1"
             >
-              <span className="relative flex items-center justify-center">
+              <span
+                className={cn(
+                  "relative flex items-center justify-center rounded-full px-3.5 py-1 transition-colors duration-200",
+                  active && "bg-primary/10"
+                )}
+              >
                 <Icon
                   className={cn(
-                    "h-6 w-6 transition-colors duration-200",
-                    active ? "text-primary" : "text-muted-foreground"
+                    "h-6 w-6 transition-all duration-200",
+                    active ? "scale-110 text-primary" : "text-muted-foreground"
                   )}
                   strokeWidth={active ? 2.5 : 2}
                   aria-hidden="true"
@@ -121,8 +126,10 @@ export function MobileBottomNav() {
               </span>
               <span
                 className={cn(
-                  "max-w-[72px] truncate text-[10px] font-medium leading-none transition-colors duration-200",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "max-w-[72px] truncate text-[10px] leading-none transition-colors duration-200",
+                  active
+                    ? "font-extrabold text-primary"
+                    : "font-medium text-muted-foreground"
                 )}
               >
                 {item.label}

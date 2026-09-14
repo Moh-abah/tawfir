@@ -298,7 +298,7 @@ function WaitingInner() {
             size="sm"
             onClick={() => {
               logout();
-              router.replace("/courier/login");
+              router.replace("/login?mode=courier");
             }}
             className="gap-1.5 text-muted-foreground native-tap"
             aria-label="تسجيل الخروج"

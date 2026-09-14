@@ -213,6 +213,41 @@ function offlineApiResponse(request) {
   });
 }
 
+/* الجولة 26 — إصلاح «صفحة JSON الخام»: كان فشل التنقل في التطوير يعيد
+   offlineApiResponse (JSON) فيعرضه المتصفح كمستند نصي خام عند أي وميض
+   إعادة ترجمة في خادم التطوير. الآن نُعيد صفحة HTML عربية مهيّأة بسيطة
+   مع زر إعادة محاولة — نفس الرسالة بلا تنسيق مكسور. */
+function devNavigationFallbackPage() {
+  var html =
+    '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    "<title>تعذّر تحميل الصفحة — توفير</title><style>" +
+    "*{box-sizing:border-box;margin:0;padding:0}" +
+    "body{font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;" +
+    "background:#f8fafc;color:#0f172a;display:flex;min-height:100dvh;" +
+    "align-items:center;justify-content:center;padding:24px}" +
+    ".card{max-width:420px;width:100%;text-align:center;background:#fff;" +
+    "border:1px solid #e2e8f0;border-radius:20px;padding:36px 24px;" +
+    "box-shadow:0 8px 24px rgba(15,23,42,.06)}" +
+    ".icon{width:64px;height:64px;border-radius:50%;background:#fef3c7;" +
+    "display:flex;align-items:center;justify-content:center;margin:0 auto 18px;" +
+    "font-size:28px}.title{font-size:18px;font-weight:800;margin-bottom:8px}" +
+    ".desc{font-size:14px;color:#64748b;line-height:1.7;margin-bottom:22px}" +
+    "button{background:#0e7a5f;color:#fff;border:0;border-radius:999px;" +
+    "padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;" +
+    "min-height:44px;transition:opacity .2s}button:hover{opacity:.9}" +
+    "</style></head><body><div class=\"card\">" +
+    '<div class="icon">⚠️</div>' +
+    '<div class="title">تعذّر تحميل الصفحة</div>' +
+    '<div class="desc">حدث انقطاع مؤقت أثناء تحميل الصفحة. تحقّق من اتصالك ثم أعد المحاولة.</div>' +
+    '<button onclick="location.reload()">إعادة المحاولة</button>' +
+    "</div></body></html>";
+  return new Response(html, {
+    status: 503,
+    headers: { "Content-Type": "text/html; charset=utf-8" },
+  });
+}
+
 /* ═══════════════ إشعارات FCM Push (الجولة 22 + الإصلاح الشامل) ═══════════════ */
 
 /* هوية العلامة في إشعار النظام:
@@ -754,8 +789,10 @@ async function handleNavigation(event, request) {
     return response;
   } catch (err) {
     if (!IS_PROD) {
-      /* التطوير: لا سقوط لكاش HTML متقادم — صفحة الخطأ مباشرة */
-      return offlineApiResponse(request);
+      /* التطوير: لا سقوط لكاش HTML متقادم — صفحة عربية مهيّأة بلا كاش
+         (الجولة 26: كانت JSON خاماً يعرضها المتصفح كنص عند وميض
+         إعادة الترجمة — الآن HTML مقروء بزر إعادة محاولة) */
+      return devNavigationFallbackPage();
     }
     const cached = await caches.match(request);
     if (cached) return cached;

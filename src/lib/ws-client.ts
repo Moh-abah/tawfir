@@ -19,6 +19,11 @@
 
 type WsMessageHandler = (msg: unknown) => void;
 type WsStatusHandler = (status: "connected" | "disconnected" | "reconnecting" | "error") => void;
+/**
+ * معالج استشفاء المصادقة: فشل الاتصال المتكرر (توكن منتهٍ غالباً) →
+ * يجري تجديد الجلسة ويُرجع توكن وصول جديدًا (أو null عند الفشل).
+ */
+type WsAuthRecoveryHandler = () => Promise<string | null>;
 
 const WS_BASE_URL =
   process.env.NEXT_PUBLIC_WS_URL ??
@@ -27,6 +32,11 @@ const WS_BASE_URL =
 const MIN_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 const MAX_BACKOFF_RETRIES = 8; // عدد المحاولات قبل التوقف (ثم يُعاد عند نشاط المستخدم)
+/* بعد هذا العدد من الإخفاقات المتتالية نفترض أن التوكن مات (وليس الشبكة)
+   ونجرّب استشفاء المصادقة (تجديد الجلسة) قبل الاستمرار بالـbackoff. */
+const AUTH_RECOVERY_THRESHOLD = 2;
+/* حد أدنى بين محاولات الاستشفاء — منع عاصفة تجديد عند انقطاع الشبكة */
+const AUTH_RECOVERY_COOLDOWN_MS = 30_000;
 
 class NotificationWebSocketClient {
   private socket: WebSocket | null = null;
@@ -36,6 +46,10 @@ class NotificationWebSocketClient {
   private intentionallyClosed = false;
   private messageHandlers = new Set<WsMessageHandler>();
   private statusHandlers = new Set<WsStatusHandler>();
+  /* استشفاء المصادقة (الجولة 25): عدّاد إخفاقات متتالية + معالج + مهلة تبريد */
+  private consecutiveFailures = 0;
+  private authRecoveryHandler: WsAuthRecoveryHandler | null = null;
+  private lastAuthRecoveryAt = 0;
 
   constructor() {
     if (typeof window === "undefined") return;
@@ -80,6 +94,15 @@ class NotificationWebSocketClient {
   }
 
   /**
+   * يسجّل معالج استشفاء المصادقة — يستدعيه العميل بعد إخفاقات متتالية
+   * (التوكن غالباً منتهٍ) ليجدد الجلسة ويرجّع توكن وصول جديدًا.
+   * تمرير null يلغي التسجيل.
+   */
+  setAuthRecoveryHandler(handler: WsAuthRecoveryHandler | null): void {
+    this.authRecoveryHandler = handler;
+  }
+
+  /**
    * يفتح الاتصال بالتوكن الحالي. إن كان مفتوحاً (أو قيد الفتح) بنفس
    * التوكن لا يفعل شيئاً.
    *
@@ -115,6 +138,7 @@ class NotificationWebSocketClient {
 
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
+      this.consecutiveFailures = 0;
       this.emitStatus("connected");
     };
 
@@ -130,6 +154,19 @@ class NotificationWebSocketClient {
     this.socket.onclose = () => {
       this.emitStatus("disconnected");
       if (!this.intentionallyClosed) {
+        this.consecutiveFailures++;
+        /* استشفاء المصادقة: إخفاقات متتالية ≥ الحد → التوكن غالباً ميت.
+           نجرّب التجديد أولاً (مع تبريد 30 ث)؛ إن نجح نعيد بالتوكن الجديد
+           فوراً، وإلا نكمل مسار الـbackoff المعتاد. */
+        if (
+          this.consecutiveFailures >= AUTH_RECOVERY_THRESHOLD &&
+          this.canAttemptAuthRecovery()
+        ) {
+          void this.tryAuthRecovery().then((recovered) => {
+            if (!recovered) this.scheduleReconnect();
+          });
+          return;
+        }
         this.scheduleReconnect();
       }
     };
@@ -141,9 +178,42 @@ class NotificationWebSocketClient {
     };
   }
 
+  /** هل يجوز الآن محاولة استشفاء المصادقة؟ (معالج مسجّل + خارج مهلة التبريد) */
+  private canAttemptAuthRecovery(): boolean {
+    return (
+      this.authRecoveryHandler !== null &&
+      this.currentToken !== null &&
+      Date.now() - this.lastAuthRecoveryAt >= AUTH_RECOVERY_COOLDOWN_MS
+    );
+  }
+
+  /**
+   * محاولة استشفاء المصادقة: يستدعي المعالج المسجّل لتجديد الجلسة.
+   * يُرجع true إن أعاد الاتصال بتوكن جديد، false للاستمرار بالـbackoff.
+   */
+  private async tryAuthRecovery(): Promise<boolean> {
+    if (!this.authRecoveryHandler || !this.currentToken) return false;
+    this.lastAuthRecoveryAt = Date.now();
+    /* تصفير عدّاد الإخفاقات — إن فشل التجديد واستمر الـbackoff بلا فتح
+       فسيُعطّل العتبة مجدداً بعد إخفاقين إضافيين (وليس كل إغلاق). */
+    this.consecutiveFailures = 0;
+    try {
+      const freshToken = await this.authRecoveryHandler();
+      if (freshToken && freshToken !== this.currentToken) {
+        console.info("[Tawfir WS] استُعيفت المصادقة — إعادة الاتصال بتوكن جديد");
+        this.connect(freshToken);
+        return true;
+      }
+    } catch {
+      // المعالج فشل (شبكة مقطوعة أو refresh مرفوض) — الـbackoff يكمل.
+    }
+    return false;
+  }
+
   /** يقطع الاتصال نهائياً (عند تسجيل الخروج). */
   disconnect(): void {
     this.intentionallyClosed = true;
+    this.consecutiveFailures = 0;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

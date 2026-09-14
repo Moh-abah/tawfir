@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Flame, Clock, UtensilsCrossed } from "lucide-react";
+import { Flame, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { SpecialOfferOut } from "@/types/api.generated";
@@ -117,16 +118,13 @@ export function SpecialOfferCard({
             skeletonClassName="rounded-none"
           />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center bg-muted"
-            role="img"
-            aria-label={product?.name ?? specialOffer.title}
-          >
-            <UtensilsCrossed
-              className="h-8 w-8 text-muted-foreground/40"
-              aria-hidden="true"
-            />
-          </div>
+          /* الجولة 25 — بديل جذاب بدل الرماد المسطح */
+          <ImagePlaceholder
+            seed={specialOffer.id}
+            label={product?.name ?? specialOffer.title}
+            icon={PLACEHOLDER_ICONS.product}
+            size="sm"
+          />
         )}
 
         {/* شارة الخصم — أعلى يسار (compact) */}

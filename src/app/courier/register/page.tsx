@@ -249,7 +249,7 @@ export default function CourierRegisterPage() {
               description:
                 "تعذّر الدخول التلقائي — سجّل دخولك ثم ارفع مستنداتك من ملفك",
             });
-            router.replace("/courier/login");
+            router.replace("/login?mode=courier");
           }
         },
         onError: (err: unknown) => {

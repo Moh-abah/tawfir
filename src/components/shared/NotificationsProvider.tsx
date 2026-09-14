@@ -6,9 +6,13 @@ import { notificationWs } from "@/lib/ws-client";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useOwnerAuth } from "@/hooks/useOwnerAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useCustomerAuthStore } from "@/store/customerAuth.store";
+import { useOwnerAuthStore } from "@/store/ownerAuth.store";
+import { useAuthStore } from "@/store/auth.store";
 import { useToast } from "@/hooks/use-toast";
 import { getNotificationMeta, getNotificationHref } from "@/lib/notifications-meta";
 import { SoundService, type SoundRole } from "@/lib/sound-service";
+import { attemptRefresh } from "@/services/token-refresh";
 import { useRouter } from "next/navigation";
 import type { NotificationOut } from "@/types/api.generated";
 import { Button } from "@/components/ui/button";
@@ -121,11 +125,58 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     if (!isHydrated) return;
     if (!activeToken) {
       // تسجيل خروج (أو زائر): نقطع أي اتصال سابق.
+      notificationWs.setAuthRecoveryHandler(null);
       notificationWs.disconnect();
       return;
     }
     // تسجيل دخول: نفتح الاتصال بالتوكن الحالي.
     notificationWs.connect(activeToken);
+
+    /* استشفاء المصادقة (الجولة 25): إخفاقات اتصال متتالية = توكن منتهٍ
+       غالباً — نجدّد جلسة الدور الفعّال (عميل ← مالك ← مشرف) ونرجّع
+       التوكن الجديد ليعيد الـWS الاتصال فوراً بدل الدوران بالتوكن الميت.
+       تحديث المتجر يُعيد تشغيل هذا التأثير بالتوكن الجديد أيضاً. */
+    notificationWs.setAuthRecoveryHandler(async () => {
+      const tryRole = async (
+        hasAccess: boolean,
+        role: "customer" | "owner" | "admin",
+        getRefresh: () => string | null,
+        updateTokens: (access: string, refresh: string) => void,
+      ): Promise<string | null> => {
+        if (!hasAccess) return null;
+        const tokens = await attemptRefresh(role, getRefresh);
+        if (!tokens?.access_token) return null;
+        const newRefresh = tokens.refresh_token ?? getRefresh();
+        if (newRefresh) updateTokens(tokens.access_token, newRefresh);
+        return tokens.access_token;
+      };
+      // نجرّب الدور الفعّال فقط حسب أولوية التوكن الحالي
+      if (customerAuth.accessToken) {
+        return tryRole(
+          true,
+          "customer",
+          () => useCustomerAuthStore.getState().refreshToken,
+          (a, r) => useCustomerAuthStore.getState().updateTokens(a, r),
+        );
+      }
+      if (ownerAuth.accessToken) {
+        return tryRole(
+          true,
+          "owner",
+          () => useOwnerAuthStore.getState().refreshToken,
+          (a, r) => useOwnerAuthStore.getState().updateTokens(a, r),
+        );
+      }
+      if (adminAuth.accessToken) {
+        return tryRole(
+          true,
+          "admin",
+          () => useAuthStore.getState().refreshToken,
+          (a, r) => useAuthStore.getState().updateTokens(a, r),
+        );
+      }
+      return null;
+    });
 
     const offMessage = notificationWs.onMessage((raw) => {
       const n = extractNotification(raw);

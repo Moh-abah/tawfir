@@ -31,7 +31,7 @@ function CourierPortalGuard({ children }: { children: React.ReactNode }) {
   /* 1) لا توكن → الدخول */
   useEffect(() => {
     if (hydrated && !hasToken) {
-      router.replace("/courier/login");
+      router.replace("/login?mode=courier");
     }
   }, [hydrated, hasToken, router]);
 
@@ -73,7 +73,7 @@ function CourierPortalGuard({ children }: { children: React.ReactNode }) {
           variant="ghost"
           onClick={() => {
             logout();
-            router.replace("/courier/login");
+            router.replace("/login?mode=courier");
           }}
           className="gap-2 text-muted-foreground"
         >

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import { ImagePlaceholder } from "@/components/shared/ImagePlaceholder";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useFacilities } from "@/hooks/useFacilities";
@@ -66,9 +67,13 @@ function FacilityCard({
           {facility.image_url ? (
             <ImageWithSkeleton src={resolveImageUrl(facility.image_url)} alt={facility.name} fill priority={priority} className="h-full w-full" />
           ) : (
-            <div className="flex h-full items-center justify-center">
-              <Icon className="h-14 w-14 text-muted-foreground/30" />
-            </div>
+            /* الجولة 25 — بديل جذاب بدل الرماد المسطح: تدرّج حتمي + monogram */
+            <ImagePlaceholder
+              seed={facility.id}
+              label={facility.name}
+              icon={Icon}
+              size="md"
+            />
           )}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
             <DiscountBadge percentage={facility.discount_rate ?? DISCOUNT_RATE} />
