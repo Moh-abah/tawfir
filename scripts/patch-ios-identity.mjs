@@ -168,13 +168,16 @@ infoPlist = infoPlist
   }
 }
 
-/* 2-د) arm64 بدل armv7 (القالب القديم يطلب معمارية 32-بت متقادمة) */
-infoPlist = replaceOnce(
-  infoPlist,
-  /<string>armv7<\/string>/,
-  "<string>arm64</string>",
-  "UIRequiredDeviceCapabilities",
-);
+/* 2-د) arm64 بدل armv7 (القالب القديم يطلب معمارية 32-بت متقادمة) —
+   محمي: التشغيل الثاني يتخطاه (صار arm64 بالفعل) */
+if (infoPlist.includes("<string>armv7</string>")) {
+  infoPlist = replaceOnce(
+    infoPlist,
+    /<string>armv7<\/string>/,
+    "<string>arm64</string>",
+    "UIRequiredDeviceCapabilities",
+  );
+}
 
 /* 2-هـ) أذونات iOS بالعربية + إعدادات القبول — تُضاف قبل </dict> الختامية */
 const extraKeys = [];
@@ -193,12 +196,14 @@ if (firebaseEnabled) {
   /* استلام FCM في الخلفية (رسائل data + تسليم موثوق) */
   pushKey("UIBackgroundModes", "\t<array>\n\t\t<string>remote-notification</string>\n\t</array>");
 }
-infoPlist = replaceOnce(
-  infoPlist,
-  /<\/dict>\s*<\/plist>\s*$/,
-  `${extraKeys.join("\n")}\n</dict>\n</plist>\n`,
-  "إضافة مفاتيح Info.plist",
-);
+if (!infoPlist.includes("NSLocationWhenInUseUsageDescription")) {
+  infoPlist = replaceOnce(
+    infoPlist,
+    /<\/dict>\s*<\/plist>\s*$/,
+    `${extraKeys.join("\n")}\n</dict>\n</plist>\n`,
+    "إضافة مفاتيح Info.plist",
+  );
+} /* وإلا: التشغيل الثاني — المفاتيح موجودة أصلاً (idempotent) */
 writeFileSync(infoPlistPath, infoPlist);
 ok(`Info.plist: Portrait فقط + iPhone فقط + arm64 + ${extraKeys.length} مفتاحاً (أذونات/قبول)`);
 
