@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/theme/theme-provider";
 import {
   isNativePlatform,
   setupNativeStatusBar,
   hideNativeSplash,
   setupNativeBackButton,
-  setNativeBackHandler,
+  setupNativeUrlOpen,
   watchNativeNetwork,
   syncNativeSafeArea,
 } from "@/lib/capacitor";
@@ -28,40 +27,21 @@ import {
  *     WindowInsets الأصلية عند الإقلاع وعند كل resize (Edge-to-Edge:
  *     هيدر لا يتداخل مع أيقونات النظام، شريط سفلي فوق أزرار أندرويد).
  *  2) Splash Screen: إخفاء تلقائي بعد أول paint أو 800ms (أيهما أخير)
- *  3) Back Button (Hardware): Sheet مفتوح → أغلق / history>1 → back / وإلا exit
+ *  3) Back Button (Hardware): القرار والتنفيذ كاملان داخل
+ *     setupNativeBackButton (capacitor.ts) — طبقة مفتوحة → تُغلق /
+ *     canGoBack → history.back / رابط عميق بارد → الرئيسية /
+ *     وإلا خروج بنقرة مزدوجة + توست. (المعالج القديم هنا كان
+ *     يُعيد نصاً فقط فلا يحدث شيء — إصلاح شكوى «الزر لا يستجيب».)
+ *  3-ب) Universal Links (iOS): فتح رابط tawfir.giize.com من
+ *     Safari/الرسائل يفتح التطبيق — setupNativeUrlOpen يوجّه
+ *     الـWebView للمسار المطلوب (Capacitor لا يفعلها تلقائياً).
  *  4) Network: عند عودة الاتصال → إطلاق حدث online لإبطال الكاش
  *
  * لا يلمس: API_BASE، الـ Service Worker، الـ manifest، أو أي منطق ويب.
  * كل ذلك يعمل كما هو لأن أصل الـ WebView = الموقع الحي.
  */
 export function NativeBridge() {
-  const pathname = usePathname();
-  const router = useRouter();
   const { resolvedTheme } = useTheme();
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-  const sheetOpenRef = React.useRef(false);
-
-  /* تتبّع أي Sheet/Dialog مفتوح عبر data-state على الـ body */
-  React.useEffect(() => {
-    sheetOpenRef.current = sheetOpen;
-  }, [sheetOpen]);
-
-  React.useEffect(() => {
-    if (typeof document === "undefined") return;
-    /* المراقب: أي عنصر [data-state="open"] من نوع Sheet/Dialog/Drawer */
-    const observer = new MutationObserver(() => {
-      const open = !!document.querySelector(
-        "[data-state='open'][role='dialog'], [data-state='open'][role='presentation'], [data-state='open'].vaul-drawer"
-      );
-      setSheetOpen(open);
-    });
-    observer.observe(document.body, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["data-state"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   /* إعداد الجسر — مرة واحدة */
   React.useEffect(() => {
@@ -100,6 +80,7 @@ export function NativeBridge() {
     });
 
     let removeBack: (() => void) | null = null;
+    let removeUrlOpen: (() => void) | null = null;
     let removeNetwork: (() => void) | null = null;
     /* إصلاح (التدقيق 3-a / L2): سباق async — لو فُكّ التركيب أثناء
        انتظار setupNativeBackButton/watchNativeNetwork تُعيَّن الدوال
@@ -140,13 +121,14 @@ export function NativeBridge() {
         void hideNativeSplash();
       });
 
-      /* 3) Back Button — تسجيل المعالج الديناميكي */
-      setNativeBackHandler(() => {
-        if (sheetOpenRef.current) return "close-sheet";
-        if (window.history.length > 1) return "navigate-back";
-        return "exit";
-      });
+      /* 3) Back Button — القرار والتنفيذ كاملان داخل setupNativeBackButton
+            (طبقة مفتوحة → إغلاق / canGoBack → رجوع / رابط عميق →
+            الرئيسية / وإلا خروج بنقرة مزدوجة + توست) */
       removeBack = await setupNativeBackButton();
+
+      /* 3-ب) Universal Links — فتح رابط توفير من خارج التطبيق
+            يوجّه الـWebView للمسار (iOS: apple-app-site-association) */
+      removeUrlOpen = await setupNativeUrlOpen();
 
       /* 4) Network — إطلاق حدث online/offline عند تغيّر الاتصال
             (ServiceWorkerRegistrar يستمع لـ online لإبطال الكاش) */
@@ -161,14 +143,15 @@ export function NativeBridge() {
       /* المسار المتأخر بعد التنظيف: فكّك فوراً (إصلاح L2) */
       if (disposed) {
         removeBack?.();
+        removeUrlOpen?.();
         removeNetwork?.();
       }
     })();
 
     return () => {
       disposed = true;
-      setNativeBackHandler(null);
       removeBack?.();
+      removeUrlOpen?.();
       removeNetwork?.();
       observer.disconnect();
       window.removeEventListener("resize", onResizeSyncSafeArea);
@@ -185,12 +168,6 @@ export function NativeBridge() {
   React.useEffect(() => {
     void setupNativeStatusBar(resolvedTheme);
   }, [resolvedTheme]);
-
-  /* استخدام pathname و router في سياق (تفادي تحذير lint للقيم غير المستخدمة) */
-  React.useEffect(() => {
-    void pathname;
-  }, [pathname]);
-  void router;
 
   return null;
 }

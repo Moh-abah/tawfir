@@ -134,3 +134,23 @@ export interface AdminFreeMembershipOut {
 export interface AdminFreeMembershipUpdate {
   is_free_membership_enabled: boolean;
 }
+
+/* ─── حذف حساب العميل (متطلب Apple 5.1.1(v)) ───────── */
+
+/** جسم DELETE /customer/account — مسار توفير المحلي (BFF).
+ *  يمرَّر اختياريًا لتزويد الخادم بتوكنات FCM المسجّلة على هذا
+ *  الجهاز فيزيلها من الباك إند أثناء الحذف (قبل انتهاء الجلسة). */
+export interface AccountDeleteIn {
+  fcm_tokens?: string[];
+}
+
+/** ردّ DELETE /customer/account.
+ *  mode:
+ *   - "deleted"    حُذف سجل الحساب كليًا من الباك إند.
+ *   - "anonymized" قُنّنت البيانات الشخصية (الاسم/الجوال) وبقيت
+ *                 الطلبات كسجلات تجارية مجهولة الهوية. */
+export interface AccountDeleteOut {
+  ok: boolean;
+  mode: "deleted" | "anonymized";
+  message: string;
+}

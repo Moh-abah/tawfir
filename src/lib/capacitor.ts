@@ -182,40 +182,163 @@ export async function hideNativeSplash(): Promise<void> {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   زر الرجوع الأصلي (Android Hardware Back) — مُعاد البناء بالكامل
+   ═══════════════════════════════════════════════════════════════════
+   الخلل القديم (شكوى المستخدم: «زر الرجوع لا يستجيب داخل شاشة تفاصيل
+   منتج / الملف الشخصي»): المعالج القديم كان يُعيد نصّاً وصفياً فقط
+   ("navigate-back") دون تنفيذ أي إجراء فعلي — فلا الرجوع يحدث ولا
+   الطبقة المفتوحة تُغلق ولا التطبيق يخرج. ضغطة زر الرجوع تتبخر.
+
+   القرار الجديد (بترتيب الأولوية — مثل تطبيقات أندرويد الأصلية):
+    1) طبقة مفتوحة (Sheet/Drawer/Dialog/Popover/Menu/Select/عارض
+       الصور) → تُغلق وحدها دون مغادرة الشاشة خلفها.
+    2) يوجد تاريخ تنقّل داخل التطبيق (canGoBack من WebView) →
+       رجوع خطوة واحدة (history.back) — يعمل مع Next App Router لأن
+       pushState يُنشئ مدخلات تاريخ WebView حقيقية.
+    3) شاشة وصلت من رابط عميق بارد (إشعار FCM فتح /orders/123
+       مباشرة) بلا أي تاريخ → العودة للرئيسية بدل الخروج المفاجئ.
+    4) الرئيسية نفسها بلا تاريخ → «اضغط رجوع مرة أخرى للخروج» —
+       ضغطة ثانية خلال النافذة تُخرج فعلياً (نمط التطبيقات العربية).
+*/
+
+/** محدِّد الطبقات المفتوحة — Radix (Dialog/Sheet/Drawer(vaul)/Popover/
+ *  DropdownMenu/Select) عبر data-state + عارض الصور المخصص (Lightbox)
+ *  عبر aria-modal. لا يشمل Tooltip (عابر) ولا AlertDialog (مقصود
+ *  عدم إغلاقه بـEscape — والكثير غير مستخدم في التطبيق أصلاً). */
+const OPEN_OVERLAY_SELECTOR = [
+  "[data-state='open'][role='dialog']",
+  "[data-state='open'][role='presentation']",
+  "[data-state='open'][role='menu']",
+  "[data-state='open'][role='listbox']",
+  "[role='dialog'][aria-modal='true']",
+].join(", ");
+
+/**
+ * إغلاق الطبقة العليا المفتوحة (إن وُجدت) — بثّ حدث Escape اصطناعي
+ * على document: طبقات Radix (DismissableLayer) تستمع له على document
+ * وتُغلق العليا فقط، وعارض الصور ImageLightbox يستمع له على window
+ * (الحدث الفقاعي يصلهما معاً). يُرجع true إن وُجدت طبقة مفتوحة
+ * (استُهلكت ضغطة الرجوع في إغلاقها).
+ */
+function closeTopOverlay(): boolean {
+  if (typeof document === "undefined") return false;
+  if (!document.querySelector(OPEN_OVERLAY_SELECTOR)) return false;
+  document.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      key: "Escape",
+      code: "Escape",
+      bubbles: true,
+      cancelable: true,
+    }),
+  );
+  return true;
+}
+
 type BackHandlerResult = "close-sheet" | "navigate-back" | "exit";
 
 /**
- * معالج زر الرجوع الأصلي (Android Hardware Back).
- *  • إن كان Sheet/Dialog مفتوحاً: يُغلق (نُرجّعه النتيجة).
- *  • وإلا إن كان history.length > 1: يرجع للخلف.
- *  • وإلا: يخرج من التطبيق.
- *
- * الالتزام: لا نلمس router.next/history مباشرة هنا — نُرجّع النتيجة
- * للمستدعي (NativeBridge) ليقررها وفق سياق React Router.
+ * قرار ضغطة زر الرجوع — ينفّذ الإجراء فوراً ويعيد وصفه.
+ * canGoBack يأتي من حمولة حدث Capacitor (WebView.canGoBack) — أدقّ
+ * من window.history.length الذي يبقى >1 حتى بعد الرجوع للمدخل الأول
+ * (فيبدو الزر «ميتاً» عند الضغط من الرئيسية بعد تصفح سابق).
  */
-export type NativeBackHandler = () => BackHandlerResult;
+export function nativeBackDecision(canGoBack: boolean): BackHandlerResult {
+  /* 1) طبقة مفتوحة → أغلقها فقط (بلا تنقّل) */
+  if (closeTopOverlay()) return "close-sheet";
+  /* 2) تاريخ تنقّل داخلي → رجوع خطوة واحدة */
+  if (canGoBack) {
+    window.history.back();
+    return "navigate-back";
+  }
+  /* 3) رابط عميق بارد بلا تاريخ → الرئيسية أولاً */
+  if (window.location.pathname !== "/") {
+    window.location.assign("/");
+    return "navigate-back";
+  }
+  /* 4) الرئيسية بلا تاريخ → خروج بنقرة مزدوجة */
+  return "exit";
+}
 
-let registeredBackHandler: NativeBackHandler | null = null;
+/** نافذة النقرة المزدوجة للخروج — تطابق مدة بقاء التوست (4 ثوانٍ) */
+const EXIT_DOUBLE_PRESS_MS = 4000;
+let lastExitPressAt = 0;
 
-export function setNativeBackHandler(handler: NativeBackHandler | null): void {
-  registeredBackHandler = handler;
+/**
+ * الخروج بالنقرة المزدوجة + توست عربي عبر نظام التوست الموحّد
+ * (use-toast مبني على module-store — يُستدعى من خارج React بأمان).
+ * الضغطة الأولى: توست إرشادي. الثانية خلال النافذة: خروج فعلي.
+ */
+async function exitWithDoublePress(): Promise<void> {
+  const { App } = await import("@capacitor/app");
+  const now = Date.now();
+  if (now - lastExitPressAt < EXIT_DOUBLE_PRESS_MS) {
+    lastExitPressAt = 0;
+    void App.exitApp();
+    return;
+  }
+  lastExitPressAt = now;
+  try {
+    const { toast } = await import("@/hooks/use-toast");
+    toast({ title: "اضغط رجوع مرة أخرى للخروج" });
+  } catch {
+    /* نظام التوست غير متاح — الخروج يبقى متاحاً بالضغطة الثانية */
+  }
 }
 
 /**
- * ربط مستمع زر الرجوع الأصلي. يُستدعى مرة واحدة من NativeBridge.
- * يستدعي المعالج المُسجَّل (setNativeBackHandler) — الافتراضي: exit.
+ * ربط مستمع زر الرجوع الأصلي — أندرويد فقط، يُستدعى مرة واحدة من
+ * NativeBridge عند الإقلاع. على الويب/SSR: no-op صامت.
  */
 export async function setupNativeBackButton(): Promise<() => void> {
   if (!isNativePlatform()) return () => {};
   try {
     const { App } = await import("@capacitor/app");
-    const listener = await App.addListener("backButton", () => {
-      const result = registeredBackHandler?.() ?? "exit";
-      if (result === "exit") {
-        void App.exitApp();
+    const listener = await App.addListener(
+      "backButton",
+      ({ canGoBack }) => {
+        const result = nativeBackDecision(canGoBack);
+        if (result === "exit") {
+          void exitWithDoublePress();
+        }
+      },
+    );
+    return () => {
+      void listener.remove();
+    };
+  } catch {
+    return () => {};
+  }
+}
+
+/**
+ * ربط مستمع فتح الروابط الأصلية (Universal Links على iOS / Deep Links)
+ * — يُستدعى مرة واحدة من NativeBridge عند الإقلاع.
+ * • iOS: عند فتح رابط https://tawfir.giize.com/... من Safari/الرسائل
+ *   يفتح iOS التطبيق (عبر apple-app-site-association + entitlement
+ *   applinks) لكن Capacitor لا يوجّه الـWKWebView تلقائياً — يبثّ
+ *   حدث appUrlOpen للـJS فقط. هذا المستمع يكمل الحلقة: يأخذ الرابط
+ *   ويوجّه الـWebView إليه (الموقع نفسه أصلاً — location.assign كامل).
+ * • أندرويد: نفس الحدث يعمل مع فلتر autoVerify في الـManifest.
+ * • على الويب/SSR: no-op صامت.
+ */
+export async function setupNativeUrlOpen(): Promise<() => void> {
+  if (!isNativePlatform()) return () => {};
+  try {
+    const { App } = await import("@capacitor/app");
+    const listener = await App.addListener("appUrlOpen", ({ url }) => {
+      if (!url || typeof url !== "string") return;
+      /* نقبل فقط روابط موقع توفير نفسه (أصل الـWebView) — أي رابط
+         خارجي يُتجاهل صامتاً حفاظاً على الأمن. */
+      try {
+        const parsed = new URL(url);
+        if (parsed.hostname !== "tawfir.giize.com") return;
+        const target = parsed.pathname + parsed.search + parsed.hash;
+        if (target === "/" && window.location.pathname === "/") return;
+        window.location.assign(target);
+      } catch {
+        /* رابط غير صالح — تجاهل */
       }
-      /* close-sheet و navigate-back يتولاهما NativeBridge عبر
-         setNativeBackHandler — لا نفعل شيئاً هنا */
     });
     return () => {
       void listener.remove();

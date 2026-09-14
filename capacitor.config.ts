@@ -35,6 +35,27 @@ const config: CapacitorConfig = {
     url: "https://tawfir.giize.com",
     cleartext: false,
   },
+  ios: {
+    /* ═══════════ iOS (الجولة 24 — دعم آيفون) ═══════════
+     * نفس فلسفة المسار 2 (Live WebView): الـWKWebView يفتح
+     * https://tawfir.giize.com فيعمل الـService Worker بالكامل.
+     * • backgroundColor: خلفية الـWKWebView قبل تحميل الموقع — فاتحة
+     *   تطابق سبلاش الإقلاع (#F7F7F7) فلا وميض أبيض/داكن.
+     * • scrollEnabled: false — الـWKWebView نفسه لا يتمرّر (الموقع
+     *   يدير تمريره عبر html/body بأسلوب PWA) — يمنع الارتداد
+     *   المطاطي المزدوج ويحفظ إحساس Native.
+     * • zoomEnabled: false (الافتراضي) + NativeBridge يقفل التمرير
+     *   بإصبعين من الويب — تجربة تطبيق أصيلة.
+     * • Safe-Area (النوتش/Dynamic Island): viewport-fit=cover في
+     *   layout.tsx + env(safe-area-inset-*) تعمل أصلاً في WKWebView،
+     *   وقواعد max(env(...), var(--cap-safe-*)) في globals.css
+     *   تستهلكها فوراً بلا أي تعديل ويب.
+     * الهوية/الأذونات/FCM/الروابط العميقة يفعّلها
+     * scripts/patch-ios-identity.mjs داخل GitHub Actions (macOS). */
+    backgroundColor: "#F7F7F7",
+    scrollEnabled: false,
+    allowsLinkPreview: false,
+  },
   android: {
     buildOptions: {
       // يُستخدم فقط من npx cap run — البناء الفعلي عبر Gradle يقرأ

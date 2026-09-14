@@ -40,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { MemberCard } from "@/components/public/MemberCard";
 import { AccountProfileHero } from "@/components/public/AccountProfileHero";
 import { AccountFaqContactSection } from "@/components/public/AccountFaqContactSection";
+import { DeleteAccountCard } from "@/components/public/DeleteAccountCard";
 import { CourierModeCard } from "@/components/shared/CourierModeCard";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { NotificationBell } from "@/components/shared/NotificationBell";
@@ -476,6 +477,9 @@ function NoMembershipState({ me }: { me: MeOut }) {
 
         {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
         <AccountFaqContactSection />
+
+        {/* منطقة الخطر — حذف الحساب نهائيًا (متطلب Apple 5.1.1(v)) */}
+        <DeleteAccountCard />
     </motion.div>
   );
 }
@@ -568,6 +572,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
 
         {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
         <AccountFaqContactSection />
+
+        {/* منطقة الخطر — حذف الحساب نهائيًا (متطلب Apple 5.1.1(v)) */}
+        <DeleteAccountCard />
     </motion.div>
   );
 }
@@ -688,6 +695,9 @@ export default function AccountPage() {
 
           {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
           <AccountFaqContactSection />
+
+          {/* منطقة الخطر — حذف الحساب نهائيًا (متطلب Apple 5.1.1(v)) */}
+          <DeleteAccountCard />
         </motion.div>
       </>
     );

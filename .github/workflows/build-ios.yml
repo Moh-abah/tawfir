@@ -1,0 +1,404 @@
+# ══════════════════════════════════════════════════════════════════════
+#  🍎 بناء IPA لتوفير — كلياً في السحابة (GitHub Actions / macOS)
+# ══════════════════════════════════════════════════════════════════════
+#  لا حاجة لأي Mac على جهازك — البناء كله على منفّذي GitHub السحابيين:
+#
+#    1) تثبيت Bun على macOS ثم إصلاح sharp (نفس إصلاح أندرويد:
+#       حذف sharp@0.32 المتداخلة المعطوبة داخل @capacitor/assets)
+#    2) npx cap add ios — توليد مشروع Xcode من الصفر (وضع SPM بلا
+#       CocoaPods — Capacitor 8 الافتراضي)
+#    3) npx capacitor-assets generate --ios — كل الأيقونات والسبلاش
+#    4) npx cap sync ios — نسخ أصول الويب + تسجيل الإضافات
+#    5) bun scripts/patch-ios-identity.mjs — هوية توفير الكاملة:
+#       الأذونات بالعربية + Portrait/iPhone فقط + entitlements
+#       (إشعارات APNs + Universal Links) + Firebase/FCM عبر SPM
+#       (إن وُجد GoogleService-Info.plist مطابق في جذر المستودع) +
+#       إضافة TawfirNative.swift (توكن FCM عبر الجسر — نفس مسار
+#       أندرويد) + Scheme + الإصدار/الفريق
+#    6) xcodebuild archive — وضعان:
+#       • موقّع بالكامل (الافتراضي عند توفر الأسرار): توقيع آلي مع
+#         مفتاح App Store Connect API — ينشئ Xcode شهادة التوزيع
+#         والبروفايل تلقائياً (-allowProvisioningUpdates) بلا أي
+#         Keychain يدوي ← IPA جاهز للرفع على App Store/TestFlight
+#       • غير موقّع (allow_unsigned=true فقط): للتحقق من سلامة
+#         البناء قبل فتح حساب Apple — IPA بلا توقيع (غير قابل
+#         للتثبيت على أجهزة عادية)
+#    7) (اختياري) رفع IPA إلى TestFlight مباشرة من الـWorkflow
+#       (upload_testflight=true + أسرار المفتاح) — فور انتهاء البناء
+#       تجده في App Store Connect → TestFlight
+#    8) رفع الـIPA (+ dSYM للرموز الرمزية) كـArtifacts قابلة للتنزيل
+#
+#  الأسرار المطلوبة للتوقيع والرفع (Settings → Secrets and variables
+#  → Actions) — كلها من App Store Connect، بلا حاجة لـMac إطلاقاً:
+#    APPLE_TEAM_ID          معرّف الفريق (10 أحرف — Membership Details)
+#    APPLE_AUTH_KEY_ID      معرّف مفتاح App Store Connect API
+#    APPLE_AUTH_ISSUER_ID   معرّف المُصدر (Issuer ID)
+#    APPLE_AUTH_KEY_P8_B64  ملف المفتاح AuthKey_XXXX.p8 بترميز Base64
+#    (خطوات إنشائها بالصور: دليل_نشر_App_Store.md — القسم الثاني)
+#
+#  ملفات عمومية غير سرية تُرفع مع الكود في جذر المستودع:
+#    GoogleService-Info.plist    إشعارات FCM (iOS) — من Firebase Console
+#    apple-team-id.txt           (اختياري) معرّف الفريق لتفعيل Universal
+#                                Links عبر apple-app-site-association
+# ══════════════════════════════════════════════════════════════════════
+
+name: "Build iOS IPA — توفير"
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "أي تطبيق؟ (customer = تطبيق العملاء على App Store)"
+        required: true
+        default: "customer"
+        type: choice
+        options:
+          - customer
+          - owner
+      version_name:
+        description: "اسم الإصدار CFBundleShortVersionString (مثال: 1.2.0)"
+        required: true
+        default: "1.2.0"
+        type: string
+      version_code:
+        description: "رقم البناء CFBundleVersion — يجب أن يزيد عن أي رفعة سابقة"
+        required: true
+        default: "1"
+        type: string
+      allow_unsigned:
+        description: "السماح ببناء غير موقّع (للاختبار فقط قبل تجهيز أسرار Apple)"
+        required: false
+        default: false
+        type: boolean
+      upload_testflight:
+        description: "رفع الـIPA إلى TestFlight فور البناء (يتطلب أسرار Apple)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ inputs.app || 'customer' }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "🔧 توليد + توقيع IPA"
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      VERSION_NAME: ${{ inputs.version_name || '1.2.0' }}
+      VERSION_CODE: ${{ inputs.version_code || '1' }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      AUTH_KEY_ID: ${{ secrets.APPLE_AUTH_KEY_ID }}
+      AUTH_ISSUER_ID: ${{ secrets.APPLE_AUTH_ISSUER_ID }}
+
+    steps:
+      - name: "⬇️ تحميل الكود"
+        uses: actions/checkout@v5
+
+      - name: "🔍 فحص وضع التوقيع (فشل مبكر بدل 35 دقيقة انتظار)"
+        id: signing
+        run: |
+          P8="${{ secrets.APPLE_AUTH_KEY_P8_B64 }}"
+          HAVE_P8=$([ -n "$P8" ] && echo yes || echo no)
+          HAVE_TEAM=$([ -n "$APPLE_TEAM_ID" ] && echo yes || echo no)
+          HAVE_KEYID=$([ -n "$AUTH_KEY_ID" ] && echo yes || echo no)
+          HAVE_ISSUER=$([ -n "$AUTH_ISSUER_ID" ] && echo yes || echo no)
+          echo "team=$HAVE_TEAM p8=$HAVE_P8 keyid=$HAVE_KEYID issuer=$HAVE_ISSUER"
+
+          if [ "$HAVE_TEAM" = yes ] && [ "$HAVE_P8" = yes ] && [ "$HAVE_KEYID" = yes ] && [ "$HAVE_ISSUER" = yes ]; then
+            echo "mode=signed" >> "$GITHUB_OUTPUT"
+            echo "✓ التوقيع الكامل مفعّل — سيُبنى IPA موقّع جاهز للرفع"
+          elif [ "$HAVE_TEAM" = no ] && [ "$HAVE_P8" = no ] && [ "$HAVE_KEYID" = no ] && [ "$HAVE_ISSUER" = no ]; then
+            if [ "${{ inputs.allow_unsigned }}" = "true" ]; then
+              echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+              echo "⚠ لا أسرار Apple — بناء غير موقّع (للتحقق من سلامة البناء فقط)"
+            else
+              echo "::error::لا توجد أسرار Apple — أضف APPLE_TEAM_ID و APPLE_AUTH_KEY_ID و APPLE_AUTH_ISSUER_ID و APPLE_AUTH_KEY_P8_B64 من Settings ← Secrets and variables ← Actions (الخطوات بالتفصيل في دليل_نشر_App_Store.md القسم 2). أو أعِد التشغيل مع تفعيل allow_unsigned لبناء تجريبي غير موقّع."
+              exit 1
+            fi
+          else
+            echo "::error::أسرار Apple ناقصة جزئياً (team=$HAVE_TEAM p8=$HAVE_P8 keyid=$HAVE_KEYID issuer=$HAVE_ISSUER) — الأربعة كلها مطلوبة معاً للتوقيع."
+            exit 1
+          fi
+
+      - name: "🥟 تثبيت Bun"
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: "🧾 إصدار Xcode المستخدم"
+        run: |
+          xcodebuild -version
+          xcrun simctl list runtimes | head -5 || true
+
+      - name: "📦 تثبيت الاعتماديات (bun install)"
+        run: bun install --frozen-lockfile
+
+      - name: "🔧 إصلاح sharp (إلزامي — بدونه يفشل capacitor-assets)"
+        run: |
+          # نفس السبب الجذري في بناء أندرويد: sharp@0.32 متداخلة داخل
+          # @capacitor/assets بلا ثنائيات (bun لا يشغّل سكربتاتها) —
+          # نحذفها فترثَث نسخة الجذر 0.34 (ثنائياتها في @img الجاهزة).
+          rm -rf node_modules/@capacitor/assets/node_modules/sharp \
+                 node_modules/@capacitor/assets/node_modules/@img
+          if ! node -e "require('sharp')" 2>/dev/null; then
+            echo "⚠ ثنائيات sharp الجذر ناقصة — تثبيتها عبر npm"
+            SHARP_REQ="$(node -p "require('./package.json').dependencies.sharp ?? require('./package.json').devDependencies.sharp")"
+            npm install --no-save --no-package-lock "sharp@${SHARP_REQ#^}"
+          fi
+          node -e "require('sharp')({create:{width:8,height:8,channels:3,background:'#005B82'}}).png().toBuffer().then(()=>console.log('✓ sharp تعمل — جاهزة لـ capacitor-assets')).catch(e=>{console.error('✗ sharp معطلة:',e.message);process.exit(1)})"
+
+      - name: "🏪 هوية التطبيق المختار (تطبيق المالك عند اختياره)"
+        if: ${{ inputs.app == 'owner' }}
+        run: |
+          sed -i '' 's/appId: "com.tawfir.ye.app"/appId: "com.tawfir.ye.owner"/' capacitor.config.ts
+          sed -i '' 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
+          if ! grep -q 'com.tawfir.ye.owner' capacitor.config.ts; then
+            echo "::error::فشل تعديل capacitor.config.ts لهوية المالك"
+            exit 1
+          fi
+          grep -E "appId:|appName:" capacitor.config.ts | head -2
+
+      - name: "🆕 إنشاء مشروع Xcode من الصفر (cap add ios — وضع SPM)"
+        run: |
+          rm -rf ios
+          npx cap add ios
+          if [ ! -f "ios/App/App/AppDelegate.swift" ]; then
+            echo "::error::فشل إنشاء مشروع iOS"
+            exit 1
+          fi
+
+      - name: "🎨 توليد كل الأيقونات والسبلاش من resources/"
+        run: npx capacitor-assets generate --ios
+
+      - name: "🔄 مزامنة Capacitor (أصول الويب + تسجيل الإضافات)"
+        run: npx cap sync ios
+
+      - name: "🖌️ تفعيل هوية توفير + Firebase + الأذونات + Scheme (مع تحقق بنيوي آلي)"
+        run: bun scripts/patch-ios-identity.mjs
+        env:
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          VERSION_CODE: ${{ env.VERSION_CODE }}
+          APPLE_TEAM_ID: ${{ env.APPLE_TEAM_ID }}
+
+      - name: "🔍 لقطة تحقق قبل البناء (للتوثيق في السجل)"
+        run: |
+          echo "── مفاتيح Info.plist الحرجة ──"
+          grep -A 1 "NSLocationWhenInUseUsageDescription\|UIBackgroundModes\|ITSAppUsesNonExemptEncryption\|UISupportedInterfaceOrientations<" ios/App/App/Info.plist | head -12 || true
+          echo ""
+          echo "── Package.swift (التبعيات) ──"
+          grep -n "firebase\|capacitor-swift-pm" ios/App/CapApp-SPM/Package.swift || true
+          echo ""
+          echo "── إعدادات التوقيع في pbxproj ──"
+          grep -n "CODE_SIGN_ENTITLEMENTS\|DEVELOPMENT_TEAM\|MARKETING_VERSION\|TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj | head -8
+          echo ""
+          echo "── ملفات توفير الأصلية ──"
+          ls ios/App/CapApp-SPM/Sources/CapApp-SPM/
+          [ -f ios/App/App/GoogleService-Info.plist ] && echo "✓ GoogleService-Info.plist مرفق بالتطبيق" || echo "(بلا Firebase)"
+
+      - name: "🔐 تجهيز مفتاح App Store Connect API (للتوقيع الآلي)"
+        if: steps.signing.outputs.mode == 'signed'
+        run: |
+          printf '%s' "${{ secrets.APPLE_AUTH_KEY_P8_B64 }}" \
+            | sed '/^-----/d' | tr -d '\r\n ' \
+            | base64 -d > "AuthKey_${AUTH_KEY_ID}.p8"
+          SIZE=$(stat -f%z "AuthKey_${AUTH_KEY_ID}.p8")
+          if [ "$SIZE" -lt 100 ]; then
+            echo "::error::ملف المفتاح p8 أصغر من المتوقع (${SIZE} بايت) — تحقق من ترميز Base64"
+            exit 1
+          fi
+          # مسار بحث altool لاحقاً (الرفع إلى TestFlight)
+          mkdir -p ./private_keys
+          cp "AuthKey_${AUTH_KEY_ID}.p8" "./private_keys/AuthKey_${AUTH_KEY_ID}.p8"
+          echo "✓ مفتاح API جاهز (${SIZE} بايت)"
+
+      - name: "⬇️ تنزيل حزم Swift (Capacitor + Firebase — فشل مبكر واضح)"
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App 2>&1 | tee resolve.log | tail -5
+          if rg -q "resolved source packages:" resolve.log; then
+            echo "✓ الحزم حُلّت بنجاح"
+          else
+            echo "⚠ لم يُعلن عن الحزم — قد يكون فشلاً صامتاً، سنكمل وسيفشل الأرشفة إن كان خللاً فعلياً"
+          fi
+          rm -f resolve.log
+
+      - name: "🏗️ أرشفة التطبيق (xcodebuild archive)"
+        run: |
+          cd ios/App
+          if [ "${{ steps.signing.outputs.mode }}" = "signed" ]; then
+            xcodebuild archive \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$GITHUB_WORKSPACE/AuthKey_${AUTH_KEY_ID}.p8" \
+              -authenticationKeyID "$AUTH_KEY_ID" \
+              -authenticationKeyIssuerID "$AUTH_ISSUER_ID" \
+              CODE_SIGN_STYLE=Automatic \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+              2>&1 | xcbeautify --quiet
+          else
+            xcodebuild archive \
+              -project App.xcodeproj \
+              -scheme App \
+              -configuration Release \
+              -destination 'generic/platform=iOS' \
+              -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              2>&1 | xcbeautify --quiet
+          fi
+          if [ ! -d "$RUNNER_TEMP/App.xcarchive" ]; then
+            echo "::error::الأرشيف لم يُنشأ — فشل البناء"
+            exit 1
+          fi
+          echo "✓ الأرشيف جاهز: $(du -sh "$RUNNER_TEMP/App.xcarchive" | cut -f1)"
+
+      - name: "📦 تصدير IPA موقّع (جاهز للرفع على App Store)"
+        if: steps.signing.outputs.mode == 'signed'
+        run: |
+          cat > ExportOptions.plist <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>TEAM_ID_PLACEHOLDER</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>destination</key>
+            <string>export</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+          sed -i '' "s/TEAM_ID_PLACEHOLDER/$APPLE_TEAM_ID/" ExportOptions.plist
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$RUNNER_TEMP/ipa" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$GITHUB_WORKSPACE/AuthKey_${AUTH_KEY_ID}.p8" \
+            -authenticationKeyID "$AUTH_KEY_ID" \
+            -authenticationKeyIssuerID "$AUTH_ISSUER_ID"
+
+          IPA="$(ls "$RUNNER_TEMP/ipa"/*.ipa | head -n1)"
+          if [ ! -f "$IPA" ]; then
+            echo "::error::لم يُصدَّر ملف IPA"
+            exit 1
+          fi
+          echo "✓ IPA موقّع: $(du -h "$IPA" | cut -f1) — $(basename "$IPA")"
+
+      - name: "📦 تجهيز IPA غير موقّع (اختبار سلامة البناء فقط)"
+        if: steps.signing.outputs.mode == 'unsigned'
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry App-unsigned.ipa Payload)
+          echo "⚠ IPA غير موقّع — لا يُثبَّت على الأجهزة (فعّل أسرار Apple للبناء الموقّع)"
+
+      - name: "📤 رفع إلى TestFlight (اختياري)"
+        if: steps.signing.outputs.mode == 'signed' && inputs.upload_testflight == true
+        run: |
+          IPA="$(ls "$RUNNER_TEMP/ipa"/*.ipa | head -n1)"
+          echo "⬆️ رفع $(basename "$IPA") إلى App Store Connect..."
+          xcrun altool --upload-package \
+            --type ios \
+            -f "$IPA" \
+            --apiKey "$AUTH_KEY_ID" \
+            --apiIssuer "$AUTH_ISSUER_ID" \
+            --wait || {
+              echo "::warning::فشل الرفع — تأكد أن التطبيق مُسجَّل في App Store Connect بالـBundle ID نفسه، وأن رقم البناء ${VERSION_CODE} لم يُرفع سابقاً. يمكنك رفع الـIPA يدوياً من Artifacts عبر Transporter."
+              exit 1
+            }
+
+      - name: "📤 تجهيز الـArtifacts (IPA + dSYM)"
+        run: |
+          APP="${{ inputs.app || 'customer' }}"
+          MODE="${{ steps.signing.outputs.mode }}"
+          OUT="$RUNNER_TEMP/tawfir-ios"
+          mkdir -p "$OUT"
+          IPA="$(ls "$RUNNER_TEMP/ipa"/*.ipa | head -n1)"
+          if [ "$MODE" = "signed" ]; then
+            OUT_IPA="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}.ipa"
+          else
+            OUT_IPA="tawfir-${APP}-v${VERSION_NAME}-${VERSION_CODE}-UNSIGNED.ipa"
+          fi
+          cp "$IPA" "$OUT/$OUT_IPA"
+          # رموز الأعطال (لأدوات تتبع الأعطال مستقبلاً)
+          if [ -d "$RUNNER_TEMP/App.xcarchive/dSYMs" ]; then
+            (cd "$RUNNER_TEMP/App.xcarchive" && zip -qry "$OUT/dSYMs.zip" dSYMs)
+          fi
+          (cd "$OUT" && shasum -a 256 "$OUT_IPA" > "$OUT_IPA.sha256")
+          ls -lh "$OUT"
+          echo "IPA_OUT_NAME=$OUT_IPA" >> "$GITHUB_ENV"
+          echo "IPA_OUT_DIR=$OUT" >> "$GITHUB_ENV"
+
+      - name: "📤 رفع الـArtifacts للتنزيل"
+        uses: actions/upload-artifact@v4
+        with:
+          name: tawfir-ios-${{ inputs.app || 'customer' }}-v${{ env.VERSION_NAME }}-${{ env.VERSION_CODE }}-${{ steps.signing.outputs.mode }}
+          path: |
+            ${{ env.IPA_OUT_DIR }}/*.ipa
+            ${{ env.IPA_OUT_DIR }}/*.sha256
+            ${{ env.IPA_OUT_DIR }}/dSYMs.zip
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: "🧹 تنظيف مفتاح API (نظافة أمنية)"
+        if: always()
+        run: |
+          rm -f "AuthKey_${AUTH_KEY_ID}.p8" 2>/dev/null || true
+          rm -rf ./private_keys 2>/dev/null || true
+
+      - name: "📋 ملخص البناء"
+        run: |
+          MODE="${{ steps.signing.outputs.mode }}"
+          IPA_PATH="${{ env.IPA_OUT_DIR }}/${{ env.IPA_OUT_NAME }}"
+          IPA_SIZE="$(du -h "$IPA_PATH" | cut -f1)"
+          if [ "$MODE" = "signed" ]; then
+            SIGN_ROW="✅ موقّع بالكامل — جاهز للرفع على App Store / TestFlight"
+          else
+            SIGN_ROW="⚠️ غير موقّع (اختبار سلامة البناء فقط)"
+          fi
+          if [ -f ios/App/App/GoogleService-Info.plist ]; then
+            FCM_ROW="FCM أصلي ✓ — أرسل من Firebase Console للموضوع \`tawfir_all\`"
+          else
+            FCM_ROW="غير مفعّل (أضِف GoogleService-Info.plist في جذر المستودع)"
+          fi
+          TF_ROW="لم يُطلب"
+          if [ "${{ inputs.upload_testflight }}" = "true" ] && [ "$MODE" = "signed" ]; then
+            TF_ROW="✅ رُفع إلى TestFlight — App Store Connect ← TestFlight"
+          fi
+          {
+            echo "## 🍎 اكتمل بناء توفير لـ iOS"
+            echo ""
+            echo "| البند | القيمة |"
+            echo "|---|---|"
+            echo "| التطبيق | \`${{ inputs.app || 'customer' }}\` |"
+            echo "| Bundle ID | \`com.tawfir.ye.${{ inputs.app == 'owner' && 'owner' || 'app' }}\` |"
+            echo "| الإصدار | ${VERSION_NAME} (بناء ${VERSION_CODE}) |"
+            echo "| حجم الـIPA | ${IPA_SIZE} |"
+            echo "| التوقيع | ${SIGN_ROW} |"
+            echo "| الإشعارات | ${FCM_ROW} |"
+            echo "| TestFlight | ${TF_ROW} |"
+            echo ""
+            echo "> نزّل الـIPA من قسم **Artifacts** بالأعلى."
+            echo "> 📲 الرفع على App Store: App Store Connect ← التطبيق ← TestFlight ←"
+            echo ">    (أو استخدم زر upload_testflight في المرة القادمة — يرفع آلياً)."
+            echo "> 🔔 الإشعارات: لا تنسَ رفع مفتاح APNs (.p8) في Firebase Console ←"
+            echo ">    Project settings ← Cloud Messaging ← APNs Authentication Key."
+          } >> "$GITHUB_STEP_SUMMARY"

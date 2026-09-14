@@ -191,5 +191,6 @@ export const customerApiClient = {
   post: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("POST", url, body),
   put: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("PUT", url, body),
   patch: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("PATCH", url, body),
-  delete: <T>(url: string) => fetchWithCustomerAuth<T>("DELETE", url),
+  /** DELETE — جسم اختياري (مثال: تمرير توكنات FCM مع حذف الحساب). */
+  delete: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("DELETE", url, body),
 };

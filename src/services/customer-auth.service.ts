@@ -5,6 +5,10 @@ import type {
   MeUpdate,
   TokenOut,
 } from "@/types/api.generated";
+import type {
+  AccountDeleteIn,
+  AccountDeleteOut,
+} from "@/types/api-extra";
 
 export const customerAuthService = {
   /** POST /auth/login → {access_token, token_type} */
@@ -17,4 +21,10 @@ export const customerAuthService = {
   /** PUT /me — تعديل الاسم/الجوال فقط (البريد ثابت) */
   updateMe: (data: MeUpdate) =>
     customerApiClient.put<MeOut>("/me", data),
+
+  /** DELETE /customer/account — حذف الحساب نهائيًا (متطلب Apple 5.1.1(v)).
+   *  مسار محلي (BFF): يوثّق الهوية بتوكن العميل نفسه ثم يحذف/يُكيّف
+   *  البيانات لدى الباك إند ويزيل توكنات FCM المُمرَّرة معه. */
+  deleteAccount: (data?: AccountDeleteIn) =>
+    customerApiClient.delete<AccountDeleteOut>("/customer/account", data),
 };
