@@ -106,6 +106,7 @@
   },
   "trustedDependencies": [
     "protobufjs",
-    "unrs-resolver"
+    "unrs-resolver",
+    "sharp"
   ]
 }
