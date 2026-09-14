@@ -10,6 +10,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
 import { CookieConsent } from "@/components/shared/CookieConsent";
 import { PageTransition } from "@/components/shared/PageTransition";
+import { NativeNotificationsNudge } from "@/components/shared/NativeNotificationsNudge";
 import { StickyMiniCart } from "@/components/public/StickyMiniCart";
 import { GlobalPullToRefresh } from "@/components/shared/GlobalPullToRefresh";
 import { useRegionStore } from "@/store/region.store";
@@ -109,11 +110,15 @@ export default function PublicLayout({
       <IosSplashLinks />
       {!isAuthRoute && <WelcomeBanner />}
       {!isAuthRoute && <MainHeader />}
+      {/* داخل الـAPK فقط: شريط تفعيل إشعارات التطبيق عند رفض الإذن —
+          نافذة السماح الأصلية + مسار التعافي عبر إعدادات النظام */}
+      {!isAuthRoute && <NativeNotificationsNudge />}
       <main
         className={cn(
           "flex-1 pb-28 md:pb-0",
           (isReceiptRoute || isAuthRoute) && "pb-0 md:pb-0",
         )}
+        data-main-content
       >
         {/* السحب للتحديث بنمط توفير — يُحلّ محل مؤشر المتصفح الافتراضي في
             كل صفحات العميل. لا يُركّب في شاشات الدخول (لا تحتاج تحديث بيانات). */}

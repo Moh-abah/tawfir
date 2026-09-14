@@ -24,6 +24,7 @@ import {
   Package,
   Power,
   RadioTower,
+  ShoppingBag,
   Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,9 +49,52 @@ import { haptic } from "@/lib/haptic";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { isNativePlatform, getNativeFcmToken } from "@/lib/capacitor";
+import { requestNativeNotificationsPermission } from "@/lib/native-permissions";
 
-/** طلب إذن الإشعارات + FCM — «نمط الجذب خارج التطبيق» (Web Push) */
+/** طلب إذن الإشعارات + FCM — «نمط الجذب خارج التطبيق»
+ *
+ * مساران (إصلاح أذونات APK):
+ *  • داخل الـAPK (Capacitor): نافذة السماح الأصلية POST_NOTIFICATIONS عبر
+ *    TawfirNative (Notification.requestPermission داخل WebView تُرفض بلا
+ *    نافذة) + توكن FCM الأصلي — ثم تسجيله بمصادقة المندوب.
+ *  • على الويب/PWA: Web Push المعتاد (إذن المتصفح + توكن FCM بـVAPID). */
 async function enableWebPush(): Promise<boolean> {
+  /* ─── مسار الـAPK الأصلي ─── */
+  if (isNativePlatform()) {
+    try {
+      const perm = await requestNativeNotificationsPermission();
+      if (perm === "denied") {
+        toast({
+          title: "لم تُمنح صلاحية الإشعارات",
+          description: "ستصلك النداءات داخل التطبيق فقط",
+        });
+        return false;
+      }
+      /* توكن FCM الأصلي (الإضافة الأصلية تحفظه عند وصوله) */
+      const nativeToken = await getNativeFcmToken();
+      if (nativeToken) {
+        await courierFcmService.registerToken(
+          nativeToken,
+          `courier-apk/${navigator.userAgent.slice(0, 100)}`,
+        );
+      }
+      toast({
+        title: "فُعّل جذب النداء خارج التطبيق 🔔",
+        description: "ستصلك النداءات حتى لو كان التطبيق مغلقاً",
+      });
+      return true;
+    } catch {
+      toast({
+        title: "تعذّر تفعيل إشعارات النداء",
+        description: "أعد المحاولة بعد قليل",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }
+
+  /* ─── مسار الويب/PWA ─── */
   if (typeof window === "undefined" || !("Notification" in window)) {
     toast({
       title: "متصفحك لا يدعم إشعارات النداء",
@@ -405,15 +449,27 @@ export default function CourierHomePage() {
         </div>
       </section>
 
-      {/* خروج */}
-      <div className="px-1 pb-2">
+      {/* التبديل لوضع العميل — نفس التطبيق (الجولة 24) + خروج */}
+      <div className="flex items-center justify-between gap-2 px-1 pb-2">
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 gap-2 rounded-full font-bold native-tap"
+        >
+          <Link href="/">
+            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
+            التبديل لوضع العميل
+          </Link>
+        </Button>
         <Button
           type="button"
           variant="ghost"
           size="sm"
           onClick={() => {
             logout();
-            router.replace("/courier/login");
+            router.replace("/login?mode=courier");
           }}
           className="text-muted-foreground native-tap"
           aria-label="تسجيل الخروج من بوابة المندوب"

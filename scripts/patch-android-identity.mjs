@@ -351,12 +351,23 @@ if (!/android:autoVerify/.test(manifest)) {
   log("♻️", "فلتر Deep Links موجود مسبقاً (إعادة تشغيل)");
 }
 
-/* 4-ب) الأذونات: كلها Normal — بلا أي مطالبات مخيفة عند التثبيت */
+/* 4-ب) الأذونات — إصلاح أذونات APK الحرج:
+ *   • ACCESS_FINE_LOCATION + ACCESS_COARSE_LOCATION: بدونهما يرفض
+ *     أندرويد طلب صلاحية الموقع فوراً بلا أي نافذة سماح (طلب إذن غير
+ *     مُصرّح به في الـManifest = رفض صامت دائم) — وهذا سبب مشكلة
+ *     «زر الموقع لا يعمل بعد تحويل المنصة APK». Capacitor 8 يتكفّل
+ *     بالباقي: BridgeWebChromeClient.onGeolocationPermissionsShowPrompt
+ *     يطلب الإذن وقت التشغيل عند ضغط المستخدم «تحميل موقعي» ثم يمنح
+ *     الـWebView — لكن فقط إذا وُجد الإذن في الـManifest أولاً.
+ *   • POST_NOTIFICATIONS: بدونه على Android 13+ يظهر زر الإشعارات
+ *     في إعدادات النظام معطّلاً (رمادياً) لا يمكن تفعيله إطلاقاً. */
 const wantedPermissions = [
   "android.permission.INTERNET", // أساسي — موجود في القالب عادة
   "android.permission.ACCESS_NETWORK_STATE", // حالة الشبكة (@capacitor/network)
   "android.permission.VIBRATE", // الاهتزاز (@capacitor/haptics)
   "android.permission.POST_NOTIFICATIONS", // Android 13+ — جاهزية الإشعارات
+  "android.permission.ACCESS_FINE_LOCATION", // GPS دقيق — زر «تحميل موقعي» في WebView
+  "android.permission.ACCESS_COARSE_LOCATION", // موقع تقريبي — احتياط للأجهزة بلا GPS
 ];
 const addedPerms = [];
 for (const perm of wantedPermissions) {
@@ -936,15 +947,20 @@ public class TawfirFirebaseMessagingService extends FirebaseMessagingService {
     : "";
   const tawfirNative = `package ${APP_PACKAGE};
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Build;
 import android.webkit.WebView;
 import android.view.Window;
 import android.view.WindowManager;
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -956,6 +972,8 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 /**
  * توفير — الجسر الأصلي للـWebView الحي:
@@ -972,8 +990,22 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  *    تغيّرت الأشرطة (إقلاع/تدوير/لوحة مفاتيح).
  *  • مظهر أولي عند load() حسب وضع النظام — ثم يصحّحه الـWebView حسب
  *    ثيم المستخدم الفعّال فور الترطيب (setupNativeStatusBar).
+ *  • أذونات الإشعارات الأصلية (إصلاح أذونات APK — الوجه الثاني):
+ *    requestNotificationsPermission يعرض نافذة السماح الأصلية من داخل
+ *    الـWebView (Notification.requestPermission لا تعمل فيه إطلاقاً)،
+ *    checkNotificationsPermission يفحص الحالة بلا نافذة، و openAppSettings
+ *    يفتح إعدادات التطبيق كمسار تعافٍ بعد الرفض النهائي (أندرويد يحجب
+ *    النافذة بعد رفضين متتاليين).
  */
-@CapacitorPlugin(name = "TawfirNative")
+@CapacitorPlugin(
+    name = "TawfirNative",
+    permissions = {
+        @Permission(
+            alias = "notifications",
+            strings = { Manifest.permission.POST_NOTIFICATIONS }
+        )
+    }
+)
 public class TawfirNative extends Plugin {
 
     /** آخر Safe-Area معروفة (CSS px) — يحدّثها مستمع Insets؛ -1 = غير معروفة */
@@ -1121,25 +1153,96 @@ public class TawfirNative extends Plugin {
                 & Configuration.UI_MODE_NIGHT_MASK;
         return nightMode == Configuration.UI_MODE_NIGHT_YES;
     }
+
+    /* ═══ أذونات الإشعارات الأصلية (إصلاح أذونات APK — الوجه الثاني) ═══ */
+
+    /** حالة إذن الإشعارات — granted/denied (قبل Android 13: ممنوح دوماً) */
+    @PluginMethod
+    public void checkNotificationsPermission(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("state", notificationsPermissionState());
+        call.resolve(ret);
+    }
+
+    /** طلب إذن الإشعارات (POST_NOTIFICATIONS — Android 13+) بنافذة السماح
+     *  الأصلية — يطلبه الـWebView عند الضغط على «تفعيل الإشعارات».
+     *  قبل 13: ممنوح دوماً (لا يوجد إذن وقت تشغيل أصلاً). */
+    @PluginMethod
+    public void requestNotificationsPermission(PluginCall call) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || "granted".equals(notificationsPermissionState())) {
+            JSObject ret = new JSObject();
+            ret.put("state", "granted");
+            call.resolve(ret);
+            return;
+        }
+        requestPermissionForAlias("notifications", call, "notificationsPermissionCallback");
+    }
+
+    /** نتيجة طلب إذن الإشعارات — تُرجع الحالة النهائية للـWebView */
+    @PermissionCallback
+    private void notificationsPermissionCallback(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("state", notificationsPermissionState());
+        call.resolve(ret);
+    }
+
+    private String notificationsPermissionState() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return "granted";
+        }
+        boolean granted = ActivityCompat.checkSelfPermission(
+                getContext(), Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED;
+        return granted ? "granted" : "denied";
+    }
+
+    /* ═══ فتح إعدادات التطبيق (مسار التعافي بعد الرفض النهائي) ═══ */
+
+    /** يفتح صفحة إعدادات التطبيق في أندرويد — لتفعيل الموقع/الإشعارات
+     *  يدوياً عندما يحجب أندرويد نافذة السماح بعد الرفض المتكرر. */
+    @PluginMethod
+    public void openAppSettings(PluginCall call) {
+        try {
+            Activity activity = getActivity();
+            if (activity == null) {
+                call.reject("no-activity");
+                return;
+            }
+            Intent intent = new Intent(
+                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", getContext().getPackageName(), null));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activity.startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("open-settings-failed", e);
+        }
+    }
 ${fcmMethods}}
 `;
   fs.writeFileSync(path.join(JAVA_PKG_DIR, "TawfirNative.java"), tawfirNative);
   log(
     "🧩",
-    `TawfirNative.java ← ثيم أشرطة النظام (setSystemBars) + Safe-Area (getSafeAreaInsets + مستمع Insets)${FCM_ENABLED ? " + توكن FCM للـWebView" : " (بلا FCM — google-services.json غائب)"} (${APP_PACKAGE})`,
+    `TawfirNative.java ← ثيم أشرطة النظام (setSystemBars) + Safe-Area (getSafeAreaInsets + مستمع Insets) + أذونات الإشعارات الأصلية (request/checkNotificationsPermission) + openAppSettings${FCM_ENABLED ? " + توكن FCM للـWebView" : " (بلا FCM — google-services.json غائب)"} (${APP_PACKAGE})`,
   );
 }
 
-/* 5-هـ) MainActivity.java — طلب إذن الإشعارات (13+) + تسجيل إضافة
- *      TawfirNative (دائماً — ثيم أشرطة النظام + Safe-Area + FCM)
+/* 5-هـ) MainActivity.java — طلب إذن الإشعارات (13+) بلا شرط FCM + تسجيل
+ *      إضافة TawfirNative (دائماً — ثيم أشرطة النظام + Safe-Area + FCM)
  *      + توجيه الروابط العميقة من الإشعارات.
+ *      (إصلاح أذونات APK): طلب إذن POST_NOTIFICATIONS أصبح غير مشروط
+ *      بوجود google-services.json — نافذة السماح بالإشعارات تظهر دائماً
+ *      على Android 13+ مع أول فتح للتطبيق حتى لو لم يُضبط FCM بعد.
  *      (إصلاح الثيم): لا نفرض ألوان أشرطة النظام من الكود — تتولاها
  *      resources values/ + values-night/ (وضع النظام) + TawfirNative
  *      setSystemBars (ثيم المستخدم الفعّال من الـWebView). */
 {
-  const fcmPermissionBlock = FCM_ENABLED
-    ? `
-        // طلب إذن الإشعارات مرة واحدة (Android 13+) — بعد فتح التطبيق مباشرة
+  /* طلب إذن الإشعارات دائماً — ليس مرتبطاً بـFCM */
+  const runtimePermissionBlock = `
+        // طلب إذن الإشعارات مرة واحدة (Android 13+) — بعد فتح التطبيق مباشرة.
+        // غير مشروط بـFCM: بدونه يبقى زر الإشعارات في إعدادات النظام معطلاً
+        // (رمادياً) على Android 13+ ولا تظهر نافذة السماح إطلاقاً.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
                         != PackageManager.PERMISSION_GRANTED) {
@@ -1147,14 +1250,14 @@ ${fcmMethods}}
                     new String[]{Manifest.permission.POST_NOTIFICATIONS},
                     REQUEST_POST_NOTIFICATIONS);
         }
-`
-    : "";
+`;
   const mainActivity = `package ${APP_PACKAGE};
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-${FCM_ENABLED ? "import android.Manifest;\nimport android.content.pm.PackageManager;\n" : ""}
 import com.getcapacitor.BridgeActivity;
 
 /**
@@ -1171,7 +1274,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         registerPlugin(TawfirNative.class); // ثيم الأشرطة + Safe-Area (+ FCM إن مفعّل) للـWebView الحي
-        ${fcmPermissionBlock.trim()}
+        ${runtimePermissionBlock.trim()}
     }
 
     @Override
@@ -1527,14 +1630,23 @@ fs.writeFileSync(GRADLE_FILE, gradle);
   if (!vc) problems.push(`versionCode ${VERSION_CODE} غير موجود داخل defaultConfig`);
   if (!vn) problems.push(`versionName "${VERSION_NAME}" غير موجود داخل defaultConfig`);
 
-  // 6) TawfirNative — يجب أن يوجد دائماً (ثيم أشرطة النظام + Safe-Area)
+  // 6) TawfirNative — يجب أن يوجد دائماً (ثيم أشرطة النظام + Safe-Area
+  //    + أذونات الإشعارات الأصلية + فتح إعدادات التطبيق)
   {
     const p = path.join(JAVA_PKG_DIR, "TawfirNative.java");
     if (!fs.existsSync(p)) {
-      problems.push("TawfirNative.java غير موجود (مطلوب دائماً — setSystemBars/getSafeAreaInsets)!");
+      problems.push("TawfirNative.java غير موجود (مطلوب دائماً — setSystemBars/getSafeAreaInsets/أذونات الإشعارات)!");
     } else {
       const content = fs.readFileSync(p, "utf8");
-      for (const marker of ["setSystemBars", "getSafeAreaInsets", "setAppearanceLightNavigationBars"]) {
+      for (const marker of [
+        "setSystemBars",
+        "getSafeAreaInsets",
+        "setAppearanceLightNavigationBars",
+        "requestNotificationsPermission",
+        "checkNotificationsPermission",
+        "openAppSettings",
+        "notificationsPermissionCallback",
+      ]) {
         if (!content.includes(marker)) {
           problems.push(`TawfirNative.java لا يحوي ${marker}!`);
         }

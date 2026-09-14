@@ -4,12 +4,19 @@
  * GeoLocationField — زر «تحميل موقعي» (بديل الخريطة المدمجة — توجيه المالك).
  * ═══════════════════════════════════════════════════════════════════
  * العميل عند الطلب لا يرى خريطة داخل المنصة — بل زراً واحداً كبيراً
- * يضغطه فيُحمّل بيانات موقعه الحي (Geolocation API):
+ * يضغطه فيُحمّل بيانات موقعه الحي:
+ *
+ *   • داخل الـAPK (Capacitor): عبر @capacitor/geolocation الأصلية —
+ *     نافذة السماح بالموقع تظهر فعلياً عند أول ضغط (إصلاح أذونات APK
+ *     — داخل WebView كان الطلب يُرفض بلا أي نافذة)، وإن رُفض الإذن
+ *     نهائياً نعرض زر «افتح إعدادات التطبيق» للتعافي.
+ *   • على الويب/PWA: Geolocation API المعتاد.
  *
  *   • نجاح → بطاقة تأكيد زمردية: «تم تحميل موقعك» + دقة التقدير
  *     بالمتر + الإحداثيات صغيرة LTR + زر «تحديث الموقع».
- *   • فشل (رفض الإذن/شبكة) → بطاقة توجيه + إعادة المحاولة +
- *     إدخال الإحداثيات يدوياً (احتياط لا يتوقف عنده الطلب).
+ *   • فشل (رفض الإذن/شبكة) → بطاقة توجيه + إعادة المحاولة فقط
+ *     (حُذف الإدخال اليدوي للإحداثيات بقرار المالك — الزر لا يعرض
+ *     أي حقول إدخال يدوية).
  *
  * الإحداثيات إلزامية لعملية الطلب (عقد OrderCreate) — المستهلك
  * (DeliveryFields) يعطّل زر الإرسال حتى وجودها مع العنوان النصي.
@@ -18,19 +25,22 @@
 import { useState } from "react";
 import {
   CheckCircle2,
-  ChevronDown,
   Crosshair,
   Loader2,
-  LocateFixed,
   MapPin,
   RotateCcw,
+  Settings,
+  ShieldQuestion,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
-import { cn } from "@/lib/utils";
+import { isNativePlatform } from "@/lib/capacitor";
+import {
+  getNativeLocationPosition,
+  NativeLocationError,
+  openNativeAppSettings,
+} from "@/lib/native-permissions";
 
 export interface GeoPoint {
   lat: number;
@@ -40,7 +50,7 @@ export interface GeoPoint {
 export interface GeoLocationFieldProps {
   /** النقطة الحالية (null = لم تُحمّل بعد) */
   value: GeoPoint | null;
-  /** يُستدعى عند نجاح التحميل أو التثبيت اليدوي */
+  /** يُستدعى عند نجاح التحميل */
   onLocated: (point: GeoPoint) => void;
   /** تعطيل كامل (نفد المخزون مثلاً) */
   disabled?: boolean;
@@ -52,27 +62,68 @@ export function GeoLocationField({
   value,
   onLocated,
   disabled = false,
-  idPrefix = "",
 }: GeoLocationFieldProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [manualOpen, setManualOpen] = useState(false);
-  const [manualLat, setManualLat] = useState("");
-  const [manualLng, setManualLng] = useState("");
   /* دقة الموقع (متر) من آخر تحميل GPS ناجح — لعرضها طمأنةً للعميل */
   const [accuracy, setAccuracy] = useState<number | null>(null);
+  /* رفض نهائي داخل الـAPK — نعرض زر فتح إعدادات التطبيق للتعافي */
+  const [showSettingsBtn, setShowSettingsBtn] = useState(false);
 
   const load = () => {
     if (disabled) return;
     haptic("light");
     setError(null);
+    setShowSettingsBtn(false);
 
+    /* ─── مسار الـAPK الأصلي: الإضافة الأصلية (نافذة السماح الحقيقية) ─── */
+    if (isNativePlatform()) {
+      setLoading(true);
+      void (async () => {
+        try {
+          const pos = await getNativeLocationPosition({
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000,
+          });
+          if (!pos) {
+            /* الإضافة غير متاحة (APK قديم) — سقط لمسار الويب أدناه */
+            throw new NativeLocationError(
+              "unavailable",
+              "تعذّر تحديد موقعك الآن — حدّث التطبيق ثم أعد المحاولة",
+            );
+          }
+          setLoading(false);
+          setAccuracy(pos.accuracy);
+          onLocated({ lat: pos.lat, lng: pos.lng });
+          haptic("success");
+        } catch (err) {
+          setLoading(false);
+          const msg =
+            err instanceof NativeLocationError
+              ? err.message
+              : "تعذّر تحديد موقعك الآن — تأكد من تشغيل خدمة الموقع (GPS) ثم أعد المحاولة";
+          const isPermDenied =
+            err instanceof NativeLocationError &&
+            err.code === "permission-denied";
+          setShowSettingsBtn(isPermDenied);
+          setError(msg);
+          toast({
+            title: "تعذّر جلب موقعك الحي",
+            description: msg,
+            variant: "destructive",
+          });
+        }
+      })();
+      return;
+    }
+
+    /* ─── مسار الويب/PWA ─── */
     if (
       typeof navigator === "undefined" ||
       !navigator.geolocation
     ) {
-      setError("متصفحك لا يدعم تحديد الموقع — أدخل الإحداثيات يدوياً");
-      setManualOpen(true);
+      setError("متصفحك لا يدعم تحديد الموقع — جرّب متصفحاً آخر أو حدّث تطبيقك");
       return;
     }
 
@@ -92,41 +143,31 @@ export function GeoLocationField({
         setLoading(false);
         const msg =
           err.code === err.PERMISSION_DENIED
-            ? "صلاحية الموقع مرفوضة — فعّلها من إعدادات المتصفح أو أدخل الإحداثيات يدوياً"
-            : "تعذّر تحديد موقعك الآن — تأكد من تشغيل خدمة الموقع أو أدخل الإحداثيات يدوياً";
+            ? "صلاحية الموقع مرفوضة — فعّلها من إعدادات جهازك ثم أعد المحاولة"
+            : "تعذّر تحديد موقعك الآن — تأكد من تشغيل خدمة الموقع (GPS) ثم أعد المحاولة";
         setError(msg);
-        setManualOpen(true);
         toast({
           title: "تعذّر جلب موقعك الحي",
           description: msg,
           variant: "destructive",
         });
       },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
     );
   };
 
-  /* ─── الإدخال اليدوي (احتياط) ─── */
-  const manualLatNum = Number.parseFloat(manualLat);
-  const manualLngNum = Number.parseFloat(manualLng);
-  const latValid =
-    Number.isFinite(manualLatNum) && manualLatNum >= -90 && manualLatNum <= 90;
-  const lngValid =
-    Number.isFinite(manualLngNum) && manualLngNum >= -180 && manualLngNum <= 180;
-  const manualValid =
-    manualLat.trim() !== "" && manualLng.trim() !== "" && latValid && lngValid;
-
-  const submitManual = () => {
-    if (!manualValid) return;
-    onLocated({ lat: manualLatNum, lng: manualLngNum });
-    setAccuracy(null);
-    setError(null);
-    setManualOpen(false);
-    haptic("success");
+  /* زر التعافي: فتح إعدادات التطبيق لتفعيل الموقع يدوياً */
+  const handleOpenSettings = async () => {
+    haptic("light");
+    const opened = await openNativeAppSettings();
+    if (!opened) {
+      toast({
+        title: "تعذّر فتح الإعدادات",
+        description: "فعّل صلاحية الموقع من إعدادات جهازك يدوياً",
+        variant: "destructive",
+      });
+    }
   };
-
-  const latId = `${idPrefix}manual-lat`;
-  const lngId = `${idPrefix}manual-lng`;
 
   return (
     <div className="space-y-2">
@@ -184,7 +225,7 @@ export function GeoLocationField({
               جارٍ تحديد موقعك الحالي…
             </p>
             <p className="text-[11px] text-muted-foreground">
-              اسمح للمتصفح بالوصول لموقعك إذا طلب منك
+              اسمح للتطبيق بالوصول لموقعك إذا طلب منك
             </p>
           </div>
         </div>
@@ -203,83 +244,44 @@ export function GeoLocationField({
         </Button>
       )}
 
-      {/* الخطأ + الاحتياط اليدوي */}
+      {/* الخطأ + إعادة المحاولة (بلا أي إدخال يدوي) */}
       {error && !value && !loading && (
-        <p role="alert" className="text-[11px] leading-relaxed text-destructive">
-          {error}
-        </p>
-      )}
-
-      {manualOpen && !value && (
-        <div className="rounded-2xl border border-border bg-card p-3.5">
-          <button
-            type="button"
-            onClick={() => setManualOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-2 text-xs font-bold text-muted-foreground native-tap"
-            aria-expanded={manualOpen}
-            aria-controls={`${idPrefix}manual-fields`}
-          >
-            <span className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              إدخال الإحداثيات يدوياً (احتياط)
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-4 w-4 transition-transform",
-                manualOpen && "rotate-180",
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-2xl border border-destructive/30 bg-destructive/[0.06] p-3.5"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+            <ShieldQuestion className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-xs font-bold leading-relaxed text-destructive">
+              {error}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={load}
+                disabled={disabled}
+                className="h-10 gap-2 rounded-xl border-destructive/40 font-bold native-tap"
+              >
+                <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                إعادة المحاولة
+              </Button>
+              {/* داخل الـAPK فقط: فتح إعدادات التطبيق لتفعيل الصلاحية */}
+              {showSettingsBtn && (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleOpenSettings}
+                  className="h-10 gap-2 rounded-xl font-bold native-tap"
+                >
+                  <Settings className="h-4 w-4" aria-hidden="true" />
+                  افتح إعدادات التطبيق
+                </Button>
               )}
-              aria-hidden="true"
-            />
-          </button>
-          <div id={`${idPrefix}manual-fields`} className="mt-3 space-y-2.5">
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label htmlFor={latId} className="text-[11px]">
-                  خط العرض
-                </Label>
-                <Input
-                  id={latId}
-                  dir="ltr"
-                  inputMode="decimal"
-                  placeholder="15.3547"
-                  value={manualLat}
-                  onChange={(e) => setManualLat(e.target.value)}
-                  aria-invalid={manualLat !== "" && !latValid}
-                  className="h-11 rounded-xl text-center tabular-nums"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor={lngId} className="text-[11px]">
-                  خط الطول
-                </Label>
-                <Input
-                  id={lngId}
-                  dir="ltr"
-                  inputMode="decimal"
-                  placeholder="44.2066"
-                  value={manualLng}
-                  onChange={(e) => setManualLng(e.target.value)}
-                  aria-invalid={manualLng !== "" && !lngValid}
-                  className="h-11 rounded-xl text-center tabular-nums"
-                />
-              </div>
             </div>
-            {(manualLat !== "" && !latValid) ||
-            (manualLng !== "" && !lngValid) ? (
-              <p role="alert" className="text-[11px] text-destructive">
-                خط العرض بين ‎-90 و 90 · خط الطول بين ‎-180 و 180
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              onClick={submitManual}
-              disabled={!manualValid}
-              className="h-11 w-full gap-2 rounded-xl font-bold native-tap"
-            >
-              <LocateFixed className="h-4 w-4" aria-hidden="true" />
-              تثبيت الإحداثيات
-            </Button>
           </div>
         </div>
       )}
