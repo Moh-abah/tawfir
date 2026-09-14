@@ -20,8 +20,16 @@
  *   2) App.entitlements      : aps-environment=production (FCM) +
  *                              associated-domains لـ tawfir.giize.com
  *                              (Universal Links — نظير assetlinks).
- *   3) project.pbxproj       : ربط الملفات الجديدة + إعدادات البناء
- *                              (الإصدار/الجهاز/الفريق/الـentitlements).
+ *   3) project.pbxproj       : ربط GoogleService-Info.plist في Resources
+ *                              + إعدادات البناء (الإصدار/الجهاز/الفريق/
+ *                              الـentitlements).
+ *                              ⚠ ملفات Swift (TawfirNativePlugin +
+ *                              TawfirFirebaseBridge) لا تُربط هنا إطلاقاً:
+ *                              تُترجَم آلياً ضمن وحدة CapApp_SPM (هدف App
+ *                              يربط منتج الحزمة عبر packageProductDependencies)
+ *                              — ربطها هنا يوجّه Xcode لمسار وهمي
+ *                              «Build input file cannot be found» ← فشل
+ *                              الأرشفة (خطأ الجولة 26).
  *   4) App.xcscheme          : توليد Scheme مشترك — بدونه يفشل
  *                              «xcodebuild archive -scheme App» في CI
  *                              (قالب Capacitor SPM لا يشمله).
@@ -217,75 +225,55 @@ const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
 writeFileSync(entitlementsPath, entitlements);
 ok("App.entitlements: aps-environment=production + applinks:tawfir.giize.com");
 
-/* ─── 4) project.pbxproj — ملفات + إعدادات بناء ────────────────── */
+/* ─── 4) project.pbxproj — GoogleService-Info.plist + إعدادات بناء ── */
 
 const pbxPath = join(IOS, "App.xcodeproj/project.pbxproj");
 let pbx = readFileSync(pbxPath, "utf8");
 
-/* معرفات ثابتة 24 خانة (نمط pbxproj) لكائناتنا الجديدة */
-const ID_SWIFT_REF = "A7F120000000000000000001";
-const ID_SWIFT_BLDF = "A7F120000000000000000002";
+/* معرفات ثابتة 24 خانة (نمط pbxproj) لكائن GoogleService-Info.plist.
+   ⚠ ملفات Swift (TawfirNativePlugin.swift / TawfirFirebaseBridge.swift)
+   تعيش في CapApp-SPM/Sources/CapApp-SPM/ وتُترجَم آلياً ضمن وحدة
+   CapApp_SPM — تسجيلها هنا كملف تابع لهدف App يجعل Xcode يبحث عنها في
+   ios/App/App/ حيث لا وجود لها ← «Build input file cannot be found»
+   وفشل الأرشفة (خطأ الجولة 26 — حارس انحدار في القسم 10). */
 const ID_PLIST_REF = "A7F120000000000000000003";
 const ID_PLIST_BLDF = "A7F120000000000000000004";
 
-const hasSwift = pbx.includes(`/* TawfirNativePlugin.swift */`);
-if (!hasSwift) {
+if (firebaseEnabled && !pbx.includes("/* GoogleService-Info.plist */")) {
   /* 4-أ) PBXBuildFile */
-  let buildFiles = `\t\t${ID_SWIFT_BLDF} /* TawfirNativePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = ${ID_SWIFT_REF} /* TawfirNativePlugin.swift */; };\n`;
-  if (firebaseEnabled) {
-    buildFiles += `\t\t${ID_PLIST_BLDF} /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = ${ID_PLIST_REF} /* GoogleService-Info.plist */; };\n`;
-  }
   pbx = replaceOnce(
     pbx,
     /\/\* End PBXBuildFile section \*\//,
-    `${buildFiles}/* End PBXBuildFile section */`,
+    `\t\t${ID_PLIST_BLDF} /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = ${ID_PLIST_REF} /* GoogleService-Info.plist */; };\n/* End PBXBuildFile section */`,
     "PBXBuildFile",
   );
 
-  /* 4-ب) PBXFileReference */
-  let fileRefs = `\t\t${ID_SWIFT_REF} /* TawfirNativePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TawfirNativePlugin.swift; sourceTree = "<group>"; };\n`;
-  if (firebaseEnabled) {
-    fileRefs += `\t\t${ID_PLIST_REF} /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = GoogleService-Info.plist; sourceTree = "<group>"; };\n`;
-  }
+  /* 4-ب) PBXFileReference — الملف موجود فعلاً في ios/App/App/ (نُسخ في القسم 1) */
   pbx = replaceOnce(
     pbx,
     /\/\* End PBXFileReference section \*\//,
-    `${fileRefs}/* End PBXFileReference section */`,
+    `\t\t${ID_PLIST_REF} /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = GoogleService-Info.plist; sourceTree = "<group>"; };\n/* End PBXFileReference section */`,
     "PBXFileReference",
   );
 
   /* 4-ج) مجموعة App (children) — بعد مدخل Info.plist (مرساة ثابتة) */
-  let groupEntries = `\t\t\t\t${ID_SWIFT_REF} /* TawfirNativePlugin.swift */,\n`;
-  if (firebaseEnabled) {
-    groupEntries += `\t\t\t\t${ID_PLIST_REF} /* GoogleService-Info.plist */,\n`;
-  }
   pbx = replaceOnce(
     pbx,
     /(\t\t\t\t[0-9A-F]{24} \/\* Info\.plist \*\/,\n)/,
-    `$1${groupEntries}`,
+    `$1\t\t\t\t${ID_PLIST_REF} /* GoogleService-Info.plist */,\n`,
     "PBXGroup App children",
   );
 
-  /* 4-د) مرحلة Sources */
+  /* 4-د) مرحلة Resources — GoogleService-Info.plist فقط */
   pbx = replaceOnce(
     pbx,
-    /(\t\t\t\t[0-9A-F]{24} \/\* AppDelegate\.swift in Sources \*\/,\n)/,
-    `$1\t\t\t\t${ID_SWIFT_BLDF} /* TawfirNativePlugin.swift in Sources */,\n`,
-    "PBXSourcesBuildPhase",
+    /(\t\t\t\t[0-9A-F]{24} \/\* LaunchScreen\.storyboard in Resources \*\/,\n)/,
+    `$1\t\t\t\t${ID_PLIST_BLDF} /* GoogleService-Info.plist in Resources */,\n`,
+    "PBXResourcesBuildPhase",
   );
-
-  /* 4-هـ) مرحلة Resources — GoogleService-Info.plist فقط */
-  if (firebaseEnabled) {
-    pbx = replaceOnce(
-      pbx,
-      /(\t\t\t\t[0-9A-F]{24} \/\* LaunchScreen\.storyboard in Resources \*\/,\n)/,
-      `$1\t\t\t\t${ID_PLIST_BLDF} /* GoogleService-Info.plist in Resources */,\n`,
-      "PBXResourcesBuildPhase",
-    );
-  }
 }
 
-/* 4-و) إعدادات البناء — مستوى الهدف (Debug + Release) */
+/* 4-هـ) إعدادات البناء — مستوى الهدف (Debug + Release) */
 pbx = replaceOnce(pbx, /MARKETING_VERSION = [^;]+;/g, `MARKETING_VERSION = ${VERSION_NAME};`, "MARKETING_VERSION", { all: true });
 pbx = replaceOnce(pbx, /CURRENT_PROJECT_VERSION = [^;]+;/g, `CURRENT_PROJECT_VERSION = ${VERSION_CODE};`, "CURRENT_PROJECT_VERSION", { all: true });
 pbx = replaceOnce(pbx, /TARGETED_DEVICE_FAMILY = [^;]+;/g, `TARGETED_DEVICE_FAMILY = 1;`, "TARGETED_DEVICE_FAMILY", { all: true });
@@ -304,7 +292,9 @@ pbx = replaceOnce(pbx, /TARGETED_DEVICE_FAMILY = [^;]+;/g, `TARGETED_DEVICE_FAMI
   );
 }
 writeFileSync(pbxPath, pbx);
-ok(`project.pbxproj: الملفات مربوطة + الإصدار ${VERSION_NAME} (${VERSION_CODE}) + iPhone فقط${APPLE_TEAM_ID ? ` + الفريق ${APPLE_TEAM_ID}` : ""}`);
+ok(
+  `project.pbxproj: ${firebaseEnabled ? "GoogleService-Info.plist مربوط (Resources) + " : ""}الإصدار ${VERSION_NAME} (${VERSION_CODE}) + iPhone فقط${APPLE_TEAM_ID ? ` + الفريق ${APPLE_TEAM_ID}` : ""} — ملفات Swift تُترجَم آلياً ضمن CapApp-SPM`,
+);
 
 /* ─── 5) App.xcscheme — Scheme مشترك لـ xcodebuild archive ─────── */
 
@@ -734,7 +724,13 @@ for (const [p, label] of checks) {
 }
 {
   const finalPbx = readFileSync(pbxPath, "utf8");
-  for (const needle of ["TawfirNativePlugin.swift in Sources", `MARKETING_VERSION = ${VERSION_NAME};`, "CODE_SIGN_ENTITLEMENTS = App/App.entitlements;"]) {
+  /* حارس انحدار (خطأ الجولة 26): ملفات SPM يجب ألا تظهر في pbxproj إطلاقاً —
+     وجودها يعني أن Xcode سيبحث عنها في ios/App/App/ ويفشل الأرشفة
+     بـ«Build input file cannot be found» */
+  if (finalPbx.includes("TawfirNativePlugin.swift") || finalPbx.includes("TawfirFirebaseBridge.swift")) {
+    fail('تحقق ختامي: ملف Swift من حزمة CapApp-SPM مذكور في pbxproj — ملفات SPM تُترجَم آلياً ولا تُربط بهدف App (يسبب "Build input file cannot be found")');
+  }
+  for (const needle of [`MARKETING_VERSION = ${VERSION_NAME};`, "CODE_SIGN_ENTITLEMENTS = App/App.entitlements;"]) {
     if (!finalPbx.includes(needle)) fail(`تحقق ختامي: "${needle}" غير موجود في pbxproj`);
   }
   if (firebaseEnabled && !finalPbx.includes("GoogleService-Info.plist in Resources")) {
