@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+/**
+ * proxy.ts — خليفة middleware.ts في Next.js 16 (الاصطلاح الجديد).
+ * ═══════════════════════════════════════════════════════════════════
+ * توجيه البوابات الثلاث عبر Host واحد:
+ *  • tawfir.giize.com        → بوابة العميل (عام)
+ *  • admin.tawfir.giize.com  → /admin (محمي بكوكي tawfir_admin_token)
+ *  • facility.tawfir.giize.com → /owner (محمي بكوكي tawfir_owner_token)
+ */
+
 const PUBLIC_HOST = "tawfir.giize.com";
 const ADMIN_HOST = "admin.tawfir.giize.com";
 const OWNER_HOST = "facility.tawfir.giize.com";
@@ -23,7 +32,7 @@ function isCourierPublicPath(pathname: string): boolean {
   return COURIER_PUBLIC_PATHS.has(pathname);
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host") ?? "";
   const url = request.nextUrl.clone();

@@ -29,8 +29,8 @@ const GRADIENT_SETS = [
 
 /** hash بسيط حتمي — نفس المدخل يعطي نفس القيمة في كل الرندرات */
 function hashSeed(seed: string | number): number {
-  if (typeof seed === "number" && Number.isFinite(seed)) {
-    return Math.abs(Math.trunc(seed));
+  if (typeof seed === "number") {
+    return Number.isFinite(seed) ? Math.abs(Math.trunc(seed)) : 0;
   }
   let h = 0;
   for (let i = 0; i < seed.length; i++) {
