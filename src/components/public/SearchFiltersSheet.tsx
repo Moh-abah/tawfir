@@ -84,7 +84,7 @@ export const CATEGORY_OPTIONS: {
   },
   {
     key: "cafe",
-    label: "مقاهي",
+    label: "كافتيريات",
     icon: Store,
     activeClass: "border-cat-cafe bg-cat-cafe text-white",
   },

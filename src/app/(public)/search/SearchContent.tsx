@@ -533,7 +533,7 @@ export function SearchContent() {
                   ابحث في كل شيء
                 </p>
                 <p className="max-w-[300px] text-xs leading-relaxed text-muted-foreground">
-                  وجباتك المفضلة، المطاعم والكافيهات القريبة، وعروض توفير
+                  وجباتك المفضلة، المطاعم والكافتيريات القريبة، وعروض توفير
                   الحصرية — كلها من حقل بحث واحد.
                 </p>
               </div>

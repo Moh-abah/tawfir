@@ -47,7 +47,7 @@ import type {
 
 const FACILITY_TYPE_LABELS: Record<string, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 /** ✦ 4-b: تحية زمنية — نفس أسلوب هيرو الأدمن للاتساق. */

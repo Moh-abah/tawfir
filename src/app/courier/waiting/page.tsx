@@ -81,8 +81,15 @@ function WaitingInner() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center" role="status">
+      <div
+        className="flex h-64 flex-col items-center justify-center gap-3"
+        role="status"
+        aria-live="polite"
+      >
         <Loader2 className="h-8 w-8 animate-spin text-primary" aria-hidden="true" />
+        <p className="px-4 text-center text-sm text-muted-foreground">
+          جارٍ تحميل حالة توثيقك…
+        </p>
       </div>
     );
   }
@@ -165,13 +172,14 @@ function WaitingInner() {
         <div className="rounded-3xl border border-border/60 bg-card/90 p-6 text-center shadow-soft backdrop-blur">
           {status === "pending" && (
             <>
-              <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-accent/15 text-accent-foreground">
+              {/* تنفّس خفيف = مؤشر انتظار حي بنمط Native */}
+              <span className="mx-auto mb-3 flex h-16 w-16 animate-pulse items-center justify-center rounded-full bg-accent/15 text-accent-foreground">
                 <AlarmClock className="h-8 w-8" aria-hidden="true" />
               </span>
-              <h1 className="text-xl font-extrabold text-foreground">
+              <h1 className="break-words text-xl font-extrabold text-foreground">
                 {me.verification_status_ar}
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-2 break-words text-sm leading-relaxed text-muted-foreground">
                 طلبك رقم #{me.courier_id} قيد التدقيق لدى إدارة توفير — عادةً
                 خلال 24–48 ساعة. ستتشغل بوابتك الميدانية تلقائياً فور
                 التوثيق.
@@ -184,15 +192,15 @@ function WaitingInner() {
               <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-chart-4/15 text-chart-4">
                 <FileWarning className="h-8 w-8" aria-hidden="true" />
               </span>
-              <h1 className="text-xl font-extrabold text-foreground">
+              <h1 className="break-words text-xl font-extrabold text-foreground">
                 {me.verification_status_ar}
               </h1>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <p className="mt-2 break-words text-sm leading-relaxed text-muted-foreground">
                 طلبت الإدارة استكمال مستنداتك — ارفعها الآن بكاميرا جوالك
                 ثم أرسل للمراجعة من جديد
               </p>
               {me.rejection_reason && (
-                <p className="mt-2 rounded-xl bg-muted/70 p-3 text-xs font-bold text-foreground">
+                <p className="mt-2 break-words rounded-xl bg-muted/70 p-3 text-xs font-bold text-foreground">
                   {me.rejection_reason}
                 </p>
               )}
@@ -250,11 +258,11 @@ function WaitingInner() {
               <span className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/15 text-destructive">
                 <ShieldAlert className="h-8 w-8" aria-hidden="true" />
               </span>
-              <h1 className="text-xl font-extrabold text-foreground">
+              <h1 className="break-words text-xl font-extrabold text-foreground">
                 {me.verification_status_ar}
               </h1>
               {me.rejection_reason && (
-                <p className="mt-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm font-bold leading-relaxed text-foreground">
+                <p className="mt-3 break-words rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm font-bold leading-relaxed text-foreground">
                   السبب: {me.rejection_reason}
                 </p>
               )}
@@ -264,7 +272,7 @@ function WaitingInner() {
                     <HelpCircle className="h-4 w-4" aria-hidden="true" />
                     توجيه التظلم
                   </p>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="break-words text-sm leading-relaxed text-muted-foreground">
                     {me.appeal_note}
                   </p>
                 </div>

@@ -26,7 +26,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 const TYPE_CONFIG: { key: FacilityType | "all"; label: string; icon: typeof UtensilsCrossed }[] = [
   { key: "all", label: "الكل", icon: Landmark },
   { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
-  { key: "cafe", label: "كافيهات", icon: Coffee },
+  { key: "cafe", label: "كافتيريات", icon: Coffee },
 ];
 
 type SortKey = "default" | "newest" | "alpha";

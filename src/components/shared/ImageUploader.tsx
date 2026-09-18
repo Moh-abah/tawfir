@@ -35,6 +35,12 @@ interface ImageUploaderProps {
   hint?: string;
   className?: string;
   disabled?: boolean;
+  /**
+   * (2-b) إشعار اختياري عند فشل الرفع برسالة الخادم — تستخدمه صفحة
+   * تسجيل التاجر لرصد 401 (الرفع يتطلب توكناً) وعرض بديل الرابط.
+   * لا يُستدعى عند أخطاء التحقق الجانبي (النوع/الحجم) قبل المحاولة.
+   */
+  onUploadError?: (message: string) => void;
 }
 
 /**
@@ -89,6 +95,7 @@ export function ImageUploader({
   hint,
   className,
   disabled,
+  onUploadError,
 }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -131,10 +138,12 @@ export function ImageUploader({
         });
       } catch (e) {
         setProgress(null);
-        setError(e instanceof Error ? e.message : "فشل رفع الصورة");
+        const message = e instanceof Error ? e.message : "فشل رفع الصورة";
+        setError(message);
+        onUploadError?.(message);
       }
     },
-    [folder, onChange, toast]
+    [folder, onChange, onUploadError, toast]
   );
 
   const onDrop = useCallback(

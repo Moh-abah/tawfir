@@ -18,7 +18,7 @@ const GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
 
 const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 const FACILITY_TYPE_BADGE_CLASS: Record<FacilityType, string> = {
@@ -47,7 +47,7 @@ export function FacilitiesList() {
             تعذّر تحميل المتاجر
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
-            حدث خطأ أثناء جلب المطاعم والمقاهي والمرافق. حاول مرة أخرى.
+            حدث خطأ أثناء جلب المطاعم والكافتيريات والمرافق. حاول مرة أخرى.
           </p>
           <Button
             type="button"
@@ -74,7 +74,7 @@ export function FacilitiesList() {
             لا توجد متاجر في هذه المنطقة
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
-            ترقّب المزيد من المطاعم والمقاهي والمرافق قريبًا.
+            ترقّب المزيد من المطاعم والكافتيريات والمرافق قريبًا.
           </p>
         </CardContent>
       </Card>

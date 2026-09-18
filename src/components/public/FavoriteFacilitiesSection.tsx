@@ -107,7 +107,7 @@ export function FavoriteFacilitiesSection() {
                 {fav.facility_name}
               </Link>
               <p className="text-[10px] text-muted-foreground">
-                {fav.facility_type === "restaurant" ? "مطعم" : fav.facility_type === "cafe" ? "كافيه" : "متجر"}
+                {fav.facility_type === "restaurant" ? "مطعم" : fav.facility_type === "cafe" ? "كافتيريا" : "متجر"}
                 {" · "}
                 {fav.notify_offers ? "إشعارات مفعّلة" : "إشعارات معطّلة"}
               </p>

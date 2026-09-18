@@ -197,7 +197,7 @@ export function OffersContent() {
                   </p>
                   <p className="max-w-[280px] text-xs leading-relaxed text-muted-foreground">
                     ترقّب عروضاً حصرية قريباً — نضيف عروضاً جديدة من مطاعمنا
-                    وكافيهاتنا المشتركة باستمرار. فعّل الإشعارات لتصلك أولاً
+                    وكافتيرياتنا المشتركة باستمرار. فعّل الإشعارات لتصلك أولاً
                     بأول 🔔
                   </p>
                 </div>

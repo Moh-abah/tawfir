@@ -154,3 +154,9 @@ export interface AccountDeleteOut {
   mode: "deleted" | "anonymized";
   message: string;
 }
+
+/* ─── إضافات توفير: بطاقة هوية المندوب واللوحة اليمنية (2-a) ─── */
+
+/** موقع المتجر المحدد — GPS مباشر أو من تطبيق الخرائط الخارجي.
+ *  (نوع واجهة فقط — re-export نوعي بلا أي استيراد وقت تشغيل) */
+export type { StoreLocation } from "@/components/shared/StoreLocationPicker";

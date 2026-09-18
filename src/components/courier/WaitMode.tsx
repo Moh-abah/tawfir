@@ -39,11 +39,11 @@ export function WaitMode({
         <p className="text-base font-extrabold text-foreground">
           وضع الانتظار الرشيق
         </p>
-        <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
+        <p className="mx-auto max-w-xs break-words text-sm leading-relaxed text-muted-foreground">
           {reason}
         </p>
         {hint && (
-          <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground/80">
+          <p className="mx-auto max-w-xs break-words text-xs leading-relaxed text-muted-foreground/80">
             {hint}
           </p>
         )}

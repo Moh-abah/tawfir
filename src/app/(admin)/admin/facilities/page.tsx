@@ -35,7 +35,7 @@ import type { Facility, FacilityType } from "@/types/api.generated";
 
 const TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 type FilterType = FacilityType | "all";
@@ -45,7 +45,7 @@ type StatusFilter = "all" | "approved" | "pending" | "rejected";
 const TYPE_FILTERS: { value: FilterType; label: string }[] = [
   { value: "all", label: "الكل" },
   { value: "restaurant", label: "مطاعم" },
-  { value: "cafe", label: "كافيهات" },
+  { value: "cafe", label: "كافتيريات" },
 ];
 
 /* الجولة 6: فلترة الحالة من الخادم — status param في GET /admin/facilities */
@@ -187,7 +187,7 @@ export default function AdminFacilitiesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">إدارة المتاجر</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            إدارة المطاعم والمقاهي والمرافق العامة.
+            إدارة المطاعم والكافتيريات والمرافق العامة.
           </p>
         </div>
         <Button className="gap-2" onClick={openCreate}>

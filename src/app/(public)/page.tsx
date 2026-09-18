@@ -57,7 +57,7 @@ import type { Facility, FacilityType } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
-/*  التصنيفات الدائرية — فقط مطاعم وكافيهات                            */
+/*  التصنيفات الدائرية — فقط مطاعم وكافتيريات                            */
 /* ------------------------------------------------------------------ */
 /* خيارات نطاق البحث «الأقرب إليك» — radius_km (الجولة 5) */
 const RADIUS_OPTIONS = [3, 5, 10, 25] as const;
@@ -68,7 +68,7 @@ const CATEGORIES: ReadonlyArray<{
   icon: LucideIcon;
 }> = [
   { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
-  { key: "cafe", label: "كافيهات", icon: Coffee },
+  { key: "cafe", label: "كافتيريات", icon: Coffee },
 ];
 
 const CATEGORY_CIRCLE: Record<
@@ -215,7 +215,7 @@ function OffersSection() {
           eyebrow={<TawfirPillBadge />}
           icon={Sparkles}
           title="عروض حصرية"
-          description="اكتشف أحدث الوجبات من مطاعمنا وكافيهاتنا المشتركة"
+          description="اكتشف أحدث الوجبات من مطاعمنا وكافتيرياتنا المشتركة"
         />
         {(activeType || trimmedSearch) && (
           <button
@@ -693,7 +693,7 @@ function FacilitiesSection() {
         <SectionTitle
           icon={Landmark}
           title="المتاجر المشتركة"
-          description="استعرض المطاعم والكافيهات المشتركة في منطقتك"
+          description="استعرض المطاعم والكافتيريات المشتركة في منطقتك"
         />
         <Button
           asChild

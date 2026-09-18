@@ -324,7 +324,7 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   {
     label: "إضافة متجر",
-    subtitle: "إضافة مطعم أو مقهى جديد",
+    subtitle: "إضافة مطعم أو كافتيريا جديد",
     href: "/admin/facilities",
     icon: Store,
     color: "text-accent-ink",
@@ -363,7 +363,7 @@ const ROLE_COLORS: Record<UserRole, string> = {
 
 const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 const ROLE_ICONS: Record<UserRole, React.ReactNode> = {

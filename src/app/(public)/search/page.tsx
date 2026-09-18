@@ -7,7 +7,7 @@ import SearchContent from "./SearchContent";
 export const metadata: Metadata = {
   title: "البحث | توفير",
   description:
-    "ابحث في كل شيء: وجبات، مطاعم، مقاهي وعروض خاصة — بحث موحّد سريع في تطبيق توفير.",
+    "ابحث في كل شيء: وجبات، مطاعم، كافتيريات وعروض خاصة — بحث موحّد سريع في تطبيق توفير.",
 };
 
 /** هيكل تحميل صفحة البحث — يُعرض أثناء الـ Suspense (prerender + first paint). */

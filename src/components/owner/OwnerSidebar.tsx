@@ -37,7 +37,7 @@ import { TawfirLogo } from "@/components/shared/TawfirLogo";
 
 const FACILITY_TYPE_LABELS: Record<string, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 function isActive(pathname: string, href: string): boolean {

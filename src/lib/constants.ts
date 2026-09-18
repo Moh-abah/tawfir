@@ -16,7 +16,7 @@ import type {
 
 export const TYPE_LABEL: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 export const TYPE_ICON: Record<FacilityType, typeof UtensilsCrossed> = {
@@ -27,7 +27,7 @@ export const TYPE_ICON: Record<FacilityType, typeof UtensilsCrossed> = {
 export const FILTER_CHIPS = [
   { key: "all", label: "الكل" },
   { key: "restaurant", label: "مطاعم" },
-  { key: "cafe", label: "كافيهات" },
+  { key: "cafe", label: "كافتيريات" },
 ] as const;
 
 export type FilterKey = (typeof FILTER_CHIPS)[number]["key"];

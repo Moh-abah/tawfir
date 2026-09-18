@@ -182,7 +182,10 @@ if (infoPlist.includes("<string>armv7</string>")) {
 /* 2-هـ) أذونات iOS بالعربية + إعدادات القبول — تُضاف قبل </dict> الختامية */
 const extraKeys = [];
 const pushKey = (k, v) => extraKeys.push(`\t<key>${k}</key>\n${v}`);
-pushKey("NSLocationWhenInUseUsageDescription", "\t<string>نستخدم موقعك لعرض المتاجر والمنتجات القريبة منك وتحديد عنوان التوصيل داخل تطبيق توفير.</string>");
+/* (2-e) نص الموقع يشمل البوابات الثلاث: توصيل الطلبات (المندوب)
+   + تحديد موقع المتجر (التاجر) + عرض المتاجر القريبة (العميل) —
+   iOS يطلب الإذن عبر هذا الوصف عند أول استدعاء Geolocation. */
+pushKey("NSLocationWhenInUseUsageDescription", "\t<string>يستخدم توفير موقعك لتوصيل طلباتك وتحديد موقع متجرك وعرض المتاجر القريبة منك.</string>");
 pushKey("NSCameraUsageDescription", "\t<string>نستخدم الكاميرا لالتقاط صور المنتجات أو الملف الشخصي عند الحاجة.</string>");
 pushKey("NSPhotoLibraryUsageDescription", "\t<string>نستخدم مكتبة الصور لاختيار صور المنتجات أو الملف الشخصي.</string>");
 pushKey("NSPhotoLibraryAddUsageDescription", "\t<string>نسمح بحفظ صور المنتجات في مكتبة صورك عند الطلب.</string>");

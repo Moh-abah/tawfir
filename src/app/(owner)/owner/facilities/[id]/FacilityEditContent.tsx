@@ -28,7 +28,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const FACILITY_TYPE_LABELS: Record<string, string> = {
   restaurant: "مطعم",
-  cafe: "مقهى",
+  cafe: "كافتيريا",
 };
 
 export default function FacilityEditContent() {

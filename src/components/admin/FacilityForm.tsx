@@ -40,7 +40,7 @@ import type { HTTPValidationError, Facility, FacilityType } from "@/types/api.ge
 
 const TYPE_OPTIONS: { value: FacilityType; label: string }[] = [
   { value: "restaurant", label: "مطعم" },
-  { value: "cafe", label: "مقهى" },
+  { value: "cafe", label: "كافتيريا" },
 ];
 
 const schema = z.object({
