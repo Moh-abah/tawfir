@@ -236,7 +236,7 @@ function devNavigationFallbackPage() {
     "button{background:#0e7a5f;color:#fff;border:0;border-radius:999px;" +
     "padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;" +
     "min-height:44px;transition:opacity .2s}button:hover{opacity:.9}" +
-    "</style></head><body><div class=\"card\">" +
+    '</style></head><body><div class="card">' +
     '<div class="icon">⚠️</div>' +
     '<div class="title">تعذّر تحميل الصفحة</div>' +
     '<div class="desc">حدث انقطاع مؤقت أثناء تحميل الصفحة. تحقّق من اتصالك ثم أعد المحاولة.</div>' +
