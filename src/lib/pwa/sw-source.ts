@@ -121,7 +121,10 @@ const PRECACHE_DATA_URLS = [
   "/api/products",
   "/api/facilities",
   "/api/special-offers",
-  "/api/cards",
+  /* /api/cards ليست هنا عمداً: الخادم يتطلب region_id إجبارياً في
+     GET /api/v1/cards — طلبها بلا معامل كان يُسجّل 422 في سجلات
+     الخادم مع كل تثبيت عامل. تُسخّن الآن ديناميكياً لأول منطقة
+     (نفس منطق الاختيار التلقائي في useRegions) داخل معالج install */
 ];
 
 /* خريطة مؤقتة لمنع إغراق الخادم بإعادة التحقق لنفس الطلب
@@ -555,6 +558,29 @@ self.addEventListener("install", function (event) {
           return dataCache.add(url);
         })
       );
+      /* تسخين بطاقات الخصم بأمان: GET /api/v1/cards يتطلب region_id
+         إجبارياً — نقرأ المناطق (من الكاش الذي سخّنّاه للتو أو من الشبكة)
+         ثم نسخّن بطاقات أول منطقة فقط عند توفرها، فلا يُرسل الطلب
+         أبداً بلا معامل ولا يظهر 422 في سجلات الخادم. */
+      try {
+        const regionsResp =
+          (await dataCache.match("/api/regions")) ||
+          (await fetch("/api/regions"));
+        if (regionsResp && regionsResp.ok) {
+          const regions = await regionsResp.clone().json();
+          if (
+            Array.isArray(regions) &&
+            regions.length > 0 &&
+            regions[0] &&
+            regions[0].id
+          ) {
+            await dataCache.add("/api/cards?region_id=" + regions[0].id);
+          }
+        }
+      } catch (_e) {
+        /* أوفلاين/خادم غير متاح وقت التثبيت — كاش البطاقات يمتلئ
+           تلقائياً عند أول زيارة ناجحة عبر StaleWhileRevalidate */
+      }
     })()
   );
 });
