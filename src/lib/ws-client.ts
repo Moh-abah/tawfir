@@ -111,6 +111,16 @@ class NotificationWebSocketClient {
    * وبعض الخوادم تلغي تسجيل المستخدم كلياً عند قطع أي مقبس له — فتتوقف
    * الإشعارات الفورية حتى اتصال جديد. جعلنا CONNECTING مطابقاً لـ OPEN:
    * نفس التوكن + قيد الفتح → لا قطع ولا اتصال جديد.
+   *
+   * إصلاح عاصفة إعادة الاتصال (422/403 storm): كان هذا المسار يستدعي
+   * disconnect() الكامل كتنظيف داخلي — وdisconnect() يصفّر
+   * reconnectAttempts وconsecutiveFailures مع كل إعادة اتصال، فيتلف
+   * الـbackoff التدريجي وعتبة استشفاء المصادفة معاً: عند رفض الخادم
+   * للمصافحة (403 لتوكن منتهٍ مثلاً) يدور العميل في حلقة ~1 ثانية
+   * لا نهائية بنفس التوكن الميت — لا يصل أبداً لحد التوقف (8) ولا
+   * لعتبة الاستشفاء (2) — فلا يُرسل POST /auth/refresh قط (ظهر في
+   * سجلات الخادم: 145 محاولة WS مرفوضة خلال دقائق بلا أي تجديد).
+   * التنظيف الداخلي الآن teardownSocket() الذي لا يمس العدادات.
    */
   connect(token: string): void {
     if (typeof window === "undefined") return;
@@ -122,7 +132,7 @@ class NotificationWebSocketClient {
     ) {
       return; // مفتوح (أو قيد الفتح) بالفعل بنفس التوكن
     }
-    this.disconnect();
+    this.teardownSocket();
     this.intentionallyClosed = false;
     this.currentToken = token;
 
@@ -201,6 +211,9 @@ class NotificationWebSocketClient {
       const freshToken = await this.authRecoveryHandler();
       if (freshToken && freshToken !== this.currentToken) {
         console.info("[Tawfir WS] استُعيفت المصادقة — إعادة الاتصال بتوكن جديد");
+        /* توكن جديد = ميزانية إعادة محاولات جديدة (الاعتماديات تغيّرت)،
+           مع بقاء حد التوقف لولم يُفتح الاتصال به أيضاً. */
+        this.reconnectAttempts = 0;
         this.connect(freshToken);
         return true;
       }
@@ -210,10 +223,25 @@ class NotificationWebSocketClient {
     return false;
   }
 
-  /** يقطع الاتصال نهائياً (عند تسجيل الخروج). */
+  /**
+   * يقطع الاتصال نهائياً (عند تسجيل الخروج) — تصفير كل العدادات والحالة.
+   * للتنظيف الداخلي أثناء إعادة الاتصال استخدم teardownSocket() حتى
+   * لا تُمس عدادات backoff/الاستشفاء (انظر تعليق connect).
+   */
   disconnect(): void {
     this.intentionallyClosed = true;
     this.consecutiveFailures = 0;
+    this.teardownSocket();
+    this.currentToken = null;
+    this.reconnectAttempts = 0;
+  }
+
+  /**
+   * تفكيك المقبس الحالي فقط (معالجات + مؤقّت إعادة الاتصال) — تنظيف
+   * داخلي قبل فتح مقبس جديد. لا يصفّر العدادات ولا يغيّر التوكن ولا
+   * عَلَم الإغلاق المتعمّد — هذه مسؤولية disconnect() الكامل.
+   */
+  private teardownSocket(): void {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -235,8 +263,6 @@ class NotificationWebSocketClient {
       }
       this.socket = null;
     }
-    this.currentToken = null;
-    this.reconnectAttempts = 0;
   }
 
   /** هل الاتصال مفتوح الآن؟ */
