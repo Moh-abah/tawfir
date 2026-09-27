@@ -340,10 +340,17 @@ function RequestRemainingDialog({
 }
 
 /* ─── اللوحة الرئيسية داخل بطاقة الطلب ──────────────────── */
+/** صف قائمة الطلبات + حقول الدفع الإضافية التي يرسلها الخادم فعلياً
+ *  (اختيارية لأن سكيمة OrderListOut الموثقة لا تشملها بعد). */
+export type WalletOrderListItem = OrderListOut & {
+  payment_is_completion?: boolean;
+  payment_remaining_amount?: number | null;
+};
+
 export function OwnerWalletOrderPanel({
   order,
 }: {
-  order: OrderListOut;
+  order: WalletOrderListItem;
 }) {
   const [receiptOpen, setReceiptOpen] = useState(false);
   const [remainingOpen, setRemainingOpen] = useState(false);

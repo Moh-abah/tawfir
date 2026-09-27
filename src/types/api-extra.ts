@@ -1,18 +1,14 @@
 /**
  * أنواع API الإضافية «توفير» — الجزء المُصان يدوياً من طبقة الأنواع
  * ═════════════════════════════════════════════════════════════════════
- * البنية (الجولة 22 — أتمتة الأنواع):
- *   • api.openapi.ts  : مولّد آلياً من openapi_live.json + ترقيعات
- *                       scripts/openapi-patches.json (فروق السكمة المتقادمة)
- *   • api.generated.ts: مولّد آلياً — يعيد تصدير كل مخططات السكمة +
- *                       الأسماء التاريخية + export * من هنا.
- *   • api-extra.ts    : هذا الملف — الأنواع غير الموجودة في السكمة
- *                       أصلاً (نقاط نهاية أحدث من الملف المحفوظ:
- *                       OTP عبر واتساب، العضوية المجانية، إشعارات FCM
- *                       الحقلية، لوحة إحصائيات المشرف…).
+ * هذا الملف مكتفٍ ذاتياً — لا يستورد من api.generated (لا دورات استيراد).
+ * يُعاد تصديره كاملاً من api.generated.ts عبر `export *`.
  *
- * ⚠️ عند تحديث openapi_live.json شغّل `bun run api:types` وراجع التقرير:
- *    أي نوع هنا ظهر في السكمة → انقله واحذفه (سيُصدَّر آلياً منها).
+ * يحوي:
+ *   • أنواع نقاط نهاية أحدث من الملف المحفوظ (OTP عبر واتساب، العضوية
+ *     المجانية، إشعارات FCM الحقلية، لوحة إحصائيات المشرف).
+ *   • جولة المحافظ اليمنية كاملة (الدفع بالتحويل اليدوي) — أنواع يدوية
+ *     موثقة من تقرير ربط الباك إند v1.1.0 وسكيمة openapi الحية.
  */
 
 /* ─── Enums غير موجودة في السكمة بعد ─────────────────── */
@@ -166,9 +162,7 @@ export interface AccountDeleteOut {
 export type { StoreLocation } from "@/components/shared/StoreLocationPicker";
 
 /* ═══════════════════════════════════════════════════════════════════
-   جولة المحافظ اليمنية (الدفع بالتحويل اليدوي) — أنواع يدوية للنقاط
-   التي ترد بلا سكيما في openapi الحي (استجاباتها موثقة من وكيل الباك
-   إند وتقرير الربط v1.1.0).
+   جولة المحافظ اليمنية (الدفع بالتحويل اليدوي)
    ═══════════════════════════════════════════════════════════════════ */
 
 /** حالة إيصالة التحويل — partial_requested = التاجر طلب تكملة الدفعة. */
@@ -177,6 +171,33 @@ export type PaymentReceiptStatus =
   | "approved"
   | "rejected"
   | "partial_requested";
+
+/** ملخص إيصالة الدفع المدمجة داخل الطلب (جولة المحافظ). */
+export interface PaymentReceiptBriefOut {
+  id: number;
+  status: PaymentReceiptStatus;
+  amount: number;
+  receipt_image_url: string;
+  sender_name?: string | null;
+  wallet_snapshot?: string | null;
+  rejection_reason?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
+  /* ─── الدفعة الناقصة (جولة التكملة) ─── */
+  /** إجمالي ما أكّد التاجر استلامه (تراكمي). */
+  paid_amount?: number | null;
+  /** المتبقي على العميل. */
+  remaining_amount?: number | null;
+  remaining_note?: string | null;
+  remaining_requested_at?: string | null;
+  /** مبلغ تحويل المتبقي. */
+  completion_amount?: number | null;
+  /** صورة إشعار تحويل المتبقي. */
+  completion_image_url?: string | null;
+  completion_uploaded_at?: string | null;
+  /** هل رُفع إشعار تكملة الدفعة الناقصة؟ */
+  is_completion: boolean;
+}
 
 /** ردّ GET /orders/{id}/payment — شاشة حالة الدفع للعميل. */
 export interface OrderPaymentStatusOut {
@@ -234,6 +255,95 @@ export interface WalletPaymentItem {
   created_at: string;
 }
 
+/** إجماليات مدفوعات منشأة (شاشة «مدفوعات المطعم»). */
+export interface WalletPaymentsSummary {
+  wallet_orders_count: number;
+  approved_count: number;
+  pending_count: number;
+  rejected_count: number;
+  /** مجموع المبالغ المؤكدة (وجبة + توصيل). */
+  approved_amount: number;
+  pending_amount: number;
+  /** مجموع طلبات المحافظ الموصَّلة (المبلغ الذي اشتغل به التاجر فعلياً). */
+  delivered_amount: number;
+  cash_orders_count: number;
+  total_orders_count: number;
+  partial_requested_count: number;
+  partial_requested_amount: number;
+  completed_partial_count: number;
+}
+
+/** قائمة مدفوعات منشأة + الإجماليات (نداء واحد). */
+export interface WalletPaymentsPage {
+  summary: WalletPaymentsSummary;
+  items: WalletPaymentItem[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+/** علم تفعيل الدفع عبر المحافظ (الإدارة). */
+export interface WalletPaymentsFlagOut {
+  wallet_payments_enabled: boolean;
+  updated_by?: number | null;
+}
+
+/** جسم PATCH /admin/settings/wallet-payments. */
+export interface WalletPaymentsFlagIn {
+  wallet_payments_enabled: boolean;
+}
+
+/** محفظة يمنية من الدليل (للجميع — قوائم الاختيار). */
+export interface WalletProviderOut {
+  id: number;
+  name: string;
+  code?: string | null;
+  is_active: boolean;
+  display_order: number;
+}
+
+/** جسم إنشاء مزوّد محفظة (الإدارة). */
+export interface WalletProviderCreateIn {
+  name: string;
+  code?: string | null;
+  display_order?: number;
+}
+
+/** جسم تعديل مزوّد محفظة (الإدارة) — تعطيل بدل الحذف عند وجود استخدام. */
+export interface WalletProviderUpdateIn {
+  name?: string | null;
+  code?: string | null;
+  is_active?: boolean | null;
+  display_order?: number | null;
+}
+
+/** الحقول المشتركة بين محفظة المنشأة ومحفظة المندوب (بطاقة العرض). */
+export interface WalletAccountBase {
+  id: number;
+  provider_id: number;
+  provider_name?: string | null;
+  account_type: string;
+  point_number?: string | null;
+  point_name?: string | null;
+  phone_number?: string | null;
+  account_name?: string | null;
+  /** سطر جاهز للنسخ: «12345 (فرع أ)» أو «777123456 (أحمد)». */
+  account_label?: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+}
+
+/** محفظة منشأة — تُعرض للعميل عند الدفع ولتاجر في لوحته. */
+export interface FacilityWalletOut extends WalletAccountBase {
+  facility_id: number;
+}
+
+/** محفظة مندوب شخصية. */
+export interface CourierWalletOut extends WalletAccountBase {
+  courier_id: number;
+}
+
 /** جسم إضافة محفظة منشأة (نقطة أو هاتف). */
 export interface FacilityWalletCreateIn {
   provider_id: number;
@@ -242,6 +352,7 @@ export interface FacilityWalletCreateIn {
   point_name?: string | null;
   phone_number?: string | null;
   account_name?: string | null;
+  is_active?: boolean;
   display_order?: number;
 }
 
@@ -261,20 +372,6 @@ export interface FacilityWalletUpdateIn {
 export type CourierWalletCreateIn = FacilityWalletCreateIn;
 export type CourierWalletUpdateIn = FacilityWalletUpdateIn;
 
-/** جسم إنشاء/تعديل مزوّد محفظة (الإدارة). */
-export interface WalletProviderCreateIn {
-  name: string;
-  code?: string | null;
-  display_order?: number;
-}
-
-export interface WalletProviderUpdateIn {
-  name?: string;
-  code?: string | null;
-  is_active?: boolean;
-  display_order?: number;
-}
-
 /** صف في النظرة الشاملة — by_provider. */
 export interface WalletOverviewProviderRow {
   provider_id: number;
@@ -289,4 +386,42 @@ export interface WalletOverviewFacilityRow {
   facility_name: string;
   orders_count: number;
   approved_amount: number;
+}
+
+/** نظرة المحافظ الشاملة للإدارة (GET /admin/wallets/overview). */
+export interface AdminWalletOverview {
+  wallet_payments_enabled: boolean;
+  providers_count: number;
+  active_providers_count: number;
+  facility_wallets_count: number;
+  courier_wallets_count: number;
+  wallet_orders_count: number;
+  wallet_orders_amount: number;
+  approved_count: number;
+  approved_amount: number;
+  pending_count: number;
+  pending_amount: number;
+  rejected_count: number;
+  partial_requested_count: number;
+  partial_requested_amount: number;
+  by_provider: WalletOverviewProviderRow[];
+  top_facilities: WalletOverviewFacilityRow[];
+}
+
+/** طلب معاينة السعر بعد الخصم (مالك — أثناء إضافة وجبة/عرض). */
+export interface PricingPreviewRequest {
+  /** السعر الرسمي للوجبة (ريال يمني). */
+  price: number;
+  /** نسبة العرض الخاص إن وجدت (0-50) — اتركها فارغة للوجبات العادية. */
+  offer_discount_rate?: number | null;
+}
+
+/** ردّ معاينة السعر بعد الخصم (POST /owner/{facility_id}/pricing-preview). */
+export interface PricingPreviewOut {
+  base_price: number;
+  facility_discount_rate: number;
+  offer_discount_rate: number;
+  member_price: number;
+  non_member_price: number;
+  member_saving: number;
 }

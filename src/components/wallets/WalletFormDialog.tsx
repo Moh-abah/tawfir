@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWalletProviders } from "@/hooks/useWallets";
-import type { FacilityWalletOut } from "@/types/api.generated";
+import type { WalletAccountBase } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
 export type WalletAccountType = "point" | "phone";
@@ -65,7 +65,7 @@ const EMPTY_FORM: WalletFormValues = {
   is_active: true,
 };
 
-function walletToForm(w?: FacilityWalletOut | null): WalletFormValues {
+function walletToForm(w?: WalletAccountBase | null): WalletFormValues {
   if (!w) return EMPTY_FORM;
   return {
     provider_id: w.provider_id,
@@ -82,7 +82,7 @@ interface WalletFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** محفظة للتعديل — null/undefined = إضافة. */
-  wallet?: FacilityWalletOut | null;
+  wallet?: WalletAccountBase | null;
   /** إظهار مفتاح التفعيل. */
   showActiveToggle?: boolean;
   submitting?: boolean;

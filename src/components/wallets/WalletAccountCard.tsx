@@ -9,12 +9,12 @@
 import { useState } from "react";
 import { Check, Copy, MapPin, Phone, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { FacilityWalletOut } from "@/types/api.generated";
+import type { WalletAccountBase } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
 interface WalletAccountCardProps {
   wallet: Pick<
-    FacilityWalletOut,
+    WalletAccountBase,
     | "provider_name"
     | "account_type"
     | "point_number"

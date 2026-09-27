@@ -78,6 +78,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const createOrder = useCreateOrder();
@@ -125,6 +126,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         delivery_lng: lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        payment_wallet_id: paymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
@@ -232,7 +234,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               notes={notes}
               onNotesChange={setNotes}
               paymentMethod={paymentMethod}
-              onPaymentMethodChange={setPaymentMethod}
+              onPaymentMethodChange={(m) => {
+                setPaymentMethod(m);
+                if (m !== "wallet") setPaymentWalletId(null);
+              }}
+              paymentWalletId={paymentWalletId}
+              onPaymentWalletIdChange={setPaymentWalletId}
               idPrefix="cart-"
               facilityId={facilityId}
             />
