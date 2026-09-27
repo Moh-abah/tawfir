@@ -1589,3 +1589,45 @@ html[data-wb-hide] [data-welcome-banner] {
     background: #fff !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Window Controls Overlay (الجولة 25) — تطبيق سطح مكتب مثبّت
+   ═══════════════════════════════════════════════════════════════
+   display_override في الـmanifest يتضمن window-controls-overlay:
+   عند تثبيت توفير على ويندوز/لينكس/ماك تُدمج أزرار النافذة
+   (تصغير/تكبير/إغلاق) داخل شريط التطبيق نفسه (تجربة عنوان أصيلة).
+   هذه القواعد تعمل عند تفعيل وضع WCO فقط (بلا أي أثر في المتصفح
+   العادي أو الجوال — كتلة معزولة داخل media query):
+
+   1) padding-top لكل شريط رأس ثابت بمقدار ارتفاع شريط العنوان
+      (env(titlebar-area-height)) حتى لا يمر المحتوى تحت أزرار النظام.
+   2) الشريط كله منطقة سحب للنافذة (drag)، والعناصر التفاعلية
+      داخله (روابط/أزرار/حقول) مستثناة (no-drag).
+
+   في RTL تظهر الأزرار أعلى-يسار؛ padding-top وحده يكفي لأن الأزرار
+   لا تتداخل مع المحتوى أفقياً في تخطيطاتنا (المحتوى وسط/يمين). */
+@media (display-mode: window-controls-overlay) {
+  header {
+    padding-top: env(titlebar-area-height, 0px);
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  header a,
+  header button,
+  header input,
+  header select,
+  header textarea,
+  header [role="button"],
+  header [role="menuitem"],
+  header [data-no-drag] {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+
+  /* لوحات البوابات (شريط جانبي ثابت) لا تحتاج سحباً — فقط تأمين
+     المساحة العلوية إن كان الشريط يبدأ من أعلى النافذة */
+  aside {
+    padding-top: env(titlebar-area-height, 0px);
+  }
+}

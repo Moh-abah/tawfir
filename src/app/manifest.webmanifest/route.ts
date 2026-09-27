@@ -27,7 +27,56 @@ import type { NextRequest } from "next/server";
  *  • Cache-Control: no-cache, no-store, must-revalidate
  */
 const OWNER_HOST = "facility.tawfir.giize.com";
+const OWNER_HOST_ALT = "owner.tawfir.giize.com";
 const ADMIN_HOST = "admin.tawfir.giize.com";
+const API_HOST = "api.tawfir.giize.com";
+const APP_ORIGIN = "https://tawfir.giize.com";
+
+/* ═══ الجولة 25 — قدرات PWABuilder المكتملة ═══
+ *
+ * scope_extensions: توسيع نطاق التطبيق المثبّت ليشمل بوابات المشروع
+ * الأخرى (إدارة/مالك/API) فلا يظهر شريط عنوان المتصفح عند التنقل
+ * بينها من التطبيق المثبّت. يتطلب ملف تحقق على كل نطاق ممتد:
+ * /.well-known/web-app-origin-association (مخدوم ديناميكياً من هذا
+ * المشروع نفسه عبر src/app/.well-known/web-app-origin-association/route.ts).
+ */
+const SCOPE_EXTENSIONS = [
+  { origin: "https://" + ADMIN_HOST },
+  { origin: "https://" + OWNER_HOST },
+  { origin: "https://" + OWNER_HOST_ALT },
+  { origin: "https://" + API_HOST },
+];
+
+/* معرّف تصنيف العمر الدولي (IARC).
+ * ⚠ قيمة مؤقتة موثقة — يُستبدلها المالك بالمعرّف الحقيقي بعد
+ * استيفاء استبيان IARC المجاني (من Play Console → تحديد تصنيف
+ * المحتوى، أو https://www.globalratings.com) ثم وضعه هنا حرفياً.
+ * وجود العضو نفسه هو ما يفحصه PWABuilder والمتاجر. */
+const IARC_RATING_ID = "PENDING-IARC-QUESTIONNAIRE";
+
+/* أيقونة معالجات الملفات */
+const FILE_HANDLER_ICONS = [
+  { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+  { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+];
+
+/* أنواع الملفات المدعومة: صور المنتجات/الفواتير + PDF */
+const FILE_HANDLER_ACCEPT = {
+  "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"],
+  "application/pdf": [".pdf"],
+};
+
+/* ودجة (Widget) العروض — HTML مستقل في /widgets/offers-widget.html */
+const OFFERS_WIDGET = {
+  name: "عروض توفير",
+  short_name: "عروض",
+  description: "أحدث العروض والخصومات من مطاعم وكافتيريات توفير المشتركة — تحديث حي من التطبيق.",
+  src: "/widgets/offers-widget.html",
+  type: "text/html",
+  sizes: "2x2",
+  background_color: "#0A1A2F",
+  theme_color: "#0A1A2F",
+};
 
 interface ScreenshotSpec {
   src: string;
@@ -131,14 +180,58 @@ function customerManifest() {
     /* ── الجولة 24: عناصر تدقيق PWABuilder (علامات أعلى) ── */
     /* نافذة واحدة: الإطلاق الجديد يركّز/يتنقل في النسخة المفتوحة (single-instance) */
     launch_handler: { client_mode: "navigate-existing" },
-    /* تفضيلات العرض: standalone أولاً ثم بدائل آمنة */
-    display_override: ["standalone", "minimal-ui", "browser"],
-    /* استقبال مشاركة النص من تطبيقات أخرى → يفتح البحث مباشرة (ميزة حقيقية) */
+    /* الجولة 25 — تفضيلات العرض الكاملة:
+     *  • window-controls-overlay: على سطح المكتب المثبّت تُدمج أزرار
+     *    النافذة مع شريط التطبيق (عنوان أصيل) — CSS يقسّم الشريط في globals.css
+     *  • tabbed: دعم وضع التبويبات حيثما توفر (كروم/إيدج التجريبي)
+     *  • البدائل الآمنة بعدها للمنصات الأقدم */
+    display_override: [
+      "window-controls-overlay",
+      "tabbed",
+      "standalone",
+      "minimal-ui",
+      "browser",
+    ],
+    /* لوحة جانبية Edge — فتح توفير بجانب التطبيقات على ويندوز (عرض مريح 420px) */
+    edge_side_panel: { preferred_width: 420 },
+    /* استقبال المشاركات من تطبيقات أخرى: نص/رابط/صور/ PDF
+     * → يعترضه Service Worker ويخزّنه محلياً ثم يفتح صفحة /share-target
+     * التي تعرض المعاينة وأزرار المتابعة (بحث/فتح الرابط/معاينة الصورة).
+     * (نمط POST+multipart هو الصيغة الكاملة التي يفحصها PWABuilder) */
     share_target: {
-      action: "/search",
-      method: "GET",
-      params: { text: "text" },
+      action: "/share-target",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+        files: [
+          {
+            name: "files",
+            accept: ["image/*", "application/pdf"],
+          },
+        ],
+      },
     },
+    /* معالجة فتح الملفات من نظام التشغيل (فتح صورة من مدير الملفات بتوفير)
+     * → صفحة /files تستقبل الملف عبر launchQueue وتعرض معاينة */
+    file_handlers: [
+      {
+        action: "/files",
+        accept: FILE_HANDLER_ACCEPT,
+        icons: FILE_HANDLER_ICONS,
+        launch_type: "single-client",
+      },
+    ],
+    /* ودجة العروض لشاشة أندرويد/ويندوز */
+    widgets: [OFFERS_WIDGET],
+    /* تطبيق ملاحظات سريعة: زر «ملاحظة جديدة» من النظام يفتح /notes/new */
+    note_taking: { new_note_url: "/notes/new" },
+    /* تصنيف العمر (مؤقت — انظر التعليق أعلاه) */
+    iarc_rating_id: IARC_RATING_ID,
+    /* توسيع النطاق: البوابات الأخرى داخل نطاق التطبيق المثبّت */
+    scope_extensions: SCOPE_EXTENSIONS,
     /* بروتوكول مخصص: روابط web+tawfir://… تفتح في البحث */
     protocol_handlers: [
       {
@@ -235,15 +328,50 @@ function ownerManifest() {
       },
     ],
     screenshots: screenshots(OWNER_SCREENSHOTS),
-    /* ── الجولة 24: عناصر تدقيق PWABuilder (نفس نمط العميل) ── */
+    /* ── الجولة 24 + 25: عناصر تدقيق PWABuilder ── */
     launch_handler: { client_mode: "navigate-existing" },
-    display_override: ["standalone", "minimal-ui", "browser"],
-    /* استقبال نص مشارك → يفتح في بوابة المالك مركزاً على شاشة الدخول */
+    display_override: [
+      "window-controls-overlay",
+      "tabbed",
+      "standalone",
+      "minimal-ui",
+      "browser",
+    ],
+    edge_side_panel: { preferred_width: 420 },
+    /* مشاركة صور/فواتير المنتجات إلى بوابة المالك → صفحة داخل نطاق /owner/
+     * (إجراء share_target يجب أن يقع داخل scope) — يعترضه الـSW ويخزّن
+     * المحتوى محلياً ثم يفتح /owner/share-target للمعاينة والاستيراد. */
     share_target: {
-      action: "/owner/login",
-      method: "GET",
-      params: { text: "text" },
+      action: "/owner/share-target",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+        files: [
+          {
+            name: "files",
+            accept: ["image/*", "application/pdf"],
+          },
+        ],
+      },
     },
+    /* فتح صور المنتجات/الفواتير من مدير الملفات في بوابة المالك */
+    file_handlers: [
+      {
+        action: "/owner/files",
+        accept: FILE_HANDLER_ACCEPT,
+        icons: FILE_HANDLER_ICONS,
+        launch_type: "single-client",
+      },
+    ],
+    iarc_rating_id: IARC_RATING_ID,
+    scope_extensions: [
+      { origin: APP_ORIGIN },
+      { origin: "https://" + ADMIN_HOST },
+      { origin: "https://" + API_HOST },
+    ],
     related_applications: [
       {
         platform: "play",
@@ -305,7 +433,20 @@ function adminManifest() {
       },
     ],
     launch_handler: { client_mode: "navigate-existing" },
-    display_override: ["standalone", "minimal-ui", "browser"],
+    display_override: [
+      "window-controls-overlay",
+      "tabbed",
+      "standalone",
+      "minimal-ui",
+      "browser",
+    ],
+    edge_side_panel: { preferred_width: 480 },
+    iarc_rating_id: IARC_RATING_ID,
+    scope_extensions: [
+      { origin: APP_ORIGIN },
+      { origin: "https://" + OWNER_HOST },
+      { origin: "https://" + API_HOST },
+    ],
   };
 }
 

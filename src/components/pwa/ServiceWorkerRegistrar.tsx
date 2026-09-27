@@ -110,6 +110,36 @@ export function ServiceWorkerRegistrar() {
           /* غير حرج */
         }
 
+        /* الجولة 25 — Periodic Background Sync: تحديث دوري صامت لبيانات
+           الكتالوج (مناطق/منتجات/متاجر/عروض) كل 12 ساعة — يجعل الشاشات
+           حديثة حتى قبل فتح التطبيق. مدعوم في كروم/إيدج للتطبيقات
+           المثبتة، يحتاج إذن periodic-background-sync. الفشل غير حرج —
+           مزامنة الـOutbox اليدوية عند العودة تعمل في كل المتصفحات. */
+        try {
+          const periodicSync = (
+            registration as ServiceWorkerRegistration & {
+              periodicSync?: {
+                register: (
+                  tag: string,
+                  options: { minInterval: number }
+                ) => Promise<void>;
+              };
+            }
+          ).periodicSync;
+          if (periodicSync) {
+            const psStatus = await navigator.permissions.query({
+              name: "periodic-background-sync" as PermissionName,
+            });
+            if (psStatus.state === "granted") {
+              await periodicSync.register("tawfir-catalog-refresh", {
+                minInterval: 12 * 60 * 60 * 1000,
+              });
+            }
+          }
+        } catch {
+          /* غير مدعوم/غير ممنوح — سلوك عادي بلا تحديث دوري */
+        }
+
         /* فحص تحديث دوري (كل ساعة)
            إصلاح (التدقيق 3-a / M-3): الفاصل كان يُنشأ بعد await —
            لو فُكّ تركيب المكوّن أثناء الانتظار (StrictMode/تنقل)
@@ -124,10 +154,17 @@ export function ServiceWorkerRegistrar() {
       }
     };
 
-    if (document.readyState === "complete") {
-      void register();
+    /* الجولة 25 — تسجيل مبكر: كان الانتظار لحدث load الكامل يفوّت
+       اكتشاف العامل في أدوات التحليل (PWABuilder) على الاتصالات البطيئة
+       — الالتحاق عند readyState غير "loading" أو DOMContentLoaded يكفي
+       (تثبيت العامل خفيف: كل التحميلات المسبقة Promise.allSettled
+       ولا تحجب واجهة المستخدم). */
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", register, {
+        once: true,
+      });
     } else {
-      window.addEventListener("load", register, { once: true });
+      void register();
     }
 
     navigator.serviceWorker.addEventListener(
@@ -158,9 +195,14 @@ export function ServiceWorkerRegistrar() {
     usePwaStore.getState().setStandalone(isStandalone);
     usePwaStore.getState().setIos(isIos);
 
-    /* عودة الاتصال: فحص تحديث + إبطال الاستعلامات على مرحلتين */
+    /* عودة الاتصال: إعادة إرسال طابور العمليات (Background Sync يدوي
+       يغطي المتصفحات بلا sync API) + فحص تحديث + إبطال الاستعلامات
+       على مرحلتين */
     const onOnline = () => {
       registrationRef.current?.update().catch(() => undefined);
+      navigator.serviceWorker.controller?.postMessage({
+        type: "TAWFIR_SYNC_NOW",
+      });
       void queryClient.invalidateQueries();
       if (onlineTimerRef.current) {
         window.clearTimeout(onlineTimerRef.current);
@@ -181,7 +223,7 @@ export function ServiceWorkerRegistrar() {
       if (onlineTimerRef.current) {
         window.clearTimeout(onlineTimerRef.current);
       }
-      window.removeEventListener("load", register);
+      document.removeEventListener("DOMContentLoaded", register);
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
       window.removeEventListener("appinstalled", onAppInstalled);
       window.removeEventListener("online", onOnline);

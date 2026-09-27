@@ -418,3 +418,40 @@ npx cap sync android
 ### 5) ألوان النظام (محدّثة أصلاً في capacitor.config.ts)
 - StatusBar/SplashScreen backgroundColor: `#04101E` (كحلي الهوية العميق)
 - قناة الإشعارات: `#0C7D63` (الزمردي)
+
+---
+
+## الجولة 25 — قدرات PWA الجديدة وعلاقتها بـCapacitor
+
+هذه الجولة أضافت كل قدرات PWABuilder الناقصة على مستوى الويب (PWA).
+فيما يلي خريطة كل قدرة وسلوكها داخل غلاف Capacitor (المسار 2 — Live WebView):
+
+| القدرة | على الويب (PWA مثبّتة) | داخل APK/IPA (Capacitor) |
+|---|---|---|
+| Service Worker + Offline | ✅ يعمل بالكامل (كاش هيكل + كتالوج) | ✅ يعمل (الـWebView يفتح https حقيقي فتُسجَّل الكاشات) |
+| Push Notifications | ✅ FCM عبر الـSW الموحّد | ✅ عبر FcmRegistrar/NativeBridge (جسر أذونات النظام) |
+| Background Sync | ✅ طابور outbox في IndexedDB + حدث sync | ✅ نفس السلوك داخل الـWebView |
+| Periodic Sync | ✅ تحديث كتالوج كل 12 ساعة (كروم مثبّت) | ➖ لا يُشغَّله الـWebView — بديله إشعارات FCM |
+| Share Target | ✅ مشاركة نص/صورة من أي تطبيق → /share-target | ➖ يحتاج Intent filters أصلية (قسم أدناه) |
+| File Handlers | ✅ فتح صور/PDF من مدير الملفات → /files | ➖ يحتاج intent-filter VIEW أصلية (اختياري) |
+| Protocol Handlers | ✅ web+tawfir:// روابط عميقة | ✅ assetlinks.json يغطي deep links الأصلية |
+| Widgets | ✅ ودجة /widgets/offers-widget.html | ➖ ودجات أندرويد تتطلب PWABuilder APK (قناع/مصادر أصلية) |
+| Window Controls Overlay | ✅ أزرار النافذة مدمجة بالشريط على سطح المكتب | ➖ غير منطبق (الغلاف أصلاً أصلي) |
+| Edge Side Panel | ✅ لوحة جانبية إيدج 420px | ➖ غير منطبق |
+| Note Taking | ✅ /notes/new ملاحظات محلية | ✅ نفس الصفحة داخل الـWebView |
+| Scope Extensions | ✅ بوابات المشروع داخل نطاق التطبيق | ➖ الغلاف يفتح كل النطاقات أصلاً |
+| IARC | ⚠ عضو مؤقت — استُبدل بعد استبيان IARC | يُستوفى تلقائياً مع Play Console |
+
+### ما يفعله المستخدم بعد الدمج
+1. **إعادة فحص PWABuilder** على https://tawfir.giize.com — سترى:
+   Has Service Worker / Has Logic / Periodic Sync / Background Sync /
+   Push Notifications / Offline Support / Share Target / File Handlers /
+   Launch Handler / Protocol Handlers / Shortcuts / Window Controls Overlay /
+   Tabbed / Edge Side Panel / Widgets / Note Taking / iarc_rating_id / scope_extensions.
+2. **IARC**: من Play Console → «تحديد تصنيف المحتوى» أكمل الاستبيان،
+   انسخ معرّف IARC الناتج وضعه في `src/app/manifest.webmanifest/route.ts`
+   بدل `PENDING-IARC-QUESTIONNAIRE` (ثابت واحد مشترك للثلاثة manifests).
+3. **ودجة أندرويد أصلية (اختياري)**: بعد نشر Play، يمكن توليد APK عبر
+   PWABuilder مع تفعيل Widgets — سيستخدم /widgets/offers-widget.html.
+4. **لا شيء إلزامي في جانب Capacitor**: كل الإضافات ويب صافٍ ويعمل
+   داخل الغلاف الحالي بلا تعديل (المسار 2).

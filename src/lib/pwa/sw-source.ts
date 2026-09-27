@@ -602,10 +602,34 @@ self.addEventListener("activate", function (event) {
   );
 });
 
-/* زر «تحديث الآن»: يطلب من العامل الجديد الاستلام فوراً */
+/* زر «تحديث الآن»: يطلب من العامل الجديد الاستلام فوراً
+   + الجولة 25: تحكم يدوي بطابور المزامنة من الصفحة */
 self.addEventListener("message", function (event) {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
+    return;
+  }
+  /* TAWFIR_SYNC_NOW: إعادة إرسال فورية للطابور (عند عودة الاتصال
+     أو زر إعادة المحاولة — تغطي المتصفحات التي لا تدعم sync API) */
+  if (event.data && event.data.type === "TAWFIR_SYNC_NOW") {
+    event.waitUntil(
+      replayOutbox().catch(function () {
+        /* فشل — يبقى الطابور لحدث sync التالي */
+      })
+    );
+    return;
+  }
+  /* TAWFIR_SYNC_COUNT: عدد العمليات المنتظرة (شارات الواجهة) */
+  if (event.data && event.data.type === "TAWFIR_SYNC_COUNT") {
+    event.waitUntil(
+      idbGetAll(OUTBOX_STORE)
+        .then(function (entries) {
+          broadcastToClients({ type: "tawfir-sync-count", count: entries.length });
+        })
+        .catch(function () {
+          /* تجاهل */
+        })
+    );
   }
 });
 
@@ -613,9 +637,26 @@ self.addEventListener("message", function (event) {
 
 self.addEventListener("fetch", function (event) {
   const request = event.request;
+  let requestUrl = null;
+  try { requestUrl = new URL(request.url); } catch (_e) { requestUrl = null; }
+
+  /* 0) الجولة 25 — استقبال مشاركات نظام التشغيل (share_target POST):
+        نعترض الطلب ونخزّن النص/الملف في IndexedDB ثم نعيد التوجيه
+        (303) لصفحة المعاينة — الصفحة تقرأ المخزون وتعرض أزرار المتابعة. */
+  if (
+    request.method === "POST" &&
+    requestUrl &&
+    requestUrl.origin === self.location.origin &&
+    (requestUrl.pathname === "/share-target" || requestUrl.pathname === "/owner/share-target")
+  ) {
+    event.respondWith(handleShareTargetPost(request, requestUrl.pathname));
+    return;
+  }
 
   /* 1) كل العمليات الكاتبة: شبكة فقط — لا تخزين إطلاقاً
-        (POST/PUT/PATCH/DELETE: تسجيل دخول، إنشاء طلب، اشتراك عضوية…) */
+        (POST/PUT/PATCH/DELETE: تسجيل دخول، إنشاء طلب، اشتراك عضوية…)
+        الجولة 25: طلبات API القابلة للإعادة تُسجَّن في طابور IndexedDB
+        عند فقد الاتصال وتُرسل تلقائياً عند عودته (Background Sync). */
   if (request.method !== "GET") {
     event.respondWith(handleNetworkOnly(request));
     return;
@@ -674,7 +715,23 @@ async function handleNetworkOnly(request) {
   try {
     return await fetch(request);
   } catch (err) {
-    return offlineApiResponse(request);
+    /* الجولة 25 — Background Sync: طلبات API القابلة للإعادة تُخزَّن
+       في طابور IndexedDB وتُرسل تلقائياً عند عودة الاتصال (حدث sync
+       يوقظ العامل حتى مع التطبيق مقفلاً). الاستجابة تبقى 503 عربية
+       كما كانت (عملاء API يقرأون detail) مع إشارة queued للواجهة. */
+    const wasQueued = await maybeQueueFailedApi(request);
+    const url = new URL(request.url);
+    const isOwner = url.pathname.indexOf("/owner") !== -1;
+    const detail = isOwner
+      ? "تتطلب بوابة المتاجر اتصالاً بالإنترنت"
+      : "يتطلب هذا الإجراء اتصالاً بالإنترنت";
+    const payload = wasQueued
+      ? { detail: detail, queued: true, queued_hint: "سيُرسل تلقائياً عند عودة الاتصال" }
+      : { detail: detail };
+    return new Response(JSON.stringify(payload), {
+      status: 503,
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
   }
 }
 
@@ -861,6 +918,258 @@ async function cacheFirstImage(request) {
     return Response.error();
   } catch (err) {
     return Response.error();
+  }
+}
+
+/* ═══════════════ الجولة 25: قدرات الخلفية المتقدمة ═══════════════
+ *  • Background Sync (طابور العمليات بلا اتصال)
+ *  • Periodic Background Sync (تحديث دوري صامت للكتالوج)
+ *  • استقبال مشاركات نظام التشغيل (share_target POST → صفحة معاينة)
+ * تخزين الطوابير: IndexedDB «tawfir-pwa-queue» (outbox + share-target) */
+
+const QUEUE_DB_NAME = "tawfir-pwa-queue";
+const QUEUE_DB_VERSION = 1;
+const OUTBOX_STORE = "outbox";
+const SHARE_STORE = "share-target";
+const SYNC_TAG = "tawfir-bg-sync";
+
+function openQueueDb() {
+  return new Promise(function (resolve, reject) {
+    const req = indexedDB.open(QUEUE_DB_NAME, QUEUE_DB_VERSION);
+    req.onupgradeneeded = function () {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
+        db.createObjectStore(OUTBOX_STORE, { keyPath: "id", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains(SHARE_STORE)) {
+        db.createObjectStore(SHARE_STORE);
+      }
+    };
+    req.onsuccess = function () { resolve(req.result); };
+    req.onerror = function () { reject(req.error); };
+  });
+}
+
+function idbPut(storeName, value, key) {
+  return openQueueDb().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      const tx = db.transaction(storeName, "readwrite");
+      const store = tx.objectStore(storeName);
+      const req = key === undefined ? store.put(value) : store.put(value, key);
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+      tx.oncomplete = function () { db.close(); };
+    });
+  });
+}
+
+function idbGetAll(storeName) {
+  return openQueueDb().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      const tx = db.transaction(storeName, "readonly");
+      const req = tx.objectStore(storeName).getAll();
+      req.onsuccess = function () { resolve(req.result || []); };
+      req.onerror = function () { reject(req.error); };
+      tx.oncomplete = function () { db.close(); };
+    });
+  });
+}
+
+function idbDelete(storeName, key) {
+  return openQueueDb().then(function (db) {
+    return new Promise(function (resolve, reject) {
+      const tx = db.transaction(storeName, "readwrite");
+      const req = tx.objectStore(storeName).delete(key);
+      req.onsuccess = function () { resolve(true); };
+      req.onerror = function () { reject(req.error); };
+      tx.oncomplete = function () { db.close(); };
+    });
+  });
+}
+
+function broadcastToClients(message) {
+  self.clients
+    .matchAll({ type: "window", includeUncontrolled: true })
+    .then(function (clients) {
+      clients.forEach(function (client) {
+        try { client.postMessage(message); } catch (_e) { /* تجاهل */ }
+      });
+    })
+    .catch(function () { /* تجاهل */ });
+}
+
+/* هل هذا الطلب قابِل للطوابير؟ API فقط، بلا عمليات الهوية
+   (دخول/OTP/تجديد توكن — إعادة إرسالها تلقائياً قد تسبب سلوكاً غريباً)
+   وبلا رفع ملفات (multipart — ثقيل وقد تكون صلاحيته انتهت). */
+function isQueueableApi(request) {
+  try {
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) return false;
+    const p = url.pathname;
+    if (p.indexOf("/api/") !== 0) return false;
+    if (p.indexOf("/api/auth") === 0 || p.indexOf("/api/v1/auth") === 0) return false;
+    const ct = request.headers.get("content-type") || "";
+    if (ct.indexOf("multipart/form-data") !== -1) return false;
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/* عند فشل شبكي لطلب كاتِب: خزّنه في الطابور واطلب مزامنة خلفية.
+   نحفظ فقط الترويسات الآمنة الضرورية (content-type/authorization) —
+   لا يُخزّن أي شيء في كاش الطلبات، الطابور استخدام لمرة واحدة حتى
+   النجاح أو الرفض الصريح 4xx. */
+async function maybeQueueFailedApi(request) {
+  if (!isQueueableApi(request)) return false;
+  try {
+    const headers = {};
+    request.headers.forEach(function (value, key) {
+      const k = key.toLowerCase();
+      if (k === "content-type" || k === "authorization" || k === "accept") {
+        headers[k] = value;
+      }
+    });
+    const body = await request.clone().text();
+    await idbPut(OUTBOX_STORE, {
+      url: request.url,
+      method: request.method,
+      headers: headers,
+      body: body,
+      queuedAt: Date.now(),
+    });
+    if (self.registration.sync) {
+      try {
+        await self.registration.sync.register(SYNC_TAG);
+      } catch (_e) {
+        /* المتصفح لا يدعم Background Sync — إعادة الإرسال اليدوية
+           عند عودة الاتصال (TAWFIR_SYNC_NOW من الصفحة) تغطي الحالة */
+      }
+    }
+    return true;
+  } catch (_e) {
+    return false;
+  }
+}
+
+/* إعادة إرسال الطابور بالترتيب: النجاح أو 4xx → حذف من الطابور،
+   5xx أو انقطاع شبكة → توقف (يبقى الباقي لدورة sync القادمة). */
+async function replayOutbox() {
+  let replayed = 0;
+  let failed = 0;
+  try {
+    const entries = await idbGetAll(OUTBOX_STORE);
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      try {
+        const response = await fetch(entry.url, {
+          method: entry.method,
+          headers: entry.headers || {},
+          body: entry.method === "GET" || entry.method === "HEAD" ? undefined : entry.body,
+          credentials: "include",
+        });
+        if (response.status >= 500) {
+          failed = failed + 1;
+          break;
+        }
+        replayed = replayed + 1;
+        await idbDelete(OUTBOX_STORE, entry.id);
+      } catch (_netErr) {
+        failed = failed + 1;
+        break;
+      }
+    }
+  } catch (_e) {
+    failed = failed + 1;
+  }
+  broadcastToClients({ type: "tawfir-bg-sync-result", replayed: replayed, failed: failed });
+  if (failed > 0) throw new Error("tawfir-sync-incomplete");
+  return replayed;
+}
+
+/* Background Sync: المتصفح يوقظ العامل عند عودة الاتصال حتى لو
+   كان التطبيق مقفلاً بالكامل — لهذا يفحصه PWABuilder ضمن القدرات. */
+self.addEventListener("sync", function (event) {
+  if (event.tag === SYNC_TAG) {
+    event.waitUntil(replayOutbox());
+  }
+});
+
+/* Periodic Background Sync: تحديث صامت لبيانات الكتالوج كل 12 ساعة
+   (تسجيله من الصفحة بعد منح إذن periodic-background-sync) — شاشات
+   العروض والمتاجر تبقى حديثة حتى قبل فتح التطبيق. */
+self.addEventListener("periodicsync", function (event) {
+  if (event.tag === "tawfir-catalog-refresh") {
+    event.waitUntil(refreshCatalogData());
+  }
+});
+
+async function refreshCatalogData() {
+  const cache = await caches.open(DATA_CACHE);
+  let updated = 0;
+  await Promise.all(
+    PRECACHE_DATA_URLS.map(function (url) {
+      return fetch(url, { credentials: "omit" })
+        .then(function (response) {
+          if (response && response.ok) {
+            updated = updated + 1;
+            return cache.put(url, response);
+          }
+          return undefined;
+        })
+        .catch(function () { return undefined; });
+    })
+  );
+  if (updated > 0) {
+    broadcastToClients({ type: "tawfir-catalog-updated", updated: updated });
+  }
+  return updated;
+}
+
+/* استقبال مشاركات نظام التشغيل: نص/رابط/صورة/PDF تُخزَّن في
+   IndexedDB ثم يُعاد توجيه المتصفح لصفحة المعاينة (GET) — الصفحة
+   تقرأ «latest» وتمسحه بعد العرض. */
+async function handleShareTargetPost(request, pathname) {
+  let target = "/share-target";
+  if (pathname.indexOf("/owner") === 0) target = "/owner/share-target";
+  try {
+    const form = await request.formData();
+    const stash = {
+      title: form.get("title") || "",
+      text: form.get("text") || "",
+      url: form.get("url") || "",
+      file: null,
+      fileName: "",
+      fileType: "",
+      receivedAt: Date.now(),
+    };
+    const fileCandidates = [];
+    for (let k = 0; k < 2; k++) {
+      const fieldName = k === 0 ? "files" : "file";
+      let values = [];
+      try { values = form.getAll(fieldName) || []; } catch (_e) { values = []; }
+      for (let v = 0; v < values.length; v++) {
+        const value = values[v];
+        if (
+          value &&
+          typeof value === "object" &&
+          typeof value.arrayBuffer === "function" &&
+          value.size > 0
+        ) {
+          fileCandidates.push(value);
+        }
+      }
+    }
+    if (fileCandidates.length > 0) {
+      /* Blob قابل للتخزين مباشرة في IndexedDB (استنساخ) */
+      stash.file = fileCandidates[0].slice(0, fileCandidates[0].size);
+      stash.fileName = fileCandidates[0].name || "shared-file";
+      stash.fileType = fileCandidates[0].type || "";
+    }
+    await idbPut(SHARE_STORE, stash, "latest");
+    return Response.redirect(self.location.origin + target + "?received=1", 303);
+  } catch (_e) {
+    return Response.redirect(self.location.origin + target + "?received=0", 303);
   }
 }
 `;
