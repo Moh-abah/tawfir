@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${API_BASE}/api/v1/:path*`,
       },
+      {
+        // شبكة أمان الوسائط: أي طلب /uploads/* على نطاق البوابات
+        // (admin./facility./www...) يُخدَم من الـAPI مباشرة — يحمي
+        // من الروابط النسبية في حزم قديمة مخبأة قبل إصلاح resolveImageUrl.
+        source: "/uploads/:path*",
+        destination: `${API_BASE}/uploads/:path*`,
+      },
     ];
   },
   async headers() {

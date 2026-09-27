@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import type { ReactNode } from "react";
 import { CalendarDays, CreditCard, UserPlus, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,36 +14,53 @@ import type { MyMembershipCard } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
 /**
- * بطاقة العضوية — الجلد الجديد بهوية توفير:
- *  - الخلفية: رسمة tawfir-membership-card-art.png (أصل معتمد من الهوية)
- *    عبر next/image fill + طبقة كحلية شفافة (توكنات فقط) لضمان تباين AA
- *    للنص الأبيض/الذهبي فوقها
- *  - البيانات نص HTML فوق الخلفية — منطق العرض كما هو بلا أي تغيير
+ * بطاقة العضوية — الجلد الجديد بهوية توفير (تصميم «بطاقة فقط»):
+ *  - الرسمة tawfir-membership-card-art.png مقصوصة إلى حدود البطاقة نفسها
+ *    (1343×837 — نسبة بطاقة حقيقية ‎~1.6) بحواف ذهبية وزوايا شفافة،
+ *    والشعار مرسوم داخلها أعلى اليسار.
+ *  - الحاوية مقفولة بنسبة الرسمة (aspect-[1343/837]) وبنصف قطر زوايا
+ *    نسبي (6.7% / 10.8%) يطابق زوايا الرسمة في أي مقاس، مع ظل إسقاط
+ *    يتبع شكل الزوايا الشفافة لإحساس «بروز» البطاقة فوق الصفحة.
+ *  - بلا طبقة كحلية فوق الرسمة حتى لا تُعتم الإطار الذهبي — تباين النص
+ *    الأبيض فوق الكحلي الداكن للرسمة يتجاوز AA، وحماية إضافية بظل نص خفيف.
+ *  - البيانات نص HTML فوق الرسمة — منطق العرض كما هو بلا أي تغيير.
  */
 
-/** غلاف الخلفية الفنية + طبقة القراءة الكحلية — توكنات CSS فقط */
+/** رسمة البطاقة — تملأ الحاوية تماماً لأن النسبة مطابقة (بلا قصّ للإطار).
+ *  الحاوية: aspect-[1343/837] (نسبة الرسمة) + زوايا نسبية + ظل بروز. */
 function CardArtBackdrop() {
   return (
-    <>
-      <Image
-        src="/identity/tawfir-membership-card-art-1120.png"
-        alt=""
-        fill
-        draggable={false}
-        sizes="(max-width: 640px) 100vw, 560px"
-        className="object-cover"
-        priority={false}
-      />
-      {/* طبقة كحلية للتقرّب من لون خلفية المرجع وحماية تباين النص */}
+    <Image
+      src="/identity/tawfir-membership-card-art-1120.png"
+      alt=""
+      fill
+      draggable={false}
+      sizes="(max-width: 640px) 100vw, 560px"
+      className="object-cover"
+      priority
+    />
+  );
+}
+
+/** غلاف البطاقة الفنية: نسبة الرسمة + زوايا نسبية + ظل البروز */
+function CardArtFrame({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="relative aspect-[1343/837] w-full overflow-hidden text-white"
+      style={{
+        borderRadius: "6.7% / 10.8%",
+        containerType: "inline-size",
+        filter:
+          "drop-shadow(0 22px 45px rgba(0,0,0,0.55)) drop-shadow(0 4px 14px color-mix(in srgb, var(--logo-gold) 26%, transparent))",
+      }}
+    >
+      <CardArtBackdrop />
       <div
-        className="absolute inset-0"
+        className="card-shimmer-sweep pointer-events-none absolute inset-0"
         aria-hidden="true"
-        style={{
-          background:
-            "linear-gradient(260deg, color-mix(in srgb, var(--logo-navy) 24%, transparent) 0%, color-mix(in srgb, var(--logo-navy) 62%, transparent) 55%, color-mix(in srgb, var(--logo-navy) 90%, transparent) 100%)",
-        }}
       />
-    </>
+      {children}
+    </div>
   );
 }
 
@@ -72,11 +90,16 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
   if (!expiry) return null;
   return (
     <div className="text-left" dir="ltr">
-      <p className="flex items-center gap-1 text-[10px] font-medium text-white/60">
-        <CalendarDays className="h-3 w-3" aria-hidden="true" />
+      <p className="flex items-center gap-[0.9cqi] text-[max(9px,1.75cqi)] font-medium text-white/60">
+        <CalendarDays
+          className="h-[max(9px,2.1cqi)] w-[max(9px,2.1cqi)]"
+          aria-hidden="true"
+        />
         تاريخ الانتهاء
       </p>
-      <p className="mt-0.5 text-sm font-bold tabular-nums text-white">{expiry}</p>
+      <p className="mt-[0.9cqi] text-[max(11px,2.4cqi)] font-bold tabular-nums text-white">
+        {expiry}
+      </p>
     </div>
   );
 }
@@ -88,40 +111,41 @@ interface MemberCardBodyProps {
 /** بطاقة العضوية للمسجّل — الرقم والنوع والانتهاء من بيانات حقيقية فقط */
 function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
   return (
-    <div className="relative min-h-[190px] overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7">
-      <CardArtBackdrop />
+    <CardArtFrame>
+      {/* ظل نص خفيف يحمي تباين البيانات فوق خطوط الموجة الذهبية.
+          كل المقاسات بوحدات cqi نسبية لعرض البطاقة (استعلام حاوية) حتى
+          تتمدد البيانات مع الرسمة وتناسب أي عرض بلا فائض — مع حدود دنيا للقراءة. */}
       <div
-        className="card-shimmer-sweep pointer-events-none absolute inset-0"
-        aria-hidden="true"
-      />
-      <div className="relative z-10 flex h-full flex-col gap-5" dir="rtl">
-        {/* الشعار + الشارات */}
-        <div className="flex items-start justify-between gap-3">
-          <TawfirLogo onDark className="h-10 w-auto sm:h-11" />
-          <div className="flex items-center gap-2">
-            {!membership.is_active && (
-              <span className="rounded-full bg-destructive px-3 py-1.5 text-xs font-extrabold text-white shadow-soft">
-                منتهية
-              </span>
-            )}
-            {membership.discount_rate > 0 && (
-              <span className="rounded-full bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground shadow-soft">
-                خصم {membership.discount_rate}%
-              </span>
-            )}
-          </div>
+        className="relative z-10 flex h-full flex-col gap-[2.2cqi] p-[4.2cqi] [text-shadow:0_1px_10px_rgba(0,0,0,0.6)]"
+        dir="rtl"
+      >
+        {/* الشارات فقط — شعار العلامة مرسوم داخل الرسمة أعلى اليسار */}
+        <div className="flex items-start justify-start gap-[1.5cqi]">
+          {!membership.is_active && (
+            <span className="rounded-full bg-destructive px-[max(10px,2.1cqi)] py-[max(4px,1.05cqi)] text-[max(10px,2.1cqi)] font-extrabold text-white shadow-soft">
+              منتهية
+            </span>
+          )}
+          {membership.discount_rate > 0 && (
+            <span className="rounded-full bg-accent px-[max(10px,2.1cqi)] py-[max(4px,1.05cqi)] text-[max(10px,2.1cqi)] font-extrabold text-accent-foreground shadow-soft">
+              خصم {membership.discount_rate}%
+            </span>
+          )}
         </div>
 
         {/* العنوان + رقم العضوية الحقيقي */}
-        <div className="space-y-1.5 text-left">
-          <p className="flex items-center gap-1.5 text-sm font-bold text-white/90">
-            <CreditCard className="h-4 w-4" aria-hidden="true" />
+        <div className="flex flex-col gap-[1cqi] text-left">
+          <p className="flex items-center gap-[1.3cqi] text-[max(11px,2.4cqi)] font-bold text-white/90">
+            <CreditCard
+              className="h-[max(12px,2.8cqi)] w-[max(12px,2.8cqi)]"
+              aria-hidden="true"
+            />
             بطاقة الخصومات الذكية
           </p>
           {/* الجولة 9 (المهمة 9.2): رقم العضوية قابل للنسخ — استثناء من
               قاعدة منع التحديد العامة (انظر globals.css). */}
           <p
-            className="text-xl font-black tracking-[0.12em] tabular-nums text-white sm:text-2xl"
+            className="text-[max(14px,4.2cqi)] font-black tracking-[0.12em] tabular-nums text-white"
             dir="ltr"
             data-selectable="true"
             title="اضغط مطولاً لنسخ رقم العضوية"
@@ -131,20 +155,20 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
         </div>
 
         {/* النوع (يسار) + الانتهاء (يمين) + التاغلاين المعتمد */}
-        <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-4">
-          <div className="space-y-1 text-left">
-            <p className="text-[10px] font-medium text-white/60">نوع العضوية</p>
-            <p className="mt-0.5 text-sm font-bold text-white">
+        <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-[1.8cqi]">
+          <div className="flex flex-col gap-[0.9cqi] text-left">
+            <p className="text-[max(9px,1.75cqi)] font-medium text-white/60">نوع العضوية</p>
+            <p className="text-[max(11px,2.4cqi)] font-bold text-white">
               عضوية {membership.membership_type}
             </p>
-            <p className="text-[10px] font-bold text-[color:var(--logo-gold-light)]">
+            <p className="text-[max(9px,1.75cqi)] font-bold text-[color:var(--logo-gold-light)]">
               وفّر أكثر.. عِش أجمل
             </p>
           </div>
           <ExpiryBadge expiresAt={membership.expires_at} />
         </div>
       </div>
-    </div>
+    </CardArtFrame>
   );
 }
 
@@ -233,14 +257,13 @@ function VisitorMemberCard({ className }: { className?: string }) {
 function MemberCardSkeleton() {
   return (
     <div
-      className="gradient-emerald relative min-h-[190px] overflow-hidden rounded-[20px] p-5 text-white shadow-soft-lg sm:p-7"
+      className="gradient-emerald relative aspect-[1343/837] w-full overflow-hidden rounded-[20px] p-4 text-white shadow-soft-lg sm:p-6"
       aria-busy="true"
       aria-label="جارٍ تحميل بطاقة العضوية"
     >
-      <div className="relative z-10 flex h-full flex-col gap-5" dir="rtl">
-        {/* الشعار + شارة الخصم */}
-        <div className="flex items-start justify-between gap-3">
-          <Skeleton className="h-10 w-[118px] bg-white/15" />
+      <div className="relative z-10 flex h-full flex-col gap-3 sm:gap-5" dir="rtl">
+        {/* شارة الخصم (يمين) — شعار البطاقة داخل الرسمة يسار */}
+        <div className="flex items-start justify-start gap-3">
           <Skeleton className="h-[30px] w-[86px] rounded-full bg-white/15" />
         </div>
         {/* العنوان + رقم العضوية */}

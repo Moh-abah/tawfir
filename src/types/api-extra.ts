@@ -255,6 +255,9 @@ export interface WalletPaymentItem {
   created_at: string;
 }
 
+
+
+
 /** إجماليات مدفوعات منشأة (شاشة «مدفوعات المطعم»). */
 export interface WalletPaymentsSummary {
   wallet_orders_count: number;

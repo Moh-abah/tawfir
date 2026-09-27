@@ -27,7 +27,7 @@ import { CourierScreenHeader } from "@/components/courier/CourierBottomNav";
 import { WaitMode } from "@/components/courier/WaitMode";
 import { useCourierMe, useCourierStats, useCourierLogout } from "@/hooks/useCourier";
 import { useRouter } from "next/navigation";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, resolveImageUrl } from "@/lib/format";
 
 const VEHICLE_LABELS: Record<string, string> = {
   motorcycle: "دراجة نارية",
@@ -98,9 +98,9 @@ export default function CourierProfilePage() {
             <div className="flex items-center gap-3">
               {/* الصورة العلنية إن وُجدت */}
               {me.photo_url ? (
-                /* eslint-disable-next-line @next/next/no-img-element */
+                 
                 <img
-                  src={me.photo_url}
+                  src={resolveImageUrl(me.photo_url)}
                   alt={`صورة المندوب ${me.public_name}`}
                   className="h-14 w-14 rounded-2xl border-2 border-primary/30 object-cover"
                 />

@@ -31,6 +31,7 @@ import {
   useCourierDocUpload,
 } from "@/hooks/useCourier";
 import { haptic } from "@/lib/haptic";
+import { resolveImageUrl } from "@/lib/format";
 import { toast } from "@/hooks/use-toast";
 import type { CourierMe } from "@/services/courier-api-client";
 
@@ -145,9 +146,9 @@ function SettingsForm({ me }: { me: CourierMe }) {
       {/* الصورة العلنية */}
       <div className="flex items-center gap-4">
         {photoUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
+           
           <img
-            src={photoUrl}
+            src={resolveImageUrl(photoUrl)}
             alt="صورتك العلنية"
             className="h-16 w-16 rounded-2xl border-2 border-primary/30 object-cover"
           />
