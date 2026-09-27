@@ -79,6 +79,7 @@ import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { usePricingPreview } from "@/hooks/useWallets";
 import type { Product, ProductCreate, ProductUpdate, ValidationError } from "@/types/api.generated";
 import type { OwnerApiError } from "@/services/owner-api-client";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -137,15 +138,25 @@ function ProductFormFields({
   setForm,
   errors,
   onClearFields,
+  facilityId,
 }: {
   form: ProductFormValues;
   setForm: (f: ProductFormValues) => void;
   errors: Record<string, string>;
   onClearFields?: () => void;
+  facilityId?: number;
 }) {
   const set = (key: keyof ProductFormValues, value: string | number | boolean) => {
     setForm({ ...form, [key]: value });
   };
+
+  /* جولة المحافظ + شفافية التاجر — معاينة حية للسعر النهائي بعد الخصم
+     (وجبات عادية: بلا خصم عرض — خصم المنشأة فقط للعضو) */
+  const priceNum = parseFloat(form.price) || 0;
+  const previewApi = usePricingPreview(
+    facilityId ?? null,
+    priceNum > 0 ? { price: Math.round(priceNum) } : null
+  );
 
   return (
     <div className="space-y-4">
@@ -189,6 +200,36 @@ function ProductFormFields({
           />
         </div>
       </div>
+
+      {/* معاينة حية للسعر — كم يدفع العميل بعد الخصم (شفافية التاجر) */}
+      {priceNum > 0 && facilityId != null && previewApi.data && (
+        <div className="rounded-xl border border-primary/25 bg-primary/[0.04] p-3 text-sm">
+          <p className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">سعر الوجبة الذي أدخلته:</span>
+            <span dir="ltr" className="font-bold tabular-nums text-foreground">
+              {formatCurrency(previewApi.data.base_price)}
+            </span>
+          </p>
+          <p className="mt-1.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">
+              عميل العضو يدفع (خصم متجرك {previewApi.data.facility_discount_rate}%):
+            </span>
+            <span dir="ltr" className="font-extrabold tabular-nums text-primary">
+              {formatCurrency(previewApi.data.member_price)}
+            </span>
+          </p>
+          <p className="mt-1 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">غير العضو يدفع:</span>
+            <span dir="ltr" className="font-bold tabular-nums text-foreground">
+              {formatCurrency(previewApi.data.non_member_price)}
+            </span>
+          </p>
+          <p className="mt-1.5 text-[11px] font-bold text-success">
+            وفر العضو {formatCurrency(previewApi.data.member_saving ?? 0)} — معاينة حية من
+            الخادم بنفس معادلات الدفع الفعلية.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="p-category">التصنيف *</Label>
@@ -1181,7 +1222,7 @@ const prefersReduced = usePrefersReducedMotion();
             <DialogHeader>
               <DialogTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
             </DialogHeader>
-            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} />
+            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
             <DialogFooter className="flex-row-reverse gap-2">
               <Button
                 className="rounded-full bg-primary text-white hover:bg-primary/90"
@@ -1208,7 +1249,7 @@ const prefersReduced = usePrefersReducedMotion();
             <SheetHeader>
               <SheetTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</SheetTitle>
             </SheetHeader>
-            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} />
+            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
             <SheetFooter className="flex-row-reverse gap-2">
               <Button
                 className="rounded-full bg-primary text-white hover:bg-primary/90"

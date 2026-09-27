@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import {
   DeliveryFields,
   MISSING_LOCATION_MSG,
+  type DeliveryMode,
 } from "@/components/public/DeliveryFields";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
 import { useCartStore } from "@/store/cart.store";
@@ -76,14 +77,20 @@ export function CartPageContent() {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const isLoggedIn = hydrated && !!accessToken;
 
-  /* §6-3 — الموقع والعنوان إلزاميان قبل الإرسال */
-  const deliveryIncomplete =
-    lat == null || lng == null || address.trim().length === 0;
+  /* §6-3 — الموقع والعنوان إلزاميان في وضع التوصيل؛ الاستلام من المتجر يرفع الإلزامية */
+  const isHandover = deliveryMode === "handover";
+  const deliveryIncomplete = isHandover
+    ? false
+    : lat == null || lng == null || address.trim().length === 0;
+  /* المحفظة تتطلب اختيار محفظة المتجر أولاً */
+  const walletMissing = paymentMethod === "wallet" && paymentWalletId == null;
 
   const handleSubmit = () => {
     if (items.length === 0 || !facilityId) return;
@@ -91,13 +98,17 @@ export function CartPageContent() {
       router.push("/login?next=/cart");
       return;
     }
-    /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
-    if (lat == null || lng == null) {
+    /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي (في التوصيل) */
+    if (!isHandover && (lat == null || lng == null)) {
       setErrorMsg(MISSING_LOCATION_MSG);
       return;
     }
-    if (address.trim().length === 0) {
+    if (!isHandover && address.trim().length === 0) {
       setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      return;
+    }
+    if (walletMissing) {
+      setErrorMsg("اختر محفظة الدفع أولاً — من قائمة محافظ المتجر");
       return;
     }
     setErrorMsg(null);
@@ -108,10 +119,12 @@ export function CartPageContent() {
           product_id: i.product_id,
           quantity: i.quantity,
         })),
-        delivery_lat: lat,
-        delivery_lng: lng,
+        delivery_lat: isHandover && lat == null ? null : lat,
+        delivery_lng: isHandover && lng == null ? null : lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        payment_wallet_id:
+          paymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
@@ -271,7 +284,14 @@ export function CartPageContent() {
                 notes={notes}
                 onNotesChange={setNotes}
                 paymentMethod={paymentMethod}
-                onPaymentMethodChange={setPaymentMethod}
+                onPaymentMethodChange={(m) => {
+                  setPaymentMethod(m);
+                  if (m !== "wallet") setPaymentWalletId(null);
+                }}
+                paymentWalletId={paymentWalletId}
+                onPaymentWalletIdChange={setPaymentWalletId}
+                deliveryMode={deliveryMode}
+                onDeliveryModeChange={setDeliveryMode}
                 variant="plain"
                 idPrefix="page-cart-"
                 facilityId={facilityId}
@@ -385,6 +405,14 @@ export function CartPageContent() {
                     : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
                 </p>
               )}
+              {walletMissing && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="text-center text-[11px] font-bold text-accent-ink"
+                >
+                  اختر محفظة المتجر لإتمام الدفع بالتحويل
+                </p>
+              )}
 
               {/* زر التأكيد — الديسكتوب (الموبايل له الشريط اللاصق أسفل) */}
               <Button
@@ -393,8 +421,16 @@ export function CartPageContent() {
                   haptic("light");
                   handleSubmit();
                 }}
-                disabled={createOrder.isPending || deliveryIncomplete}
-                aria-disabled={createOrder.isPending || deliveryIncomplete}
+                disabled={
+                  createOrder.isPending ||
+                  deliveryIncomplete ||
+                  walletMissing
+                }
+                aria-disabled={
+                  createOrder.isPending ||
+                  deliveryIncomplete ||
+                  walletMissing
+                }
                 className="hidden min-h-[48px] w-full gap-2 rounded-full text-base font-extrabold shadow-soft lg:inline-flex"
                 size="lg"
               >
@@ -428,8 +464,12 @@ export function CartPageContent() {
             haptic("light");
             handleSubmit();
           }}
-          disabled={createOrder.isPending || deliveryIncomplete}
-          aria-disabled={createOrder.isPending || deliveryIncomplete}
+          disabled={
+            createOrder.isPending || deliveryIncomplete || walletMissing
+          }
+          aria-disabled={
+            createOrder.isPending || deliveryIncomplete || walletMissing
+          }
           className="native-tap flex min-h-[52px] w-full items-center justify-between gap-3 rounded-2xl bg-primary px-4 text-primary-foreground shadow-soft-lg transition-transform active:scale-[0.98] disabled:opacity-70"
         >
           <span className="flex items-center gap-2 text-sm font-extrabold">
@@ -607,6 +647,8 @@ function MembershipUpsell({ savings }: { savings: number }) {
 /* ─── شاشة النجاح ─── */
 function CartSuccessView({ order }: { order: OrderOut }) {
   const prefersReduced = useReducedMotion();
+  /* طلب محفظة → شاشة الدفع لإتمام التحويل ورفع الإشعار */
+  const isWalletOrder = order.payment_method === "wallet";
   return (
     <>
       <ScreenHeader title="سلة الطلبات" fallbackHref="/" />
@@ -652,11 +694,22 @@ function CartSuccessView({ order }: { order: OrderOut }) {
           animate={{ opacity: 1 }}
           transition={{ delay: prefersReduced ? 0 : 0.3, duration: 0.3 }}
         >
-          تابع حالة طلبك لحظياً — سنُحدّثها عند تأكيد المتجر وتحضير الطلب
-          ووصوله إليك.
+          {isWalletOrder
+            ? "أكمل الدفع الآن: حوّل المبلغ إلى محفظة المتجر وارفع صورة إشعار التحويل."
+            : "تابع حالة طلبك لحظياً — سنُحدّثها عند تأكيد المتجر وتحضير الطلب ووصوله إليك."}
         </motion.p>
         <div className="flex w-full max-w-xs flex-col gap-2">
-          <Button asChild size="lg" className="min-h-[48px] rounded-full">
+          {isWalletOrder && (
+            <Button asChild size="lg" className="min-h-[48px] rounded-full">
+              <Link href={`/orders/${order.id}/payment`}>الذهاب لشاشة الدفع</Link>
+            </Button>
+          )}
+          <Button
+            asChild
+            size="lg"
+            variant={isWalletOrder ? "outline" : "default"}
+            className="min-h-[48px] rounded-full"
+          >
             <Link href={`/orders/${order.id}`}>تتبّع الطلب</Link>
           </Button>
           <Button

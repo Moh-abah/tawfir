@@ -145,7 +145,7 @@ const registerSchema = z
     discount_rate: z
       .number()
       .int()
-      .min(10, { message: "النسبة يجب أن تكون 10 على الأقل" })
+      .min(5, { message: "النسبة يجب أن تكون 5 على الأقل" })
       .max(30, { message: "النسبة يجب أن تكون 30 على الأكثر" }),
   })
   .refine((d) => d.password === d.password_confirm, {
@@ -1353,7 +1353,7 @@ export default function OwnerRegisterPage() {
                         </div>
                         <Slider
                           id="discount_rate"
-                          min={10}
+                          min={5}
                           max={30}
                           step={5}
                           value={[field.value ?? 30]}
@@ -1365,8 +1365,9 @@ export default function OwnerRegisterPage() {
                           className="min-h-[44px] py-2"
                         />
                         <p className="text-xs text-muted-foreground">
-                          اختر نسبة الخصم التي ستمنحها لحاملي بطاقة توفير. لا
-                          يمكن تغييرها لاحقاً. للتعديل تواصل: 780090882
+                          اختر نسبة الخصم التي ستمنحها لحاملي بطاقة توفير (من
+                          5% إلى 30%). لا يمكن تغييرها لاحقاً. للتعديل
+                          تواصل: 780090882
                         </p>
                         <FieldError
                           message={formState.errors.discount_rate?.message}

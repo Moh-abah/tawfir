@@ -35,6 +35,62 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
 import type { OrderListOut, OrderStatus } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
+import { Wallet } from "lucide-react";
+
+/** جولة المحافظ — شارات طلب المحفظة (الوسيلة + حالة الإيصالة). */
+function WalletOrderBadges({
+  status,
+  walletLabel,
+}: {
+  status: string | null;
+  walletLabel: string | null;
+}) {
+  const statusInfo: Record<string, { label: string; className: string }> = {
+    pending: {
+      label: "بانتظار المراجعة",
+      className: "bg-accent/15 text-accent-ink",
+    },
+    approved: {
+      label: "تم الدفع",
+      className: "bg-success/15 text-success",
+    },
+    rejected: {
+      label: "مرفوض",
+      className: "bg-destructive/10 text-destructive",
+    },
+    partial_requested: {
+      label: "بانتظار التكملة",
+      className: "bg-accent/15 text-accent-ink",
+    },
+  };
+  const info = status ? statusInfo[status] : null;
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-extrabold text-primary">
+        <Wallet className="h-3 w-3" aria-hidden="true" />
+        محفظة
+      </span>
+      {info && (
+        <span
+          className={cn(
+            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold",
+            info.className
+          )}
+        >
+          {info.label}
+        </span>
+      )}
+      {!info && walletLabel && (
+        <span
+          dir="ltr"
+          className="max-w-32 truncate text-[10px] text-muted-foreground"
+        >
+          {walletLabel}
+        </span>
+      )}
+    </div>
+  );
+}
 
 /* ─── الفلاتر ──────────────────────────────────────── */
 type FilterKey = "all" | OrderStatus;
@@ -147,6 +203,13 @@ function OrderCard({ order }: { order: OrderListOut }) {
                 )}
                 {ORDER_STATUS_LABEL[order.status]}
               </span>
+              {/* جولة المحافظ — شارة طلب محفظة + حالة الإيصالة */}
+              {order.payment_method === "wallet" && (
+                <WalletOrderBadges
+                  status={order.payment_status ?? null}
+                  walletLabel={order.payment_wallet_label ?? null}
+                />
+              )}
               <div className="text-left" dir="ltr">
                 <p className="text-[10px] text-muted-foreground">الإجمالي</p>
                 <p className="text-sm font-extrabold text-foreground tabular-nums">

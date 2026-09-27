@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Store, LogOut, ChevronLeft, ChevronRight, Package, Settings, Keyboard, ShoppingBag, Flame } from "lucide-react";
+import { Store, LogOut, ChevronLeft, ChevronRight, Package, Settings, Keyboard, ShoppingBag, Flame, Wallet, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -188,6 +188,28 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
                 >
                   <ShoppingBag className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   طلبات المتجر
+                </Link>
+                <Link
+                  href={`/owner/facilities/${f.id}/payments`}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md pe-3 ps-11 py-1 text-xs text-muted-foreground transition-colors duration-150 hover:bg-secondary/5 hover:text-foreground",
+                    isActive(pathname, `/owner/facilities/${f.id}/payments`) && "text-primary"
+                  )}
+                >
+                  <Banknote className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  مدفوعات المطعم
+                </Link>
+                <Link
+                  href={`/owner/facilities/${f.id}/wallets`}
+                  onClick={onNavigate}
+                  className={cn(
+                    "flex items-center gap-3 rounded-md pe-3 ps-11 py-1 text-xs text-muted-foreground transition-colors duration-150 hover:bg-secondary/5 hover:text-foreground",
+                    isActive(pathname, `/owner/facilities/${f.id}/wallets`) && "text-primary"
+                  )}
+                >
+                  <Wallet className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  محافظ التحويل
                 </Link>
                 <Link
                   href={`/owner/facilities/${f.id}/special-offers`}

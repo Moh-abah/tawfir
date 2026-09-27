@@ -521,7 +521,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                 {...register("discount_rate", { valueAsNumber: true })}
               />
               <p className="text-xs text-muted-foreground">
-                0-100% — المشرف يمكنه تجاوز قيد 10-30%
+                0-100% — المشرف يمكنه تجاوز قيد 5-30%
               </p>
               {formState.errors.discount_rate && (
                 <p className="text-xs text-destructive">

@@ -29,7 +29,7 @@ export type OrderStatus =
   | 'delivered'
   | 'cancelled';
 
-/** طريقة الدفع. wallet غير متاحة حالياً (تُرجع 422). */
+/** طريقة الدفع — cash (عند الاستلام) | wallet (تحويل يدوي عبر محفظة التاجر). */
 export type PaymentMethod = 'cash' | 'wallet';
 
 /** نوع الإشعار — يحدّد الأيقونة والمسار عند النقر. */
@@ -50,7 +50,11 @@ export type NotificationType =
   | "owner_registered"
   | "special_offer_new"
   | "special_offer_ending"
-  | "special_offer_soldout";
+  | "special_offer_soldout"
+  /* جولة المحافظ اليمنية */
+  | "order_payment_receipt"
+  | "order_payment_remaining"
+  | "order_payment_completion";
 
 /* ─── مساعد عام (السكمة تُصدّر نسخاً مُقفلة لكل نوع) ─── */
 
@@ -160,3 +164,129 @@ export interface AccountDeleteOut {
 /** موقع المتجر المحدد — GPS مباشر أو من تطبيق الخرائط الخارجي.
  *  (نوع واجهة فقط — re-export نوعي بلا أي استيراد وقت تشغيل) */
 export type { StoreLocation } from "@/components/shared/StoreLocationPicker";
+
+/* ═══════════════════════════════════════════════════════════════════
+   جولة المحافظ اليمنية (الدفع بالتحويل اليدوي) — أنواع يدوية للنقاط
+   التي ترد بلا سكيما في openapi الحي (استجاباتها موثقة من وكيل الباك
+   إند وتقرير الربط v1.1.0).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/** حالة إيصالة التحويل — partial_requested = التاجر طلب تكملة الدفعة. */
+export type PaymentReceiptStatus =
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "partial_requested";
+
+/** ردّ GET /orders/{id}/payment — شاشة حالة الدفع للعميل. */
+export interface OrderPaymentStatusOut {
+  order_id: number;
+  payment_method: "cash" | "wallet";
+  payment_status: PaymentReceiptStatus | null;
+  payment_wallet_id: number | null;
+  payment_wallet_label: string | null;
+  /** المبلغ المطلوب تحويله «الآن» — عند وجود دفعة ناقصة = المتبقي وإلا إجمالي الطلب. */
+  amount_due: number;
+  /** إجمالي الطلب الكامل (وجبة + توصيل). */
+  order_total: number;
+  /** ما أكّد التاجر استلامه (تراكمي) — موجود في جولة الدفعة الناقصة. */
+  paid_amount?: number | null;
+  /** المتبقي على العميل. */
+  remaining_amount?: number | null;
+  /** ملاحظة التاجر عند طلب التكملة. */
+  remaining_note?: string | null;
+  is_completion?: boolean;
+  payment_receipt: PaymentReceiptBriefOut | null;
+}
+
+/** ردّ POST /owner/orders/{id}/payment/request-remaining. */
+export interface RequestRemainingOut {
+  order_id: number;
+  payment_status: PaymentReceiptStatus;
+  order_total: number;
+  paid_amount: number;
+  remaining_amount: number;
+  remaining_note: string | null;
+  remaining_requested_at: string | null;
+  detail: string;
+}
+
+/** جسم POST /owner/orders/{id}/payment/request-remaining. */
+export interface RequestRemainingPaymentIn {
+  /** المبلغ المستلم فعلياً حتى الآن (تراكمي — أكبر من صفر). */
+  paid_amount: number;
+  /** ملاحظة اختيارية للعميل (≤500). */
+  note?: string | null;
+}
+
+/** عنصر سجل في شاشة «مدفوعات المطعم» (GET /owner/facilities/{fid}/payments). */
+export interface WalletPaymentItem {
+  order_id: number;
+  status: string;
+  amount: number;
+  subtotal: number;
+  delivery_fee: number;
+  customer_name: string | null;
+  customer_phone: string | null;
+  wallet_label: string | null;
+  payment_status: PaymentReceiptStatus;
+  receipt: PaymentReceiptBriefOut | null;
+  created_at: string;
+}
+
+/** جسم إضافة محفظة منشأة (نقطة أو هاتف). */
+export interface FacilityWalletCreateIn {
+  provider_id: number;
+  account_type: "point" | "phone";
+  point_number?: string | null;
+  point_name?: string | null;
+  phone_number?: string | null;
+  account_name?: string | null;
+  display_order?: number;
+}
+
+/** جسم تعديل محفظة منشأة — كل الحقول اختيارية. */
+export interface FacilityWalletUpdateIn {
+  provider_id?: number;
+  account_type?: "point" | "phone";
+  point_number?: string | null;
+  point_name?: string | null;
+  phone_number?: string | null;
+  account_name?: string | null;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+/** جسم إضافة/تعديل محفظة مندوب — نفس بنية محفظة المنشأة. */
+export type CourierWalletCreateIn = FacilityWalletCreateIn;
+export type CourierWalletUpdateIn = FacilityWalletUpdateIn;
+
+/** جسم إنشاء/تعديل مزوّد محفظة (الإدارة). */
+export interface WalletProviderCreateIn {
+  name: string;
+  code?: string | null;
+  display_order?: number;
+}
+
+export interface WalletProviderUpdateIn {
+  name?: string;
+  code?: string | null;
+  is_active?: boolean;
+  display_order?: number;
+}
+
+/** صف في النظرة الشاملة — by_provider. */
+export interface WalletOverviewProviderRow {
+  provider_id: number;
+  provider_name: string;
+  orders_count: number;
+  approved_amount: number;
+}
+
+/** صف في النظرة الشاملة — top_facilities. */
+export interface WalletOverviewFacilityRow {
+  facility_id: number;
+  facility_name: string;
+  orders_count: number;
+  approved_amount: number;
+}

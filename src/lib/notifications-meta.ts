@@ -138,6 +138,28 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
     bgClass: "bg-destructive/10",
     hrefFor: (d) => `/products/${d?.product_id ?? ""}`,
   },
+  /* ─── جولة المحافظ اليمنية ─── */
+  /* للتاجر: رفع العميل إشعار التحويل (أول مرة أو تكملة) */
+  order_payment_receipt: {
+    icon: Package,
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
+    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+  },
+  /* للعميل: التاجر طلب الدفعة الناقصة — يفتح شاشة الدفع مباشرة */
+  order_payment_remaining: {
+    icon: Clock,
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
+    hrefFor: (d) => `/orders/${d?.order_id ?? ""}/payment`,
+  },
+  /* للتاجر: رفع العميل إشعار المتبقي (اكتمال الدفعة الناقصة) */
+  order_payment_completion: {
+    icon: Package,
+    colorClass: "text-accent-ink",
+    bgClass: "bg-accent/10",
+    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+  },
 };
 
 const FALLBACK: NotificationMeta = {

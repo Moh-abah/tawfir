@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   ListOrdered,
   Loader2,
@@ -12,6 +13,7 @@ import {
   Plus,
   ShoppingBag,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import {
   Sheet,
@@ -34,7 +36,11 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
-import { DELIVERY_FEE, DISCOUNT_RATE } from "@/lib/site-config";
+import {
+  DELIVERY_FEE,
+  DISCOUNT_RATE,
+} from "@/lib/site-config";
+import type { DeliveryMode } from "@/components/public/DeliveryFields";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
 
 /**
@@ -128,6 +134,8 @@ function SuccessView({
   order: OrderOut;
   onClose: () => void;
 }) {
+  /* طلب محفظة → يوجّه العميل لشاشة الدفع لرفع إشعار التحويل */
+  const isWalletOrder = order.payment_method === "wallet";
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
       <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
@@ -142,30 +150,68 @@ function SuccessView({
           </span>
         </p>
       </div>
-      <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-        ستظهر حالة طلبك في صفحة طلباتي. تابع الاستلام لإتمام الطلب عند وصوله.
-      </p>
-      <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
-        <Button
-          asChild
-          size="lg"
-          className="min-h-[44px] w-full rounded-full"
-          onClick={onClose}
-        >
-          <Link href="/orders">
-            <ListOrdered className="h-4 w-4" aria-hidden="true" />
-            طلباتي
-          </Link>
-        </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          className="min-h-[44px] w-full rounded-full"
-          onClick={onClose}
-        >
-          تصفّح المزيد
-        </Button>
-      </div>
+      {isWalletOrder ? (
+        <>
+          <div className="w-full max-w-xs rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-right">
+            <p className="flex items-center gap-1.5 text-sm font-extrabold text-accent-ink">
+              <Wallet className="h-4 w-4 shrink-0" aria-hidden="true" />
+              خطوة أخيرة — إتمام الدفع
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-accent-ink/90">
+              حوّل المبلغ المطلوب ({formatCurrency(order.total)}) إلى محفظة
+              المتجر من شاشة الدفع، ثم ارفع صورة إشعار التحويل.
+            </p>
+          </div>
+          <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="min-h-[48px] w-full rounded-full"
+              onClick={onClose}
+            >
+              <Link href={`/orders/${order.id}/payment`}>
+                <Wallet className="h-4 w-4" aria-hidden="true" />
+                الذهاب لشاشة الدفع
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="min-h-[44px] w-full rounded-full"
+              onClick={onClose}
+            >
+              لاحقاً — من صفحة طلباتي
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
+            ستظهر حالة طلبك في صفحة طلباتي. تابع الاستلام لإتمام الطلب عند وصوله.
+          </p>
+          <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
+            <Button
+              asChild
+              size="lg"
+              className="min-h-[44px] w-full rounded-full"
+              onClick={onClose}
+            >
+              <Link href="/orders">
+                <ListOrdered className="h-4 w-4" aria-hidden="true" />
+                طلباتي
+              </Link>
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="min-h-[44px] w-full rounded-full"
+              onClick={onClose}
+            >
+              تصفّح المزيد
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -300,6 +346,8 @@ export function CheckoutSheet({
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -333,10 +381,14 @@ export function CheckoutSheet({
   const outOfStock =
     !product.is_available || product.available_quantity === 0;
 
-  /* §6-3 — الموقع والعنوان إلزاميان قبل الإرسال (زر التأكيد معطّل حتى اكتمالهما) */
-  const locationMissing = lat == null || lng == null;
-  const addressMissing = address.trim().length === 0;
+  /* §6-3 — الموقع والعنوان إلزاميان في وضع التوصيل (الافتراضي).
+     الاستلام من المتجر (تسليم يدوي) يرفع الإلزامية — UI فقط. */
+  const isHandover = deliveryMode === "handover";
+  const locationMissing = !isHandover && (lat == null || lng == null);
+  const addressMissing = !isHandover && address.trim().length === 0;
   const deliveryIncomplete = locationMissing || addressMissing;
+  /* المحفظة تتطلب اختيار محفظة المتجر أولاً (422: «اختر محفظة الدفع أولاً») */
+  const walletMissing = paymentMethod === "wallet" && paymentWalletId == null;
 
   const maxQty =
     product.available_quantity && product.available_quantity > 0
@@ -353,6 +405,8 @@ export function CheckoutSheet({
       setAddress("");
       setNotes("");
       setPaymentMethod("cash");
+      setPaymentWalletId(null);
+      setDeliveryMode("delivery");
       setSuccessOrder(null);
       setErrorMsg(null);
     }, 250);
@@ -370,15 +424,21 @@ export function CheckoutSheet({
       setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
       return;
     }
+    if (walletMissing) {
+      setErrorMsg("اختر محفظة الدفع أولاً — من قائمة محافظ المتجر");
+      return;
+    }
     setErrorMsg(null);
     createOrder.mutate(
       {
         facility_id: product.facility_id,
         items: [{ product_id: product.id, quantity }],
-        delivery_lat: lat,
-        delivery_lng: lng,
+        delivery_lat: isHandover && lat == null ? null : lat,
+        delivery_lng: isHandover && lng == null ? null : lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        payment_wallet_id:
+          paymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
         special_offer_id: specialOffer?.id ?? null,
       },
@@ -593,7 +653,15 @@ export function CheckoutSheet({
               notes={notes}
               onNotesChange={setNotes}
               paymentMethod={paymentMethod}
-              onPaymentMethodChange={setPaymentMethod}
+              onPaymentMethodChange={(m) => {
+                setPaymentMethod(m);
+                /* تبديل الوسيلة يمسح اختيار المحفظة السابق */
+                if (m !== "wallet") setPaymentWalletId(null);
+              }}
+              paymentWalletId={paymentWalletId}
+              onPaymentWalletIdChange={setPaymentWalletId}
+              deliveryMode={deliveryMode}
+              onDeliveryModeChange={setDeliveryMode}
               disabled={outOfStock}
               facilityId={product.facility_id}
             />
@@ -630,9 +698,19 @@ export function CheckoutSheet({
                 type="button"
                 size="lg"
                 onClick={handleSubmit}
-                disabled={outOfStock || deliveryIncomplete || createOrder.isPending}
+                disabled={
+                  outOfStock ||
+                  deliveryIncomplete ||
+                  walletMissing ||
+                  createOrder.isPending
+                }
                 className="min-h-[48px] w-full gap-2 rounded-full"
-                aria-disabled={outOfStock || deliveryIncomplete || createOrder.isPending}
+                aria-disabled={
+                  outOfStock ||
+                  deliveryIncomplete ||
+                  walletMissing ||
+                  createOrder.isPending
+                }
               >
                 {createOrder.isPending ? (
                   <>
@@ -641,6 +719,11 @@ export function CheckoutSheet({
                   </>
                 ) : outOfStock ? (
                   "غير متوفر حالياً"
+                ) : paymentMethod === "wallet" ? (
+                  <>
+                    <Wallet className="h-4 w-4" aria-hidden="true" />
+                    تأكيد الطلب والدفع بالمحفظة
+                  </>
                 ) : (
                   <>
                     <ShoppingBag className="h-4 w-4" aria-hidden="true" />
@@ -648,6 +731,15 @@ export function CheckoutSheet({
                   </>
                 )}
               </Button>
+              {walletMissing && (
+                <p
+                  role="note"
+                  className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] font-bold text-accent-ink"
+                >
+                  <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                  اختر محفظة المتجر لإتمام الدفع بالتحويل
+                </p>
+              )}
             </div>
           </div>
         )}

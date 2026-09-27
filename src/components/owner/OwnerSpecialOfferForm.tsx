@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePricingPreview } from "@/hooks/useWallets";
 import { useOwnerProducts } from "@/hooks/useOwnerProducts";
 import { useCreateSpecialOffer } from "@/hooks/useSpecialOffers";
 import { formatCurrency } from "@/lib/format";
@@ -54,7 +55,7 @@ const offerSchema = z
     offer_discount_rate: z
       .number()
       .int()
-      .min(10, { message: "الخصم الأدنى 10%" })
+      .min(5, { message: "الخصم الأدنى 5%" })
       .max(50, { message: "الخصم الأقصى 50%" }),
     quantity_limit: z
       .string()
@@ -216,7 +217,16 @@ export function OwnerSpecialOfferForm({
     return availableProducts.find((p) => p.id === productId) ?? null;
   }, [productId, availableProducts]);
 
-  // معاينة السعر التقديرية (للعرض فقط — الحساب الحقيقي في الخادم)
+  // معاينة حية للسعر — من الخادم (نفس معادلات الدفع الفعلية — بلا فرق
+  // بين المعاينة والواقع): member/non-member + التوفير.
+  const pricePreviewApi = usePricingPreview(
+    facilityId,
+    selectedProduct && discountRate >= 5
+      ? { price: Math.round(parseFloat(selectedProduct.price) || 0), offer_discount_rate: discountRate }
+      : null
+  );
+
+  // معاينة السعر التقديرية المحلية (احتياط فشل الشبكة — للعرض فقط)
   const pricePreview = useMemo(() => {
     if (!selectedProduct) return null;
     const base = parseFloat(selectedProduct.price);
@@ -390,7 +400,7 @@ export function OwnerSpecialOfferForm({
               render={({ field }) => (
                 <Slider
                   id="offer-discount"
-                  min={10}
+                  min={5}
                   max={50}
                   step={5}
                   value={[field.value]}
@@ -402,7 +412,7 @@ export function OwnerSpecialOfferForm({
               )}
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>10% (الأدنى)</span>
+              <span>5% (الأدنى)</span>
               <span>50% (الأقصى)</span>
             </div>
             {errors.offer_discount_rate && (
@@ -411,7 +421,7 @@ export function OwnerSpecialOfferForm({
               </p>
             )}
 
-            {/* معاينة السعر */}
+            {/* معاينة السعر الحية — من الخادم (شفافية التاجر) */}
             {pricePreview && (
               <div className="rounded-lg border bg-muted/30 p-3 text-sm">
                 <div className="flex items-center justify-between">
@@ -420,15 +430,37 @@ export function OwnerSpecialOfferForm({
                     {formatCurrency(pricePreview.base)}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="font-medium">بعد خصم العضو:</span>
-                  <span className="font-semibold text-primary">
-                    {formatCurrency(pricePreview.final)}
-                  </span>
-                </div>
+                {pricePreviewApi.data ? (
+                  <>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="font-medium">عميل العضو يدفع:</span>
+                      <span className="font-extrabold text-primary" dir="ltr">
+                        {formatCurrency(pricePreviewApi.data.member_price)}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className="font-medium">غير العضو يدفع:</span>
+                      <span className="font-semibold text-foreground" dir="ltr">
+                        {formatCurrency(pricePreviewApi.data.non_member_price)}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs font-bold text-success">
+                      وفر العضو {formatCurrency(pricePreviewApi.data.member_saving ?? 0)} بدل
+                      السعر الأساسي — التراكمي مع خصم متجرك
+                      ({pricePreviewApi.data.facility_discount_rate}%){" "}
+                      + عرضك ({pricePreviewApi.data.offer_discount_rate ?? 0}%).
+                    </p>
+                  </>
+                ) : (
+                  <div className="mt-1 flex items-center justify-between">
+                    <span className="font-medium">بعد خصم العرض:</span>
+                    <span className="font-semibold text-primary" dir="ltr">
+                      {formatCurrency(pricePreview.final)}
+                    </span>
+                  </div>
+                )}
                 <p className="mt-2 text-xs text-muted-foreground">
-                  * السعر النهائي للأعضاء قد يُحسب بخصم إضافي بحسب نسبة
-                  متجرك.
+                  * معاينة حية من الخادم — نفس معادلات الدفع الفعلية تماماً.
                 </p>
               </div>
             )}

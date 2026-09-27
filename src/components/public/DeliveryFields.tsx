@@ -11,14 +11,23 @@
  * - العنوان النصي المختصر إلزامي.
  * - الإحداثيات إلزامية: المستهلك (CheckoutSheet/CartSheet/cart)
  *   يعطّل زر الإرسال حتى وجود النقطة والعنوان معاً.
+ *
+ * جولة المحافظ اليمنية:
+ * - «طريقة الاستلام»: التوصيل هو الافتراضي المحدد، و«تسليم يدوي/استلام
+ *   من المتجر» خيار ثانٍ (UI فقط — بلا حقل خادم؛ التاجر يملك أصلاً
+ *   إجراء «توصيل ذاتي»). عند الاستلام من المتجر تُخفّى إلزامية
+ *   الموقع/العنوان والتسعير الحي.
+ * - «طريقة الدفع»: كاش (افتراضي) + «محفظة / تحويل يدوي» نشط يفتح
+ *   منتقي محافظ المتجر + «الدفع الإلكتروني المباشر» معطّل (قريباً).
  */
 
-import { Banknote, Loader2, MapPin, Wallet } from "lucide-react";
+import { Banknote, Loader2, MapPin, Store, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { GeoLocationField } from "@/components/shared/GeoLocationField";
+import { WalletPickerList } from "@/components/wallets/WalletPickerList";
 import { useDeliveryEstimate } from "@/hooks/useDeliveryEstimate";
 import { formatCurrency } from "@/lib/format";
 import type { PaymentMethod } from "@/types/api.generated";
@@ -36,6 +45,9 @@ export const DELIVERY_TEXT_MAX = 500;
 export const MISSING_LOCATION_MSG =
   "حمّل موقعك أولاً — المندوب يحتاجه لإيصال طلبك";
 
+/** طريقة الاستلام — UI فقط (التوصيل افتراضي، والتسليم اليدوي خيار ثانٍ). */
+export type DeliveryMode = "delivery" | "handover";
+
 export interface DeliveryFieldsProps {
   /** خط عرض موقع التوصيل (null إن لم يُحمّل بعد). */
   lat: number | null;
@@ -43,15 +55,21 @@ export interface DeliveryFieldsProps {
   lng: number | null;
   /** يُستدعى عند نجاح تحميل الموقع (GPS أو إدخال يدوي). */
   onLocated: (lat: number, lng: number) => void;
-  /** العنوان التفصيلي (delivery_address) — إلزامي (§6-3). */
+  /** العنوان التفصيلي (delivery_address) — إلزامي في وضع التوصيل (§6-3). */
   address: string;
   onAddressChange: (value: string) => void;
   /** ملاحظات الطلب (notes). */
   notes: string;
   onNotesChange: (value: string) => void;
-  /** طريقة الدفع — cash فقط فعلياً (wallet يرفضه الخادم 422). */
+  /** طريقة الدفع — cash (افتراضي) | wallet (تحويل يدوي عبر محفظة المتجر). */
   paymentMethod: PaymentMethod;
   onPaymentMethodChange: (method: PaymentMethod) => void;
+  /** معرّف محفظة المتجر المختارة (مطلوب مع wallet). */
+  paymentWalletId: number | null;
+  onPaymentWalletIdChange: (walletId: number | null) => void;
+  /** طريقة الاستلام — delivery (افتراضي) | handover (استلام من المتجر). */
+  deliveryMode?: DeliveryMode;
+  onDeliveryModeChange?: (mode: DeliveryMode) => void;
   /** تعطيل كل الحقول (نفد المخزون مثلاً). */
   disabled?: boolean;
   /**
@@ -63,7 +81,8 @@ export interface DeliveryFieldsProps {
   /** بادئة لمعرّفات الحقول لتفادي تصادم DOM عند تعدد النماذج. */
   idPrefix?: string;
   /**
-   * معرّف المنشأة — للتسعير الحي (GET /orders/delivery-estimate).
+   * معرّف المنشأة — للتسعير الحي (GET /orders/delivery-estimate)
+   * ولجلب محافظ المتجر (GET /facilities/{id}/wallets).
    * null = بلا سطر تسعير (تصفح غير مسجل الدخول).
    */
   facilityId?: number | null;
@@ -81,6 +100,10 @@ export function DeliveryFields({
   onNotesChange,
   paymentMethod,
   onPaymentMethodChange,
+  paymentWalletId,
+  onPaymentWalletIdChange,
+  deliveryMode = "delivery",
+  onDeliveryModeChange,
   disabled = false,
   variant = "sheet",
   idPrefix = "",
@@ -90,30 +113,97 @@ export function DeliveryFields({
   const wrapClass =
     variant === "sheet" ? "space-y-2 border-b border-border/50 p-4" : "space-y-2";
 
-  /* التسعير الحي — يُحدَّث مع الموقع المحمّل (debounce داخلي 700ms) */
-  const estimate = useDeliveryEstimate(facilityId, lat, lng);
+  /* التسعير الحي — يُحدَّث مع الموقع المحمّل (debounce داخلي 700ms).
+     في وضع الاستلام من المتجر لا تسعير ولا إلزامية موقع. */
+  const isHandover = deliveryMode === "handover";
+  const estimate = useDeliveryEstimate(
+    isHandover ? null : facilityId,
+    isHandover ? null : lat,
+    isHandover ? null : lng
+  );
 
   const addressId = `${idPrefix}address`;
   const notesId = `${idPrefix}notes`;
   const hasLocation = lat != null && lng != null;
-  const addressMissing = showAddressRequired && address.trim().length === 0;
+  const addressMissing = showAddressRequired && !isHandover && address.trim().length === 0;
 
   return (
     <>
+      {/* طريقة الاستلام — التوصيل افتراضي والتسليم اليدوي خيار ثانٍ */}
+      {onDeliveryModeChange && (
+        <section className={wrapClass} aria-label="طريقة الاستلام">
+          <Label className="text-sm font-bold">طريقة الاستلام</Label>
+          <RadioGroup
+            value={deliveryMode}
+            onValueChange={(v) => onDeliveryModeChange(v as DeliveryMode)}
+            className="grid grid-cols-2 gap-2"
+          >
+            <label
+              className={cn(
+                "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border-2 px-3 text-xs font-bold transition-colors",
+                deliveryMode === "delivery"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border/60 text-muted-foreground hover:border-primary/40"
+              )}
+            >
+              <RadioGroupItem value="delivery" className="sr-only" />
+              <span className="flex min-w-0 flex-col">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  توصيل
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  الافتراضي — المندوب يوصل إليك
+                </span>
+              </span>
+            </label>
+            <label
+              className={cn(
+                "flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl border-2 px-3 text-xs font-bold transition-colors",
+                deliveryMode === "handover"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border/60 text-muted-foreground hover:border-primary/40"
+              )}
+            >
+              <RadioGroupItem value="handover" className="sr-only" />
+              <span className="flex min-w-0 flex-col">
+                <span className="flex items-center gap-1.5">
+                  <Store className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  تسليم يدوي
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  استلام من المتجر
+                </span>
+              </span>
+            </label>
+          </RadioGroup>
+        </section>
+      )}
+
       {/* موقع التوصيل — زر تحميل الموقع (إلزامية الإحداثيات §6-3) */}
-      <section className={wrapClass} aria-label="موقع التوصيل">
+      <section
+        className={cn(wrapClass, isHandover && "opacity-60")}
+        aria-label="موقع التوصيل"
+      >
         <div className="flex items-center justify-between">
           <Label className="flex items-center gap-1 text-sm font-bold">
             موقع التوصيل
-            <span
-              className="text-destructive"
-              aria-hidden="true"
-              title="إلزامي"
-            >
-              *
-            </span>
+            {!isHandover && (
+              <span
+                className="text-destructive"
+                aria-hidden="true"
+                title="إلزامي"
+              >
+                *
+              </span>
+            )}
+            {isHandover && (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                غير مطلوب — استلام من المتجر
+              </span>
+            )}
           </Label>
-          {hasLocation && (
+          {hasLocation && !isHandover && (
             <span className="flex items-center gap-1 text-[11px] font-bold text-primary">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
               موقعك محمّل
@@ -124,12 +214,12 @@ export function DeliveryFields({
         <GeoLocationField
           value={hasLocation ? { lat, lng: lng! } : null}
           onLocated={(p) => onLocated(p.lat, p.lng)}
-          disabled={disabled}
+          disabled={disabled || isHandover}
           idPrefix={idPrefix}
         />
 
         {/* سطر التسعير الحي — يُحدَّث مع الموقع المحمّل (§6-3) */}
-        {facilityId != null && (
+        {!isHandover && facilityId != null && (
           <div
             aria-live="polite"
             className={cn(
@@ -192,9 +282,14 @@ export function DeliveryFields({
           )}
         >
           العنوان التفصيلي
-          <span className="text-destructive" aria-hidden="true">
-            *
-          </span>
+          {!isHandover && (
+            <span className="text-destructive" aria-hidden="true">
+              *
+            </span>
+          )}
+          {isHandover && (
+            <span className="text-[10px]">(اختياري في الاستلام من المتجر)</span>
+          )}
         </Label>
         <Textarea
           id={addressId}
@@ -208,7 +303,7 @@ export function DeliveryFields({
             "resize-none",
             addressMissing && "border-destructive/40 focus-visible:ring-destructive/30",
           )}
-          aria-required="true"
+          aria-required={!isHandover}
           aria-invalid={addressMissing}
         />
         {addressMissing && (
@@ -232,30 +327,70 @@ export function DeliveryFields({
           onValueChange={(v) => onPaymentMethodChange(v as PaymentMethod)}
           className="space-y-2"
         >
+          {/* كاش — الافتراضي */}
           <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-            <RadioGroupItem value="cash" id={`${idPrefix}pay-cash`} />
+            <RadioGroupItem value="cash" id={`${idPrefix}pay-cash`} disabled={disabled} />
             <Label
               htmlFor={`${idPrefix}pay-cash`}
               className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
             >
               <Banknote className="h-5 w-5 text-foreground" aria-hidden="true" />
-              نقداً عند الاستلام
+              الدفع عند الاستلام (كاش)
             </Label>
           </div>
-          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border p-3 opacity-60">
-            <RadioGroupItem value="wallet" id={`${idPrefix}pay-wallet`} disabled />
+
+          {/* محفظة / تحويل يدوي — المسار النشط (جولة المحافظ) */}
+          <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+            <RadioGroupItem
+              value="wallet"
+              id={`${idPrefix}pay-wallet`}
+              disabled={disabled}
+            />
             <Label
               htmlFor={`${idPrefix}pay-wallet`}
+              className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
+            >
+              <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
+              <span className="flex min-w-0 flex-col">
+                <span>محفظة / تحويل يدوي</span>
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  حوّل من محفظتك وارفع صورة الإشعار
+                </span>
+              </span>
+            </Label>
+          </div>
+
+          {/* بوابة الدفع الإلكتروني — معطّلة (قريباً) — لا تُرسل للخادم */}
+          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border p-3 opacity-60">
+            <RadioGroupItem value="gateway" id={`${idPrefix}pay-gateway`} disabled />
+            <Label
+              htmlFor={`${idPrefix}pay-gateway`}
               className="flex flex-1 items-center gap-2 text-sm font-medium text-muted-foreground"
             >
-              <Wallet className="h-5 w-5" aria-hidden="true" />
-              محفظة جيب
+              <Banknote className="h-5 w-5" aria-hidden="true" />
+              الدفع الإلكتروني المباشر
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                قريباً
+                🔒 قريباً
               </span>
             </Label>
           </div>
         </RadioGroup>
+
+        {/* منتقي محفظة المتجر — يظهر عند اختيار «محفظة / تحويل يدوي» */}
+        {paymentMethod === "wallet" && (
+          <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+            <p className="mb-2 text-xs font-bold text-foreground">
+              اختر محفظة المتجر التي ستحوّل إليها
+            </p>
+            <WalletPickerList
+              facilityId={facilityId}
+              value={paymentWalletId}
+              onChange={onPaymentWalletIdChange}
+              disabled={disabled}
+              idPrefix={idPrefix}
+            />
+          </div>
+        )}
       </section>
 
       {/* ملاحظات */}

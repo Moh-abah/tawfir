@@ -22,6 +22,7 @@ import {
   Store,
   Receipt,
   Sparkles,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,10 @@ import { ownerService } from "@/services/owner.service";
 import { useOwnerOrders } from "@/hooks/useOwnerOrders";
 import { useUpdateOrderStatus } from "@/hooks/useUpdateOrderStatus";
 import { useMyFacilities } from "@/hooks/useMyFacilities";
+import {
+  OwnerWalletOrderPanel,
+  isOwnerConfirmGated,
+} from "@/components/owner/OwnerWalletOrderPanel";
 import {
   OwnerRadarCard,
   RequestCourierButton,
@@ -67,7 +72,19 @@ const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   wallet: "محفظة",
 };
 
-/** التحوّلات المسموحة من كل حالة — Forward only. */
+/**
+ * الانتقالات المسموحة من كل حالة — Forward only + بوابة تأكيد طلبات
+ * المحافظ (لا تأكيد قبل رفع العميل إشعار التحويل أو اكتمال الدفعة الناقصة).
+ */
+function allowedNextFor(order: OrderListOut): OrderStatus[] {
+  const base = ALLOWED_NEXT[order.status];
+  if (isOwnerConfirmGated(order)) {
+    return base.filter((s) => s !== "confirmed");
+  }
+  return base;
+}
+
+/** الانتقالات الأساسية لكل حالة. */
 const ALLOWED_NEXT: Record<OrderStatus, OrderStatus[]> = {
   pending: ["confirmed", "cancelled"],
   confirmed: ["preparing"],
@@ -112,7 +129,9 @@ interface OrderRowProps {
 function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
   const statusMutation = useUpdateOrderStatus(facilityId);
   const isPending = order.status === "pending";
-  const allowedNext = ALLOWED_NEXT[order.status];
+  const allowedNext = allowedNextFor(order);
+  /* طلب محفظة يحتاج انتباهاً خاصاً للدفع */
+  const isWalletOrder = order.payment_method === "wallet";
 
   const itemAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -296,6 +315,9 @@ function OrderRow({ order, facilityId, prefersReduced }: OrderRowProps) {
             }
             onStatusChange={onStatusChange}
           />
+
+          {/* جولة المحافظ — لوحة طلب المحفظة (شارة + إشعار + دفعة ناقصة) */}
+          {isWalletOrder && <OwnerWalletOrderPanel order={order} />}
 
           {/* الزر الذهبي — طلب مندوب توصيل (طلبات مؤكدة/قيد تحضير حصراً —
               قيد الخادم) · بطاقة المهمة إن وُجدت محلياً لهذا الطلب */}
@@ -618,7 +640,25 @@ export default function OwnerOrdersContent() {
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Link href={`/owner/facilities/${facilityId}/payments`}>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-full min-h-[44px] border-accent/50 text-accent-ink hover:bg-accent/10"
+            >
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">مدفوعات المطعم</span>
+            </Button>
+          </Link>
+          <Link href={`/owner/facilities/${facilityId}/wallets`}>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-full min-h-[44px]"
+            >
+              <Wallet className="h-4 w-4" />
+              <span className="hidden sm:inline">محافظ التحويل</span>
+            </Button>
+          </Link>
           <Link href={`/owner/facilities/${facilityId}/products`}>
             <Button
               variant="outline"

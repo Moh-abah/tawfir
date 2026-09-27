@@ -48,6 +48,11 @@ import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { OrderTrackingCard } from "@/components/public/OrderTrackingCard";
 import { LiveElapsedBadge } from "@/components/shared/LiveElapsedBadge";
 import { GeoLocationField } from "@/components/shared/GeoLocationField";
+import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
+import {
+  WalletPickerList,
+} from "@/components/wallets/WalletPickerList";
+import { useFacilityWallets } from "@/hooks/useWallets";
 import { MISSING_LOCATION_MSG } from "@/components/public/DeliveryFields";
 import {
   AlertDialog,
@@ -94,7 +99,15 @@ const STEP_ICON: Record<OrderStatus, LucideIcon> = {
 
 const PAYMENT_LABEL: Record<PaymentMethod, string> = {
   cash: "نقداً عند الاستلام",
-  wallet: "محفظة جيب",
+  wallet: "محفظة / تحويل يدوي",
+};
+
+/** تسميات حالة إيصالة الدفع (جولة المحافظ). */
+const PAYMENT_STATUS_LABEL: Record<string, string> = {
+  pending: "بانتظار المراجعة",
+  approved: "تم تأكيد الدفع",
+  rejected: "مرفوض",
+  partial_requested: "بانتظار تكملة الدفعة",
 };
 
 /* ─── الجولة 10 — الوقت المتوقع لكل حالة نشطة (تلميح لطيف) ── */
@@ -164,6 +177,8 @@ function ReOrderSection({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
     () => (autoOpen ? order.payment_method : "cash")
   );
+  /* محفظة إعادة الطلب — طلب جديد يتطلب اختيار محفظة من جديد */
+  const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
 
   const openSheet = () => {
     haptic("tick");
@@ -182,6 +197,8 @@ function ReOrderSection({
     setAddress(order.delivery_address ?? "");
     setNotes(order.notes ?? "");
     setPaymentMethod(order.payment_method);
+    /* طلب جديد = إيصالة جديدة — المحفظة تُختار من جديد */
+    setPaymentWalletId(null);
     setOpen(true);
   };
 
@@ -222,6 +239,14 @@ function ReOrderSection({
       });
       return;
     }
+    if (paymentMethod === "wallet" && paymentWalletId == null) {
+      toast({
+        title: "اختر محفظة الدفع أولاً",
+        description: "من قائمة محافظ المتجر",
+        variant: "destructive",
+      });
+      return;
+    }
     createOrder.mutate(
       {
         facility_id: order.facility_id,
@@ -233,6 +258,8 @@ function ReOrderSection({
         delivery_lng: lng,
         delivery_address: address.trim() || null,
         payment_method: paymentMethod,
+        payment_wallet_id:
+          paymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
@@ -240,10 +267,18 @@ function ReOrderSection({
           haptic("success");
           toast({
             title: `تم استلام طلبك الجديد #${newOrder.id}`,
-            description: "نفس وجبات طلبك السابق — تابع حالته الآن",
+            description:
+              newOrder.payment_method === "wallet"
+                ? "أكمل الدفع من شاشة الدفع — حوّل وارفع إشعار التحويل"
+                : "نفس وجبات طلبك السابق — تابع حالته الآن",
           });
           setOpen(false);
-          router.push(`/orders/${newOrder.id}`);
+          /* طلب محفظة → شاشة الدفع مباشرة؛ غيره → تفاصيل الطلب */
+          router.push(
+            newOrder.payment_method === "wallet"
+              ? `/orders/${newOrder.id}/payment`
+              : `/orders/${newOrder.id}`
+          );
         },
         onError: (err) => {
           const e = err as { message?: string; status?: number };
@@ -431,12 +466,16 @@ function ReOrderSection({
               <Label className="text-xs font-bold">طريقة الدفع</Label>
               <RadioGroup
                 value={paymentMethod}
-                onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}
+                onValueChange={(v) => {
+                  const next = v as PaymentMethod;
+                  setPaymentMethod(next);
+                  if (next !== "wallet") setPaymentWalletId(null);
+                }}
                 className="grid grid-cols-2 gap-2"
               >
                 {[
                   { value: "cash", label: "نقداً عند الاستلام", icon: Banknote },
-                  { value: "wallet", label: "محفظة جيب", icon: Wallet },
+                  { value: "wallet", label: "محفظة / تحويل يدوي", icon: Wallet },
                 ].map(({ value, label, icon: Icon }) => (
                   <label
                     key={value}
@@ -454,6 +493,20 @@ function ReOrderSection({
                 ))}
               </RadioGroup>
             </div>
+
+            {/* منتقي محفظة المتجر — يظهر عند اختيار الدفع بالمحفظة */}
+            {paymentMethod === "wallet" && (
+              <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
+                <p className="mb-2 text-xs font-bold text-foreground">
+                  اختر محفظة المتجر التي ستحوّل إليها
+                </p>
+                <WalletPickerList
+                  facilityId={order.facility_id}
+                  value={paymentWalletId}
+                  onChange={setPaymentWalletId}
+                />
+              </div>
+            )}
           </div>
 
           {/* ملخص تقديري + تأكيد */}
@@ -828,6 +881,108 @@ function OrderDetailSkeleton() {
 }
 
 /* ─── العرض الكامل لطلب ──────────────────────────────── */
+/* ─── جولة المحافظ — بطاقة حالة الدفع بالمحفظة ───────────── */
+function WalletPaymentCard({ order }: { order: OrderOut }) {
+  const status = order.payment_status ?? null;
+  const receipt = order.payment_receipt ?? null;
+  const approved = status === "approved";
+  const showCTA =
+    !approved &&
+    order.status !== "cancelled" &&
+    (status === null || status === "pending" || status === "rejected" || status === "partial_requested");
+
+  const tone =
+    status === "approved"
+      ? "border-success/30 bg-success/10"
+      : status === "rejected"
+        ? "border-destructive/30 bg-destructive/5"
+        : "border-accent/40 bg-accent/10";
+
+  return (
+    <section
+      className={cn("rounded-2xl border-2 p-5", tone)}
+      aria-label="حالة الدفع بالمحفظة"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-extrabold text-foreground">
+          <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
+          الدفع بالمحفظة
+        </h2>
+        {status ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-extrabold",
+              status === "approved"
+                ? "border-success/30 text-success"
+                : status === "rejected"
+                  ? "border-destructive/30 text-destructive"
+                  : "border-accent/40 text-accent-ink"
+            )}
+          >
+            {PAYMENT_STATUS_LABEL[status] ?? status}
+          </span>
+        ) : (
+          <span className="rounded-full border border-accent/40 bg-background/60 px-2.5 py-1 text-xs font-extrabold text-accent-ink">
+            بانتظار تحويلك
+          </span>
+        )}
+      </div>
+
+      {order.payment_wallet_label && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          المحفظة:{" "}
+          <span className="font-bold text-foreground" dir="ltr">
+            {order.payment_wallet_label}
+          </span>
+        </p>
+      )}
+
+      {status === "partial_requested" && (
+        <p className="mt-2 rounded-lg bg-background/70 px-3 py-2 text-xs font-bold leading-relaxed text-accent-ink">
+          💰 مطلوب تكملة الدفعة — المتبقي:{" "}
+          <span dir="ltr" className="tabular-nums">
+            {formatCurrency(receipt?.remaining_amount ?? 0)}
+          </span>
+        </p>
+      )}
+
+      {status === "rejected" && receipt?.rejection_reason && (
+        <p className="mt-2 text-xs font-bold text-destructive">
+          سبب الرفض: {receipt.rejection_reason}
+        </p>
+      )}
+
+      {status === "pending" && (
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {order.payment_is_completion || receipt?.is_completion
+            ? "تم استلام إشعار المتبقي — بانتظار مراجعة التاجر."
+            : "إشعار التحويل في مراجعة المتجر — سيؤكد الطلب بعد التحقق."}
+        </p>
+      )}
+
+      {showCTA && (
+        <Button asChild className="mt-3 min-h-[44px] w-full rounded-full" size="lg">
+          <Link href={`/orders/${order.id}/payment`}>
+            <CreditCard className="h-4 w-4" aria-hidden="true" />
+            {status === null
+              ? `إتمام الدفع — ${formatCurrency(order.total)}`
+              : status === "partial_requested"
+                ? "تحويل المتبقي ورفع الإشعار"
+                : "عرض شاشة الدفع"}
+          </Link>
+        </Button>
+      )}
+
+      {approved && (
+        <p className="mt-2 text-xs text-success">
+          تم استلام تحويلك ({formatCurrency(receipt?.amount ?? order.total)}) —
+          شكراً لك 🙏
+        </p>
+      )}
+    </section>
+  );
+}
+
 function OrderView({
   order,
   reorderRequested = false,
@@ -962,6 +1117,11 @@ function OrderView({
           </div>
         )}
       </section>
+
+      {/* جولة المحافظ — بطاقة الدفع بالمحفظة (طلبات المحفظة فقط) */}
+      {order.payment_method === "wallet" && (
+        <WalletPaymentCard order={order} />
+      )}
 
       {/* حوار تأكيد الإلغاء */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>

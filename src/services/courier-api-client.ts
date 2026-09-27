@@ -45,6 +45,7 @@ const PROTECTED_PREFIXES = [
   "/courier/task",
   "/courier/tasks",
   "/courier/profile",
+  "/courier/wallets",
   "/courier/settings",
 ];
 

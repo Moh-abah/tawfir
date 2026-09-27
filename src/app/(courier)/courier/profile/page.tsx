@@ -19,6 +19,7 @@ import {
   Settings,
   ShieldCheck,
   Timer,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -250,6 +251,19 @@ export default function CourierProfilePage() {
           </div>
         </dl>
       </section>
+
+      {/* محافظي — جولة المحافظ (أجور التوصيل) */}
+      <Button
+        asChild
+        variant="outline"
+        size="lg"
+        className="h-13 w-full gap-2 rounded-2xl native-tap border-primary/30 text-primary hover:bg-primary/10"
+      >
+        <Link href="/courier/wallets" aria-label="فتح محافظي">
+          <Wallet className="h-5 w-5" aria-hidden="true" />
+          محافظي — استلام أجور التوصيل
+        </Link>
+      </Button>
 
       {/* إعداداتي */}
       <Button
