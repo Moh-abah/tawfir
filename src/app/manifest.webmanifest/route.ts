@@ -47,24 +47,32 @@ const SCOPE_EXTENSIONS = [
   { origin: "https://" + API_HOST },
 ];
 
+/* ═══ الجولة 26 — تنظيف قدرات الـmanifest (قرار المالك) ═══
+ *
+ * أُزيل عضوان فقط لعدم ملاءمتهما لمشروع توصيل طلبات:
+ *  • file_handlers + صفحتا /files و/owner/files و
+ *    FilesHandlerContent — «فتح باستخدام» من مدير الملفات
+ *    بلا قيمة حقيقية لمشروع توفير.
+ *  • note_taking + صفحة /notes/new وQuickNotesContent —
+ *    ملاحظات سريعة لا علاقة لها بمشروع الطلبات.
+ *
+ * المُبقى عليه (مؤكَّد بالفحص الحي للجولة 26):
+ *  • widgets — عضو صحيح في الـmanifest (فحص PWABuilder ✓).
+ *    عرضه الفعلي على شاشة أندرويد يعتمد على دعم المتصفح
+ *    (كروم قد يتجاهله في بعض الإصدارات) — العضو نفسه سليم.
+ *  • iarc_rating_id — عضو صحيح يفحصه PWABuilder؛ قيمته تُستبدل
+ *    بالمعرّف الحقيقي عند استيفاء استبيان IARC قبل نشر المتاجر.
+ *  • protocol_handlers، share_target، shortcuts، launch_handler،
+ *    display_override، edge_side_panel، scope_extensions،
+ *    Offline/Push/Background+Periodic Sync — كلها تعمل.
+ */
+
 /* معرّف تصنيف العمر الدولي (IARC).
  * ⚠ قيمة مؤقتة موثقة — يُستبدلها المالك بالمعرّف الحقيقي بعد
  * استيفاء استبيان IARC المجاني (من Play Console → تحديد تصنيف
  * المحتوى، أو https://www.globalratings.com) ثم وضعه هنا حرفياً.
  * وجود العضو نفسه هو ما يفحصه PWABuilder والمتاجر. */
 const IARC_RATING_ID = "PENDING-IARC-QUESTIONNAIRE";
-
-/* أيقونة معالجات الملفات */
-const FILE_HANDLER_ICONS = [
-  { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-  { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-];
-
-/* أنواع الملفات المدعومة: صور المنتجات/الفواتير + PDF */
-const FILE_HANDLER_ACCEPT = {
-  "image/*": [".png", ".jpg", ".jpeg", ".webp", ".gif"],
-  "application/pdf": [".pdf"],
-};
 
 /* ودجة (Widget) العروض — HTML مستقل في /widgets/offers-widget.html */
 const OFFERS_WIDGET = {
@@ -214,23 +222,12 @@ function customerManifest() {
         ],
       },
     },
-    /* معالجة فتح الملفات من نظام التشغيل (فتح صورة من مدير الملفات بتوفير)
-     * → صفحة /files تستقبل الملف عبر launchQueue وتعرض معاينة */
-    file_handlers: [
-      {
-        action: "/files",
-        accept: FILE_HANDLER_ACCEPT,
-        icons: FILE_HANDLER_ICONS,
-        launch_type: "single-client",
-      },
-    ],
-    /* ودجة العروض لشاشة أندرويد/ويندوز */
+    /* الودجة + تصنيف العمر (عضوان صحيحان — انظر تعليق الجولة 26 أعلاه) */
     widgets: [OFFERS_WIDGET],
-    /* تطبيق ملاحظات سريعة: زر «ملاحظة جديدة» من النظام يفتح /notes/new */
-    note_taking: { new_note_url: "/notes/new" },
-    /* تصنيف العمر (مؤقت — انظر التعليق أعلاه) */
     iarc_rating_id: IARC_RATING_ID,
-    /* توسيع النطاق: البوابات الأخرى داخل نطاق التطبيق المثبّت */
+    /* توسيع النطاق: البوابات الأخرى داخل نطاق التطبيق المثبّت
+     * (الجولة 26: حُذف file_handlers/note_taking فقط —
+     *  انظر تعليق أعلى الملف) */
     scope_extensions: SCOPE_EXTENSIONS,
     /* بروتوكول مخصص: روابط web+tawfir://… تفتح في البحث */
     protocol_handlers: [
@@ -357,15 +354,7 @@ function ownerManifest() {
         ],
       },
     },
-    /* فتح صور المنتجات/الفواتير من مدير الملفات في بوابة المالك */
-    file_handlers: [
-      {
-        action: "/owner/files",
-        accept: FILE_HANDLER_ACCEPT,
-        icons: FILE_HANDLER_ICONS,
-        launch_type: "single-client",
-      },
-    ],
+    /* الجولة 26: حُذف file_handlers من بوابة المالك — بقية الأعضاء سليمة */
     iarc_rating_id: IARC_RATING_ID,
     scope_extensions: [
       { origin: APP_ORIGIN },
@@ -441,6 +430,7 @@ function adminManifest() {
       "browser",
     ],
     edge_side_panel: { preferred_width: 480 },
+    /* الجولة 26: العضو صحيح — القيمة تُستبدل بمعرّف IARC الحقيقي لاحقاً */
     iarc_rating_id: IARC_RATING_ID,
     scope_extensions: [
       { origin: APP_ORIGIN },

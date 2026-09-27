@@ -455,3 +455,26 @@ npx cap sync android
    PWABuilder مع تفعيل Widgets — سيستخدم /widgets/offers-widget.html.
 4. **لا شيء إلزامي في جانب Capacitor**: كل الإضافات ويب صافٍ ويعمل
    داخل الغلاف الحالي بلا تعديل (المسار 2).
+
+---
+
+## الجولة 26 — تنظيف القدرات (قرار المالك): حذف Note Taking + File Handlers فقط
+
+### ما حُذف نهائياً
+| القدرة | الملفات المحذوفة | السبب |
+|---|---|---|
+| File Handlers | عضو `file_handlers` (عميل+مالك) + صفحتا `/files` و`/owner/files` + `FilesHandlerContent.tsx` | «فتح باستخدام» من مدير الملفات لا قيمة لها في تطبيق طلبات |
+| Note Taking | عضو `note_taking` + صفحة `/notes/new` + `QuickNotesContent.tsx` | ملاحظات سريعة لا علاقة لها بمشروع الطلبات |
+
+### ما بقي وأُكد عمله بالفحص الحي (v1.4.0)
+- **Widgets**: العضو سليم في manifest العميل والودجة `/widgets/offers-widget.html` تُقدَّم وتُعرض (فُحصت بصرياً). ملاحظة صريحة: *عرض* الودجة على شاشة أندرويد يعتمد على دعم المتصفح/الإصدار — العضو نفسه يفحصه PWABuilder ✓، والودجة الأصلية الحقيقية مستقبلاً = كود AppWidgetProvider بعد نشر Play.
+- **iarc_rating_id**: عضو صحيح في المانيفستات الثلاثة يفحصه PWABuilder ✓ — قيمته `PENDING-IARC-QUESTIONNAIRE` تُستبدل بالمعرّف الحقيقي بعد استبيان IARC المجاني (انظر خطوات الجولة 25 أعلاه). لا يُنتج تصنيفاً بلا استبيان — هذا طبيعي وليس عطلاً.
+- **Protocol Handlers / Share Target / Shortcuts / Launch Handler / WCO+Tabbed / Edge Side Panel / scope_extensions / Offline / Push / Background+Periodic Sync**: كلها تعمل ولم تُمس.
+
+### أثر الحذف على PWABuilder
+بندا File Handlers وNote Taking سيعودان غير مكتملَين (⚠) في الفحص — **مقصود وبتوصية المالك**. كل بنود الخدمة الأساسية
+(Service Worker وطبقاته الخمسة + بقية القدرات) تبقى مكتملة.
+
+### أثر الحذف على Capacitor/APK/IPA
+**صفر**: لا شيء من المحذوفين كان له حضور في طبقة الغلاف الأصلي. الحزم القائمة (com.tawfir.ye.*) تعمل كما هي؛
+الدمج يقتصر على ملفات الويب في هذه الحزمة.
