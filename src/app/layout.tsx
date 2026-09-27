@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { BOOT_LOGO_SRC } from "@/lib/pwa/boot-logo";
@@ -84,7 +86,17 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "توفير",
   },
+  /* الجولة 28 — أيقونات كاملة (كانت apple فقط):
+     فافيكون ملفي (ICO) + PNG بأحجام متعددة للمتصفحات الحديثة —
+     غيابها كان يجعل المتصفح يطلب /favicon.ico غير الموجود (404)
+     فيعرض أيقونة افتراضية أو نسخة قديمة مخبأة. */
   icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48", type: "image/x-icon" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
     apple: "/icons/apple-touch-icon.png",
   },
   /* الجولة 16 — معاينة اجتماعية عند مشاركة الروابط في واتساب/تيليجرام:
@@ -96,11 +108,15 @@ export const metadata: Metadata = {
     title: "توفير | طلب الوجبات اليمنية وخصم حتى 30% للعضوية",
     description:
       "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم وكافتيريات مدينتك، ووفّر حتى 30% على كل طلب مع عضوية توفير.",
+    /* الجولة 28 — إصلاح 404: كانت تشير إلى tawfir-social-cover.png
+       (نُقلت إلى resources/brand-sources/ في الجولة 27) ← معاينة
+       واتساب/تويتر/فيرسل بلا صورة. الآن النسخة المحسّنة الموجودة
+       فعلًا (46KB بدل 4.1MB، وبالمقاس القياسي 1200×630). */
     images: [
       {
-        url: "/identity/tawfir-social-cover.png",
-        width: 2560,
-        height: 1440,
+        url: "/identity/tawfir-social-cover-og.jpg",
+        width: 1200,
+        height: 630,
         alt: "توفير — تطبيق طلب الوجبات اليمنية",
       },
     ],
@@ -110,7 +126,8 @@ export const metadata: Metadata = {
     title: "توفير | طلب الوجبات اليمنية وخصم حتى 30% للعضوية",
     description:
       "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم وكافتيريات مدينتك، ووفّر حتى 30% على كل طلب مع عضوية توفير.",
-    images: ["/identity/tawfir-social-cover.png"],
+    /* الجولة 28 — نفس إصلاح الـog (الملف القديم محذوف) */
+    images: ["/identity/tawfir-social-cover-og.jpg"],
   },
   /* (أزلنا other: theme-color + apple-mobile-web-app-capable — تولّدهما
      viewport.themeColor و appleWebApp.capable — كانت مكررة مرتين) */
@@ -293,6 +310,12 @@ html.dark #tawfir-boot .tawfir-boot-logo{filter:drop-shadow(0 6px 22px rgba(0,0,
           }}
         />
         <Providers>{children}</Providers>
+        {/* ═══ مراقبة فيرسل (الجولة 28) — لا تعملان محليًا إطلاقًا (no-op) ═══
+            • Analytics  : زوّار/مشاهدات/مصادر/أجهزة في لوحة Vercel → Analytics
+            • SpeedInsights: مقاييس الأداء الحقيقية (RES: LCP/INP/CLS/FCP/TTFB)
+              في لوحة Vercel → Speed Insights — من متصفحات زوّارك الحقيقية */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

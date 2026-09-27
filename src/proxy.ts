@@ -162,6 +162,8 @@ export const config = {
    * - صفحات مشتركة: /offline و/privacy (تعمل على نطاقي العميل والمالك)
    */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|api|robots.txt|sitemap.xml|manifest.webmanifest|sw\\.js|icons/|screenshots/|\\.well-known/|offline|privacy|icon.svg|logo.svg|logo-mark.svg|fonts/).*)",
+    /* الجولة 28: أزلنا icon.svg|logo.svg|logo-mark.svg — ميتة (الملفات
+       حُذفت والهوية الآن تحت /identity/) */
+    "/((?!_next/static|_next/image|favicon.ico|api|robots.txt|sitemap.xml|manifest.webmanifest|sw\\.js|icons/|screenshots/|\\.well-known/|offline|privacy|fonts/).*)",
   ],
 };

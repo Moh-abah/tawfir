@@ -1,12 +1,12 @@
 {
   "name": "tawfir",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "predev": "bun scripts/sync-version.mjs",
     "build": "next build",
-    "prebuild": "bun scripts/sync-version.mjs",
+    "prebuild": "bun scripts/sync-version.mjs && bun scripts/verify-assets.mjs",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push --accept-data-loss",
@@ -14,6 +14,8 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "version:sync": "bun scripts/sync-version.mjs",
+    "check:assets": "bun scripts/verify-assets.mjs",
+    "favicon": "bun scripts/generate-favicon.mjs",
     "api:types": "bun scripts/gen-api-types.mjs"
   },
   "dependencies": {
@@ -54,6 +56,8 @@
     "@reactuses/core": "^6.0.5",
     "@tanstack/react-query": "^5.82.0",
     "@tanstack/react-table": "^8.21.3",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

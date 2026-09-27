@@ -190,10 +190,11 @@ function isStaticAsset(pathname) {
     /* إصلاح 404 الشعار: صور الهوية الآن أصول ثابتة (كاش فوري بالإنتاج) */
     pathname.startsWith("/identity/") ||
     pathname.startsWith("/screenshots/") ||
-    pathname === "/logo.svg" ||
-    pathname === "/logo-mark.svg" ||
-    pathname === "/favicon.ico" ||
-    pathname === "/icon.svg"
+    /* إصلاح 404 الشعار: صور الهوية الآن أصول ثابتة (كاش فوري بالإنتاج).
+       الجولة 28: أزلنا الاستثناءات الميتة /logo.svg و/logo-mark.svg
+       و/icon.svg (حُذفت الملفات في الجولة 27 — المرجع الصحيح
+       /identity/mark-256.png)، وأبقينا /favicon.ico (أُعيد توليده). */
+    pathname === "/favicon.ico"
   );
 }
 
