@@ -438,3 +438,62 @@ export async function getNativeFcmToken(): Promise<string | null> {
  */
 export const NATIVE_APP_ID = "com.tawfir.ye.app" as const;
 export const NATIVE_APP_NAME = "توفير" as const;
+
+/**
+ * معرّف تطبيق «توفير مالك» (APK منفصل بنفس الكود — يبنيه
+ * build-android.yml عند اختيار app=owner بتغيير appId في
+ * capacitor.config.ts قبل cap add). نميّزه وقت التشغيل عبر
+ * App.getInfo().id لتوجيه الـWebView لبوابة المالك (/owner).
+ */
+export const OWNER_APP_ID = "com.tawfir.ye.owner" as const;
+
+/** نسخة التطبيق المكتشفة وقت التشغيل (داخل Native فقط) */
+export type NativeAppVariant = "customer" | "owner";
+
+/**
+ * كشف نسخة التطبيق الحالية (عميل / مالك) داخل غلاف Native.
+ * • يعتمد App.getInfo().id = applicationId من build.gradle — قيمة
+ *   لا يمكن أن تختلف عن الحزمة المثبّتة فعلاً على الجهاز.
+ * • على الويب/PWA/SSR أو عند غياب @capacitor/app: null (بلا توجيه).
+ * • نتيجة واحدة تكفي — نداء واحد غير مكلف عند الإقلاع من NativeBridge.
+ */
+export async function getNativeAppVariant(): Promise<NativeAppVariant | null> {
+  if (!isNativePlatform()) return null;
+  try {
+    const { App } = await import("@capacitor/app");
+    const info = await App.getInfo();
+    if (!info?.id) return null;
+    return info.id === OWNER_APP_ID ? "owner" : "customer";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * بوابة هوية التطبيق (إصلاح «تطبيق المالك يفتح واجهة العميل»):
+ * ═══════════════════════════════════════════════════════════════
+ * الـAPK واحد الكود ونسختان بالحزمة (com.tawfir.ye.app / .owner) —
+ * وserver.url واحد يفتح الرئيسية (عميل) في الحالتين. هذه الدالة
+ * تُستدعى مرة واحدة من NativeBridge عند الإقلاع: إن كنا داخل APK
+ * «توفير مالك» وكان الـWebView هبط على مسار عميل (رئيسية/متاجر/…)
+ * نحوّله فوراً إلى بوابة المالك /owner — حيث تتولى OwnerAuthGuard
+ * إظهار تسجيل الدخول أو لوحة المنشآت حسب الجلسة.
+ *
+ * مسارات مستثناة من التوجيه: /owner/* (البوابة نفسها) و /admin/*
+ * و /courier/* (بواليد عميقة للبوّابات الأخرى — لا نحاربها).
+ * الشبكة الأمان الأولى هي server.url=/owner المضبوط في الـworkflow
+ * للنسخة المالكة؛ هذه الدالة تغطي ما تبقّى (كاش SW لصفحة عميل،
+ * روابط عميقة باردة، تعديل مستقبلي للـURL…).
+ * على الويب/PWA/نسخة العميل: no-op صامت تماماً.
+ */
+export async function applyNativeAppVariantGate(): Promise<void> {
+  if (typeof window === "undefined") return;
+  const variant = await getNativeAppVariant();
+  if (variant !== "owner") return;
+  const p = window.location.pathname;
+  const inOwnerPortal = p === "/owner" || p.startsWith("/owner/");
+  const inStaffPortal = p.startsWith("/admin") || p.startsWith("/courier");
+  if (!inOwnerPortal && !inStaffPortal) {
+    window.location.replace("/owner");
+  }
+}

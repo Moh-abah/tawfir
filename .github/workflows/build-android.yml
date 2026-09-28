@@ -40,10 +40,24 @@
 #    (ملاحظة: إن كان الـKeystore من نوع PKCS12 فيجب أن تكون كلمة مرور
 #     المفتاح = كلمة مرور الـKeystore نفسها — هذا سلوك Java القياسي)
 #
-#  الإشعارات (FCM) — ملف عمومي غير سرّي يُرفع مع الكود في جذر المستودع:
-#    google-services.json  (Firebase Console → Project settings → تطبيق
-#    Android → تنزيل الملف). الإرسال بعدها من Firebase Console → Messaging
-#    → حملة جديدة → Target: Topic = tawfir_all (اشتراك تلقائي بالتطبيق)
+#  الإشعارات (FCM) — ملفات عمومية غير سرّية تُرفع مع الكود في جذر المستودع:
+#    google-services.json          (نسخة العميل — Firebase Console →
+#    Project settings → تطبيق Android → تنزيل الملف)
+#    google-services-partner.json  (نسخة المالك com.tawfir.ye.owner —
+#    أضف تطبيق Android ثانياً في نفس مشروع Firebase ثم نزّل الملف)
+#    يختار السكربت الملف الصحيح آلياً حسب هوية البناء (الجولة 30).
+#    الإرسال بعدها من Firebase Console → Messaging → حملة جديدة →
+#    Target: Topic = tawfir_all (اشتراك تلقائي بالتطبيقين)
+#
+#  هوية التطبيق (الجولة 30 — إصلاح «تطبيق المالك يفتح واجهة العميل»
+#  و«تثبيت العميل يطلب تحديث المالك»):
+#    • customer → com.tawfir.ye.app  «توفير»      — إطلاق: الرئيسية
+#    • owner    → com.tawfir.ye.owner «توفير مالك» — إطلاق: /owner
+#      (الحزمة + الاسم + server.url + صفحة الأوفلاين المحلية تُضبط
+#       كلها قبل cap add، وتتحقق آلياً في 3 محطات: capacitor.config.ts
+#       بعد الـsed، build.gradle/strings.xml بعد cap add، وأخيراً
+#       قراءة الحزمة من الـAPK الناتج نفسه عبر aapt2 — أي انزياح
+#       للهوية يُفشل البناء فوراً بدل شحن تطبيق مكرّر)
 # ══════════════════════════════════════════════════════════════════════
 
 name: "Build Android APK + AAB — توفير"
@@ -154,16 +168,53 @@ jobs:
           # تحقق فعلي قبل إهدار دقائق Gradle: توليد صورة PNG صغيرة بذاكرة sharp
           node -e "require('sharp')({create:{width:8,height:8,channels:3,background:'#005B82'}}).png().toBuffer().then(()=>console.log('✓ sharp تعمل على linux-x64 — جاهزة لـ capacitor-assets')).catch(e=>{console.error('✗ sharp معطلة:',e.message);process.exit(1)})"
 
-      - name: "🏪 هوية التطبيق المختار (تطبيق المالك عند اختياره)"
+      - name: "🎯 تحديد الهوية المتوقعة (عميل/مالك) — مرجع كل تحققات البناء"
+        run: |
+          APP="${{ inputs.app || 'customer' }}"
+          if [ "$APP" = "owner" ]; then
+            ID="com.tawfir.ye.owner"; NAME="توفير مالك"; START="/owner"
+          else
+            ID="com.tawfir.ye.app"; NAME="توفير"; START=""
+          fi
+          echo "الهوية المتوقعة: $ID ($NAME) — الإطلاق: ${START:-/ (الرئيسية)}"
+          {
+            echo "EXPECTED_APP_ID=$ID"
+            echo "EXPECTED_APP_NAME=$NAME"
+            echo "EXPECTED_START_PATH=$START"
+          } >> "$GITHUB_ENV"
+
+      - name: "🏪 تطبيق هوية المالك: الحزمة + الاسم + وجهة الإطلاق (بوابة المالك)"
         if: ${{ inputs.app == 'owner' }}
         run: |
+          set -e
+          # 1) الحزمة والاسم — قلب تمايز التطبيقين على الجهاز (تثبيت جنباً
+          #    إلى جنب بدل «تحديث» لأن الحزمتين مختلفتين)
           sed -i 's/appId: "com.tawfir.ye.app"/appId: "com.tawfir.ye.owner"/' capacitor.config.ts
           sed -i 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
-          if ! grep -q 'com.tawfir.ye.owner' capacitor.config.ts; then
-            echo "::error::فشل تعديل capacitor.config.ts لهوية المالك — راجع صيغة الملف"
+          # 2) وجهة الإطلاق الأولى: بوابة المالك /owner بدل الرئيسية (عميل)
+          sed -i 's#url: "https://tawfir.giize.com"#url: "https://tawfir.giize.com/owner"#' capacitor.config.ts
+          # 3) صفحة الأوفلاين المحلية (native-shell): إعادة التحميل لبوابة المالك
+          sed -i 's#var LIVE_URL = "https://tawfir.giize.com/";#var LIVE_URL = "https://tawfir.giize.com/owner";#' native-shell/index.html
+          # ── تحقق صارم على سطر appId الحقيقي بالاقتباسات ──
+          # (الحارس القديم grep -q 'com.tawfir.ye.owner' كان ثغرة: يمرّ من
+          #  تعليق في رأس capacitor.config.ts حتى لو فشل الـsed — فيُبنى
+          #  «توفير مالك» بحزمة العميل com.tawfir.ye.app ويبتلع التطبيقين!)
+          if ! grep -q 'appId: "com.tawfir.ye.owner"' capacitor.config.ts; then
+            echo "::error::فشل تعديل appId لهوية المالك — راجع صيغة capacitor.config.ts"
             exit 1
           fi
-          grep -E "appId|appName" capacitor.config.ts | head -2
+          if ! grep -q 'appName: "توفير مالك"' capacitor.config.ts; then
+            echo "::error::فشل تعديل appName لهوية المالك"
+            exit 1
+          fi
+          if ! grep -q 'url: "https://tawfir.giize.com/owner"' capacitor.config.ts; then
+            echo "::error::فشل تعديل server.url لوجهة بوابة المالك"
+            exit 1
+          fi
+          echo "── الهوية النهائية في capacitor.config.ts ──"
+          grep -nE 'appId: "|appName: "|url: "https://tawfir' capacitor.config.ts || true
+          echo "── LIVE_URL في native-shell/index.html ──"
+          grep -n "LIVE_URL = " native-shell/index.html | head -1
 
       - name: "🆕 إنشاء مشروع Android من الصفر (cap add android)"
         run: |
@@ -177,6 +228,24 @@ jobs:
             exit 1
           fi
           echo "✓ AndroidManifest.xml موجود"
+
+      - name: "🛡️ تحقق الهوية في build.gradle وstrings.xml (فشل مبكر — قبل دقائق Gradle)"
+        run: |
+          ACTUAL_ID="$(grep -oP 'applicationId\s+"\K[^"]+' android/app/build.gradle | head -n1)"
+          ACTUAL_NAME="$(grep -oP '<string name="app_name">\K[^<]+' android/app/src/main/res/values/strings.xml | head -n1)"
+          echo "applicationId المولَّد : $ACTUAL_ID"
+          echo "الحزمة المتوقعة       : $EXPECTED_APP_ID"
+          echo "app_name المولَّد      : $ACTUAL_NAME"
+          echo "الاسم المتوقع         : $EXPECTED_APP_NAME"
+          if [ "$ACTUAL_ID" != "$EXPECTED_APP_ID" ]; then
+            echo "::error::applicationId في build.gradle ($ACTUAL_ID) لا يطابق الهوية المتوقعة ($EXPECTED_APP_ID)! سيُبنى تطبيق بحزمة خاطئة تتعارض مع الآخر — إيقاف البناء."
+            exit 1
+          fi
+          if [ "$ACTUAL_NAME" != "$EXPECTED_APP_NAME" ]; then
+            echo "::error::app_name في strings.xml ($ACTUAL_NAME) لا يطابق المتوقع ($EXPECTED_APP_NAME)"
+            exit 1
+          fi
+          echo "✓ الهوية مطابقة 100% في المشروع المولَّد — تمايز التطبيقين مضمون"
 
       - name: "🎨 توليد كل الأيقونات والسبلاش من resources/ (123 ملفاً)"
         run: npx capacitor-assets generate --android
@@ -252,6 +321,21 @@ jobs:
           fi
           echo "✓ البصمة مطابقة تماماً — Deep Links ستُتحقق آلياً 🎉"
 
+          # ── تحقق الهوية النهائي: قراءة الحزمة من الـAPK المنتَج نفسه ──
+          # (الدرع الأخير: لو انزلقت الهوية في أي مرحلة يُفشل البناء هنا
+          #  بدل أن يصل المستخدم بحزمة مكرّرة تطلب «تحديثاً» بدل تثبيت منفصل)
+          AAPT2="$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort -V | tail -n1)"
+          BADGE_PKG="$("$AAPT2" dump badging "$APK_FILE" | grep -oP "package: name='\K[^']+" | head -n1)"
+          BADGE_LABEL="$("$AAPT2" dump badging "$APK_FILE" | grep -oP "application-label:'\K[^']*" | head -n1)"
+          echo "حزمة الـAPK المنتَج : $BADGE_PKG"
+          echo "الحزمة المتوقعة     : $EXPECTED_APP_ID"
+          echo "اسم الـAPK المنتَج  : $BADGE_LABEL"
+          if [ "$BADGE_PKG" != "$EXPECTED_APP_ID" ]; then
+            echo "::error::حزمة الـAPK الناتج ($BADGE_PKG) لا تطابق الهوية المتوقعة ($EXPECTED_APP_ID)!"
+            exit 1
+          fi
+          echo "✓ حزمة الـAPK الناتج مطابقة تماماً ($BADGE_PKG) — التطبيقان سيتثبتان منفصلين"
+
           # معلومات الشهادة كاملة للتوثيق
           "$APKSIGNER" verify --print-certs "$APK_FILE" | grep -E "DN:|SHA-1|SHA-256" || true
 
@@ -306,7 +390,8 @@ jobs:
           APK_SIZE="$(du -h "$APK_PATH" | cut -f1)"
           AAB_SIZE="$(du -h "$AAB_PATH" | cut -f1)"
           if [ -f android/app/google-services.json ]; then
-            FCM_ROW="FCM أصلي ✓ — أرسل من Firebase Console للموضوع \`tawfir_all\`"
+            GS_PKGS="$(grep -oP '"package_name":\s*"\K[^"]+' android/app/google-services.json | sort -u | tr '\n' ' ' | sed 's/ *$//')"
+            FCM_ROW="FCM أصلي ✓ (${GS_PKGS}) — أرسل من Firebase Console للموضوع \`tawfir_all\`"
           else
             FCM_ROW="غير مفعّل (أضِف google-services.json في جذر المستودع)"
           fi
@@ -316,7 +401,8 @@ jobs:
             echo "| البند | القيمة |"
             echo "|---|---|"
             echo "| التطبيق | \`${{ inputs.app || 'customer' }}\` |"
-            echo "| حزمة التطبيق | \`$(grep -oP 'applicationId "\K[^"]+' android/app/build.gradle)\` |"
+            echo "| حزمة التطبيق (متحقَّقة في الـAPK) | \`$(grep -oP 'applicationId "\K[^"]+' android/app/build.gradle)\` |"
+            echo "| وجهة الإطلاق | \`${EXPECTED_START_PATH:-/ (الرئيسية)}\` |"
             echo "| الإصدار | ${VERSION_NAME} (versionCode ${VERSION_CODE}) |"
             echo "| حجم الـAPK | ${APK_SIZE} |"
             echo "| حجم الـAAB | ${AAB_SIZE} |"

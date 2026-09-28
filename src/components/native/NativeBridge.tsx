@@ -10,6 +10,7 @@ import {
   setupNativeUrlOpen,
   watchNativeNetwork,
   syncNativeSafeArea,
+  applyNativeAppVariantGate,
 } from "@/lib/capacitor";
 
 /**
@@ -35,6 +36,9 @@ import {
  *  3-ب) Universal Links (iOS): فتح رابط tawfir.giize.com من
  *     Safari/الرسائل يفتح التطبيق — setupNativeUrlOpen يوجّه
  *     الـWebView للمسار المطلوب (Capacitor لا يفعلها تلقائياً).
+ *  3-ج) بوابة هوية التطبيق: APK «توفير مالك» يفتح بوابة المالك
+ *     /owner بدل واجهة العميل (كشف الحزمة عبر App.getInfo().id —
+ *     إصلاح «تطبيق المالك يفتح تطبيق توفير نفسه»).
  *  4) Network: عند عودة الاتصال → إطلاق حدث online لإبطال الكاش
  *
  * لا يلمس: API_BASE، الـ Service Worker، الـ manifest، أو أي منطق ويب.
@@ -129,6 +133,11 @@ export function NativeBridge() {
       /* 3-ب) Universal Links — فتح رابط توفير من خارج التطبيق
             يوجّه الـWebView للمسار (iOS: apple-app-site-association) */
       removeUrlOpen = await setupNativeUrlOpen();
+
+      /* 3-ج) بوابة هوية التطبيق — APK «توفير مالك» يهبط على بوابة
+            المالك /owner مهما كان مسار الإطلاق (الرئيسية/كاش SW).
+            على نسخة العميل والويب: no-op صامت. */
+      void applyNativeAppVariantGate();
 
       /* 4) Network — إطلاق حدث online/offline عند تغيّر الاتصال
             (ServiceWorkerRegistrar يستمع لـ online لإبطال الكاش) */

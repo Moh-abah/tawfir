@@ -179,11 +179,32 @@ if (!APP_PACKAGE) {
 }
 const JAVA_PKG_DIR = path.dirname(MAIN_ACTIVITY_FILE);
 
+/* الجولة 30 (إصلاح هوية المالك): اختيار ملف Firebase حسب النسخة —
+ * تطبيق «توفير مالك» (applicationId يحوي owner) يستخدم
+ * google-services-partner.json (سجّل المستخدم تطبيق com.tawfir.ye.owner
+ * في Firebase وأرفق الملف في جذر المستودع) — فيُسجّل توكن FCM تحت
+ * تطبيق Firebase الصحيح بدل توكن محسوب لنسخة العميل.
+ * إن لم يوجد ملف الشريك: نرتدّ للملف العام (مع إعادة تسمية الحزمة
+ * أدناه — الإشعارات بالموضوع tawfir_all تبقى تعمل لأن المشروع واحد). */
+const pickFirstExisting = (candidates) =>
+  candidates.find((p) => fs.existsSync(p) && fs.statSync(p).size > 0) ?? null;
+const GS_PARTNER_CANDIDATES = [
+  path.join(ROOT, "google-services-partner.json"), // جذر المستودع (نسخة المالك)
+  path.join(ROOT, "upload", "google-services-partner.json"),
+  path.join(ROOT, "android-config", "google-services-partner.json"),
+];
 const GS_SOURCE =
-  GS_CANDIDATES.find((p) => fs.existsSync(p) && fs.statSync(p).size > 0) ?? null;
+  (APPLICATION_ID.includes("owner")
+    ? pickFirstExisting(GS_PARTNER_CANDIDATES) ?? pickFirstExisting(GS_CANDIDATES)
+    : pickFirstExisting(GS_CANDIDATES)) ?? null;
+const GS_IS_PARTNER =
+  Boolean(GS_SOURCE) && path.basename(GS_SOURCE).includes("partner");
 const FCM_ENABLED = Boolean(GS_SOURCE);
 if (FCM_ENABLED) {
-  log("🔥", `google-services.json مكتشف (${path.relative(ROOT, GS_SOURCE)}) → الإشعارات الأصلية ستُفعَّل`);
+  log(
+    "🔥",
+    `${path.basename(GS_SOURCE)} مكتشف (${path.relative(ROOT, GS_SOURCE)}) → الإشعارات الأصلية ستُفعَّل${GS_IS_PARTNER ? " — ملف الشريك (نسخة المالك)" : ""}`,
+  );
 }
 
 /* ─── 1) colors.xml — فاتح + values-night داكن (إصلاح الثيم) ───── */
@@ -507,7 +528,13 @@ if (!FCM_ENABLED) {
   log("⏭️", "google-services.json غير موجود — الإشعارات متخطاة (البناء ينجح بلا FCM)");
 }
 
-/* 5-أ) نسخ google-services.json + توطين package_name */
+/* 5-أ) نسخ ملف google-services إلى android/app/ مع توطين ذكي لـ package_name
+ *      (الجولة 30): إن أحوى الملف أصلاً مدخلاً بحزمة applicationId
+ *      (ملف الشريك متعدد التطبيقات) يُترك كما هو — إضافة google-services
+ *      تختار المدخل المطابق وحدها، وبقاء باقي المدخلات بأسمائها الصحيحة
+ *      يتجنّب تكرار package_name الذي قد يكسر الإضافة.
+ *      التوطين القسري لأول مدخل يحدث فقط حين لا يوجد أي مدخل مطابق
+ *      (ملف العميل المستخدم احتياطاً لنسخة المالك). */
 if (FCM_ENABLED) {
   let gsJson;
   try {
@@ -518,20 +545,29 @@ if (FCM_ENABLED) {
   if (!gsJson.client || gsJson.client.length === 0) {
     fail("google-services.json لا يحوي أي client — أعد تنزيله من Firebase Console.");
   }
+  const gsEntries = gsJson.client
+    .map((c) => c?.client_info?.android_client_info)
+    .filter(Boolean);
+  const gsHasMatching = gsEntries.some((e) => e.package_name === APPLICATION_ID);
   let adjusted = 0;
-  for (const client of gsJson.client) {
-    const info = client?.client_info?.android_client_info;
-    if (info && info.package_name !== APPLICATION_ID) {
-      info.package_name = APPLICATION_ID;
-      adjusted++;
+  if (!gsHasMatching && gsEntries[0]) {
+    if (gsEntries[0].package_name !== APPLICATION_ID) {
+      gsEntries[0].package_name = APPLICATION_ID;
+      adjusted = 1;
     }
   }
   const GS_TARGET = path.join(ROOT, "android", "app", "google-services.json");
   fs.writeFileSync(GS_TARGET, JSON.stringify(gsJson, null, 2) + "\n");
   log(
     "🔥",
-    `android/app/google-services.json ← المشروع ${gsJson.project_info?.project_id ?? "?"}${adjusted > 0 ? ` (وُطِّن package_name → ${APPLICATION_ID})` : " (الحزمة مطابقة)"}`,
+    `android/app/google-services.json ← ${path.basename(GS_SOURCE)} (المشروع ${gsJson.project_info?.project_id ?? "?"})${adjusted > 0 ? ` (وُطِّن أول مدخل → ${APPLICATION_ID})` : gsHasMatching ? ` (مدخل ${APPLICATION_ID} موجود — بلا تعديل)` : ""}`,
   );
+  if (!gsHasMatching && APPLICATION_ID.includes("owner")) {
+    log(
+      "⚠️",
+      `ملف ${path.basename(GS_SOURCE)} لا يحوي مدخل com.tawfir.ye.owner — أضف تطبيق المالك في Firebase Console وضع google-services-partner.json في الجذر ليُسجّل التوكن تحت التطبيق الصحيح`,
+    );
+  }
 }
 
 /* 5-ب) أيقونة الإشعار — شعار توفير المفرغ الأبيض على شفاف (إصلاح
@@ -1665,11 +1701,15 @@ fs.writeFileSync(GRADLE_FILE, gradle);
       problems.push("android/app/google-services.json غير موجود!");
     } else {
       try {
-        const pkg = JSON.parse(fs.readFileSync(gsTarget, "utf8"))
-          .client?.[0]?.client_info?.android_client_info?.package_name;
-        if (pkg !== APPLICATION_ID) {
+        /* الجولة 30: يكفي أن يحوي الملف مدخلاً بالحزمة المطلوبة —
+           ملف الشريك متعدد التطبيقات وإضافة google-services
+           تختار المدخل المطابق وحدها. */
+        const gsPkgs = (JSON.parse(fs.readFileSync(gsTarget, "utf8")).client ?? [])
+          .map((c) => c?.client_info?.android_client_info?.package_name)
+          .filter(Boolean);
+        if (!gsPkgs.includes(APPLICATION_ID)) {
           problems.push(
-            `package_name في google-services.json (${pkg}) ≠ applicationId (${APPLICATION_ID})`,
+            `package_name في google-services.json (${gsPkgs.join(", ") || "لا يوجد"}) لا يحوي الحزمة المطلوبة (${APPLICATION_ID})`,
           );
         }
       } catch {
