@@ -172,7 +172,7 @@ jobs:
         run: |
           APP="${{ inputs.app || 'customer' }}"
           if [ "$APP" = "owner" ]; then
-            ID="com.tawfir.ye.owner"; NAME="توفير مالك"; START="/owner"
+            ID="com.tawfir.ye.owner"; NAME="توفير مالك"; START="https://facility.tawfir.giize.com/owner"
           else
             ID="com.tawfir.ye.app"; NAME="توفير"; START=""
           fi
@@ -191,10 +191,14 @@ jobs:
           #    إلى جنب بدل «تحديث» لأن الحزمتين مختلفتين)
           sed -i 's/appId: "com.tawfir.ye.app"/appId: "com.tawfir.ye.owner"/' capacitor.config.ts
           sed -i 's/appName: "توفير"/appName: "توفير مالك"/' capacitor.config.ts
-          # 2) وجهة الإطلاق الأولى: بوابة المالك /owner بدل الرئيسية (عميل)
-          sed -i 's#url: "https://tawfir.giize.com"#url: "https://tawfir.giize.com/owner"#' capacitor.config.ts
+          # 2) وجهة الإطلاق الأولى: بوابة المالك مباشرة على نطاقها الفعلي.
+          #    /owner على النطاق الرئيسي يعيد 308 إلى facility.tawfir.giize.com
+          #    (النطاق الفرعي المخصص للمالك) — نبدأ مباشرة فيه تفادياً للقفزة،
+          #    وallowNavigation في capacitor.config.ts تُبقي أي تحويل داخل
+          #    الـWebView لو حدث (بدونها كان يفتح المتصفح الخارجي!).
+          sed -i 's#url: "https://tawfir.giize.com"#url: "https://facility.tawfir.giize.com/owner"#' capacitor.config.ts
           # 3) صفحة الأوفلاين المحلية (native-shell): إعادة التحميل لبوابة المالك
-          sed -i 's#var LIVE_URL = "https://tawfir.giize.com/";#var LIVE_URL = "https://tawfir.giize.com/owner";#' native-shell/index.html
+          sed -i 's#var LIVE_URL = "https://tawfir.giize.com/";#var LIVE_URL = "https://facility.tawfir.giize.com/owner";#' native-shell/index.html
           # ── تحقق صارم على سطر appId الحقيقي بالاقتباسات ──
           # (الحارس القديم grep -q 'com.tawfir.ye.owner' كان ثغرة: يمرّ من
           #  تعليق في رأس capacitor.config.ts حتى لو فشل الـsed — فيُبنى
@@ -207,12 +211,16 @@ jobs:
             echo "::error::فشل تعديل appName لهوية المالك"
             exit 1
           fi
-          if ! grep -q 'url: "https://tawfir.giize.com/owner"' capacitor.config.ts; then
-            echo "::error::فشل تعديل server.url لوجهة بوابة المالك"
+          if ! grep -q 'url: "https://facility.tawfir.giize.com/owner"' capacitor.config.ts; then
+            echo "::error::فشل تعديل server.url لوجهة بوابة المالك (facility.tawfir.giize.com/owner)"
+            exit 1
+          fi
+          if ! grep -q 'allowNavigation: \["tawfir.giize.com", "facility.tawfir.giize.com"\]' capacitor.config.ts; then
+            echo "::error::allowNavigation غير موجودة في capacitor.config.ts — تحويل 308 لبوابة المالك سيفتح المتصفح الخارجي!"
             exit 1
           fi
           echo "── الهوية النهائية في capacitor.config.ts ──"
-          grep -nE 'appId: "|appName: "|url: "https://tawfir' capacitor.config.ts || true
+          grep -nE 'appId: "|appName: "|url: "https://|allowNavigation' capacitor.config.ts || true
           echo "── LIVE_URL في native-shell/index.html ──"
           grep -n "LIVE_URL = " native-shell/index.html | head -1
 

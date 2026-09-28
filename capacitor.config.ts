@@ -34,6 +34,17 @@ const config: CapacitorConfig = {
     androidScheme: "https",
     url: "https://tawfir.giize.com",
     cleartext: false,
+    /* ═══ إصلاح «تطبيق المالك يفتح المتصفح الخارجي» ═══
+     * بوابة المالك تعيش على نطاق فرعي منفصل: /owner على النطاق
+     * الرئيسي يعيد 308 إلى facility.tawfir.giize.com (راجع
+     * src/proxy.ts وNEXT_PUBLIC_OWNER_URL في site-config.ts).
+     * بدون allowNavigation يعامل Capacitor أي تنقّال لمضيف مختلف
+     * عن مضيف server.url كرابط خارجي ← يفتح متصفح النظام فيخرج
+     * المستخدم من التطبيق! إدراج المضيفين هنا يُبقي كل تنقّلات
+     * الموقع داخل الـWebView (بما فيها: تحويل 308 لبوابة المالك،
+     * الروابط العميقة، وإعادة تحميل صفحة الأوفلاين native-shell
+     * من أصل localhost). */
+    allowNavigation: ["tawfir.giize.com", "facility.tawfir.giize.com"],
   },
   ios: {
     /* ═══════════ iOS (الجولة 24 — دعم آيفون) ═══════════
