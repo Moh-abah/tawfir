@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { identityUrl } from "@/lib/site-config";
 
 /**
  * شعار توفير — مبني بالقص من الصور المعتمدة للهوية (لا رسم SVG يدوي):
@@ -27,13 +28,22 @@ interface TawfirLogoProps {
 
 const SOURCES: Record<LogoVariant, { src: string; w: number; h: number }> = {
   /* نسخ محسّنة (إصلاح الشعار): أخف 66× من الأصل (879KB→13KB) وتُخزّن
-     مسبقاً في الـSW — تظهر الشعارات دائماً حتى أوفلاين وأول زيارة. */
-  full: { src: "/identity/lockup-full-640.png", w: 640, h: 427 },
-  lockup_fulltra: { src: "/identity/lockup-fulltra-640.png", w: 640, h: 427 },
-  horizontal: { src: "/identity/lockup-horizontal-256.png", w: 256, h: 256 },
-  mark: { src: "/identity/mark-256.png", w: 256, h: 256 },
-  "mark-gold": { src: "/identity/mark-256.png", w: 256, h: 256 },
-  "mark-white": { src: "/identity/mark-256.png", w: 256, h: 256 },
+     مسبقاً في الـSW — تظهر الشعارات دائماً حتى أوفلاين وأول زيارة.
+     مطلقة على أصل بوابة العميل (إصلاح 404 الهوية على بوابة المالك). */
+  full: { src: identityUrl("/identity/lockup-full-640.png"), w: 640, h: 427 },
+  lockup_fulltra: {
+    src: identityUrl("/identity/lockup-fulltra-640.png"),
+    w: 640,
+    h: 427,
+  },
+  horizontal: {
+    src: identityUrl("/identity/lockup-horizontal-256.png"),
+    w: 256,
+    h: 256,
+  },
+  mark: { src: identityUrl("/identity/mark-256.png"), w: 256, h: 256 },
+  "mark-gold": { src: identityUrl("/identity/mark-256.png"), w: 256, h: 256 },
+  "mark-white": { src: identityUrl("/identity/mark-256.png"), w: 256, h: 256 },
 };
 
 /** مرشحات CSS للنسخ الملونة — مسموح بها بدل إعادة التوليد */
@@ -77,6 +87,11 @@ export function TawfirLogo({
         height={src.h}
         priority={size === "lg"}
         draggable={false}
+        /* unoptimized: صور الهوية محسّنة مسبقاً وبأحجام ثابتة صغيرة —
+           تحميل مباشر من أصل الهوية بلا /_next/image (يلغي اعتماد
+           مُحسِّن المُضيف على جلب رابط مطلق من الخادم — أضمن على
+           بوابة المالك وداخل APK) */
+        unoptimized
         className="h-auto object-contain"
         style={{
           height: s.h,

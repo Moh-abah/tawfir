@@ -7,11 +7,10 @@ import { SoundService, type SoundRole } from "@/lib/sound-service";
 
 /**
  * GET /notifications/unread-count — عدّاد غير المقروء.
- * يُحدّث فورياً من WebSocket (عبر invalidate) + polling كل 30s كاحتياط.
- *
- * الجولة 8 — مسار الصوت الاحتياطي: إذا زاد العدّاد بين استطلاعين
- * (سقوط WebSocket) نجلب أحدث إشعار ونُشغّل صوته. التكرار مع WebSocket
- * ممنوع داخل SoundService بمعرّف الإشعار (notificationId).
+ * يُحدَّث فورياً من WebSocket (عبر invalidate) — إصلاح الأداء: أزلنا
+ * polling كل 30s الذي كان يعمل في كل صفحة طوال عمر الجلسة فوق الـWS
+ * (تكرار خالص يستهلك بطارية/بيانات في APK طويل الجلسة). الاحتياط الآن:
+ * invalidation عند حدث online/visibilitychange عبر NotificationsProvider.
  */
 export function useUnreadCount(enabled = true) {
   const query = useQuery({
@@ -21,9 +20,7 @@ export function useUnreadCount(enabled = true) {
       return res ?? { count: 0 };
     },
     enabled,
-    // polling كل 30s كاحتياط خلفي لـ WebSocket
-    refetchInterval: 30 * 1000,
-    staleTime: 5 * 1000,
+    staleTime: 30 * 1000,
   });
 
   const prevCountRef = useRef<number | null>(null);

@@ -160,10 +160,20 @@ export const config = {
    * مسارات مستثناة من المعالجة (تُخدم كما هي على كل النطاقات):
    * - أصول PWA: manifest الديناميكي، Service Worker، الأيقونات، اللقطات، assetlinks
    * - صفحات مشتركة: /offline و/privacy (تعمل على نطاقي العميل والمالك)
+   *
+   * ═══ إصلاح جذري — شعارات الهوية المكسورة (404) على نطاق facility ═══
+   * قبل هذا الإصلاح كان الـmatcher يستثني icons/ وfonts/ فقط، بينما
+   * تُركت identity/ (الشعارات + رسمات «لا توجد بيانات») وsounds/
+   * وwidgets/ وuploads/ خارج الاستثناء — فكانت إعادة الكتابة على
+   * المالك تُحوِّل /identity/mark-256.png إلى /owner/identity/mark-256.png
+   * الذي لا وجود له → 404 لكل شعارات الهوية في كل صفحات بوابة المالك
+   * حتى لو كانت الملفات موجودة في نفس النشر.
+   * أُضيئلت الآن: identity/ وsounds/ وwidgets/ وuploads/
+   * (الشبكة الأمنية لوسائط الـAPI في next.config تعمل الآن على
+   * البوابات أيضاً) + native-offline.html (شاشة أوفلاين القشرة
+   * الأصلية).
    */
   matcher: [
-    /* الجولة 28: أزلنا icon.svg|logo.svg|logo-mark.svg — ميتة (الملفات
-       حُذفت والهوية الآن تحت /identity/) */
-    "/((?!_next/static|_next/image|favicon.ico|api|robots.txt|sitemap.xml|manifest.webmanifest|sw\\.js|icons/|screenshots/|\\.well-known/|offline|privacy|fonts/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api|robots.txt|sitemap.xml|manifest.webmanifest|sw\\.js|icons/|screenshots/|\\.well-known/|offline|privacy|fonts/|identity/|sounds/|widgets/|uploads/|native-offline\\.html).*)",
   ],
 };

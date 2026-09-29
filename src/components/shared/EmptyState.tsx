@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { identityUrl } from "@/lib/site-config";
 
 interface EmptyStateProps {
   icon: LucideIcon;
@@ -31,8 +32,9 @@ export function EmptyState({
   description,
   action,
   /* إصلاح الشعار: النسخة المحسّنة 480px (61KB بدل 4.3MB) — تُعرض
-     بحد أقصى ~160px فتبدو مثالية على 3x retina وتُخزّن مسبقاً في SW */
-  image = "/identity/tawfir-empty-state-480.png",
+     بحد أقصى ~160px فتبدو مثالية على 3x retina وتُخزّن مسبقاً في SW
+     + مطلقة على أصل بوابة العميل (إصلاح 404 الهوية على بوابة المالك) */
+  image = identityUrl("/identity/tawfir-empty-state-480.png"),
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-4 py-16">
@@ -45,6 +47,7 @@ export function EmptyState({
             width={480}
             height={480}
             draggable={false}
+            unoptimized
             className="h-auto w-[148px] select-none object-contain opacity-90 sm:w-[168px]"
           />
           {/* الأيقونة الأصلية كشارة أسفل الرسمة — تُبقي دلالة الاستخدام */}

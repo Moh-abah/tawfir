@@ -175,11 +175,17 @@ export default function CourierHomePage() {
   /* اقتراح Web Push عند أول توفر — مرة واحدة */
   useEffect(() => {
     if (isAvailable && !pushAsked && typeof localStorage !== "undefined") {
-      setPushAsked(true);
-      if (localStorage.getItem("tawfir_courier_push_prompted") !== "1") {
-        localStorage.setItem("tawfir_courier_push_prompted", "1");
-        void enableWebPush();
-      }
+      /* requestAnimationFrame: يفكّ التزامن setState-in-effect (خطأ
+         react-hooks/set-state-in-effect) — التأجيل لإطار واحد يمنع
+         سلسلة الرسوم المتتالية عند الإقلاع دون تغيير السلوك */
+      const raf = requestAnimationFrame(() => {
+        setPushAsked(true);
+        if (localStorage.getItem("tawfir_courier_push_prompted") !== "1") {
+          localStorage.setItem("tawfir_courier_push_prompted", "1");
+          void enableWebPush();
+        }
+      });
+      return () => cancelAnimationFrame(raf);
     }
   }, [isAvailable, pushAsked]);
 

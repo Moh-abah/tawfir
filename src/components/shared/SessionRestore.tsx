@@ -66,38 +66,39 @@ export function SessionRestore() {
     attempted.current = true;
 
     void (async () => {
-      /* 1) العميل — البوابة الرئيسية */
-      const customerRestored = await restoreRole(
-        "customer",
-        () => {
-          const store = useCustomerAuthStore.getState();
-          if (!store.hydrated) store.hydrate();
-        },
-        () => useCustomerAuthStore.getState(),
-        (a, r) => useCustomerAuthStore.getState().updateTokens(a, r),
-      ).catch(() => false);
-
-      /* 2) المالك — بوابة المتاجر */
-      const ownerRestored = await restoreRole(
-        "owner",
-        () => {
-          const store = useOwnerAuthStore.getState();
-          if (!store.hydrated) store.hydrate();
-        },
-        () => useOwnerAuthStore.getState(),
-        (a, r) => useOwnerAuthStore.getState().updateTokens(a, r),
-      ).catch(() => false);
-
-      /* 3) المشرف — لوحة التحكم */
-      const adminRestored = await restoreRole(
-        "admin",
-        () => {
-          const store = useAuthStore.getState();
-          if (!store.hydrated) store.hydrate();
-        },
-        () => useAuthStore.getState(),
-        (a, r) => useAuthStore.getState().updateTokens(a, r),
-      ).catch(() => false);
+      /* إصلاح الأداء: كانت الاستعادة الثلاثية متسلسلة (عميل ← مالك ←
+         مشرف) — كل انتظار يتراكم على زمن بدء الجلسة في الإقلاع البارد
+         داخل الـAPK. الآن بالتوازي (كل دور مستقل تماماً عن الآخرين). */
+      const [customerRestored, ownerRestored, adminRestored] =
+        await Promise.all([
+          restoreRole(
+            "customer",
+            () => {
+              const store = useCustomerAuthStore.getState();
+              if (!store.hydrated) store.hydrate();
+            },
+            () => useCustomerAuthStore.getState(),
+            (a, r) => useCustomerAuthStore.getState().updateTokens(a, r),
+          ).catch(() => false),
+          restoreRole(
+            "owner",
+            () => {
+              const store = useOwnerAuthStore.getState();
+              if (!store.hydrated) store.hydrate();
+            },
+            () => useOwnerAuthStore.getState(),
+            (a, r) => useOwnerAuthStore.getState().updateTokens(a, r),
+          ).catch(() => false),
+          restoreRole(
+            "admin",
+            () => {
+              const store = useAuthStore.getState();
+              if (!store.hydrated) store.hydrate();
+            },
+            () => useAuthStore.getState(),
+            (a, r) => useAuthStore.getState().updateTokens(a, r),
+          ).catch(() => false),
+        ]);
 
       /* إبطال استعلامات الهوية والبيانات لتلتقط أي جلسة استُعادت */
       if (customerRestored || ownerRestored || adminRestored) {

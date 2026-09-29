@@ -16,7 +16,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FONT_PATH = os.path.join(ROOT, "public", "fonts", "Cairo-Black.ttf")
+FONT_PATH = os.path.join(ROOT, "scripts", "fonts", "Cairo-Black.ttf")
 
 TEAL_DARK = (0, 59, 85)    # #003B55
 TEAL = (0, 91, 130)        # #005B82

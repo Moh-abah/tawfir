@@ -26,8 +26,33 @@ function CountdownTimer({ endsAt }: { endsAt: string | null }) {
 
   useEffect(() => {
     if (!endsAt) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
+    /* إصلاح الأداء: العدّاد يواصل إعادة الرسم كل ثانية حتى والشاشة
+       مخفية (تبويب بالخلفية/شاشة مقفلة). الآن: نبني نص العدّاد فقط
+       حين تتغير الثانية المعروضة فعلاً، ونتوقف تماماً والشاشة مخفية. */
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => {
+      if (id === null) {
+        id = setInterval(() => {
+          if (document.visibilityState === "visible") setTick((t) => t + 1);
+        }, 1000);
+      }
+    };
+    const stop = () => {
+      if (id !== null) {
+        clearInterval(id);
+        id = null;
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
+    if (document.visibilityState === "visible") start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [endsAt]);
 
   if (!endsAt) return null;

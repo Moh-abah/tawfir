@@ -8,13 +8,12 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useRegisterFcm, useUnregisterFcm } from "@/hooks/useFcm";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  getFcmMessaging,
-  getFcmToken,
-  subscribeFcmMessages,
-  subscribeFcmTokenRefresh,
-  isFcmSupported,
-} from "@/lib/firebase";
+/* إصلاح الأداء (bundle): كان استيراد @/lib/firebase ثابتاً هنا ← وحدة
+   firebase/app + firebase/messaging (~70KB مضغوطة) تدخل الحزمة المشتركة
+   المُحمَّلة في كل صفحة لكل البوابات (عميل/مالك/أدمن/مندوب) حتى لزوار
+   غير مسجّلين لا يحتاجونها إطلاقاً. الآن تُحمَّل ديناميكياً داخل مسار
+   الدخول فقط — تُصبح chunk منفصلاً يُجلب عند الحاجة فعلاً. */
+import type { MessagePayload } from "firebase/messaging";
 import {
   SoundService,
   ALL_SOUND_TYPES,
@@ -26,7 +25,6 @@ import {
   getNotificationMeta,
   getNotificationHref,
 } from "@/lib/notifications-meta";
-import type { MessagePayload } from "firebase/messaging";
 
 /**
  * FcmRegistrar — يدير تسجيل/إلغاء توكن FCM الحقيقي + الإشعارات الأمامية.
@@ -319,6 +317,16 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
     }
 
     void (async () => {
+      /* إصلاح الأداء: تحميل وحدة firebase ديناميكياً هنا فقط —
+         الزائر غير المسجّل لا يُحمّلها إطلاقاً (chunk منفصل مؤجّل) */
+      let fb: typeof import("@/lib/firebase");
+      try {
+        fb = await import("@/lib/firebase");
+      } catch (err) {
+        console.warn("[FCM] firebase module load failed:", err);
+        return;
+      }
+
       // 1) جهّز Messaging + اشترك في onMessage فوراً (مستقل عن الإذن والتوكن).
       //    لو فشل الإذن لاحقاً يبقى الاشتراك معطّلاً بلا أثر — getToken
       //    فقط يحتاج الإذن، أما onMessage فيعمل بلا إذن صريح طالما المتصفح
@@ -329,8 +337,8 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
       //      فيتوقف وصول الإشعارات بصمت. عند التجدد نطلب توكناً جديداً
       //      ونسجّله في الباك إند ونحذف تسجيل القديم ونحدّث المخزن.
       try {
-        if (isFcmSupported()) {
-          getFcmMessaging(); // يهيّئ المثيل + يُسجّل SW فوراً عند الحاجة
+        if (fb.isFcmSupported()) {
+          fb.getFcmMessaging(); // يهيّئ المثيل + يُسجّل SW فوراً عند الحاجة
           /* إصلاح تسريب ذاكرة (التدقيق 3-a / H-1): كانت السطر التالي
              تُعوّض (overwrite) مرجع التفكيك الذي يُزيل مستمع
              navigator.serviceWorker "message" أعلاه — فيبقى المستمع
@@ -338,19 +346,19 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
              router/toast قديمين). الحل: تركيب سلسلة التفكيك بدل
              التعويض — كل تفكيك جديد يُنفّذ السابقة ثم يُزيّل المستمع. */
           const prevCleanup = unsubscribeFcmRef.current;
-          const unsubFcm = subscribeFcmMessages(handleFcmForeground);
+          const unsubFcm = fb.subscribeFcmMessages(handleFcmForeground);
           unsubscribeFcmRef.current = () => {
             unsubFcm();
             prevCleanup?.();
           };
           /* اشتراك onTokenRefresh — إصلاح إعادة الاشتراك عند التجدد */
-          unsubscribeTokenRefreshRef.current = subscribeFcmTokenRefresh(() => {
+          unsubscribeTokenRefreshRef.current = fb.subscribeFcmTokenRefresh(() => {
             if (refreshingTokenRef.current) return; /* قفل ضد التزاحم */
             refreshingTokenRef.current = true;
             void (async () => {
               try {
                 const oldToken = readStoredToken();
-                const newToken = await getFcmToken();
+                const newToken = await fb.getFcmToken();
                 if (
                   newToken &&
                   newToken !== oldToken
@@ -395,7 +403,7 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
       // 3) تأكّد من دعم المتصفح لـ FCM (إصلاح APK: الـWebView بلا
       //    PushManager — المسار الأصلي في الخطوة 5 يتجاوز هذا الحرس)
       const nativeToken = await getNativeFcmToken();
-      if (!nativeToken && !isFcmSupported()) {
+      if (!nativeToken && !fb.isFcmSupported()) {
         console.warn("[FCM] المتصفح لا يدعم FCM — يُتخطّى التسجيل");
         return;
       }
@@ -408,7 +416,7 @@ export function FcmRegistrar({ children }: { children: React.ReactNode }) {
       // 5) اطلب توكن FCM (إصلاح APK): الأصلي أولاً عبر TawfirNative
       //    (WebView لا يدعم PushManager) ثم مسار الويب (getToken+VAPID).
       let token = nativeToken;
-      if (!token) token = await getFcmToken();
+      if (!token) token = await fb.getFcmToken();
       if (!token) {
         console.warn(
           "[FCM] لم يُعِد getToken توكناً (قد يكون الإذن مرفوض على مستوى النظام أو فشل SW) — يُتخطّى التسجيل"

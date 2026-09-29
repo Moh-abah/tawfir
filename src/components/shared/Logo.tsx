@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { identityUrl } from "@/lib/site-config";
 
 /**
  * نسخة خفيفة من شعار توفير (الرمز + الكلمة أفقياً) — بالقص من الصور المعتمدة.
@@ -31,11 +32,12 @@ export function Logo({ className, href = "/", showPill = false, size = "md" }: L
       aria-label="توفير — الصفحة الرئيسية"
     >
       <Image
-        src="/identity/lockup-horizontal-256.png"
+        src={identityUrl("/identity/lockup-horizontal-256.png")}
         alt="شعار توفير"
         width={669}
         height={232}
         draggable={false}
+        unoptimized
         className="h-auto w-auto object-contain"
         style={{ height: s.h }}
       />

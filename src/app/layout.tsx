@@ -5,31 +5,35 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { Providers } from "./providers";
 import { BOOT_LOGO_SRC } from "@/lib/pwa/boot-logo";
+import { NotInNativeGate } from "@/components/shared/NotInNativeGate";
+import { identityUrl } from "@/lib/site-config";
 
 const cairo = localFont({
+  /* WOFF2 (إصلاح الأداء): كان كل وزن TTF ~95KB — الآن WOFF2 ~35KB
+     (توفير ~300KB من أول زيارة). التحويل: fonttools ttLib.woff2 compress */
   src: [
     {
-      path: "../../public/fonts/Cairo-Regular.ttf",
+      path: "../../public/fonts/Cairo-Regular.woff2",
       weight: "400",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Cairo-SemiBold.ttf",
+      path: "../../public/fonts/Cairo-SemiBold.woff2",
       weight: "600",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Cairo-Bold.ttf",
+      path: "../../public/fonts/Cairo-Bold.woff2",
       weight: "700",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Cairo-ExtraBold.ttf",
+      path: "../../public/fonts/Cairo-ExtraBold.woff2",
       weight: "800",
       style: "normal",
     },
     {
-      path: "../../public/fonts/Cairo-Black.ttf",
+      path: "../../public/fonts/Cairo-Black.woff2",
       weight: "900",
       style: "normal",
     },
@@ -39,9 +43,12 @@ const cairo = localFont({
 });
 
 const geistMono = localFont({
-  src: "../../public/fonts/GeistMono-Regular.ttf",
+  src: "../../public/fonts/GeistMono-Regular.woff2",
   variable: "--font-geist-mono",
   display: "swap",
+  /* يُستخدم فقط في لوحات المالك/الأدمن/المندوب (font-mono) —
+     لا يُحمَّل إلا حين يستخدمه نص فعلي (unicode-range عبر next/font) */
+  preload: false,
 });
 
 /**
@@ -114,7 +121,9 @@ export const metadata: Metadata = {
        فعلًا (46KB بدل 4.1MB، وبالمقاس القياسي 1200×630). */
     images: [
       {
-        url: "/identity/tawfir-social-cover-og.jpg",
+        /* مطلقة على أصل الهوية (identityUrl) — معاينة واتساب/تيليجرام
+           صحيحة حتى لو نُشرت البوابة على نطاق لا يملك /identity/ */
+        url: identityUrl("/identity/tawfir-social-cover-og.jpg"),
         width: 1200,
         height: 630,
         alt: "توفير — تطبيق طلب الوجبات اليمنية",
@@ -126,8 +135,9 @@ export const metadata: Metadata = {
     title: "توفير | طلب الوجبات اليمنية وخصم حتى 30% للعضوية",
     description:
       "تطبيق توفير — اطلب أشهى الوجبات اليمنية من مطاعم وكافتيريات مدينتك، ووفّر حتى 30% على كل طلب مع عضوية توفير.",
-    /* الجولة 28 — نفس إصلاح الـog (الملف القديم محذوف) */
-    images: ["/identity/tawfir-social-cover-og.jpg"],
+    /* الجولة 28 — نفس إصلاح الـog (الملف القديم محذوف)
+       + مطلقة على أصل الهوية (identityUrl) */
+    images: [identityUrl("/identity/tawfir-social-cover-og.jpg")],
   },
   /* (أزلنا other: theme-color + apple-mobile-web-app-capable — تولّدهما
      viewport.themeColor و appleWebApp.capable — كانت مكررة مرتين) */
@@ -310,12 +320,13 @@ html.dark #tawfir-boot .tawfir-boot-logo{filter:drop-shadow(0 6px 22px rgba(0,0,
           }}
         />
         <Providers>{children}</Providers>
-        {/* ═══ مراقبة فيرسل (الجولة 28) — لا تعملان محليًا إطلاقًا (no-op) ═══
+        {/* ═══ مراقبة فيرسل — تعطّل داخل الـAPK (بلا فائدة في WebView) ═══
             • Analytics  : زوّار/مشاهدات/مصادر/أجهزة في لوحة Vercel → Analytics
-            • SpeedInsights: مقاييس الأداء الحقيقية (RES: LCP/INP/CLS/FCP/TTFB)
-              في لوحة Vercel → Speed Insights — من متصفحات زوّارك الحقيقية */}
-        <Analytics />
-        <SpeedInsights />
+            • SpeedInsights: مقاييس الأداء الحقيقية (LCP/INP/CLS/FCP/TTFB) */}
+        <NotInNativeGate>
+          <Analytics />
+          <SpeedInsights />
+        </NotInNativeGate>
       </body>
     </html>
   );

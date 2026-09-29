@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
+import { identityUrl } from "@/lib/site-config";
 
 const MAX_PULL = 72; // أقصى امتداد للمؤشر (px)
 const THRESHOLD = 60; // عتبة تفعيل التحديث (px)
@@ -215,12 +216,13 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
           )}
           {/* شعار توفير الرسمي — المفرغ المحسّن 256px (إصلاح الشعار) */}
           <Image
-            src="/identity/mark-256.png"
+            src={identityUrl("/identity/mark-256.png")}
             alt=""
             width={48}
             height={48}
             priority={false}
             draggable={false}
+            unoptimized
             className={cn(
               "relative h-6 w-6 select-none object-contain transition-transform duration-150",
               refreshing && "tawfir-ptr-pulse",

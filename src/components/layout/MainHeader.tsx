@@ -45,7 +45,17 @@ export function MainHeader() {
   const fullName = me.data?.full_name;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    /* إصلاح الأداء: كان المعالج يستدعي setState في كل حدث تمرير حتى
+       دون تغيّر القيمة (وظائف React تُستدعى كل إطار). حارس بقيمة أخيرة
+       يمنع الاستدعاءات غير الضرورية — التمرير يبقى passive ولا يعيد رسم. */
+    let last = false;
+    const onScroll = () => {
+      const next = window.scrollY > 10;
+      if (next !== last) {
+        last = next;
+        setScrolled(next);
+      }
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);

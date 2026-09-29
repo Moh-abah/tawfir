@@ -406,6 +406,36 @@ const prefersReduced = usePrefersReducedMotion();
   const { accessToken, hydrated } = useCustomerAuth();
   const isMember = !!me.data?.membership?.is_active;
 
+  /* إصلاح الأداء (صفحات المتاجر الكبيرة): كانت الشبكة تعرض كل المنتجات
+     دفعة واحدة مع stagger حركة لكل كارت — على متجر بـ100 منتج = 100 كارت
+     + 100 طلب تقييم + 100 أنيميشن في أول طلاء = تهنيج على الجوال.
+     الآن: 12 كارتاً أولاً + زر «عرض المزيد» — والتصفية/البحث تُعيد الضبط.
+     (الخطافات هنا أعلى المكوّن — قبل أي return مبكر — التزاماً بقواعد Hooks) */
+  const PRODUCTS_PAGE_SIZE = 12;
+  const filterKey = `${activeCategory}|${search.trim()}`;
+  /* نمط React الرسمي «تخزين معلومات من الرسم السابق» — يضبط العدّاد
+     فور تغيّر الفلتر/البحث بلا useEffect ولا refs أثناء الرسم */
+  const [pagerState, setPagerState] = useState({
+    lastFilter: filterKey,
+    visibleCount: PRODUCTS_PAGE_SIZE,
+  });
+  const visibleCount =
+    pagerState.lastFilter === filterKey
+      ? pagerState.visibleCount
+      : PRODUCTS_PAGE_SIZE;
+  if (pagerState.lastFilter !== filterKey) {
+    setPagerState({ lastFilter: filterKey, visibleCount: PRODUCTS_PAGE_SIZE });
+  }
+  const showMore = () =>
+    setPagerState((s) => ({
+      lastFilter: filterKey,
+      visibleCount: s.visibleCount + PRODUCTS_PAGE_SIZE,
+    }));
+  const shownProducts = useMemo(
+    () => (products ?? []).slice(0, visibleCount),
+    [products, visibleCount]
+  );
+
   const facility = useMemo(
     () => (facilities ?? []).find((f) => f.id === facilityId) ?? null,
     [facilities, facilityId]
@@ -886,7 +916,7 @@ const prefersReduced = usePrefersReducedMotion();
                 variants={staggerVariants}
                 className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
               >
-                {products.map((p) => (
+                {shownProducts.map((p) => (
                   <ProductCard 
                     key={p.id} 
                     product={p} 
@@ -897,6 +927,17 @@ const prefersReduced = usePrefersReducedMotion();
                   />
                 ))}
               </motion.div>
+              {visibleCount < totalProducts && (
+                <div className="mt-6 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={showMore}
+                    className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border/60 bg-card px-6 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-accent/10"
+                  >
+                    عرض المزيد ({totalProducts - visibleCount} متبقٍ)
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

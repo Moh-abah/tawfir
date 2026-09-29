@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceWorkerSource } from "@/lib/pwa/sw-source";
 import { APP_VERSION } from "@/lib/pwa/version";
+import { BRAND_ORIGIN } from "@/lib/site-config";
 
 /**
  * خدمة ملف Service Worker على /sw.js
@@ -13,7 +14,10 @@ import { APP_VERSION } from "@/lib/pwa/version";
  */
 export async function GET() {
   const isProd = process.env.NODE_ENV === "production";
-  const source = getServiceWorkerSource(APP_VERSION, isProd);
+  /* أصل الهوية الموحّد (BRAND_ORIGIN) — أصول الهوية تُخدَم منه حصراً
+     (إصلاح 404 المالك). مستقل عن NEXT_PUBLIC_SITE_URL حتى لا ينكسر
+     الكاش المسبق لو ضُبط رابط البوابة الحالية على facility. */
+  const source = getServiceWorkerSource(APP_VERSION, isProd, BRAND_ORIGIN);
 
   return new NextResponse(source, {
     status: 200,

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { useMe } from "@/hooks/useMe";
-import { DISCOUNT_RATE } from "@/lib/site-config";
+import { DISCOUNT_RATE, identityUrl } from "@/lib/site-config";
 import { formatExpiry, formatMembershipNumber } from "@/lib/format";
 import type { MyMembershipCard } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
@@ -31,11 +31,12 @@ import { cn } from "@/lib/utils";
 function CardArtBackdrop() {
   return (
     <Image
-      src="/identity/tawfir-membership-card-art-1120.png"
+      src={identityUrl("/identity/tawfir-membership-card-art-1120.webp")}
       alt=""
       fill
       draggable={false}
       sizes="(max-width: 640px) 100vw, 560px"
+      unoptimized
       className="object-cover"
       priority
     />
@@ -50,8 +51,11 @@ function CardArtFrame({ children }: { children: ReactNode }) {
       style={{
         borderRadius: "6.7% / 10.8%",
         containerType: "inline-size",
-        filter:
-          "drop-shadow(0 22px 45px rgba(0,0,0,0.55)) drop-shadow(0 4px 14px color-mix(in srgb, var(--logo-gold) 26%, transparent))",
+        /* إصلاح الأداء (LCP): كان ظلّاً مزدوجاً (drop-shadow متداخلان)
+           يُطبَّق على حاوية الصورة الكبيرة — فلتر مطبَّق على عنصر يحوي
+           صورة priority يعني إعادة فلترة كل إطار حتى اكتمال الترطيب.
+           ظل واحد خفيف يكفي بصرياً (والشيمر يُعطَّل داخل الـAPK عبر CSS). */
+        filter: "drop-shadow(0 14px 30px rgba(0,0,0,0.35))",
       }}
     >
       <CardArtBackdrop />

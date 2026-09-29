@@ -52,11 +52,19 @@
  *    (يتعامل معها عملاء API الثلاثة كرسالة خطأ عادية من الخادم)
  */
 
-export function getServiceWorkerSource(version: string, isProd: boolean): string {
+export function getServiceWorkerSource(
+  version: string,
+  isProd: boolean,
+  siteOrigin = "https://tawfir.giize.com",
+): string {
   const IS_PROD = isProd ? "true" : "false";
   return `/* توفير Service Worker — الإصدار ${version} */
 const VERSION = "${version}";
 const IS_PROD = ${IS_PROD};
+/* إصلاح 404 بوابة المالك: أصول الهوية تعيش على النطاق الرئيسي حصراً —
+   نُطلقها مطلقة على SITE_ORIGIN (نفس الأصل على بوابة العميل → بلا تغيير
+   سلوك؛ على facility. تُجلب من النطاق الرئيسي بدل 404 مكسورة). */
+const SITE_ORIGIN = "${siteOrigin}";
 
 const SHELL_CACHE = "tawfir-shell-" + VERSION;
 const DATA_CACHE = "tawfir-data-" + VERSION;
@@ -83,24 +91,25 @@ const PRECACHE_URLS = [
   /* إصلاح الشعار: هوية توفير الأساسية — الشعار المفرغ المحسّن +
      أيقونة الإشعار الأحادية + أيقونة التطبيق الملونة + اللوكب —
      (كانت /identity/* بلا كاش مسبق ← 404/اختفاء الشعار أوفلاين).
-     أزلنا logo.svg/logo-mark.svg (1.2MB لكل منهما بلا أي استخدام). */
-  "/identity/mark-256.png",
-  "/identity/notification_icon_white_96.png",
-  "/identity/notification_icon_white_512.png",
-  "/identity/tawfir-app-icon-192.png",
-  "/identity/lockup-fulltra-640.png",
-  "/identity/tawfir-empty-state-480.png",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/maskable-192.png",
-  "/icons/maskable-512.png",
-  "/icons/owner-icon-192.png",
-  "/icons/owner-icon-512.png",
-  "/fonts/Cairo-Regular.ttf",
-  "/fonts/Cairo-SemiBold.ttf",
-  "/fonts/Cairo-Bold.ttf",
-  "/fonts/Cairo-ExtraBold.ttf",
-  "/fonts/Cairo-Black.ttf",
+     أزلنا logo.svg/logo-mark.svg (1.2MB لكل منهما بلا أي استخدام).
+     مطلقة على SITE_ORIGIN (إصلاح 404 الهوية على بوابة المالك). */
+  SITE_ORIGIN + "/identity/mark-256.png",
+  SITE_ORIGIN + "/identity/notification_icon_white_96.png",
+  SITE_ORIGIN + "/identity/notification_icon_white_512.png",
+  SITE_ORIGIN + "/identity/tawfir-app-icon-192.png",
+  SITE_ORIGIN + "/identity/lockup-fulltra-640.png",
+  SITE_ORIGIN + "/identity/tawfir-empty-state-480.png",
+  SITE_ORIGIN + "/icons/icon-192.png",
+  SITE_ORIGIN + "/icons/icon-512.png",
+  SITE_ORIGIN + "/icons/maskable-192.png",
+  SITE_ORIGIN + "/icons/maskable-512.png",
+  SITE_ORIGIN + "/icons/owner-icon-192.png",
+  SITE_ORIGIN + "/icons/owner-icon-512.png",
+  "/fonts/Cairo-Regular.woff2",
+  "/fonts/Cairo-SemiBold.woff2",
+  "/fonts/Cairo-Bold.woff2",
+  "/fonts/Cairo-ExtraBold.woff2",
+  "/fonts/Cairo-Black.woff2",
   /* الجولة 20: تسخين مسبق لشاشات الزبون الأساسية — تعمل أوفلاين من أول تثبيت
      (الصفحة الرئيسية، العروض، البحث، المتاجر، الإشعارات، الحساب، تسجيل الدخول) */
   "/",
@@ -828,7 +837,10 @@ async function handleRsc(event, request) {
   const cache = await caches.open(NAV_CACHE);
   const key = rscCacheKey(request);
   try {
-    const response = await fetch(request);
+    /* إصلاح بطء التنقل (إصلاح الأداء): مهلة 3.5 ثوانٍ — على الشبكة الضعيفة
+       كان الانتظار بلا سقف رغم وجود نسخة مخبأة صالحة؛ الآن نسقط للكاش
+       بسرعة ونحدّث الكاش في الخلفية ليصير ظرفاً محدَّثاً. */
+    const response = await fetchWithTimeout(request, 3500);
     if (response && response.ok) {
       event.waitUntil(
         cache
@@ -841,9 +853,41 @@ async function handleRsc(event, request) {
     return response;
   } catch (err) {
     const cached = await cache.match(key);
-    if (cached) return cached;
+    if (cached) {
+      revalidateInBackground(event, request, key, cache);
+      return cached;
+    }
     return offlineApiResponse(request);
   }
+}
+
+/* مهلة شبكة للتنقلات — fetch يُلغى فعلياً عند تجاوز المهلة (AbortController) */
+function fetchWithTimeout(request, ms) {
+  if (typeof AbortController === "undefined") return fetch(request);
+  const controller = new AbortController();
+  const timer = setTimeout(function () {
+    controller.abort();
+  }, ms);
+  return fetch(request, { signal: controller.signal })["finally"](function () {
+    clearTimeout(timer);
+  });
+}
+
+/* إعادة تحقق صامتة بالخلفية بعد تقديم نسخة مخبأة — الظرف القادم محدَّث */
+function revalidateInBackground(event, request, key, cache) {
+  try {
+    event.waitUntil(
+      fetch(request)
+        .then(function (response) {
+          if (response && response.ok) {
+            return cache.put(key, response).then(function () {
+              return trimCache(NAV_CACHE, MAX_NAV_ENTRIES);
+            });
+          }
+        })
+        .catch(function () {})
+    );
+  } catch (e) {}
 }
 
 async function handleNavigation(event, request) {
@@ -851,7 +895,9 @@ async function handleNavigation(event, request) {
   /* صفحات الأدمن لا تُخزَّن إطلاقاً (سياسة صفر تخزين لبيانات الأدمن) */
   const isAdmin = url.pathname.startsWith("/admin");
   try {
-    const response = await fetch(request);
+    /* إصلاح بطء التنقل: مهلة 3.5 ثوانٍ ثم سقوط للكاش — بدل انتظار
+       الشبكة البطيئة بلا سقف وكان المستخدم يرى شاشة معلّقة */
+    const response = await fetchWithTimeout(request, 3500);
     /* الجولة 12: في التطوير لا نخزّن HTML التنقلات إطلاقاً — الكاش القديم
        مع JS متجدد بعد كل إعادة ترجمة يسبب hydration mismatch قاتلاً.
        (الإنتاج آمن: HTML و chunks يُنشران معاً بنسخ مُوقّعة) */
@@ -879,7 +925,15 @@ async function handleNavigation(event, request) {
       return devNavigationFallbackPage();
     }
     const cached = await caches.match(request);
-    if (cached) return cached;
+    if (cached) {
+      /* سقوط الكاش بسبب مهلة/انقطاع: نحدّث النسخة بالخلفية — الزيارة
+         التالية تجد نسخة طازجة بدل التقادم التراكمي */
+      try {
+        const navCache = await caches.open(NAV_CACHE);
+        revalidateInBackground(event, request, request, navCache);
+      } catch (e) {}
+      return cached;
+    }
     const offlinePage = await caches.match(OFFLINE_URL);
     return offlinePage || Response.error();
   }

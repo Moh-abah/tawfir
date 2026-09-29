@@ -1631,3 +1631,60 @@ html[data-wb-hide] [data-welcome-banner] {
     padding-top: env(titlebar-area-height, 0px);
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   إصلاح الأداء الجوهري داخل الـAPK (html[data-native]) — الجولة 29
+   ═══════════════════════════════════════════════════════════════
+   أجهزة المستخدمين غالباً ضعيفة/متوسطة، وAndroid WebView يدعم
+   backdrop-filter فيفرض إعادة رسم كل ما تحت العنصر في **كل إطار
+   تمرير** — هذا هو السبب الأول لانعدام سلاسة التمرير داخل التطبيق
+   (الويب على ديسكتوب قوي لا يُظهر المشكلة). كذلك الحركات اللانهائية
+   الزخرفية تُبقي GPU/CPU مستيقظين دائماً (استنزاف بطارية + تهنيج).
+
+   القواعد أدناه تعمل **داخل الـAPK فقط** (data-native يضعه سكربت
+   متزامن قبل أول طلاء — بلا وميض) ولا تغيّر شيئاً على الويب. */
+
+/* 1) إلغاء كل backdrop-blur داخل التطبيق — أثقل عملية على الأجهزة
+      الضعيفة. الخلفيات شبه الشفافة تبقى كما هي (واضحة بلا ضبابية). */
+html[data-native] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* زجاجية الكوكيز/قوائم المتاجر (blur 24px!) → خلفية صلبة للوضوح */
+html[data-native] .glass-card {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: var(--card);
+}
+
+/* 2) إيقاف الحركات الزخرفية اللانهائية داخل التطبيق (تبقى الوظيفية:
+      skeletons وanimate-pulse للتحميل). نفس قائمة reduced-motion. */
+html[data-native] .animate-hero-gradient,
+html[data-native] .animate-promo-shimmer,
+html[data-native] .animate-pulse-glow,
+html[data-native] .animate-cta-pulse,
+html[data-native] .animate-cta-glow,
+html[data-native] .animate-float,
+html[data-native] .animate-float-slow,
+html[data-native] .animate-float-slower,
+html[data-native] .animate-badge-shimmer,
+html[data-native] .animate-marquee,
+html[data-native] .animate-scroll-reveal,
+html[data-native] .animate-dot-breathe,
+html[data-native] .animate-region-pulse,
+html[data-native] .hero-pattern-overlay,
+html[data-native] .hero-grid-pattern,
+html[data-native] .card-shimmer-sweep,
+html[data-native] .gradient-border-animated::before,
+html[data-native] .login-shimmer-card::before,
+html[data-native] .login-shimmer-card::after,
+html[data-native] .login-card-shimmer::before,
+html[data-native] .tawfir-boot-logo {
+  animation: none !important;
+}
+
+/* 3) طبقة الشبكة الزخرفية (noise overlay) فوق الخلفيات تجبر المحرك
+      على تركيب طبقة إضافية في كل إطار — إزالتها داخل التطبيق. */
+html[data-native] .noise-overlay {
+  background-image: none;
+}

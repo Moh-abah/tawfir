@@ -159,8 +159,13 @@ export function StoreLocationPicker({
       const draft = JSON.parse(raw) as { openedAt?: number; lat?: string; lng?: string };
       if (!draft.openedAt || Date.now() - draft.openedAt > DRAFT_TTL_MS) return;
       if (draft.lat && draft.lng) {
-        setLatInput(draft.lat);
-        setLngInput(draft.lng);
+        /* requestAnimationFrame: يفكّ التزامن setState-in-effect (خطأ
+           react-hooks/set-state-in-effect) — بلا أي تغيير سلوك */
+        const raf = requestAnimationFrame(() => {
+          setLatInput(draft.lat!);
+          setLngInput(draft.lng!);
+        });
+        return () => cancelAnimationFrame(raf);
       }
     } catch {
       /* مسودة غير صالحة — تجاهل صامت */

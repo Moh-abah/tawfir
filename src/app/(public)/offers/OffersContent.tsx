@@ -85,7 +85,10 @@ function OffersEmptyCelebration() {
  */
 export function OffersContent() {
 
-  const { data, isLoading, error, refetch } = useSpecialOffers(1, 50);
+  /* إصلاح الأداء: 50 كارتاً بكل منها عدّاد setInterval/ثانية = عشرات
+     إعادة الرسم كل ثانية على جهاز ضعيف. سقف معقول 24 كارتاً (عملياً
+     العروض النشطة أقل من ذلك بكثير) — الأقدم أولاً من الباك إند. */
+  const { data, isLoading, error, refetch } = useSpecialOffers(1, 24);
 
   const [selectedOffer, setSelectedOffer] = useState<SpecialOfferOut | null>(
     null,
