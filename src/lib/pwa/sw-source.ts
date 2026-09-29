@@ -84,14 +84,29 @@ const MAX_DATA_ENTRIES = 120;
 const MAX_NAV_ENTRIES = 40;
 const REVALIDATE_DEBOUNCE_MS = 60000;
 
-/* أصول الهيكل المستقرة — تُخزَّن مسبقاً عند التثبيت (تعمل في التطوير والإنتاج) */
-const PRECACHE_URLS = [
+/* ═══ الجولة 17 — كاش مسبق واعٍ للبوابة (إصلاح 404 تثبيت العامل على facility) ═══
+   العامل الواحد يُسجَّل على البوابات الثلاث. كانت الصفحات النسبية
+   (/offers، /search…) تُخزَّن مسبقاً على كل النطاقات — فعلى facility
+   تُعاد كتابتها إلى /owner/offers → 404 × 6 في كل تثبيت/تحديث
+   (هدر بيانات + ضجيج كونسول + تلويث الكاش بصفحات 404 وصفحات
+   بوابة أخرى مخزنة تحت أسماء صفحات العميل مثل «/» و«/login»).
+   الآن نكشف البوابة من مضيف ملف العامل نفسه (self.location —
+   رابط sw.js) فنخزّن صفحات وأيقونات تلك البوابة حصراً.
+   أصول الهوية تظل مطلقة على SITE_ORIGIN (إصلاح 404 الهوية) والخطوط
+   نسبية (موجودة في كل نشر). على مضيفات غير معروفة (localhost/معاينات)
+   الافتراضي قائمة العميل — فيها تُخدم كل الصفحات بلا إعادة كتابة. */
+const HOSTNAME = (self.location && self.location.hostname) || "";
+const IS_OWNER_HOST =
+  HOSTNAME === "facility.tawfir.giize.com" ||
+  HOSTNAME === "owner.tawfir.giize.com";
+const IS_ADMIN_HOST = HOSTNAME === "admin.tawfir.giize.com";
+
+const PRECACHE_CORE = [
   OFFLINE_URL,
   "/privacy",
   /* إصلاح الشعار: هوية توفير الأساسية — الشعار المفرغ المحسّن +
      أيقونة الإشعار الأحادية + أيقونة التطبيق الملونة + اللوكب —
      (كانت /identity/* بلا كاش مسبق ← 404/اختفاء الشعار أوفلاين).
-     أزلنا logo.svg/logo-mark.svg (1.2MB لكل منهما بلا أي استخدام).
      مطلقة على SITE_ORIGIN (إصلاح 404 الهوية على بوابة المالك). */
   SITE_ORIGIN + "/identity/mark-256.png",
   SITE_ORIGIN + "/identity/notification_icon_white_96.png",
@@ -99,19 +114,33 @@ const PRECACHE_URLS = [
   SITE_ORIGIN + "/identity/tawfir-app-icon-192.png",
   SITE_ORIGIN + "/identity/lockup-fulltra-640.png",
   SITE_ORIGIN + "/identity/tawfir-empty-state-480.png",
-  SITE_ORIGIN + "/icons/icon-192.png",
-  SITE_ORIGIN + "/icons/icon-512.png",
-  SITE_ORIGIN + "/icons/maskable-192.png",
-  SITE_ORIGIN + "/icons/maskable-512.png",
-  SITE_ORIGIN + "/icons/owner-icon-192.png",
-  SITE_ORIGIN + "/icons/owner-icon-512.png",
   "/fonts/Cairo-Regular.woff2",
   "/fonts/Cairo-SemiBold.woff2",
   "/fonts/Cairo-Bold.woff2",
   "/fonts/Cairo-ExtraBold.woff2",
   "/fonts/Cairo-Black.woff2",
-  /* الجولة 20: تسخين مسبق لشاشات الزبون الأساسية — تعمل أوفلاين من أول تثبيت
-     (الصفحة الرئيسية، العروض، البحث، المتاجر، الإشعارات، الحساب، تسجيل الدخول) */
+];
+
+/* أيقونات الـmanifest لكل بوابة — نخزّن أيقونات البوابة نفسها فقط
+   (كانت أيقونتا البوابات معاً تُخزَّنان: maskable-512 وحدها 219KB
+   وowner-icon-512 216KB بلا أي استخدام على البوابة الأخرى). */
+const CUSTOMER_ICONS = [
+  SITE_ORIGIN + "/icons/icon-192.png",
+  SITE_ORIGIN + "/icons/icon-512.png",
+  SITE_ORIGIN + "/icons/maskable-192.png",
+  SITE_ORIGIN + "/icons/maskable-512.png",
+];
+const OWNER_ICONS = [
+  SITE_ORIGIN + "/icons/owner-icon-192.png",
+  SITE_ORIGIN + "/icons/owner-icon-512.png",
+  SITE_ORIGIN + "/icons/owner-maskable-192.png",
+  SITE_ORIGIN + "/icons/owner-maskable-512.png",
+];
+
+/* صفحات كل بوابة — صفحات العميل تُخزَّن على بوابة العميل حصراً؛
+   بوابة المالك تخزّن شاشة دخولها (start_url في manifest المالك)،
+   والإدارة شاشة دخولها كذلك (عامة مضمونة 200 على كل النطاقات). */
+const CUSTOMER_PAGES = [
   "/",
   "/offers",
   "/search",
@@ -122,19 +151,34 @@ const PRECACHE_URLS = [
   "/membership",
 ];
 
+const PRECACHE_URLS = PRECACHE_CORE.concat(
+  IS_OWNER_HOST ? OWNER_ICONS : CUSTOMER_ICONS,
+  IS_OWNER_HOST
+    ? ["/owner/login"]
+    : IS_ADMIN_HOST
+      ? ["/admin/login"]
+      : CUSTOMER_PAGES
+);
+
 /* بيانات كتالوج أساسية تُخزَّن مسبقاً في كاش البيانات حتى يعمل التطبيق
-   أوفلاين من أول تثبيت (طلبات الزيارة الأولى قد تسبق تفعيل العامل) */
-const PRECACHE_DATA_URLS = [
-  "/api/regions",
-  /* الجولة 20: بيانات أساسية تُخزّن مسبقاً لشاشات أوفلاين أفضل */
-  "/api/products",
-  "/api/facilities",
-  "/api/special-offers",
-  /* /api/cards ليست هنا عمداً: الخادم يتطلب region_id إجبارياً في
-     GET /api/v1/cards — طلبها بلا معامل كان يُسجّل 422 في سجلات
-     الخادم مع كل تثبيت عامل. تُسخّن الآن ديناميكياً لأول منطقة
-     (نفس منطق الاختيار التلقائي في useRegions) داخل معالج install */
-];
+   أوفلاين من أول تثبيت (طلبات الزيارة الأولى قد تسبق تفعيل العامل)
+   — على بوابة المالك/الإدارة كتالوج العميل بلا معنى (واجهاتها الخاصة
+   NetworkOnly أصلاً) فالقائمة تُفرَّغ: صفر طلبات كتالوج زائدة عند
+   التثبيت أو في periodicsync (تستهلك PRECACHE_DATA_URLS نفسها). */
+const PRECACHE_DATA_URLS =
+  IS_OWNER_HOST || IS_ADMIN_HOST
+    ? []
+    : [
+        "/api/regions",
+        /* الجولة 20: بيانات أساسية تُخزّن مسبقاً لشاشات أوفلاين أفضل */
+        "/api/products",
+        "/api/facilities",
+        "/api/special-offers",
+        /* /api/cards ليست هنا عمداً: الخادم يتطلب region_id إجبارياً في
+           GET /api/v1/cards — طلبها بلا معامل كان يُسجّل 422 في سجلات
+           الخادم مع كل تثبيت عامل. تُسخّن الآن ديناميكياً لأول منطقة
+           (نفس منطق الاختيار التلقائي في useRegions) داخل معالج install */
+      ];
 
 /* خريطة مؤقتة لمنع إغراق الخادم بإعادة التحقق لنفس الطلب
    (إصلاح التدقيق 3-a / M-1: كانت تنمو بلا حدود مع كل URL فريد طوال
@@ -571,25 +615,29 @@ self.addEventListener("install", function (event) {
       /* تسخين بطاقات الخصم بأمان: GET /api/v1/cards يتطلب region_id
          إجبارياً — نقرأ المناطق (من الكاش الذي سخّنّاه للتو أو من الشبكة)
          ثم نسخّن بطاقات أول منطقة فقط عند توفرها، فلا يُرسل الطلب
-         أبداً بلا معامل ولا يظهر 422 في سجلات الخادم. */
-      try {
-        const regionsResp =
-          (await dataCache.match("/api/regions")) ||
-          (await fetch("/api/regions"));
-        if (regionsResp && regionsResp.ok) {
-          const regions = await regionsResp.clone().json();
-          if (
-            Array.isArray(regions) &&
-            regions.length > 0 &&
-            regions[0] &&
-            regions[0].id
-          ) {
-            await dataCache.add("/api/cards?region_id=" + regions[0].id);
+         أبداً بلا معامل ولا يظهر 422 في سجلات الخادم.
+         (الجولة 17: على بوابة المالك/الإدارة نُتخطى التسخين كلياً —
+         كتالوج العميل بلا معنى هناك فلا طلب /api/cards زائد). */
+      if (!IS_OWNER_HOST && !IS_ADMIN_HOST) {
+        try {
+          const regionsResp =
+            (await dataCache.match("/api/regions")) ||
+            (await fetch("/api/regions"));
+          if (regionsResp && regionsResp.ok) {
+            const regions = await regionsResp.clone().json();
+            if (
+              Array.isArray(regions) &&
+              regions.length > 0 &&
+              regions[0] &&
+              regions[0].id
+            ) {
+              await dataCache.add("/api/cards?region_id=" + regions[0].id);
+            }
           }
+        } catch (_e) {
+          /* أوفلاين/خادم غير متاح وقت التثبيت — كاش البطاقات يمتلئ
+             تلقائياً عند أول زيارة ناجحة عبر StaleWhileRevalidate */
         }
-      } catch (_e) {
-        /* أوفلاين/خادم غير متاح وقت التثبيت — كاش البطاقات يمتلئ
-           تلقائياً عند أول زيارة ناجحة عبر StaleWhileRevalidate */
       }
     })()
   );
