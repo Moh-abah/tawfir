@@ -1,0 +1,142 @@
+{
+  "job": {
+    "driver": "capacitor_local",
+    "triggered_by": "factory_admin",
+    "triggered_at": "2026-10-01T00:54:56.945734"
+  },
+  "manifest": {
+    "schema_version": 1,
+    "package_id": "com.wajh.khair2026",
+    "identity": {
+      "app_name": "مطعم واجهة التجريبي",
+      "primary_color": "#E23744",
+      "secondary_color": "#2E7D32",
+      "tagline": "طعم أصيل من قلب واجهة"
+    },
+    "assets": {
+      "logo": {
+        "url": "/uploads/brand_assets/04d8564b90f34a31baafa9dbadef45ce.png",
+        "width": 640,
+        "height": 640,
+        "size_label": "640x640"
+      },
+      "app_icon": {
+        "url": "/uploads/brand_assets/90e2accf682a4f36a0530c2106c073ba.png",
+        "width": 512,
+        "height": 512,
+        "size_label": "512x512"
+      },
+      "splash": {
+        "url": "/uploads/brand_assets/dede2556df7f446c9af2dee55f74fdec.png",
+        "width": 800,
+        "height": 1200,
+        "size_label": "800x1200"
+      }
+    },
+    "api": {
+      "base": "https://tawfir.giize.com",
+      "v1": "/api/v1",
+      "tenant_slug": null
+    },
+    "storefront": {
+      "facility_id": 28,
+      "single_facility_mode": true
+    },
+    "fcm": {
+      "shared_project_id": "tawfeer-b99c2",
+      "android_config_file": "google-services.json",
+      "ios_config_file": "GoogleService-Info.plist",
+      "note": "مشروع Firebase مشترك واحد للجميع — صفر مشاريع جديدة"
+    },
+    "android": {
+      "application_id": "com.wajh.khair2026",
+      "version_name": null,
+      "version_code": null
+    },
+    "ios": {
+      "bundle_id": "com.wajh.khair2026",
+      "version": null,
+      "build": null
+    },
+    "capacitor": {
+      "appId": "com.wajh.khair2026",
+      "appName": "مطعم واجهة التجريبي",
+      "webDir": "dist",
+      "server_url_api": "tawfir.giize.com"
+    },
+    "market": {
+      "currency": "ريال يمني",
+      "phone_example": "7XXXXXXXX"
+    },
+    "generated_at": "2026-10-01T00:48:42.568235"
+  },
+  "capacitor": {
+    "steps": [
+      "npm ci",
+      "npm run build",
+      "npx cap add android",
+      "npx cap sync android",
+      "cd android && ./gradlew bundleRelease assembleRelease"
+    ],
+    "signing": {
+      "keystore_env": "TAWFIR_KEYSTORE_BASE64",
+      "store_password_env": "TAWFIR_STORE_PASSWORD",
+      "key_alias_env": "TAWFIR_KEY_ALIAS",
+      "key_password_env": "TAWFIR_KEY_PASSWORD",
+      "note": "الأسرار تُحقن من خزنة البصمات (الكونسول) — لا تُكتب بالrepo"
+    },
+    "outputs": {
+      "aab": "android/app/build/outputs/bundle/release/app-release.aab",
+      "apk": "android/app/build/outputs/apk/release/app-release.apk"
+    }
+  },
+  "github_actions": {
+    "workflow": "app-factory-build.yml",
+    "inputs": {
+      "package_id": "com.wajh.khair2026",
+      "platform": "android",
+      "version_name": "1.0.0",
+      "version_code": 1,
+      "build_channel": "capacitor_local"
+    },
+    "note": "قالب الـworkflow جاهز في deploy/github-actions/app-factory-build.yml — الأسرار (keystore + كلمات المرور) تُحقن بخزنة البصمات"
+  },
+  "store_listing": {
+    "app_title": "مطعم واجهة التجريبي",
+    "short_description": "طعم أصيل من قلب واجهة",
+    "full_description_ar": "تطبيق مطعم واجهة التجريبي — اطلب من متجرك المفضل بأسعاره وعروضه الخاصة، وتابع طلبك لحظة بلحظة.",
+    "category": "FOOD_AND_DRINK"
+  },
+  "fcm_files": {
+    "android": {
+      "project_info": {
+        "project_number": "PLACEHOLDER_PROJECT_NUMBER",
+        "project_id": "tawfeer-b99c2",
+        "storage_bucket": "tawfeer-b99c2.appspot.com"
+      },
+      "client": [
+        {
+          "client_info": {
+            "mobilesdk_app_id": "1:PLACEHOLDER_NUMBER:android:PLACEHOLDER",
+            "android_client_info": {
+              "package_name": "com.wajh.khair2026"
+            }
+          },
+          "oauth_client": [],
+          "api_key": [
+            {
+              "current_key": "PLACEHOLDER_API_KEY"
+            }
+          ],
+          "services": {
+            "appinvite_service": {
+              "other_platform_oauth_client": []
+            }
+          }
+        }
+      ],
+      "configuration_version": "1"
+    },
+    "ios_plist": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\">\n<dict>\n        <key>BUNDLE_ID</key>\n        <string>com.wajh.khair2026</string>\n        <key>PROJECT_ID</key>\n        <string>tawfeer-b99c2</string>\n        <key>STORAGE_BUCKET</key>\n        <string>tawfeer-b99c2.appspot.com</string>\n        <key>GOOGLE_APP_ID</key>\n        <string>1:PLACEHOLDER_NUMBER:ios:PLACEHOLDER</string>\n        <key>API_KEY</key>\n        <string>PLACEHOLDER_API_KEY</string>\n        <key>GCM_SENDER_ID</key>\n        <string>PLACEHOLDER_PROJECT_NUMBER</string>\n</dict>\n</plist>\n"
+  }
+}

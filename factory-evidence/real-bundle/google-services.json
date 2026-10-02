@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "PLACEHOLDER_PROJECT_NUMBER",
+    "project_id": "tawfeer-b99c2",
+    "storage_bucket": "tawfeer-b99c2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:PLACEHOLDER_NUMBER:android:PLACEHOLDER",
+        "android_client_info": {
+          "package_name": "com.wajh.khair2026"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "PLACEHOLDER_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

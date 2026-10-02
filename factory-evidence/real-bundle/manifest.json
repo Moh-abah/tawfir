@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "package_id": "com.wajh.khair2026",
+  "identity": {
+    "app_name": "مطعم واجهة التجريبي",
+    "primary_color": "#E23744",
+    "secondary_color": "#2E7D32",
+    "tagline": "طعم أصيل من قلب واجهة"
+  },
+  "assets": {
+    "logo": {
+      "url": "/uploads/brand_assets/04d8564b90f34a31baafa9dbadef45ce.png",
+      "width": 640,
+      "height": 640,
+      "size_label": "640x640"
+    },
+    "app_icon": {
+      "url": "/uploads/brand_assets/90e2accf682a4f36a0530c2106c073ba.png",
+      "width": 512,
+      "height": 512,
+      "size_label": "512x512"
+    },
+    "splash": {
+      "url": "/uploads/brand_assets/dede2556df7f446c9af2dee55f74fdec.png",
+      "width": 800,
+      "height": 1200,
+      "size_label": "800x1200"
+    }
+  },
+  "api": {
+    "base": "https://tawfir.giize.com",
+    "v1": "/api/v1",
+    "tenant_slug": null
+  },
+  "storefront": {
+    "facility_id": 28,
+    "single_facility_mode": true
+  },
+  "fcm": {
+    "shared_project_id": "tawfeer-b99c2",
+    "android_config_file": "google-services.json",
+    "ios_config_file": "GoogleService-Info.plist",
+    "note": "مشروع Firebase مشترك واحد للجميع — صفر مشاريع جديدة"
+  },
+  "android": {
+    "application_id": "com.wajh.khair2026",
+    "version_name": null,
+    "version_code": null
+  },
+  "ios": {
+    "bundle_id": "com.wajh.khair2026",
+    "version": null,
+    "build": null
+  },
+  "capacitor": {
+    "appId": "com.wajh.khair2026",
+    "appName": "مطعم واجهة التجريبي",
+    "webDir": "dist",
+    "server_url_api": "tawfir.giize.com"
+  },
+  "market": {
+    "currency": "ريال يمني",
+    "phone_example": "7XXXXXXXX"
+  },
+  "generated_at": "2026-10-01T00:48:42.568235"
+}

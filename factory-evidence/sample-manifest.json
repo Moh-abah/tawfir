@@ -1,0 +1,41 @@
+{
+  "_doc": "نموذج manifest.json كما يصدر من الحزمة الكونسولية (ZIP) — عقد POST /console/apps (AppIssue) + خطة المصنع. بيانات منشأة #28 الحية (اكتمال 100%، أصولها مرفوعة فعلاً على https://api.tawfir.giize.com وروابطها عامة 200).",
+  "facility_id": 28,
+  "package_id": "com.wajh.demoapp",
+  "display_name": "مطعم واجهة التجريبي",
+  "platform": "android",
+  "build_channel": "github_actions",
+  "identity": {
+    "app_name": "مطعم واجهة التجريبي",
+    "tagline": "طعم أصيل من قلب واجهة"
+  },
+  "brand": {
+    "colors": {
+      "primary": "#E23744",
+      "secondary": "#2E7D32"
+    }
+  },
+  "assets": {
+    "logo": { "url": "https://api.tawfir.giize.com/uploads/brand_assets/04d8564b90f34a31baafa9dbadef45ce.png", "width": 640, "height": 640, "size_label": "640x640" },
+    "app_icon": { "url": "https://api.tawfir.giize.com/uploads/brand_assets/90e2accf682a4f36a0530c2106c073ba.png", "width": 512, "height": 512, "size_label": "512x512" },
+    "splash": { "url": "https://api.tawfir.giize.com/uploads/brand_assets/dede2556df7f446c9af2dee55f74fdec.png", "width": 800, "height": 1200, "size_label": "800x1200" }
+  },
+  "google_services": { "android": "google-services.json" },
+  "api": {
+    "base": "https://api.tawfir.giize.com/api/v1",
+    "ws_notifications": "wss://api.tawfir.giize.com/api/v1/ws/notifications"
+  },
+  "market": {
+    "currency": "ريال يمني"
+  },
+  "build_job": {
+    "driver": "github_actions",
+    "workflow": "deploy/github-actions/app-factory-build.yml",
+    "secrets": [
+      "TAWFIR_KEYSTORE_B64",
+      "TAWFIR_KEYSTORE_PASSWORD",
+      "TAWFIR_KEY_ALIAS",
+      "TAWFIR_KEY_PASSWORD"
+    ]
+  }
+}

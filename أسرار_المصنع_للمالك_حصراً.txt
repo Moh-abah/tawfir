@@ -1,0 +1,24 @@
+⚠️ ملف الأسرار — للمالك حصراً — لا يُرفع لأي مستودع/تقرير/خادم
+(هذا ملف هيكل فارغ من القيم — القيم تُنشأ عند أول إصدار وتُحفظ عندك)
+
+# أسرار توقيع Android (تُحقن في GitHub repo secrets مرة واحدة لكل تطبيق)
+TAWFIR_KEYSTORE_BASE=        ← keystore مُرمَّز Base64 (من الحزمة ZIP → signing/)
+TAWFIR_STORE_PASSWORD=       ← كلمة مرور المخزن التي أدخلتها في الخزنة
+TAWFIR_KEY_ALIAS=            ← المعرّف (key_alias) الذي أدخلته
+TAWFIR_KEY_PASSWORD=         ← كلمة مرور المفتاح التي أدخلته
+
+# بيانات مستودع CI
+GITHUB_REPO=                 ← المستودع الذي يعمل فيه deploy/github-actions/app-factory-build.yml
+GITHUB_TOKEN=                ← توكن بصلاحيات actions:write
+API_WEBHOOK_SECRET=          ← (اختياري) لتأمين repository_dispatch
+
+# بيانات خاصة بك
+CONSOLE_USER=factory_admin
+CONSOLE_PASSWORD=            ← كلمة مرور الكونسول (تُغيَّر من بيئة الخادم)
+
+تعليمات الحقن:
+  gh secret set TAWFIR_KEYSTORE_BASE < keystore.b64
+  gh secret set TAWFIR_STORE_PASSWORD
+  gh secret set TAWFIR_KEY_ALIAS
+  gh secret set TAWFIR_KEY_PASSWORD
+بعد فقدان keystore: لا تحديث للتطبيق على المتاجر للأبد — احفظ نسختين.
