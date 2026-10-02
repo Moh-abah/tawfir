@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/factory/api";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "https://api.tawfir.giize.com";
 /** مؤشر حالة الخادم الحي — فحص /health/live (على جذر النطاق لا تحت /api/v1) */
 export function BackendStatus() {
   const [up, setUp] = useState<boolean | null>(null);
