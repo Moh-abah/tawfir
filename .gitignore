@@ -35,9 +35,9 @@ bun-debug.log*
 
 # env files (حساسة جداً ولا تُرفع أبداً)
 .env
-.env*.local
-.env.development
-.env.production
+# .env*.local
+# .env.development
+# .env.production
 
 # vercel
 .vercel
@@ -46,7 +46,6 @@ bun-debug.log*
 #  خاص بـ TypeScript
 # ====================================================
 *.tsbuildinfo
-next-env.d.ts
 
 # ====================================================
 #  ملفات وسجلات التطوير المحلية (مهمة)
@@ -110,7 +109,7 @@ Desktop.ini
 
 # Environment files
 .env
-.env*.local
+
 
 # Build outputs
 /build/

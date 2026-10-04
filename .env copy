@@ -1,0 +1,12 @@
+
+# ═══ توفير — متغيرات البيئة (Frontend) ═══
+# الباك إند الحي (FastAPI) — تُمرر كل نداءات /api/* عبر rewrites إلى هنا
+NEXT_PUBLIC_API_URL=https://api.tawfir.giize.com
+
+# الروابط الرسمية للبوابات الثلاث
+NEXT_PUBLIC_SITE_URL=https://tawfir.giize.com
+NEXT_PUBLIC_ADMIN_URL=https://admin.tawfir.giize.com
+NEXT_PUBLIC_OWNER_URL=https://facility.tawfir.giize.com
+
+# WebSocket للإشعارات الفورية (wss مباشر — يدعمه الخادم)
+NEXT_PUBLIC_WS_URL=wss://api.tawfir.giize.com/api/v1/ws/notifications
