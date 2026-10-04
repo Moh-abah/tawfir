@@ -41,9 +41,18 @@ import { useAdminAuditLogs } from "@/hooks/useAdminAuditLogs";
 import { useAdminPendingFacilities } from "@/hooks/useAdminPendingFacilities";
 import { useAdminOrders } from "@/hooks/useAdminOrders";
 import { useAdminMembershipRequests } from "@/hooks/useAdminMembershipRequests";
+import { useAdminYemenNotifications } from "@/hooks/useFinance";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 
-type NavKey = "facilities" | "cards" | "users" | "audit-logs" | "pending" | "orders" | "membership-requests";
+type NavKey =
+  | "facilities"
+  | "cards"
+  | "users"
+  | "audit-logs"
+  | "pending"
+  | "orders"
+  | "membership-requests"
+  | "finance";
 
 interface NavItem {
   href: string;
@@ -55,6 +64,8 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "لوحة المعلومات", icon: LayoutDashboard },
   { href: "/admin/orders", label: "الطلبات", icon: ShoppingBag, badgeKey: "orders" },
+  /* 4-d: «المالية» بعد الطلبات مباشرة — قلب الجولة المالية v2 */
+  { href: "/admin/finance", label: "المالية", icon: Wallet, badgeKey: "finance" },
   { href: "/admin/wallets", label: "المحافظ والتحويلات", icon: Wallet },
   { href: "/admin/couriers", label: "أسطول المناديب", icon: Bike },
   { href: "/admin/pricing", label: "تسعير التوصيل", icon: Banknote },
@@ -91,6 +102,8 @@ function NavBadgeCounts() {
   const { data: pendingData } = useAdminPendingFacilities(1, 1);
   const { data: ordersData } = useAdminOrders({ page: 1, page_size: 1 });
   const { data: membershipData } = useAdminMembershipRequests("pending", 1, 1);
+  /* 4-d: شارة «المالية» = عدد إشعارات التسديد اليمنية بانتظار المراجعة */
+  const { data: financeNotifications } = useAdminYemenNotifications("submitted");
 
   const counts: Record<NavKey, number> = {
     facilities: facilitiesData?.total ?? 0,
@@ -100,6 +113,7 @@ function NavBadgeCounts() {
     pending: pendingData?.total ?? 0,
     orders: ordersData?.total ?? 0,
     "membership-requests": membershipData?.total ?? 0,
+    finance: financeNotifications?.length ?? 0,
   };
 
   return counts;

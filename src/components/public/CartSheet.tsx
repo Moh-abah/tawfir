@@ -44,7 +44,9 @@ import type { OrderOut, PaymentMethod } from "@/types/api.generated";
  * مدخلات الطلب مطابقة الآن لCheckoutSheet عبر مكون DeliveryFields المشترك
  * (موقع lat/lng + عنوان ≤ 500 + ملاحظات ≤ 500 + دفع نقدي — wallet يرفضه
  * الخادم 422) والتسعير من useCartPricing (مصدر الحقيقة الوحيد):
- * المجموع الأصلي − خصم العضوية + توصيل 300 = الإجمالي.
+ * المجموع الأصلي − خصم العضوية (من /me) + أجرة التوصيل الديناميكية حسب
+ * المسافة (تُقدَّر من الخادم عند توفر الموقع المحفوظ) = الإجمالي —
+ * والإجمالي النهائي يؤكده الخادم عند إنشاء الطلب.
  *
  * يُفتح من زر السلة في MainHeader (CartButton) ومن StickyMiniCart.
  */
@@ -57,6 +59,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
+  const setDeliveryCoords = useCartStore((s) => s.setDeliveryCoords);
 
   /* التسعير — مصدر الحقيقة الوحيد useCartPricing (2-c) */
   const {
@@ -66,8 +69,9 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
     facilityName,
     totalCount,
     baseSubtotal,
-    memberSavings,
-    delivery,
+    subtotal,
+    discountAmount,
+    deliveryFee,
     total,
     isMember,
     memberRate,
@@ -228,6 +232,9 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               onLocated={(la, ln) => {
                 setLat(la);
                 setLng(ln);
+                /* حفظ الموقع في مخزن السلة — لتقدير الأجرة الديناميكية
+                   في useCartPricing (الشريط العائم + الفاتورة) */
+                setDeliveryCoords(la, ln);
               }}
               address={address}
               onAddressChange={setAddress}
@@ -235,7 +242,8 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               onNotesChange={setNotes}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={(m) => {
-                setPaymentMethod(m);
+                /* "electronic" غير متاح في تدفق السلة (سوق يمني افتراضياً) */
+                setPaymentMethod(m === "electronic" ? "cash" : m);
                 if (m !== "wallet") setPaymentWalletId(null);
               }}
               paymentWalletId={paymentWalletId}
@@ -271,32 +279,47 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                     {formatCurrency(baseSubtotal)}
                   </span>
                 </div>
-                {isMember && memberSavings > 0 && (
+                {isMember && discountAmount > 0 && (
                   <div className="flex items-center justify-between text-primary">
                     <span className="inline-flex items-center gap-1 font-bold">
                       <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                       خصم العضوية {memberRate}%
                     </span>
                     <span className="font-bold tabular-nums" dir="ltr">
-                      −{formatCurrency(memberSavings)}
+                      −{formatCurrency(discountAmount)}
                     </span>
                   </div>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">رسوم التوصيل</span>
-                  <span className="font-bold tabular-nums text-foreground" dir="ltr">
-                    {formatCurrency(delivery)}
-                  </span>
+                  <span className="text-muted-foreground">أجرة التوصيل</span>
+                  {deliveryFee != null ? (
+                    <span className="font-bold tabular-nums text-foreground" dir="ltr">
+                      {formatCurrency(deliveryFee)}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-muted-foreground">
+                      تُحسب حسب المسافة عند التأكيد
+                    </span>
+                  )}
                 </div>
                 <div className="my-1.5 h-px bg-border/40" />
                 <div className="flex items-center justify-between">
                   <span className="text-base font-extrabold text-foreground">الإجمالي</span>
-                  <span
-                    className="text-lg font-extrabold tabular-nums text-primary"
-                    dir="ltr"
-                  >
-                    {formatCurrency(total)}
-                  </span>
+                  {total != null ? (
+                    <span
+                      className="text-lg font-extrabold tabular-nums text-primary"
+                      dir="ltr"
+                    >
+                      {formatCurrency(total)}
+                    </span>
+                  ) : (
+                    <span
+                      className="text-base font-extrabold tabular-nums text-primary"
+                      dir="rtl"
+                    >
+                      {formatCurrency(subtotal)} + الأجرة
+                    </span>
+                  )}
                 </div>
               </div>
               {/* بوابة الإرسال §6-3 — الزر معطّل حتى تحميل الموقع والعنوان */}

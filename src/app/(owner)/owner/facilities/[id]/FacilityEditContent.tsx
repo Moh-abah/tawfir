@@ -248,7 +248,7 @@ const prefersReduced = usePrefersReducedMotion();
                     name="is_visible"
                     control={control}
                     render={({ field }) => (
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
                     )}
                   />
                 </div>

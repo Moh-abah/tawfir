@@ -37,6 +37,7 @@ const schema = z.object({
   platform_name: z.string().min(1, "اسم المنصة مطلوب"),
   region_id: z.string().min(1, "المنطقة مطلوبة"),
   display_order: z.number().int().min(0, "قيمة غير صحيحة"),
+  discount_rate: z.number().min(0, "قيمة غير صحيحة"),
   is_published: z.boolean(),
 });
 type FormValues = z.infer<typeof schema>;
@@ -60,6 +61,7 @@ export function CardForm({ open, onOpenChange, initial }: CardFormProps) {
       platform_name: initial?.platform_name ?? "",
       region_id: initial?.region_id ? String(initial.region_id) : "",
       display_order: initial?.display_order ?? 0,
+      discount_rate: initial?.discount_rate ?? 0,
       is_published: initial?.is_published ?? false,
     },
     values: {
@@ -67,6 +69,7 @@ export function CardForm({ open, onOpenChange, initial }: CardFormProps) {
       platform_name: initial?.platform_name ?? "",
       region_id: initial?.region_id ? String(initial.region_id) : "",
       display_order: initial?.display_order ?? 0,
+      discount_rate: initial?.discount_rate ?? 0,
       is_published: initial?.is_published ?? false,
     },
   });
@@ -80,6 +83,7 @@ export function CardForm({ open, onOpenChange, initial }: CardFormProps) {
         platform_name: initial?.platform_name ?? "",
         region_id: initial?.region_id ? String(initial.region_id) : "",
         display_order: initial?.display_order ?? 0,
+        discount_rate: initial?.discount_rate ?? 0,
         is_published: initial?.is_published ?? false,
       });
     }
@@ -95,6 +99,7 @@ export function CardForm({ open, onOpenChange, initial }: CardFormProps) {
       platform_name: values.platform_name,
       region_id: Number(values.region_id),
       display_order: values.display_order,
+      discount_rate: values.discount_rate,
       is_published: values.is_published,
     };
     if (initial) {
@@ -185,6 +190,22 @@ export function CardForm({ open, onOpenChange, initial }: CardFormProps) {
             {formState.errors.display_order && (
               <p className="text-xs text-destructive">
                 {formState.errors.display_order.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="card-discount">نسبة خصم البطاقة %</Label>
+            <Input
+              id="card-discount"
+              type="number"
+              min={0}
+              step="1"
+              {...register("discount_rate")}
+            />
+            {formState.errors.discount_rate && (
+              <p className="text-xs text-destructive">
+                {formState.errors.discount_rate.message}
               </p>
             )}
           </div>

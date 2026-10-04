@@ -18,7 +18,6 @@ import { Stars } from "@/components/shared/Stars";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import type { ProductWithFacilityOut } from "@/types/api.generated";
 import {
   CheckoutSheet,
@@ -87,9 +86,13 @@ export function ProductCard({ product, className, priority = false, staggerIndex
   const hasRating = !!ratingAgg.data && ratingAgg.data.count > 0;
 
   const isMember = !!me.data?.membership?.is_active;
-  const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
+  /* نسبة العضوية الفعلية من /me فقط — بلا ثابت؛ صفر/غياب = لا خصم يُعرض */
+  const memberRate = me.data?.membership?.discount_rate ?? 0;
+  const hasMemberDiscount = isMember && memberRate > 0;
   const priceNum = parseFloat(product.price) || 0;
-  const finalPrice = isMember ? priceNum * (1 - memberRate / 100) : priceNum;
+  const finalPrice = hasMemberDiscount
+    ? priceNum * (1 - memberRate / 100)
+    : priceNum;
   const outOfStock =
     !product.is_available || product.available_quantity === 0;
 
@@ -112,9 +115,9 @@ export function ProductCard({ product, className, priority = false, staggerIndex
     name: product.name,
     description: product.description,
     price: product.price,
-    image_url: product.image_url,
+    image_url: product.image_url ?? null,
     is_available: product.is_available,
-    available_quantity: product.available_quantity,
+    available_quantity: product.available_quantity ?? null,
   };
 
   return (
@@ -242,7 +245,7 @@ export function ProductCard({ product, className, priority = false, staggerIndex
 
           <div className="mt-auto flex items-end justify-between gap-1.5 pt-1">
             <div className="flex min-w-0 flex-col">
-              {isMember && (
+              {hasMemberDiscount && (
                 <span
                   className="text-[10px] tabular-nums text-muted-foreground line-through"
                   dir="ltr"
@@ -253,7 +256,7 @@ export function ProductCard({ product, className, priority = false, staggerIndex
               <span
                 className={cn(
                   "text-xs font-bold tabular-nums",
-                  isMember ? "text-primary" : "text-foreground"
+                  hasMemberDiscount ? "text-primary" : "text-foreground"
                 )}
                 dir="ltr"
               >

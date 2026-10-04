@@ -191,7 +191,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       //      الصفحة المفتوحة ستعيد الجلب تلقائياً وتتحدث الحالة + شريط
       //      التتبّع + توميض لطيف على البطاقة (OrderDetailContent).
       if (ORDER_STATUS_NOTIFICATION_TYPES.has(n.notification_type)) {
-        const orderId = extractOrderId(n.data);
+        const orderId = n.data ? extractOrderId(n.data) : null;
         if (orderId != null) {
           qc.invalidateQueries({ queryKey: ["order-detail", orderId] });
         } else {

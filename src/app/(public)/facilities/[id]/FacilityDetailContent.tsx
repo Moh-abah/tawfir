@@ -47,7 +47,6 @@ import { useFacilities } from "@/hooks/useFacilities";
 import { useMe } from "@/hooks/useMe";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { TYPE_LABEL, SCHEMA_ORG_TYPE } from "@/lib/constants";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import type { FacilityType, Product } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
@@ -88,14 +87,15 @@ function ProductCard({
   onClick: () => void;
   onOrder: () => void;
   isMember: boolean;
-  /** نسبة خصم المتجر الفعلية (admin قابلة للتعديل 10-30) */
+  /** نسبة خصم المتجر الفعلية — يحددها التاجر (0 = بلا خصم يُعرض) */
   facilityRate: number;
 }) {
   /* الجولة 17 — معاينة ملء الشاشة من شبكة المتجر بلا مغادرة القائمة */
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const price = parseFloat(product.price);
   const memberRate = isMember ? facilityRate : 0;
-  const finalPrice = isMember ? price * (1 - memberRate / 100) : price;
+  const hasMemberDiscount = isMember && memberRate > 0;
+  const finalPrice = hasMemberDiscount ? price * (1 - memberRate / 100) : price;
   return (
     <motion.div
       variants={{
@@ -146,7 +146,7 @@ function ProductCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-sm font-bold text-foreground leading-snug">{product.name}</h3>
-          {product.is_available && isMember && (
+          {product.is_available && hasMemberDiscount && (
             <motion.span
               initial={{ scale: 0 }}
               whileInView={{ scale: 1 }}
@@ -163,7 +163,7 @@ function ProductCard({
         <div className="mt-3 flex items-end justify-between gap-2">
           {product.is_available ? (
             <div className="flex flex-col gap-0.5">
-              {isMember && (
+              {hasMemberDiscount && (
                 <span className="text-xs text-muted-foreground line-through" dir="ltr">
                   {formatCurrency(price)}
                 </span>
@@ -171,7 +171,7 @@ function ProductCard({
               <span 
                 className={cn(
                   "font-bold tabular-nums", 
-                  isMember ? "text-primary" : "text-foreground"
+                  hasMemberDiscount ? "text-primary" : "text-foreground"
                 )} 
                 dir="ltr"
               >
@@ -405,6 +405,9 @@ const prefersReduced = usePrefersReducedMotion();
   const me = useMe();
   const { accessToken, hydrated } = useCustomerAuth();
   const isMember = !!me.data?.membership?.is_active;
+  /* نسبة العضوية الفعلية من /me حصراً — بلا ثابت؛ صفر/غياب = بلا خصم يُعرض */
+  const memberRate = me.data?.membership?.discount_rate ?? 0;
+  const hasMemberDiscount = isMember && memberRate > 0;
 
   /* إصلاح الأداء (صفحات المتاجر الكبيرة): كانت الشبكة تعرض كل المنتجات
      دفعة واحدة مع stagger حركة لكل كارت — على متجر بـ100 منتج = 100 كارت
@@ -687,7 +690,7 @@ const prefersReduced = usePrefersReducedMotion();
                   {TYPE_LABEL[facility.type]}
                 </span>
               </div>
-              <DiscountBadge percentage={facility.discount_rate ?? DISCOUNT_RATE} />
+              <DiscountBadge percentage={facility.discount_rate ?? 0} />
             </div>
           </div>
         </div>
@@ -819,13 +822,13 @@ const prefersReduced = usePrefersReducedMotion();
                 </p>
               )}
               <div className="mt-4 flex items-baseline gap-3">
-                {isMember ? (
+                {hasMemberDiscount ? (
                   <>
                     <span className="text-sm text-muted-foreground line-through" dir="ltr">
                       {formatCurrency(parseFloat(selectedProduct.price))}
                     </span>
                     <span className="text-2xl font-extrabold text-primary" dir="ltr">
-                      {formatCurrency(parseFloat(selectedProduct.price) * (1 - (facility?.discount_rate ?? DISCOUNT_RATE) / 100))}
+                      {formatCurrency(parseFloat(selectedProduct.price) * (1 - memberRate / 100))}
                     </span>
                   </>
                 ) : (
@@ -923,7 +926,7 @@ const prefersReduced = usePrefersReducedMotion();
                     onClick={() => setSelectedProduct(p)}
                     onOrder={() => handleOrder(p)}
                     isMember={isMember}
-                    facilityRate={facility?.discount_rate ?? DISCOUNT_RATE}
+                    facilityRate={facility?.discount_rate ?? 0}
                   />
                 ))}
               </motion.div>
@@ -958,8 +961,8 @@ const prefersReduced = usePrefersReducedMotion();
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground">
                 {hydrated && accessToken
-                  ? "خصم حتى 30% مع عضوية توفير"
-                  : "سجّل واحصل على خصم حتى 30%"}
+                  ? "خصومات حصرية مع عضوية توفير"
+                  : "سجّل واحصل على خصومات حصرية"}
               </p>
               <p className="text-xs text-muted-foreground">
                 {hydrated && accessToken

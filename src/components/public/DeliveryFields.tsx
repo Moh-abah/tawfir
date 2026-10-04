@@ -17,11 +17,16 @@
  *   من المتجر» خيار ثانٍ (UI فقط — بلا حقل خادم؛ التاجر يملك أصلاً
  *   إجراء «توصيل ذاتي»). عند الاستلام من المتجر تُخفّى إلزامية
  *   الموقع/العنوان والتسعير الحي.
- * - «طريقة الدفع»: كاش (افتراضي) + «محفظة / تحويل يدوي» نشط يفتح
- *   منتقي محافظ المتجر + «الدفع الإلكتروني المباشر» معطّل (قريباً).
+ * - «طريقة الدفع» حسب السوق (جولة المالية v2):
+ *   · يمني (الافتراضي للتوافق): كاش + «محفظة / تحويل يدوي» — ولا أي
+ *     أثر للدفع الإلكتروني (السوق اليمني لا يرى بوابة دفع إطلاقاً).
+ *   · سعودي: كاش + «دفع إلكتروني (بطاقة/Apple Pay)» — قيمة الاختيار
+ *     "electronic" واجهة حصراً ولا تُرسل للخادم أبداً (الطلب يُنشأ
+ *     cash والدفع الفعلي لاحقاً عبر مويسر من /orders/{id}/pay) —
+ *     وتُخفّى محفظة التاجر لعدم وجودها في السوق السعودي.
  */
 
-import { Banknote, Loader2, MapPin, Store, Wallet } from "lucide-react";
+import { Banknote, CreditCard, Loader2, MapPin, Store, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -48,6 +53,16 @@ export const MISSING_LOCATION_MSG =
 /** طريقة الاستلام — UI فقط (التوصيل افتراضي، والتسليم اليدوي خيار ثانٍ). */
 export type DeliveryMode = "delivery" | "handover";
 
+/**
+ * طريقة الدفع في نموذج الطلب.
+ * "electronic" قيمة واجهة حصراً (السوق السعودي) — لا تُرسل للخادم إطلاقاً؛
+ * العقد: الطلب يُنشأ payment_method="cash" والدفع الفعلي عبر مويسر لاحقاً.
+ */
+export type CheckoutPaymentMethod = PaymentMethod | "electronic";
+
+/** سوق المستخدم — يحدد بطاقات طريقة الدفع الظاهرة (برونزية السوقين). */
+export type CheckoutMarket = "saudi" | "yemen";
+
 export interface DeliveryFieldsProps {
   /** خط عرض موقع التوصيل (null إن لم يُحمّل بعد). */
   lat: number | null;
@@ -61,9 +76,9 @@ export interface DeliveryFieldsProps {
   /** ملاحظات الطلب (notes). */
   notes: string;
   onNotesChange: (value: string) => void;
-  /** طريقة الدفع — cash (افتراضي) | wallet (تحويل يدوي عبر محفظة المتجر). */
-  paymentMethod: PaymentMethod;
-  onPaymentMethodChange: (method: PaymentMethod) => void;
+  /** طريقة الدفع — cash (افتراضي) | wallet | electronic (واجهة سعودية حصراً). */
+  paymentMethod: CheckoutPaymentMethod;
+  onPaymentMethodChange: (method: CheckoutPaymentMethod) => void;
   /** معرّف محفظة المتجر المختارة (مطلوب مع wallet). */
   paymentWalletId: number | null;
   onPaymentWalletIdChange: (walletId: number | null) => void;
@@ -88,6 +103,13 @@ export interface DeliveryFieldsProps {
   facilityId?: number | null;
   /** إظهار شارة إلزامية العنوان (حسب سياق المستدعي). */
   showAddressRequired?: boolean;
+  /**
+   * سوق المستخدم — يحدد بطاقات الدفع:
+   * saudi → كاش + دفع إلكتروني (بلا محفظة تاجر)؛
+   * yemen (الافتراضي للتوافق مع بقية المستدعين) → كاش + محفظة
+   * وبلا أي أثر للدفع الإلكتروني.
+   */
+  market?: CheckoutMarket;
 }
 
 export function DeliveryFields({
@@ -109,7 +131,9 @@ export function DeliveryFields({
   idPrefix = "",
   facilityId = null,
   showAddressRequired = true,
+  market = "yemen",
 }: DeliveryFieldsProps) {
+  const isSaudiMarket = market === "saudi";
   const wrapClass =
     variant === "sheet" ? "space-y-2 border-b border-border/50 p-4" : "space-y-2";
 
@@ -324,10 +348,10 @@ export function DeliveryFields({
         <Label className="text-sm font-bold">طريقة الدفع</Label>
         <RadioGroup
           value={paymentMethod}
-          onValueChange={(v) => onPaymentMethodChange(v as PaymentMethod)}
+          onValueChange={(v) => onPaymentMethodChange(v as CheckoutPaymentMethod)}
           className="space-y-2"
         >
-          {/* كاش — الافتراضي */}
+          {/* كاش — الافتراضي في السوقين */}
           <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
             <RadioGroupItem value="cash" id={`${idPrefix}pay-cash`} disabled={disabled} />
             <Label
@@ -339,41 +363,54 @@ export function DeliveryFields({
             </Label>
           </div>
 
-          {/* محفظة / تحويل يدوي — المسار النشط (جولة المحافظ) */}
-          <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-            <RadioGroupItem
-              value="wallet"
-              id={`${idPrefix}pay-wallet`}
-              disabled={disabled}
-            />
-            <Label
-              htmlFor={`${idPrefix}pay-wallet`}
-              className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
-            >
-              <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
-              <span className="flex min-w-0 flex-col">
-                <span>محفظة / تحويل يدوي</span>
-                <span className="text-[10px] font-medium text-muted-foreground">
-                  حوّل من محفظتك وارفع صورة الإشعار
+          {/* السوق السعودي: دفع إلكتروني (بطاقة/Apple Pay) —
+              "electronic" قيمة واجهة حصراً ولا تُرسل للخادم أبداً؛
+              الطلب يُنشأ cash والدفع الفعلي عبر مويسر لاحقاً */}
+          {isSaudiMarket && (
+            <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <RadioGroupItem
+                value="electronic"
+                id={`${idPrefix}pay-electronic`}
+                disabled={disabled}
+              />
+              <Label
+                htmlFor={`${idPrefix}pay-electronic`}
+                className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
+                <span className="flex min-w-0 flex-col">
+                  <span>دفع إلكتروني (بطاقة/Apple Pay)</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    تدفع الآن بأمان عبر مويسر بعد تأكيد الطلب
+                  </span>
                 </span>
-              </span>
-            </Label>
-          </div>
+              </Label>
+            </div>
+          )}
 
-          {/* بوابة الدفع الإلكتروني — معطّلة (قريباً) — لا تُرسل للخادم */}
-          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg border p-3 opacity-60">
-            <RadioGroupItem value="gateway" id={`${idPrefix}pay-gateway`} disabled />
-            <Label
-              htmlFor={`${idPrefix}pay-gateway`}
-              className="flex flex-1 items-center gap-2 text-sm font-medium text-muted-foreground"
-            >
-              <Banknote className="h-5 w-5" aria-hidden="true" />
-              الدفع الإلكتروني المباشر
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                🔒 قريباً
-              </span>
-            </Label>
-          </div>
+          {/* محفظة / تحويل يدوي — السوق اليمني حصراً (جولة المحافظ)؛
+              تُخفى في السعودية لعدم وجودها في سوقها */}
+          {!isSaudiMarket && (
+            <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <RadioGroupItem
+                value="wallet"
+                id={`${idPrefix}pay-wallet`}
+                disabled={disabled}
+              />
+              <Label
+                htmlFor={`${idPrefix}pay-wallet`}
+                className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
+              >
+                <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
+                <span className="flex min-w-0 flex-col">
+                  <span>محفظة / تحويل يدوي</span>
+                  <span className="text-[10px] font-medium text-muted-foreground">
+                    حوّل من محفظتك وارفع صورة الإشعار
+                  </span>
+                </span>
+              </Label>
+            </div>
+          )}
         </RadioGroup>
 
         {/* منتقي محفظة المتجر — يظهر عند اختيار «محفظة / تحويل يدوي» */}

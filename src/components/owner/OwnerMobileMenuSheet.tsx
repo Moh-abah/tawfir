@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Home,
+  Wallet,
   ChevronLeft,
 } from "lucide-react";
 import {
@@ -102,6 +103,14 @@ export function OwnerMobileMenuSheet({
 
   const generalItems: MenuItemDef[] = [
     { key: "home", label: "الرئيسية", icon: Home, iconClass: "bg-primary/10 text-primary", href: "/owner" },
+    {
+      // ✦ 4-b: المالية — بطاقة التاجر المالية وإشعارات التسديد اليمنية
+      key: "finance",
+      label: "المالية",
+      icon: Wallet,
+      iconClass: "bg-success/10 text-success",
+      href: "/owner/finance",
+    },
     {
       key: "stats",
       label: "الإحصائيات",

@@ -4,11 +4,12 @@
  * CourierBottomNav — الشريط السفلي لبوابة المندوب (نمط Native).
  * تبويبات لمسية ≥44px + safe-area — مستنسخ من أنماط البوابات القائمة.
  * تبويب «مهمتي» يظهر شارة نقطية حمراء عند وجود مهمة جارية.
+ * Task 4-c: تبويب خامس «المالية» (رصيدي + وجهات الصرف + مستحقاتي).
  */
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bike, ClipboardList, Home, Package, User } from "lucide-react";
+import { Bike, ClipboardList, Home, Package, User, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCourierCurrentTask } from "@/hooks/useCourier";
 
@@ -23,6 +24,7 @@ const TABS: TabDef[] = [
   { label: "الرئيسية", icon: Home, href: "/courier/home", exact: true },
   { label: "مهمتي", icon: Package, href: "/courier/task", exact: true },
   { label: "مهامي", icon: ClipboardList, href: "/courier/tasks" },
+  { label: "المالية", icon: Wallet, href: "/courier/finance" },
   { label: "ملفي", icon: User, href: "/courier/profile" },
 ];
 
@@ -37,7 +39,7 @@ export function CourierBottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/95 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4">
+      <ul className="mx-auto grid max-w-md grid-cols-5">
         {TABS.map((tab) => {
           const active = tab.exact
             ? pathname === tab.href
@@ -50,7 +52,7 @@ export function CourierBottomNav() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex h-14 min-w-[64px] flex-col items-center justify-center gap-0.5 native-tap",
+                  "relative flex h-14 min-w-[56px] flex-col items-center justify-center gap-0.5 native-tap",
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground",

@@ -145,8 +145,8 @@ const registerSchema = z
     discount_rate: z
       .number()
       .int()
-      .min(5, { message: "النسبة يجب أن تكون 5 على الأقل" })
-      .max(30, { message: "النسبة يجب أن تكون 30 على الأكثر" }),
+      .min(0, { message: "النسبة لا تكون بالسالب" })
+      .max(20, { message: "النسبة يجب أن تكون 20 على الأكثر" }),
   })
   .refine((d) => d.password === d.password_confirm, {
     message: "كلمتا المرور غير متطابقتين",
@@ -156,7 +156,7 @@ const registerSchema = z
 type FormValues = z.infer<typeof registerSchema>;
 
 /* ════════════════════════════════════════════════════════════════ */
-/*  أنماط أزرار نوع المتجر — مطاعم وكافتيريات فقط                     */
+/*  أنماط أزرار نوع المتجر — مطاعم ومقاهي وكافتيريات                  */
 /* ════════════════════════════════════════════════════════════════ */
 const TYPE_CIRCLES: Record<FacilityType, { active: string; idle: string }> = {
   restaurant: {
@@ -167,11 +167,16 @@ const TYPE_CIRCLES: Record<FacilityType, { active: string; idle: string }> = {
     active: "bg-cat-cafe text-white shadow-soft",
     idle: "bg-cat-cafe-soft text-cat-cafe",
   },
+  cafeteria: {
+    active: "bg-cat-facility text-white shadow-soft",
+    idle: "bg-cat-facility-soft text-cat-facility",
+  },
 };
 
 const FACILITY_TYPES: ReadonlyArray<{ key: FacilityType; icon: LucideIcon }> = [
   { key: "restaurant", icon: TYPE_ICON.restaurant },
   { key: "cafe", icon: TYPE_ICON.cafe },
+  { key: "cafeteria", icon: TYPE_ICON.cafeteria },
 ];
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -755,7 +760,7 @@ export default function OwnerRegisterPage() {
       phone_facility: "",
       working_hours: "",
       image_url: "",
-      discount_rate: 30,
+      discount_rate: 0,
     },
   });
   const { register: registerField, handleSubmit, control, formState } = form;
@@ -1330,7 +1335,7 @@ export default function OwnerRegisterPage() {
                     </div>
                   )}
 
-                  {/* نسبة الخصم لتوفير — شريط تمرير 10-30 */}
+                  {/* نسبة الخصم لتوفير — شريط تمرير اختياري 0-20 (§8) */}
                   <Controller
                     name="discount_rate"
                     control={control}
@@ -1348,26 +1353,28 @@ export default function OwnerRegisterPage() {
                             className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary"
                             aria-live="polite"
                           >
-                            {field.value ?? 30}%
+                            {field.value ?? 0}%
                           </span>
                         </div>
+                        {/* الفلسفة الجديدة (§8): خصم اختياري 0-20% — 20 هو
+                            الحد الأقصى الموثق بالبرومبت (DISCOUNT_MAX_PCT
+                            الافتراضي) حتى يتوفر مسار يقرؤه المالك حيًا */}
                         <Slider
                           id="discount_rate"
-                          min={5}
-                          max={30}
-                          step={5}
-                          value={[field.value ?? 30]}
+                          min={0}
+                          max={20}
+                          step={1}
+                          value={[field.value ?? 0]}
                           onValueChange={(values: number[]) =>
-                            field.onChange(values[0] ?? 30)
+                            field.onChange(values[0] ?? 0)
                           }
                           disabled={isBusy}
                           aria-label="نسبة الخصم لتوفير"
                           className="min-h-[44px] py-2"
                         />
                         <p className="text-xs text-muted-foreground">
-                          اختر نسبة الخصم التي ستمنحها لحاملي بطاقة توفير (من
-                          5% إلى 30%). لا يمكن تغييرها لاحقاً. للتعديل
-                          تواصل: 780090882
+                          نسبة الخصم اختيارية من 0% حتى الحد الأقصى المسموح من
+                          المنصة. يمكن تعديلها لاحقاً.
                         </p>
                         <FieldError
                           message={formState.errors.discount_rate?.message}

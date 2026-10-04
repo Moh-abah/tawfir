@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { useMe } from "@/hooks/useMe";
-import { DISCOUNT_RATE, identityUrl } from "@/lib/site-config";
+import { identityUrl } from "@/lib/site-config";
 import { formatExpiry, formatMembershipNumber } from "@/lib/format";
 import type { MyMembershipCard } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
@@ -198,7 +198,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
             {greeting}
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة — مبلغ سنوي 3000 ر.ي
+            خصومات حصرية للعضوية في كل المتاجر المشتركة
           </p>
         </div>
         <Button
@@ -237,7 +237,7 @@ function VisitorMemberCard({ className }: { className?: string }) {
             بطاقة الخصومات الذكية
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            وفّر أكثر.. عِش أجمل — خصم {DISCOUNT_RATE}% في كل المتاجر المشتركة
+            وفّر أكثر.. عِش أجمل — خصومات حصرية للعضوية
           </p>
         </div>
         <Button

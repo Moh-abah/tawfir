@@ -44,6 +44,7 @@ import type { FacilityType } from "@/types/api.generated";
 const TYPE_BADGE: Record<FacilityType, string> = {
   restaurant: "bg-cat-restaurant-soft text-cat-restaurant",
   cafe: "bg-cat-cafe-soft text-cat-cafe",
+  cafeteria: "bg-cat-facility-soft text-cat-facility",
 };
 
 /* ─── سطر معلومة داخل البطاقة ─── */

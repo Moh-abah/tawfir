@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { AuthShell } from "@/components/shared/AuthShell";
@@ -37,7 +36,6 @@ import { useCustomerAuthStore } from "@/store/customerAuth.store";
 import { useToast } from "@/hooks/use-toast";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useQueryClient } from "@tanstack/react-query";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import type {
   MyMembershipCard,
   OtpRequestOut,
@@ -275,17 +273,20 @@ function SuccessScreen({
             <TawfirLogo className="h-10 w-auto" />
           </div>
           <div className="mb-3 flex items-center justify-center gap-2">
-            <DiscountBadge percentage={DISCOUNT_RATE} />
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground shadow-soft">
+              <Sparkles className="h-3 w-3" aria-hidden="true" />
+              خصومات حصرية للعضوية
+            </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
               <Sparkles className="h-3 w-3" aria-hidden="true" />
               اشترك الآن
             </span>
           </div>
           <h2 className="mb-1 text-lg font-extrabold text-foreground">
-            اشترك في عضوية توفير لخصم حتى 30%
+            اشترك في عضوية توفير واستمتع بخصومات حصرية
           </h2>
           <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
-            مبلغ سنوي ثابت 3000 ر.ي، موافقة يدوية خلال 24-48 ساعة.
+            موافقة يدوية خلال 24-48 ساعة.
             عند الموافقة تظهر بطاقة عضويتك في حسابك.
           </p>
         </div>
@@ -486,7 +487,7 @@ function FormProgressBar({ progress }: { progress: number }) {
 
 /* ─── Decorative Side Panel ──────────────────────── */
 const BENEFITS = [
-  "خصم حتى 30% على جميع المتاجر المشتركة",
+  "خصومات حصرية على جميع المتاجر المشتركة",
   "بطاقة عضوية رقمية بعد الموافقة اليدوية",
   "عروض حصرية ومزايا مميزة",
 ];
@@ -749,7 +750,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <p className="text-sm font-medium text-muted-foreground">
-          انضم إلى توفير — كل وجباتك.. بخصم حتى {DISCOUNT_RATE}%
+          انضم إلى توفير — كل وجباتك.. بخصومات حصرية
         </p>
       </motion.div>
 

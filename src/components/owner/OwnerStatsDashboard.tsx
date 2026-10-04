@@ -466,7 +466,7 @@ export function OwnerStatsDashboard({
           </div>
 
           {/* رسم آخر 7 أيام — يُخفى عند الفراغ */}
-          {data.orders_chart.length > 0 && (
+          {(data.orders_chart ?? []).length > 0 && (
             <Card className="rounded-2xl">
               <CardContent className="p-4">
                 <div className="mb-3 flex items-center gap-2">
@@ -474,14 +474,14 @@ export function OwnerStatsDashboard({
                     طلبات آخر 7 أيام
                   </h3>
                   <Badge variant="secondary" className="text-[10px]">
-                    {data.orders_chart.reduce(
+                    {(data.orders_chart ?? []).reduce(
                       (s, p) => s + p.count,
                       0
                     )}{" "}
                     طلبات
                   </Badge>
                 </div>
-                <OrdersBarChart points={data.orders_chart} />
+                <OrdersBarChart points={(data.orders_chart ?? [])} />
               </CardContent>
             </Card>
           )}
@@ -510,7 +510,7 @@ export function OwnerStatsDashboard({
                   </Link>
                 </div>
                 <RecentOrdersList
-                  orders={data.recent_orders.slice(0, 5)}
+                  orders={(data.recent_orders ?? []).slice(0, 5)}
                   facilityId={selectedId}
                 />
               </CardContent>
@@ -526,17 +526,17 @@ export function OwnerStatsDashboard({
                   <h3 className="text-sm font-bold">الأكثر طلباً</h3>
                 </div>
                 <TopProductsList
-                  products={data.top_products.slice(0, 5)}
+                  products={(data.top_products ?? []).slice(0, 5)}
                 />
               </CardContent>
             </Card>
           </div>
 
           {/* تذييل صغير: آخر تحديث */}
-          {data.recent_orders[0]?.created_at && (
+          {(data.recent_orders ?? [])[0]?.created_at && (
             <p className="text-center text-[10px] text-muted-foreground/70">
               آخر طلب:{" "}
-              {formatDate(data.recent_orders[0].created_at)}
+              {formatDate((data.recent_orders ?? [])[0].created_at)}
               {selectedFacility
                 ? ` • ${selectedFacility.name}`
                 : ""}

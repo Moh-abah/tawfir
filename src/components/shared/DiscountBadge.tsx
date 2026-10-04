@@ -9,7 +9,9 @@ interface DiscountBadgeProps {
 }
 
 export function DiscountBadge({
-  percentage = 30,
+  /* بلا رقم افتراضي: النسبة الحقيقية تأتي من المتجر (يحددها التاجر) أو
+     من عضوية العميل (من /me) — 0/غياب = لا تُعرض الشارة إطلاقاً */
+  percentage = 0,
   className,
 }: DiscountBadgeProps) {
   if (!percentage || percentage <= 0) return null;

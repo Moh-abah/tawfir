@@ -1,4 +1,5 @@
 import { useCustomerAuthStore } from "@/store/customerAuth.store";
+import { extractArabicDetail } from "@/lib/api-error-msg";
 import { attemptRefresh } from "@/services/token-refresh";
 import { toast } from "@/hooks/use-toast";
 import type { TokenOut } from "@/types/api.generated";
@@ -77,10 +78,13 @@ async function fetchWithCustomerAuth<T>(
   method: string,
   url: string,
   body?: unknown,
+  options?: { headers?: Record<string, string> },
   retried = false
 ): Promise<T> {
+  /* options.headers: ترويسات إضافية اختيارية (مثل X-Idempotency-Key للبرونزية-4) */
   const headers: Record<string, string> = {
     Accept: "application/json",
+    ...options?.headers,
   };
 
   if (body !== undefined && !(body instanceof FormData)) {
@@ -120,7 +124,7 @@ async function fetchWithCustomerAuth<T>(
         const newRefresh = tokens.refresh_token ?? readCustomerRefreshToken();
         if (newRefresh) {
           useCustomerAuthStore.getState().updateTokens(tokens.access_token, newRefresh);
-          return fetchWithCustomerAuth<T>(method, url, body, true);
+          return fetchWithCustomerAuth<T>(method, url, body, options, true);
         }
       }
     }
@@ -146,17 +150,13 @@ async function fetchWithCustomerAuth<T>(
 
   if (!response.ok) {
     if (response.status === 422 && data && typeof data === "object" && "detail" in data) {
-      const detail = (data as Record<string, unknown>).detail;
-      if (Array.isArray(detail)) {
-        const msgs = detail
-          .filter((d): d is Record<string, string> => typeof d === "object" && d !== null && "msg" in d)
-          .map((d) => d.msg)
-          .join("، ");
-        throw new CustomerApiError(msgs || "بيانات غير صالحة", 422, data);
-      }
-      if (typeof detail === "string") {
-        throw new CustomerApiError(detail, 422, data);
-      }
+      /* detail قد يصل نصاً أو مصفوفة أو كائناً مركّباً (message/errors) —
+         المستخرج الموحّد يعيد النص العربي الجاهز للعرض دائماً */
+      throw new CustomerApiError(
+        extractArabicDetail((data as Record<string, unknown>).detail, "بيانات غير صالحة"),
+        422,
+        data
+      );
     }
     const message =
       (data && typeof data === "object" && "detail" in data
@@ -188,7 +188,9 @@ async function fetchWithCustomerAuth<T>(
 
 export const customerApiClient = {
   get: <T>(url: string) => fetchWithCustomerAuth<T>("GET", url),
-  post: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("POST", url, body),
+  /* options تمرر الترويسات الإضافية (X-Idempotency-Key) — نفس عقد apiClient */
+  post: <T>(url: string, body?: unknown, options?: { headers?: Record<string, string> }) =>
+    fetchWithCustomerAuth<T>("POST", url, body, options),
   put: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("PUT", url, body),
   patch: <T>(url: string, body?: unknown) => fetchWithCustomerAuth<T>("PATCH", url, body),
   /** DELETE — جسم اختياري (مثال: تمرير توكنات FCM مع حذف الحساب). */

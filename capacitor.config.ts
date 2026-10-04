@@ -27,84 +27,96 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * أندرويد (يفقد إحساس Native) ← اقرأ دليل_الـCapacitor.md.
  */
 const config: CapacitorConfig = {
-  appId: "com.tawfir.ye.app",
-  appName: "توفير",
-  webDir: "native-shell",
-  server: {
-    androidScheme: "https",
-    url: "https://tawfir.giize.com",
-    cleartext: false,
-    /* ═══ إصلاح «تطبيق المالك يفتح المتصفح الخارجي» ═══
-     * بوابة المالك تعيش على نطاق فرعي منفصل: /owner على النطاق
-     * الرئيسي يعيد 308 إلى facility.tawfir.giize.com (راجع
-     * src/proxy.ts وNEXT_PUBLIC_OWNER_URL في site-config.ts).
-     * بدون allowNavigation يعامل Capacitor أي تنقّال لمضيف مختلف
-     * عن مضيف server.url كرابط خارجي ← يفتح متصفح النظام فيخرج
-     * المستخدم من التطبيق! إدراج المضيفين هنا يُبقي كل تنقّلات
-     * الموقع داخل الـWebView (بما فيها: تحويل 308 لبوابة المالك،
-     * الروابط العميقة، وإعادة تحميل صفحة الأوفلاين native-shell
-     * من أصل localhost). */
-    allowNavigation: ["tawfir.giize.com", "facility.tawfir.giize.com"],
+ appId: "com.tawfir.ye.app",
+ appName: "توفير",
+ webDir: "native-shell",
+ server: {
+  androidScheme: "https",
+  url: "https://tawfir.giize.com",
+  cleartext: false,
+  /* ═══ إصلاح «تطبيق المالك يفتح المتصفح الخارجي» ═══
+   * بوابة المالك تعيش على نطاق فرعي منفصل: /owner على النطاق
+   * الرئيسي يعيد 308 إلى facility.tawfir.giize.com (راجع
+   * src/proxy.ts وNEXT_PUBLIC_OWNER_URL في site-config.ts).
+   * بدون allowNavigation يعامل Capacitor أي تنقّال لمضيف مختلف
+   * عن مضيف server.url كرابط خارجي ← يفتح متصفح النظام فيخرج
+   * المستخدم من التطبيق! إدراج المضيفين هنا يُبقي كل تنقّلات
+   * الموقع داخل الـWebView (بما فيها: تحويل 308 لبوابة المالك،
+   * الروابط العميقة، وإعادة تحميل صفحة الأوفلاين native-shell
+   * من أصل localhost). */
+  allowNavigation: [
+   "tawfir.giize.com",
+   "facility.tawfir.giize.com",
+   /* ═══ جولة الجوال والدفع الإلكتروني v6 ═══
+    * نموذج مويسر المدمج يعمل داخل iframe (إطارات فرعية لا يعتبرها
+    * Capacitor تنقّالاً علوياً — تعمل بلا إدراج). الإدراج هنا شبكة
+    * أمان فقط: لبعض تدفقات 3DS/ACS القديمة تحويل علوي نحو دومين
+    * مويسر ثم عودة إلى callback_url — بدونه يفتح Capacitor المتصفح
+    * الخارجي (خروج من التطبيق!). Wildcard يغطي cdn./api./pay.
+    * الروابط العميقة عند العودة يعالجها setupNativeUrlOpen. */
+   "moyasar.com",
+   "*.moyasar.com",
+  ],
+ },
+ ios: {
+  /* ═══════════ iOS (الجولة 24 — دعم آيفون) ═══════════
+   * نفس فلسفة المسار 2 (Live WebView): الـWKWebView يفتح
+   * https://tawfir.giize.com فيعمل الـService Worker بالكامل.
+   * • backgroundColor: خلفية الـWKWebView قبل تحميل الموقع — فاتحة
+   *   تطابق سبلاش الإقلاع (#F7F7F7) فلا وميض أبيض/داكن.
+   * • scrollEnabled: false — الـWKWebView نفسه لا يتمرّر (الموقع
+   *   يدير تمريره عبر html/body بأسلوب PWA) — يمنع الارتداد
+   *   المطاطي المزدوج ويحفظ إحساس Native.
+   * • zoomEnabled: false (الافتراضي) + NativeBridge يقفل التمرير
+   *   بإصبعين من الويب — تجربة تطبيق أصيلة.
+   * • Safe-Area (النوتش/Dynamic Island): viewport-fit=cover في
+   *   layout.tsx + env(safe-area-inset-*) تعمل أصلاً في WKWebView،
+   *   وقواعد max(env(...), var(--cap-safe-*)) في globals.css
+   *   تستهلكها فوراً بلا أي تعديل ويب.
+   * الهوية/الأذونات/FCM/الروابط العميقة يفعّلها
+   * scripts/patch-ios-identity.mjs داخل GitHub Actions (macOS). */
+  backgroundColor: "#F7F7F7",
+  scrollEnabled: false,
+  allowsLinkPreview: false,
+ },
+ android: {
+  buildOptions: {
+   // يُستخدم فقط من npx cap run — البناء الفعلي عبر Gradle يقرأ
+   // أسرار التوقيع في .github/workflows/build-android.yml
+   keystorePath: "android/tawfeer-release.keystore",
+   keystoreAlias: "tawfeer",
   },
-  ios: {
-    /* ═══════════ iOS (الجولة 24 — دعم آيفون) ═══════════
-     * نفس فلسفة المسار 2 (Live WebView): الـWKWebView يفتح
-     * https://tawfir.giize.com فيعمل الـService Worker بالكامل.
-     * • backgroundColor: خلفية الـWKWebView قبل تحميل الموقع — فاتحة
-     *   تطابق سبلاش الإقلاع (#F7F7F7) فلا وميض أبيض/داكن.
-     * • scrollEnabled: false — الـWKWebView نفسه لا يتمرّر (الموقع
-     *   يدير تمريره عبر html/body بأسلوب PWA) — يمنع الارتداد
-     *   المطاطي المزدوج ويحفظ إحساس Native.
-     * • zoomEnabled: false (الافتراضي) + NativeBridge يقفل التمرير
-     *   بإصبعين من الويب — تجربة تطبيق أصيلة.
-     * • Safe-Area (النوتش/Dynamic Island): viewport-fit=cover في
-     *   layout.tsx + env(safe-area-inset-*) تعمل أصلاً في WKWebView،
-     *   وقواعد max(env(...), var(--cap-safe-*)) في globals.css
-     *   تستهلكها فوراً بلا أي تعديل ويب.
-     * الهوية/الأذونات/FCM/الروابط العميقة يفعّلها
-     * scripts/patch-ios-identity.mjs داخل GitHub Actions (macOS). */
-    backgroundColor: "#F7F7F7",
-    scrollEnabled: false,
-    allowsLinkPreview: false,
+  allowMixedContent: false,
+  /* إصلاح الثيم: خلفية الـWebView قبل تحميل المحتوى — فاتحة
+     (السبلاش الأصلي الآن ثنائي الوضع عبر values/values-night في
+     patch-android-identity.mjs؛ NativeBridge يضبط شريط الحالة
+     الفعلي فور جهوزية الثيم). */
+  backgroundColor: "#F7F7F7",
+ },
+ plugins: {
+  SplashScreen: {
+   launchShowDuration: 0,
+   launchAutoHide: false,
+   /* إصلاح الثيم: فاتح — يطابق خلفية شاشة إقلاع الويب الفاتحة
+    (#F7F7F7). كان #005B82 (أزرق مختلف عن الهوية) يسبب وميض
+    لونين متتاليين. الوضع الداكن يعالجه values-night في الباتش. */
+   backgroundColor: "#F7F7F7",
+   androidSplashResourceName: "splash",
+   androidScaleType: "CENTER_CROP",
+   showSpinner: false,
+   splashFullScreen: true,
+   splashImmersive: true,
   },
-  android: {
-    buildOptions: {
-      // يُستخدم فقط من npx cap run — البناء الفعلي عبر Gradle يقرأ
-      // أسرار التوقيع في .github/workflows/build-android.yml
-      keystorePath: "android/tawfeer-release.keystore",
-      keystoreAlias: "tawfeer",
-    },
-    allowMixedContent: false,
-    /* إصلاح الثيم: خلفية الـWebView قبل تحميل المحتوى — فاتحة
-       (السبلاش الأصلي الآن ثنائي الوضع عبر values/values-night في
-       patch-android-identity.mjs؛ NativeBridge يضبط شريط الحالة
-       الفعلي فور جهوزية الثيم). */
-    backgroundColor: "#F7F7F7",
+  StatusBar: {
+   /* إصلاح الثيم: إعداد أولي فاتح (أيقونات داكنة على خلفية فاتحة) —
+      NativeBridge يضبطه فوراً على الوضع الفعلي بعد الترطيب، ويُزامنه
+      مع كل تبديل. كان ثابتاً DARK/#0A1A2F فيظهر شريط داكن على تطبيق
+      فاتح وأزرار نظام داكنة لا تتبع ثيم الجهاز. */
+   style: "LIGHT",
+   backgroundColor: "#F7F7F7",
+   overlaysWebView: true,
   },
-  plugins: {
-    SplashScreen: {
-      launchShowDuration: 0,
-      launchAutoHide: false,
-      /* إصلاح الثيم: فاتح — يطابق خلفية شاشة إقلاع الويب الفاتحة
-       (#F7F7F7). كان #005B82 (أزرق مختلف عن الهوية) يسبب وميض
-       لونين متتاليين. الوضع الداكن يعالجه values-night في الباتش. */
-      backgroundColor: "#F7F7F7",
-      androidSplashResourceName: "splash",
-      androidScaleType: "CENTER_CROP",
-      showSpinner: false,
-      splashFullScreen: true,
-      splashImmersive: true,
-    },
-    StatusBar: {
-      /* إصلاح الثيم: إعداد أولي فاتح (أيقونات داكنة على خلفية فاتحة) —
-         NativeBridge يضبطه فوراً على الوضع الفعلي بعد الترطيب، ويُزامنه
-         مع كل تبديل. كان ثابتاً DARK/#0A1A2F فيظهر شريط داكن على تطبيق
-         فاتح وأزرار نظام داكنة لا تتبع ثيم الجهاز. */
-      style: "LIGHT",
-      backgroundColor: "#F7F7F7",
-      overlaysWebView: true,
-    },
-  },
+ },
 };
 
 export default config;

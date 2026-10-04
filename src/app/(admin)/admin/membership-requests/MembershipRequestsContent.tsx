@@ -149,8 +149,8 @@ function ReceiptImageDialog({
                 صورة التحويل — طلب رقم {request.id}
               </DialogTitle>
               <DialogDescription>
-                المبلغ: {formatCurrency(request.amount)} • طريقة الدفع:{" "}
-                {paymentMethodLabel(request.payment_method)}
+                المبلغ: {formatCurrency(request.amount ?? 0)} • طريقة الدفع:{" "}
+                {paymentMethodLabel(request.payment_method ?? "cash")}
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-center rounded-xl bg-muted/40 p-2">
@@ -298,10 +298,10 @@ function MembershipRow({
         مستخدم #{request.user_id}
       </TableCell>
       <TableCell className="font-semibold tabular-nums">
-        {formatCurrency(request.amount)}
+        {formatCurrency(request.amount ?? 0)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {paymentMethodLabel(request.payment_method)}
+        {paymentMethodLabel(request.payment_method ?? "cash")}
       </TableCell>
       <TableCell>
         <Button

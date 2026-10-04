@@ -95,8 +95,8 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
       facility_name: product.facility.name,
       name: product.name,
       price: product.price,
-      image_url: product.image_url,
-      available_quantity: product.available_quantity,
+      image_url: product.image_url ?? null,
+      available_quantity: product.available_quantity ?? null,
     });
 
     if (ok) {
@@ -116,8 +116,8 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
       facility_name: product.facility.name,
       name: product.name,
       price: product.price,
-      image_url: product.image_url,
-      available_quantity: product.available_quantity,
+      image_url: product.image_url ?? null,
+      available_quantity: product.available_quantity ?? null,
     });
     haptic("tick");
     if (!prefersReduced) {

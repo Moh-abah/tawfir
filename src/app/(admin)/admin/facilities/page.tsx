@@ -35,7 +35,8 @@ import type { Facility, FacilityType } from "@/types/api.generated";
 
 const TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "كافتيريا",
+  cafe: "مقهى",
+  cafeteria: "كافتيريا",
 };
 
 type FilterType = FacilityType | "all";
@@ -325,7 +326,7 @@ export default function AdminFacilitiesPage() {
               {filtered.map((facility) => (
                 <TableRow key={facility.id}>
                   <TableCell>
-                    <FacilityImage src={facility.image_url} name={facility.name} />
+                    <FacilityImage src={facility.image_url ?? null} name={facility.name} />
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-1.5">

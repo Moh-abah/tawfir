@@ -47,7 +47,8 @@ export interface paths {
         };
         /**
          * Get Facilities
-         * @description المنشآت العامة الموافق عليها والظاهرة، مع ترتيب اختياري حسب الأقرب مسافة.
+         * @description المنشآت العامة الموافق عليها والظاهرة، مع ترتيب اختياري حسب الأقرب مسافة
+         *     وفلتر «المفتوح الآن» (B-6).
          */
         get: operations["get_facilities_api_v1_facilities_get"];
         put?: never;
@@ -89,6 +90,29 @@ export interface paths {
         get: operations["get_facility_product_categories_api_v1_facilities__facility_id__products_categories_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/facilities/{facility_id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record Facility View
+         * @description تسجيل زيارة لصفحة متجر (للإحصائيات). Public.
+         *
+         *     الـclient يُرسل user_id اختيارياً (إن كان مسجلاً). لا نتحقق من auth
+         *     لأنها مجرد إحصائية — لا تؤثر على الأمان.
+         */
+        post: operations["record_facility_view_api_v1_facilities__facility_id__view_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -255,10 +279,11 @@ export interface paths {
         };
         /**
          * Membership Info
-         * @description معلومات حساب التحويل الثابتة للاشتراك في العضوية.
+         * @description معلومات حساب التحويل الثابتة للاشتراك في العضوية + علم العضوية المجانية.
          *
          *     تعرض المبلغ (3000 ريال يمني) واسم ورقم حساب التحويل (محمد يحيى عبه /
-         *     780090882) واسم المحفظة (محفظة جيب) والتعليمات.
+         *     780090882) واسم المحفظة (محفظة جيب) والتعليمات + ``is_free_membership_enabled``
+         *     (عند true يُخفي التطبيق الدفع ويعرض عضوية مجانية).
          */
         get: operations["membership_info_api_v1_membership_info_get"];
         put?: never;
@@ -287,6 +312,131 @@ export interface paths {
          */
         post: operations["membership_subscribe_api_v1_membership_subscribe_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/membership/subscribe-free": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Membership Subscribe Free
+         * @description الحصول على عضوية توفير المجانية (بلا دفع/إشعار).
+         *
+         *     متاح فقط عندما يكون علم ``is_free_membership_enabled`` مفعّلاً من لوحة
+         *     المشرف. يُنشئ طلب عضوية بحالة ``approved`` فوراً (is_free=True) مع توليد
+         *     رقم عضوية وتاريخ انتهاء. يُخفي التطبيق شاشة الدفع ورفع صورة الإشعار
+         *     ويعرض هذا المسار البديل.
+         */
+        post: operations["membership_subscribe_free_api_v1_membership_subscribe_free_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/savings/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Savings Summary
+         * @description ملخص توفير المستخدم من العضوية — يُظهر قيمة العضوية وتشجّع التجديد.
+         */
+        get: operations["get_savings_summary_api_v1_savings_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Or Update Rating
+         * @description إنشاء أو تحديث تقييم (مستخدم واحد = تقييم واحد لكل هدف).
+         */
+        post: operations["create_or_update_rating_api_v1_ratings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ratings/{target_type}/{target_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Ratings
+         * @description قائمة التقييمات لمنتج أو متجر + متوسط.
+         */
+        get: operations["list_ratings_api_v1_ratings__target_type___target_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ratings/{target_type}/{target_id}/aggregate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Aggregate
+         * @description متوسط التقييم + العدد (للعرض السريع على البطاقات).
+         */
+        get: operations["get_aggregate_api_v1_ratings__target_type___target_id__aggregate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ratings/{rating_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Rating Endpoint
+         * @description حذف تقييم (فقط بواسطة صاحبه).
+         */
+        delete: operations["delete_rating_endpoint_api_v1_ratings__rating_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -407,6 +557,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/delivery-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Estimate Delivery Fee */
+        get: operations["estimate_delivery_fee_api_v1_orders_delivery_estimate_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders": {
         parameters: {
             query?: never;
@@ -435,6 +602,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orders/{order_id}/payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Order Payment
+         * @description حالة الدفع الكاملة لطلبي (عميل): المحفظة المختارة + المبلغ المطلوب
+         *     (وجبة + توصيل) + حالة الإيصالة + صورة الإشعار + سبب الرفض إن وجد.
+         *
+         *     جولة الدفعة الناقصة: إن راجع التاجر إشعارك فوجده أقل من المطلوب وضغط
+         *     «طلب الدفعة الناقصة»، ترى هنا ``remaining_amount`` (المتبقي عليك) و
+         *     ``amount_due`` = المتبقي — حوّله وارفع الإشعار الجديد بزر «دفع».
+         *
+         *     العميل يعيد فتح هذه الشاشة بعد التحويل خارج التطبيق — نفس الشاشة
+         *     التي غادرها (السلوك يحفظ مكان التوقف؛ التوكن قائم 15 دقيقة مع تحديث 7 أيام).
+         */
+        get: operations["get_order_payment_api_v1_orders__order_id__payment_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay Order With Wallet
+         * @description زر «دفع»: رفع صورة إشعار التحويل لطلبٍ دُفع عبر محفظة التاجر.
+         *
+         *     - المبلغ المطلوب هو **إجمالي الطلب** (وجبة + أجرة التوصيل) كما ظهر في
+         *       نافذة الدفع — يحسبه الخادم ولا يُقبل من العميل.
+         *     - بعد الرفع يصل إشعار فوري للتاجر (داخل التطبيق + واتساب الـWS + FCM)
+         *       ويرى صورة الإشعار في شاشة الطلبات.
+         *     - موافقة التاجر على الطلب = تأكيد الدفع (تُختم الإيصالة «approved»).
+         */
+        post: operations["pay_order_with_wallet_api_v1_orders__order_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orders/{order_id}": {
         parameters: {
             query?: never;
@@ -447,6 +668,27 @@ export interface paths {
          * @description عرض تفاصيل طلب. يُسمح للعميل صاحب الطلب، أو مالك المنشأة، أو المشرف.
          */
         get: operations["get_order_api_v1_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orders/{order_id}/tracking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Track My Order
+         * @description شاشة تتبع طلب العميل: «قيد التحضير» ← «في الطريق إليك» ← «مندوب
+         *     التوصيل في بابك» ← «تم التسليم» + الكود الضخم عند الوصول.
+         */
+        get: operations["track_my_order_api_v1_orders__order_id__tracking_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -613,6 +855,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/favorites/{facility_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle Favorite Endpoint
+         * @description بدّل حالة مفضلة متجر (إضافة/إزالة).
+         */
+        post: operations["toggle_favorite_endpoint_api_v1_favorites__facility_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Favorites Endpoint
+         * @description قائمة المتاجر المفضلة للمستخدم.
+         */
+        get: operations["list_favorites_endpoint_api_v1_favorites_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favorites/{facility_id}/notify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Set Notify Offers Endpoint
+         * @description تفعيل/تعطيل إشعارات العروض الخاصة لمتجر مفضل.
+         */
+        patch: operations["set_notify_offers_endpoint_api_v1_favorites__facility_id__notify_patch"];
+        trace?: never;
+    };
+    "/api/v1/otp/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request Otp Endpoint */
+        post: operations["request_otp_endpoint_api_v1_otp_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Otp Endpoint */
+        post: operations["verify_otp_endpoint_api_v1_otp_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/otp/resend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Otp Endpoint */
+        post: operations["resend_otp_endpoint_api_v1_otp_resend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads": {
         parameters: {
             query?: never;
@@ -631,6 +984,589 @@ export interface paths {
          *     ``/uploads/products/<uuid>.png`` — الفرونت يحوّله عبر ``resolveImageUrl``.
          */
         post: operations["upload_image_api_v1_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Public Image
+         * @description B-1 — رفع صورة المتجر **قبل تسجيل الدخول** (لا يتطلب حساباً).
+         *
+         *     القيود الصارمة:
+         *         - مجلد واحد فقط: ``facilities``.
+         *         - حد حجم أصغر (``PUBLIC_UPLOAD_MAX_FILE_SIZE_MB`` — افتراضي 2MB).
+         *         - rate limit لكل IP: ``PUBLIC_UPLOAD_RATE_LIMIT_PER_HOUR`` (10/ساعة).
+         *         - فحص MIME فعلي (magic bytes) + فك Pillow — لا يُقبل ملف متنكر.
+         *
+         *     دورة الحياة: الملف يُخزَّن في ``uploads/facilities/`` وربطه لاحقاً يتم
+         *     تلقائياً عند استخدامه في ``OwnerRegister.image_url`` (أو تعديل المتجر).
+         *     المهمة الدورية ``cleanup_unlinked_public_uploads`` تحذف أي ملف غير
+         *     مرتبط بمتجر بعد ``PUBLIC_UPLOAD_UNLINKED_TTL_HOURS`` (24 ساعة).
+         *
+         *     الاستجابة نفس بنية الرفع المصادق: ``{url, folder, size_bytes}``.
+         */
+        post: operations["upload_public_image_api_v1_uploads_public_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallets/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Wallet Providers
+         * @description قائمة المحافظ اليمنية النشطة (لشوائم الاختيار في كل الواجهات).
+         */
+        get: operations["list_wallet_providers_api_v1_wallets_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/facilities/{facility_id}/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Facility Public Wallets
+         * @description محافظ منشأة النشطة — شاشة اختيار المحفظة عند إنشاء الطلب/الدفع.
+         *
+         *     تعرض لكل محفظة: اسم المحفظة اليمنية + رقم النقطة/الهاتف + الاسم
+         *     (``account_label`` جاهز للنسخ) — نفس ما سيظهر في نافذة الدفع المنبثقة.
+         */
+        get: operations["list_facility_public_wallets_api_v1_facilities__facility_id__wallets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/moyasar/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Moyasar Webhook */
+        post: operations["moyasar_webhook_api_v1_payments_moyasar_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/orders/{order_id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pay Order
+         * @description إنشاء دفعة Moyasar لطلب — المبلغ يُحسب من قاعدة البيانات حصراً.
+         *
+         *     idempotency: X-Idempotency-Key أو payload.idempotency_key — التكرار
+         *     يعيد آخر نتيجة دون دفع ثانٍ.
+         *
+         *     [v2] بوابة النمط: PAYMENT_MODE=embedded (الافتراضي) يرفض هذا المسار —
+         *     بطاقة العميل لا تمر عبر خادمنا إطلاقاً في النموذج المدمج؛ استخدم
+         *     ``/pay/verify`` مع payment_id من Moyasar Form.
+         */
+        post: operations["pay_order_api_v1_finance_orders__order_id__pay_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Payments Config
+         * @description [v2] تهيئة الدفع للفرونت — المصدر الواحد لبناء Moyasar Form.
+         *
+         *     يُرجع النمط الحي (PAYMENT_MODE من finance_settings — تعديل حي من
+         *     الداشبورد) والمفتاح العام pk_ (آمن للنشر في المتصفح — المفتاح السري
+         *     sk_ لا يخرج من الخادم أبداً) ورابط الـcallback والطرق المدعومة.
+         *     الفرونت: انسخ publishable_key إلى Moyasar.init() مباشرة.
+         */
+        get: operations["payments_config_api_v1_finance_payments_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/orders/{order_id}/pay/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Embedded Payment
+         * @description [v2] تأكيد الدفع المدمج — **التحقق الخادمي الإلزامي** (قلب النموذج).
+         *
+         *     التسلسل:
+         *       1. الفرونت يضمّن Moyasar Form (pk_، amount، currency=SAR، callback_url،
+         *          methods: creditcard/applepay/stcpay) — البطاقة داخل الموقع ولا
+         *          تلمس خادمنا.
+         *       2. Moyasar يعيد payment_id في الـcallback.
+         *       3. الفرونت يرسله هنا — لا شيء آخر يُصدَّق من الفرونت.
+         *       4. الخادم يسأل Moyasar مباشرةً بـ sk_ (fetch_payment) ويطابِق:
+         *          status == paid + amount == إجمالي الطلب من قاعدة البيانات (هللة)
+         *          + currency == SAR + metadata.order_id يطابق (إن وُجد).
+         *       5. عندها فقط تُنشأ الدفعة (status=paid) وتنطلق القيود المالية كما هي.
+         *
+         *     idempotent: نفس payment_id يعيد نفس الدفعة بلا تكرار قيود.
+         *     الويب هوك يبقى تأكيداً خلفياً idempotent ويظل يعمل بجانب هذا المسار.
+         */
+        post: operations["verify_embedded_payment_api_v1_finance_orders__order_id__pay_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/orders/{order_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order Payments */
+        get: operations["order_payments_api_v1_finance_orders__order_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payments/{payment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Payment */
+        get: operations["get_payment_api_v1_finance_payments__payment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payouts/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute Payout
+         * @description تنفيذ تحويل أجرة توصيل لمندوب (3.3-هـ).
+         *
+         *     أدمن كامل الصلاحية. المالك (owner) يُسمح له لطلبات منشآته فقط —
+         *     حالياً: أدمن/owner عبر التحقق العام (قاعدة صلاحيات الأدوار).
+         */
+        post: operations["execute_payout_api_v1_finance_payouts_execute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Payouts */
+        get: operations["list_payouts_api_v1_finance_payouts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/payouts/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poll Payouts
+         * @description Polling يدوي احتياطي (الآلي يعمل كل 60 ثانية).
+         */
+        post: operations["poll_payouts_api_v1_finance_payouts_poll_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/courier/destination": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Destination
+         * @description المندوب يضيف وجهة استلامه: IBAN بنكي سعودي أو محفظة STC Pay (رقم 966).
+         */
+        post: operations["add_destination_api_v1_finance_courier_destination_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/courier/destinations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Destinations */
+        get: operations["my_destinations_api_v1_finance_courier_destinations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/courier/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Payouts */
+        get: operations["my_payouts_api_v1_finance_courier_my_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/courier/my/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Balance */
+        get: operations["my_balance_api_v1_finance_courier_my_balance_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Ledger Entries
+         * @description كل قيود الدفتر بفلترة وتقسيم صفحات (3.4-د).
+         */
+        get: operations["ledger_entries_api_v1_finance_entries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/export/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Csv
+         * @description تصدير CSV لكل القيود (3.4-د).
+         */
+        get: operations["export_csv_api_v1_finance_export_csv_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/owner/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Owner Overview
+         * @description لوحة المالك الرئيسية (أولوية قصوى — 3.4-د).
+         */
+        get: operations["owner_overview_api_v1_finance_owner_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/owner/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Owner Card
+         * @description البطاقة المالية الدائمة للتاجر (اليمن — 3.4-أ) — للتاجر نفسه أو للأدمن.
+         */
+        get: operations["owner_card_api_v1_finance_owner_card_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/admin/owner/{owner_id}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin Owner Card */
+        get: operations["admin_owner_card_api_v1_finance_admin_owner__owner_id__card_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/yemen/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Notifications */
+        get: operations["my_notifications_api_v1_finance_yemen_notifications_get"];
+        put?: never;
+        /**
+         * Submit Notification
+         * @description التاجر يرفع إشعار تسديد: صورة + مبلغ + مرجع + بنك + تاريخ (3.4-ب).
+         *
+         *     رفع الصورة عبر /uploads القائم أولاً ثم تمرير رابطها في image_url.
+         */
+        post: operations["submit_notification_api_v1_finance_yemen_notifications_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/admin/yemen/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All Notifications */
+        get: operations["all_notifications_api_v1_finance_admin_yemen_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/admin/yemen/notifications/{notification_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Notification
+         * @description قبول الإشعار: manual_transfer + خصم المديونية + audit (3.4-ج).
+         */
+        post: operations["approve_notification_api_v1_finance_admin_yemen_notifications__notification_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/admin/yemen/notifications/{notification_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Notification
+         * @description رفض الإشعار بسبب يظهر للتاجر (3.4-ج).
+         */
+        post: operations["reject_notification_api_v1_finance_admin_yemen_notifications__notification_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/finance/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Settings */
+        get: operations["list_settings_api_v1_finance_settings_get"];
+        /**
+         * Update Setting
+         * @description تحديث إعداد مالي حي (مثال: SA_COMMISSION_FLAT_SAR=2).
+         */
+        put: operations["update_setting_api_v1_finance_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locale/countries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Countries
+         * @description قائمة الدول مع العلم ومثال الرقم — لشاشة اختيار مفتاح الدولة.
+         */
+        get: operations["countries_api_v1_locale_countries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/locale/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My Locale */
+        get: operations["my_locale_api_v1_locale_me_get"];
+        /**
+         * Set Locale
+         * @description ربط الحساب بدولة — يخزن متطلبات التاجر السعودي (سجل/هوية/IBAN) قابلة للتوسعة.
+         */
+        put: operations["set_locale_api_v1_locale_me_put"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -663,6 +1599,29 @@ export interface paths {
         };
         /** Admin Dashboard */
         get: operations["admin_dashboard_api_v1_admin_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/kpis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Admin Kpis
+         * @description مؤشرات الأداء الأساسية (الجولة 21) — لا تقيس النجاح بعدد التسجيلات.
+         *
+         *     تجمع: MAU, paid members, active merchants, offer usage rate,
+         *     avg savings, sales value, renewal rate + مؤشرات إضافية.
+         */
+        get: operations["admin_kpis_api_v1_admin_kpis_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1016,6 +1975,191 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/settings/free-membership": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Free Membership Flag Endpoint */
+        get: operations["get_free_membership_flag_endpoint_api_v1_admin_settings_free_membership_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Free Membership Flag Endpoint */
+        patch: operations["set_free_membership_flag_endpoint_api_v1_admin_settings_free_membership_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/settings/wallet-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Wallet Payments Flag Endpoint */
+        get: operations["get_wallet_payments_flag_endpoint_api_v1_admin_settings_wallet_payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Set Wallet Payments Flag Endpoint */
+        patch: operations["set_wallet_payments_flag_endpoint_api_v1_admin_settings_wallet_payments_patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/system/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System Overview
+         * @description حالة المنصة الشاملة: الوضع، الحراسة، التخزين، المراقبة، التوزيع.
+         */
+        get: operations["system_overview_api_v1_admin_system_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/replicas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System Replicas
+         * @description صحة نسخ القراءة (latency لكل نسخة) — فارغ إذا لم تُضبط نسخ.
+         */
+        get: operations["system_replicas_api_v1_admin_system_replicas_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/shards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System Shards
+         * @description خريطة التجزئة الجغرافية وصحة كل تجزئة (المدينة ← قاعدتها).
+         */
+        get: operations["system_shards_api_v1_admin_system_shards_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/system/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * System Errors
+         * @description سجل الأعطال الداخلي (الأحدث أولاً) — المتتبع المدمج الصفري التكلفة.
+         */
+        get: operations["system_errors_api_v1_admin_system_errors_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/wallet-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List All Providers
+         * @description دليل المحافظ اليمنية كاملاً (متضمناً المعطلة).
+         */
+        get: operations["list_all_providers_api_v1_admin_wallet_providers_get"];
+        put?: never;
+        /**
+         * Create Provider
+         * @description إضافة محفظة يمنية جديدة إلى الدليل (تظهر فوراً للتاجر والعميل).
+         */
+        post: operations["create_provider_api_v1_admin_wallet_providers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/wallet-providers/{provider_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Provider
+         * @description حذف محفظة غير مستخدمة (المستخدمة: عطّلها — حماية من كسر المحافظ القائمة).
+         */
+        delete: operations["delete_provider_api_v1_admin_wallet_providers__provider_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Provider
+         * @description تعديل محفظة (الاسم/الرمز/الترتيب) أو تعطيلها (``is_active=false``).
+         */
+        patch: operations["update_provider_api_v1_admin_wallet_providers__provider_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/wallets/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wallets Overview
+         * @description نظرة المحافظ الشاملة: إجمالي عمليات التحويل، إجمالي الدفع المؤكد،
+         *     المعلق، والمبالغ المتداولة في النظام + تفصيل لكل محفظة وأعلى المتاجر.
+         */
+        get: operations["wallets_overview_api_v1_admin_wallets_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/owner/register": {
         parameters: {
             query?: never;
@@ -1028,6 +2172,10 @@ export interface paths {
         /**
          * Owner Register Endpoint
          * @description Owner self-registration — account active, facility pending approval.
+         *
+         *     B-5: ``otp_verified_token`` اختياري (من /otp/verify) — يعلّم الحساب
+         *     ``phone_verified=true``؛ ونافذة الكاش (15 دقيقة بعد تحقق OTP ناجح
+         *     بنفس الجوال) تُطبَّق تلقائياً بلا تغيير مطلوب في الفرونت الحالي.
          */
         post: operations["owner_register_endpoint_api_v1_owner_register_post"];
         delete?: never;
@@ -1143,6 +2291,31 @@ export interface paths {
         head?: never;
         /** Toggle Availability */
         patch: operations["toggle_availability_api_v1_owner__facility_id__products__product_id__availability_patch"];
+        trace?: never;
+    };
+    "/api/v1/owner/{facility_id}/pricing-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pricing Preview
+         * @description معاينة حية للسعر بعد الخصم (جولة المحافظ — شفافية التاجر).
+         *
+         *     أثناء إضافة/تعديل وجبة أو عرض، يرسل التاجر السعر (+ نسبة العرض إن وجد)
+         *     ويستقبل فوراً: نسبة خصم منشأته، سعر العضو النهائي (ما يدفعه عميل
+         *     العضوية)، سعر غير العضو، والوفر. نفس معادلات التسعير الموثوقة في
+         *     إنشاء الطلب — لا فرق بين المعاينة والواقع.
+         */
+        post: operations["pricing_preview_api_v1_owner__facility_id__pricing_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/owner/{facility_id}/products/import": {
@@ -1276,6 +2449,1660 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/courier/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Courier
+         * @description م1 — تسجيل مندوب جديد: الحساب (دور «مندوب» + حالة «قيد التوثيق»)
+         *     + صف المندوب بمستنداته في معاملة واحدة.
+         */
+        post: operations["register_courier_api_v1_courier_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login Courier
+         * @description م2 — دخول المندوب: رموز جلسة كاملة (وصول + تجديد) بنفس مصنع
+         *     الرموز القائم.
+         */
+        post: operations["login_courier_api_v1_courier_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Profile
+         * @description م3 — بيانات ملفي: الزاوية الكاملة (إحصاءات + بطاقة + حالة + آخر
+         *     موقعي لي وحدي).
+         */
+        get: operations["get_my_profile_api_v1_courier_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update My Public Profile
+         * @description م4 — تحديث بياناتي العلنية (الاسم العلني/الصورة/المنطقة).
+         */
+        patch: operations["update_my_public_profile_api_v1_courier_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/courier/me/documents-recheck": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Documents Recheck
+         * @description م4 — تعديل مستند أساسي = طلب «إعادة توثيق جزئي» (يدخل مسار
+         *     استكمال إداري — تعديلها بلا مراجعة ينقض الثقة كلها).
+         */
+        post: operations["request_documents_recheck_api_v1_courier_me_documents_recheck_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/pulse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Pulse
+         * @description م8 — بث نبضة الموقع (النداء الخفيف الاحتياطي عند انقطاع القناة —
+         *     نفس الحمولة). النبضة عبر القناة الفورية (ws) تصل نفس الخدمة.
+         *
+         *     صفر صفوف مواقع دائمة — آخر نقطة فقط (قانون الخصوصية §3.2.5).
+         */
+        post: operations["submit_pulse_api_v1_courier_pulse_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/availability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Toggle Availability
+         * @description م9 — تبديل التوفر: «أفتح» = دخول الرادار؛ «أوقف» = خروج فوري +
+         *     إلغاء أي نداء غير مؤكد لي.
+         */
+        post: operations["toggle_availability_api_v1_courier_availability_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/calls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Open Calls
+         * @description بطاقات النداء الحية لي (داخل النافذة — بلا رقم العميل إطلاقاً).
+         */
+        get: operations["list_my_open_calls_api_v1_courier_calls_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/tasks/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Task
+         * @description م12 — قبول المهمة: **القفل التنافسي الذري** — أول مؤكد يفوز
+         *     (ضغطتان بجزء من الثانية = فائز واحد فقط بقيد سرعة الخاسر).
+         */
+        post: operations["accept_task_api_v1_courier_tasks_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/tasks/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Current Task
+         * @description مهمتي الحية — شاشة المهمة الكاملة (بطاقة اتصال العميل للحائز
+         *     حصراً بعد الحجز).
+         */
+        get: operations["get_current_task_api_v1_courier_tasks_current_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Task Detail
+         * @description تفصيل مهمة (الأرشيف الصادق §8.2 — بطاقة الاتصال تُسحب بعد الإغلاق).
+         */
+        get: operations["get_task_detail_api_v1_courier_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/tasks/{task_id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Progress My Task
+         * @description م13 — تقدم المهمة (سلسلة الأزرار بالترتيب فقط — لا قفز): وصلت
+         *     للمتجر ← استلمت ← وصلت للعميل ← تم التسليم (الكود) / مشكلة.
+         */
+        post: operations["progress_my_task_api_v1_courier_tasks__task_id__progress_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Tasks
+         * @description «مهامي» — السجل الكامل بفلاتره (§8.2).
+         */
+        get: operations["list_my_tasks_api_v1_courier_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Stats
+         * @description م20 — إحصاءاتي: لوحة §8.2 (له وحده — أرباحي وسرعتي أيام عملي).
+         */
+        get: operations["my_stats_api_v1_courier_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Courier Document
+         * @description رفع مستند مندوب — **يحرسه حارس المندوب نفسه** (يرفع مستنداته هو
+         *     فقط). القراءة/المعاينة تحرسها الإدارة حصراً (المسار الإداري أدناه).
+         */
+        post: operations["upload_courier_document_api_v1_courier_documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/couriers/documents/{filename}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Courier Document
+         * @description معاينة مستند مندوب — **الإدارة حصراً** (أي محاولة وصول من دور آخر
+         *     = رفض). الملف من المجلد المحروس خارج الـ mount العام.
+         */
+        get: operations["preview_courier_document_api_v1_admin_couriers_documents__filename__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/facilities/{facility_id}/courier-radar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Facility Courier Radar
+         * @description م10 — «7 مناديب متاحين ضمن 5 كم» (عد فقط — المتجر يرى عدداً لا
+         *     أشخاصاً: خصوصية §3.3).
+         */
+        get: operations["facility_courier_radar_api_v1_owner_facilities__facility_id__courier_radar_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/orders/{order_id}/request-courier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Courier
+         * @description م11 — «طلب مندوب توصيل» (الزر الذهبي من بطاقة طلب قيد التحضير):
+         *     يحسب ويجمد، يبني رادار الموجة الأولى، يطلق نداء النوع 1 للأقرب
+         *     المتاحين، يفتح مؤقت النافذة.
+         */
+        post: operations["request_courier_api_v1_owner_orders__order_id__request_courier_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Owner Task Card
+         * @description بطاقة المهمة عند المالك: الملف العلني الكامل للمندوب + التوقيتات
+         *     (المتجر يرى مسافة رقم لا نقطة §19.2).
+         */
+        get: operations["get_owner_task_card_api_v1_owner_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/tasks/{task_id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Handover
+         * @description م14 — «سلّمت الطلب للمندوب»: توثيق سلسلة الحيازة (مَن سلّم مَن) —
+         *     أي نزاع لاحقاً محسوم بالسجل لا بالمخاصمة.
+         */
+        post: operations["confirm_handover_api_v1_owner_tasks__task_id__handover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/tasks/{task_id}/problem-decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Problem
+         * @description م15 — قرار المالك على مشكلة تسليم (المالك صاحب القرار §4.7-ج):
+         *     انتظار/إلغاء طرف العميل/إلغاء بتعويض/تسليم تجاوزي موثق.
+         */
+        post: operations["decide_problem_api_v1_owner_tasks__task_id__problem_decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/tasks/{task_id}/action": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Owner Task Action
+         * @description م16/م17 — إلغاء المهمة (قبل الإسناد حر / بعده بقيوده وتعويضه) /
+         *     إعادة النداء (موجة موسعة) / التوصيل الذاتي (حلقة التراث).
+         */
+        post: operations["owner_task_action_api_v1_owner_tasks__task_id__action_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/courier-ratings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Courier Rating
+         * @description م18 — تقديم تقييم المندوب (نجوم + أبعاد ثلاثة اختيارية + تعليق؛
+         *     مهمة=تقييم؛ تعديل واحد خلال 48 ساعة؛ نافذة 14 يوماً).
+         */
+        post: operations["submit_courier_rating_api_v1_owner_courier_ratings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/delivery-estimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Delivery Estimate
+         * @description م23 (زاوية المالك) — تقدير أجرة التوصيل قبل الطلب: «3 كم و250 م ≈
+         *     4 كم × 200 = 800». للعرض فقط — الحساب النهائي داخل إنشاء الطلب.
+         */
+        post: operations["delivery_estimate_api_v1_owner_delivery_estimate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/couriers/{courier_id}/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Courier Public Profile
+         * @description م19 — الملف العلوي للمندوب: الاسم العلني/الصورة/شارة التوثيق/النجوم/
+         *     عدد المهام/المستوى/سنة الانضمام — **بلا أي بيانات سرية** (وثائق/هاتف/
+         *     أرباح/مواقع). هذه الزاوية للمتجر والإدارة حصراً (التنقيح §19.4/1):
+         *     أي وصول من دور العميل يُرفض صراحة برسالة عربية (حارس owner_or_admin).
+         */
+        get: operations["get_courier_public_profile_api_v1_owner_couriers__courier_id__public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/facilities/{facility_id}/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Facility Wallets
+         * @description قائمة محافظ منشأتي (متضمنة المعطلة — لإدارتها من شاشة واحدة).
+         */
+        get: operations["list_my_facility_wallets_api_v1_owner_facilities__facility_id__wallets_get"];
+        put?: never;
+        /**
+         * Create My Facility Wallet
+         * @description إضافة محفظة تحويل لمنشأتي.
+         *
+         *     نوعا الحساب:
+         *         - ``point``: رقم النقطة + اسم النقطة (يظهران للعميل عند التحويل).
+         *         - ``phone``: رقم الهاتف + الاسم الظاهر في التحويل.
+         */
+        post: operations["create_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/facilities/{facility_id}/wallets/{wallet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete My Facility Wallet
+         * @description حذف محفظة من منشأتي (الإيصالات القديمة تحتفظ بلقطة الحساب النصية).
+         */
+        delete: operations["delete_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets__wallet_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update My Facility Wallet
+         * @description تعديل محفظة (أو تعطيلها بـ ``is_active=false`` — يخفيها عن العملاء).
+         */
+        patch: operations["update_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets__wallet_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/owner/facilities/{facility_id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Facility Payments
+         * @description شاشة «مدفوعات المطعم»: سجل التحويلات مع الإشعارات والإجماليات.
+         *
+         *     يعيد في نداء واحد: الإجماليات (مؤكد/معلق/مرفوض + المبالغ + المبلغ
+         *     الموصَّل فعلياً + إجمالي ما اشتغل به عبر النظام) + قائمة السجلات
+         *     (كل سجل: الطلب + صورة الإشعار + المحفظة + العميل).
+         */
+        get: operations["list_my_facility_payments_api_v1_owner_facilities__facility_id__payments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/couriers/{courier_id}/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Courier Wallets For Owner
+         * @description محافظ مندوب النشطة — ليعرف التاجر أين يحوّل أجرة التوصيل للمندوب.
+         */
+        get: operations["list_courier_wallets_for_owner_api_v1_owner_couriers__courier_id__wallets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/orders/{order_id}/payment/request-remaining": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Remaining Payment
+         * @description التاجر راجع إشعار التحويل فوجد المبلغ المحوّل أقل من المطلوب.
+         *
+         *     يدخل المبلغ الذي **استلمه فعلياً** (تراكمي) + ملاحظة اختيارية:
+         *         - تتحول الإيصالة إلى ``partial_requested`` مع المتبقي المحسوب
+         *           من الخادم (إجمالي الطلب − المستلم).
+         *         - يصل العميل إشعار فوري (داخل التطبيق WS + FCM خارجي يصل حتى
+         *           والتطبيق مغلق) بالمتبقي عليه ولزوم تحويله ورفع إشعار جديد.
+         *         - بعد رفع العميل إشعار المتبقي (زر «دفع») تعود الإيصالة
+         *           ``pending`` ويظهر للتاجر وسم «اكتمال الدفعة الناقصة».
+         *         - يُمنع تأكيد الطلب قبل اكتمال الدفعة الناقصة (أو إلغاؤه).
+         */
+        post: operations["request_remaining_payment_api_v1_owner_orders__order_id__payment_request_remaining_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/couriers/verification-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Verification Requests
+         * @description م5 — قائمة طلبات التوثيق (فلترة + بحث + بطاقات معاينة الصور
+         *     الأربع §3.2.2).
+         */
+        get: operations["list_verification_requests_api_v1_admin_couriers_verification_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/couriers/{courier_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Verification Decision
+         * @description م6 — «توثيق واعتماد» (يولد رقم العضوية + البطاقة + إشعار التهنئة
+         *     + قيد السجل) / «رفض بسبب» (تهدئة 30 يوماً) / «طلب استكمال» (7 أيام).
+         */
+        post: operations["apply_verification_decision_api_v1_admin_couriers__courier_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/couriers/{courier_id}/suspend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Suspend Decision
+         * @description م7 — إيقاف (إخفاء فوري من الرادارات + إشعار بحق التظلم) / تنشيط.
+         */
+        post: operations["apply_suspend_decision_api_v1_admin_couriers__courier_id__suspend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/couriers/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Delivery Monitor
+         * @description شاشة مراقبة التوصيل الحية: «الطلب #1042: مندوب منذ 12:28 — في
+         *     الطريق 14 دقيقة» (بلا تدخل يدوي — رصد فقط).
+         */
+        get: operations["delivery_monitor_api_v1_admin_couriers_monitor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/wallets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Wallets
+         * @description قائمة محافظي الشخصية (متضمنة المعطلة).
+         */
+        get: operations["list_my_wallets_api_v1_courier_wallets_get"];
+        put?: never;
+        /**
+         * Create My Wallet
+         * @description إضافة محفظة شخصية — صاحب المطعم سيحول إليها أجرة التوصيل.
+         */
+        post: operations["create_my_wallet_api_v1_courier_wallets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/courier/wallets/{wallet_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete My Wallet
+         * @description حذف محفظتي.
+         */
+        delete: operations["delete_my_wallet_api_v1_courier_wallets__wallet_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update My Wallet
+         * @description تعديل محفظتي (أو تعطيلها بـ ``is_active=false``).
+         */
+        patch: operations["update_my_wallet_api_v1_courier_wallets__wallet_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/pricing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pricing Settings
+         * @description م21 — قراءة الإعدادات التسعيرية الحية (كل بوابات العرض تقرأ
+         *     نفس المصدر الواحد عبر الكاش القصير).
+         */
+        get: operations["get_pricing_settings_api_v1_admin_pricing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Pricing Settings
+         * @description م22 — ضبط أي حقل من §5.3: يُحفظ + يُدوَّن في سجل التدقيق («فلان
+         *     غيّر سعر الكم من 200 إلى 220») + يبطل الكاش فوراً (يسري على الجديد
+         *     فقط — المادة 7).
+         */
+        patch: operations["update_pricing_settings_api_v1_admin_pricing_patch"];
+        trace?: never;
+    };
+    "/api/v1/partner/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Product
+         * @description نداء «نشر منتج» — يظهر في متجرك داخل توفير خلال لحظات بلا موافقة
+         *     يدوية (قلب المتطلب الحرفي).
+         */
+        post: operations["publish_product_api_v1_partner_products_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Product
+         * @description نداء «تحديث منتج» — الحقول المتغيرة (سعر جديد مثلاً) تسري فوراً.
+         */
+        patch: operations["update_product_api_v1_partner_products_patch"];
+        trace?: never;
+    };
+    "/api/v1/partner/products/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hide Product
+         * @description نداء «إخفاء/نفاد» — يُسحب من الظهور فوراً (حماية طلبات المستحيل).
+         */
+        post: operations["hide_product_api_v1_partner_products_hide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Offer
+         * @description نداء «نشر عرض خاص» — ضمن حدود 10–50% (الشريك يتلقى نفس انضباط
+         *     المالك اليدوي بلا امتياز).
+         */
+        post: operations["publish_offer_api_v1_partner_offers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/offers/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End Offer
+         * @description نداء «إنهاء عرض» — يُسحب فوراً.
+         */
+        post: operations["end_offer_api_v1_partner_offers_end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verify Link
+         * @description نداء «تحقق الربط» — يؤكد صحة المفتاح والعلاقة ويرد ببيانات المتجر
+         *     المعتمدة (للفحص الدوري من نظامكم).
+         */
+        get: operations["verify_link_api_v1_partner_verify_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/sync-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Sync Logs
+         * @description سجل مزامنات مفتاحكم (نجاح/رفض بسبب + الزمن).
+         */
+        get: operations["my_sync_logs_api_v1_partner_sync_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Health
+         * @description بطاقة صحة الربط (آخر نداء، نجاح 7 أيام، المنتجات المزامنة).
+         */
+        get: operations["my_health_api_v1_partner_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/facilities/{facility_id}/link-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request Partner Link
+         * @description م24 — طلب ربط خارجي (اسم النظام/المزوّد + جهة الاتصال + النمط):
+         *     لا يفتح أي صلاحية — باب طلب للإدارة.
+         */
+        post: operations["request_partner_link_api_v1_partner_facilities__facility_id__link_request_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partner/facilities/{facility_id}/link-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partner Link Status
+         * @description حالة ربط متجرك + نسختك من سجل المزامنات + صحة الشريك (م27).
+         */
+        get: operations["partner_link_status_api_v1_partner_facilities__facility_id__link_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Partner Requests
+         * @description قائمة طلبات الربط الخارجي (بجوار طلبات التوثيق بفلسفتها نفسها).
+         */
+        get: operations["list_partner_requests_api_v1_admin_partners_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{partner_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide Partner Link
+         * @description م25 — تفعيل (المفتاح يُعرض **مرة واحدة فقط**) / رفض بسبب / فك /
+         *     مفتاح بديل يبطل القديم فوراً.
+         */
+        post: operations["decide_partner_link_api_v1_admin_partners__partner_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{partner_id}/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partner Health Admin
+         * @description بطاقة صحة الشريك (الإدارة — كاملة).
+         */
+        get: operations["partner_health_admin_api_v1_admin_partners__partner_id__health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/partners/{partner_id}/sync-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partner Sync Logs Admin
+         * @description سجل المزامنات الكامل (الإدارة) + فلترة بالنتيجة والزمن (م27).
+         */
+        get: operations["partner_sync_logs_admin_api_v1_admin_partners__partner_id__sync_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/partners-guide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Partners Guide
+         * @description م28 — دليل الشركاء العلني: وثيقة الأنماط والحدود والردود — يقرأه أي
+         *     مزوّد أنظمة مطاعم ويبني التكامل قبل أن يصبح شريكاً (فلسفة البوابة
+         *     المفتوحة §9.2-3).
+         */
+        get: operations["partners_guide_api_v1_partners_guide_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/brand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Brand
+         * @description هوية منشأتي + قائمة ما ينقص للاكتمال (توجيه الفرونت مباشرة).
+         */
+        get: operations["get_my_brand_api_v1_owner_brand_get"];
+        /**
+         * Update My Brand
+         * @description حدّث بيانات هويتي (كل حقل اختياري — يُحدَّث ما ورد فقط).
+         */
+        put: operations["update_my_brand_api_v1_owner_brand_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/brand/assets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload My Brand Asset
+         * @description ارفع أصل هوية (kind = {_ASSET_KINDS_DOC}) — تحقق صارم برسائل عربية.
+         */
+        post: operations["upload_my_brand_asset_api_v1_owner_brand_assets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/brand/assets/{asset_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete My Brand Asset */
+        delete: operations["delete_my_brand_asset_api_v1_owner_brand_assets__asset_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/brand/facilities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Brandable Facilities
+         * @description منشآتي مع نسبة اكتمال الهوية لكل واحدة (فهرس الكونسول/اللوحة).
+         */
+        get: operations["my_brandable_facilities_api_v1_owner_brand_facilities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve Host
+         * @description حلّ النطاق الزائر → إعداد الموقع المولَّد (أول نداء يفعله الفرونت).
+         */
+        get: operations["resolve_host_api_v1_tenant_resolve_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/{slug}/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Config
+         * @description إعداد الموقع بالمعرّف (للمعاينة قبل ربط DNS).
+         */
+        get: operations["site_config_api_v1_tenant__slug__config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/{slug}/catalog/facility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Facility
+         * @description بيانات متجر التاجر وحده — بلا أي منشآت أخرى (قرار العزل).
+         */
+        get: operations["site_facility_api_v1_tenant__slug__catalog_facility_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/{slug}/catalog/products": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Products
+         * @description منتجات متجر التاجر وحده (مقسّمة) — حصر المنشأة مفروض داخلياً.
+         */
+        get: operations["site_products_api_v1_tenant__slug__catalog_products_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenant/{slug}/catalog/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Site Offers
+         * @description عروض متجر التاجر الخاصة وحده (بنفس شكل العروض العامة القائمة).
+         */
+        get: operations["site_offers_api_v1_tenant__slug__catalog_offers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenant-sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sites
+         * @description كل مواقع التجار (فلتر حالة اختياري).
+         */
+        get: operations["list_sites_api_v1_admin_tenant_sites_get"];
+        put?: never;
+        /**
+         * Create Site
+         * @description أنشئ موقع تاجر (مسودة) — النشر بعد اكتمال الهوية وفحص DNS.
+         */
+        post: operations["create_site_api_v1_admin_tenant_sites_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenant-sites/{site_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Site
+         * @description عدّل الموقع — مرّر custom_domain="" لإزالة الدومين المخصص.
+         */
+        patch: operations["update_site_api_v1_admin_tenant_sites__site_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/admin/tenant-sites/{site_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Set Status
+         * @description فعّل/أوقف/أعِد للمسودة — الفعّال فقط يُحلّ عبر النطاقات.
+         */
+        post: operations["set_status_api_v1_admin_tenant_sites__site_id__status_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/tenant-sites/{site_id}/domain-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Domain Check
+         * @description فحص DNS لدومين التاجر المخصص (CNAME/A → سيرفر المنصة).
+         */
+        post: operations["domain_check_api_v1_admin_tenant_sites__site_id__domain_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/tenant-site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Tenant Site
+         * @description موقعي المولَّد: النطاق، الحالة، مفاتيح العزل، واكتمال هويتي.
+         */
+        get: operations["get_my_tenant_site_api_v1_owner_tenant_site_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Console Login
+         * @description دخول الكونسول — مستخدم منفصل تماماً عن مستخدمي المنصة.
+         */
+        post: operations["console_login_api_v1_console_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Console Me
+         * @description تحقق جلسة الكونسول (يستهلكه الفرونت عند الإقلاع).
+         */
+        get: operations["console_me_api_v1_console_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/brands": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Brands Readiness
+         * @description حزم هوية التجار ونسب اكتمالها — ما يصلح لإصدار تطبيق اليوم.
+         */
+        get: operations["brands_readiness_api_v1_console_brands_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Apps
+         * @description سجل تطبيقات التجار — كل البصمات وحالاتها (ما يراه التاجر أيضاً).
+         */
+        get: operations["list_apps_api_v1_console_apps_get"];
+        put?: never;
+        /**
+         * Issue App
+         * @description أصدر تطبيق تاجر — بصمة فريدة (سجل البصمات يمنع التكرار نهائياً).
+         */
+        post: operations["issue_app_api_v1_console_apps_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/apps/{build_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get App */
+        get: operations["get_app_api_v1_console_apps__build_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/apps/{build_id}/keystore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Keystore Details
+         * @description تفاصيل الخزنة (كلمات المرور مفكوكة) — للكونسول حصراً.
+         */
+        get: operations["keystore_details_api_v1_console_apps__build_id__keystore_get"];
+        put?: never;
+        /**
+         * Upload Keystore
+         * @description ارفع keystore التاجر للخزنة — كلمات المرور تُشفَّر Fernet فوراً.
+         */
+        post: operations["upload_keystore_api_v1_console_apps__build_id__keystore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/apps/{build_id}/build-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Launch Build
+         * @description أطلق مهمة بناء بحمولة كاملة (عقد التوليد) — جاهزة للتنفيذ.
+         */
+        post: operations["launch_build_api_v1_console_apps__build_id__build_jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/build-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Build Jobs */
+        get: operations["list_build_jobs_api_v1_console_build_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/build-jobs/{job_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Build Result
+         * @description استلم نتيجة البناء من الـCI/البنّاء المحلي (تحديث حالة السجل).
+         */
+        post: operations["build_result_api_v1_console_build_jobs__job_id__result_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/apps/{build_id}/bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Bundle
+         * @description حزمة ZIP: manifest + ملفات FCM + حمولة البناء + keystore + سجل البصمات.
+         */
+        get: operations["download_bundle_api_v1_console_apps__build_id__bundle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/registry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download Registry
+         * @description سجل بصمات السيرفر (JSON) — نسخة الحاسوب من ملف البصمات + تحديث القرص.
+         */
+        get: operations["download_registry_api_v1_console_registry_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/couriers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List My Couriers
+         * @description كل مناديبي الخاصين — الحالة والتوفر والتقييم بلا أي موقع حساس.
+         */
+        get: operations["list_my_couriers_api_v1_owner_couriers_get"];
+        put?: never;
+        /**
+         * Create My Courier
+         * @description أنشئ مندوباً خاصاً بمتجرك — يدخل رادار متجرك بجانب مناديب المنصة.
+         */
+        post: operations["create_my_courier_api_v1_owner_couriers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/owner/couriers/{courier_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update My Courier
+         * @description إيقاف/تفعيل مندوبك أو تعديل اسمه العلني.
+         */
+        patch: operations["update_my_courier_api_v1_owner_couriers__courier_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/owner/tasks/{task_id}/assign-courier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Direct Assign My Courier
+         * @description أسنِد مهمة «نداء» مباشرةً إلى مندوبك الخاص — بلا انتظار موجة النداء.
+         */
+        post: operations["direct_assign_my_courier_api_v1_owner_tasks__task_id__assign_courier_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1285,6 +4112,40 @@ export interface paths {
         };
         /** Health */
         get: operations["health_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Live */
+        get: operations["health_live_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Ready */
+        get: operations["health_ready_health_ready_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1306,6 +4167,128 @@ export interface components {
             identifier: string;
             /** Password */
             password: string;
+        };
+        /**
+         * AdminWalletOverview
+         * @description نظرة المحافظ الشاملة للإدارة: إجمالي التحويلات والدفع والمتداول.
+         */
+        AdminWalletOverview: {
+            /**
+             * Wallet Payments Enabled
+             * @default true
+             */
+            wallet_payments_enabled: boolean;
+            /**
+             * Providers Count
+             * @default 0
+             */
+            providers_count: number;
+            /**
+             * Active Providers Count
+             * @default 0
+             */
+            active_providers_count: number;
+            /**
+             * Facility Wallets Count
+             * @default 0
+             */
+            facility_wallets_count: number;
+            /**
+             * Courier Wallets Count
+             * @default 0
+             */
+            courier_wallets_count: number;
+            /**
+             * Wallet Orders Count
+             * @description إجمالي طلبات الدفع بالمحافظ
+             * @default 0
+             */
+            wallet_orders_count: number;
+            /**
+             * Wallet Orders Amount
+             * @description إجمالي مبالغ طلبات المحافظ غير الملغاة (المتداول في النظام)
+             * @default 0
+             */
+            wallet_orders_amount: number;
+            /**
+             * Approved Count
+             * @default 0
+             */
+            approved_count: number;
+            /**
+             * Approved Amount
+             * @description إجمالي التحويلات المؤكدة (اجمالي الدفع)
+             * @default 0
+             */
+            approved_amount: number;
+            /**
+             * Pending Count
+             * @default 0
+             */
+            pending_count: number;
+            /**
+             * Pending Amount
+             * @default 0
+             */
+            pending_amount: number;
+            /**
+             * Rejected Count
+             * @default 0
+             */
+            rejected_count: number;
+            /**
+             * Partial Requested Count
+             * @description طلبات بانتظار تكملة الدفعة الناقصة
+             * @default 0
+             */
+            partial_requested_count: number;
+            /**
+             * Partial Requested Amount
+             * @description إجمالي المبالغ المتبقية على العملاء في النظام
+             * @default 0
+             */
+            partial_requested_amount: number;
+            /**
+             * By Provider
+             * @default []
+             */
+            by_provider: components["schemas"]["ProviderTotalsOut"][];
+            /**
+             * Top Facilities
+             * @default []
+             */
+            top_facilities: components["schemas"]["FacilityTotalsOut"][];
+        };
+        /** AggregateOut */
+        AggregateOut: {
+            /** Average */
+            average: number;
+            /** Count */
+            count: number;
+        };
+        /** AppIssue */
+        AppIssue: {
+            /** Facility Id */
+            facility_id: number;
+            /**
+             * Package Id
+             * @description البصمة الانفرادية com.xxx.xxx
+             */
+            package_id: string;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Platform
+             * @description android | ios | both
+             * @default android
+             */
+            platform: string;
+            /**
+             * Build Channel
+             * @description capacitor_local | github_actions
+             * @default capacitor_local
+             */
+            build_channel: string;
         };
         /** AuditLogOut */
         AuditLogOut: {
@@ -1355,6 +4338,32 @@ export interface components {
              */
             transfer_account_number?: string;
         };
+        /** Body_pay_order_with_wallet_api_v1_orders__order_id__pay_post */
+        Body_pay_order_with_wallet_api_v1_orders__order_id__pay_post: {
+            /**
+             * Receipt Image
+             * @description صورة إشعار التحويل (png/jpg/webp — تُقبل لقطات الشاشة الكبيرة وتُضغط تلقائياً)
+             */
+            receipt_image: string;
+            /**
+             * Sender Name
+             * @description اسم المُحوِّل (اختياري — كما ظهر في التحويل)
+             */
+            sender_name?: string | null;
+        };
+        /** Body_upload_courier_document_api_v1_courier_documents_post */
+        Body_upload_courier_document_api_v1_courier_documents_post: {
+            /**
+             * File
+             * @description مستند المندوب (png/jpg/jpeg/webp، ≤5MB)
+             */
+            file: string;
+            /**
+             * Doc Type
+             * @description photo | id_document | license | vehicle_photo
+             */
+            doc_type: string;
+        };
         /** Body_upload_image_api_v1_uploads_post */
         Body_upload_image_api_v1_uploads_post: {
             /**
@@ -1368,6 +4377,83 @@ export interface components {
              * @default products
              */
             folder: string;
+        };
+        /** Body_upload_keystore_api_v1_console_apps__build_id__keystore_post */
+        Body_upload_keystore_api_v1_console_apps__build_id__keystore_post: {
+            /** File */
+            file?: string;
+            /** Key Alias */
+            key_alias: string;
+            /** Store Password */
+            store_password: string;
+            /** Key Password */
+            key_password: string;
+        };
+        /** Body_upload_my_brand_asset_api_v1_owner_brand_assets_post */
+        Body_upload_my_brand_asset_api_v1_owner_brand_assets_post: {
+            /** File */
+            file?: string;
+        };
+        /** Body_upload_public_image_api_v1_uploads_public_post */
+        Body_upload_public_image_api_v1_uploads_public_post: {
+            /**
+             * File
+             * @description صورة المتجر قبل التسجيل (png/jpg/jpeg/webp، ≤2MB)
+             */
+            file: string;
+        };
+        /** BrandUpdate */
+        BrandUpdate: {
+            /**
+             * Display Name
+             * @description الاسم التجاري
+             */
+            display_name?: string | null;
+            /** Tagline */
+            tagline?: string | null;
+            /**
+             * Primary Color
+             * @description hex مثل #RRGGBB
+             */
+            primary_color?: string | null;
+            /** Secondary Color */
+            secondary_color?: string | null;
+            /** Contact Phone */
+            contact_phone?: string | null;
+            /** Contact Whatsapp */
+            contact_whatsapp?: string | null;
+            /** Contact Address */
+            contact_address?: string | null;
+            /**
+             * Social Links
+             * @description {"instagram": "...", ...}
+             */
+            social_links?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** BuildJobLaunch */
+        BuildJobLaunch: {
+            /**
+             * Driver
+             * @description capacitor_local | github_actions
+             * @default capacitor_local
+             */
+            driver: string;
+        };
+        /** BuildResult */
+        BuildResult: {
+            /** Succeeded */
+            succeeded: boolean;
+            /** Error */
+            error?: string | null;
+            /**
+             * Artifacts
+             * @description {"aab": "url", "apk": "url", "ipa": "url"}
+             */
+            artifacts?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** CardBrief */
         CardBrief: {
@@ -1432,6 +4518,28 @@ export interface components {
              */
             created_at: string;
         };
+        /** CardSourceIn */
+        CardSourceIn: {
+            /**
+             * Type
+             * @default creditcard
+             * @constant
+             */
+            type: "creditcard";
+            /**
+             * Name
+             * @description الاسم — كلمتان على الأقل
+             */
+            name: string;
+            /** Number */
+            number: string;
+            /** Month */
+            month: number;
+            /** Year */
+            year: number;
+            /** Cvc */
+            cvc: string;
+        };
         /** CardUpdate */
         CardUpdate: {
             /** Name */
@@ -1468,6 +4576,724 @@ export interface components {
              */
             revenue: number;
         };
+        /** ConsoleLogin */
+        ConsoleLogin: {
+            /** Username */
+            username: string;
+            /** Password */
+            password: string;
+        };
+        /** CourierAcceptTask */
+        CourierAcceptTask: {
+            /**
+             * Call Id
+             * @description معرّف النداء (اختياري — النداء يُستنتج إن أُهمل)
+             */
+            call_id?: number | null;
+        };
+        /** CourierAvailabilityToggle */
+        CourierAvailabilityToggle: {
+            /**
+             * Available
+             * @description True = فتح التوفر (أول نبضة فورية)
+             */
+            available: boolean;
+        };
+        /**
+         * CourierCallCardOut
+         * @description بطاقة النداء (§4.3): المسافة الكاملة + الأجرة بخط كبير + الاتجاه
+         *     التقريبي (حي/منطقة العميل) — **بلا رقم العميل** (لا يُعرض الرقم إلا
+         *     بعد حجز المهمة للمندوب حصراً — قاعدة الإظهار المشددة §19.2).
+         */
+        CourierCallCardOut: {
+            /** Call Id */
+            call_id: number;
+            /** Task Id */
+            task_id: number;
+            /** Order Id */
+            order_id: number;
+            /** Wave Number */
+            wave_number: number;
+            /** Status */
+            status: string;
+            /** Distance Km */
+            distance_km: number;
+            /** Distance M */
+            distance_m: number;
+            /** Distance Display */
+            distance_display: string;
+            /** Billed Km */
+            billed_km: number;
+            /** Fee */
+            fee: number;
+            /** Per Km Price */
+            per_km_price: number;
+            /** Breakdown */
+            breakdown: string;
+            /** Facility Name */
+            facility_name: string | null;
+            /** Facility Type */
+            facility_type: string | null;
+            /**
+             * Area Hint
+             * @description حي/منطقة العميل من عنوانه فقط
+             */
+            area_hint?: string | null;
+            /**
+             * Items Count
+             * @default 0
+             */
+            items_count: number;
+            /** Items Summary */
+            items_summary?: string | null;
+            /** Call Expires At */
+            call_expires_at: string | null;
+            /** Call Window Seconds */
+            call_window_seconds: number;
+        };
+        /** CourierDocUploadOut */
+        CourierDocUploadOut: {
+            /**
+             * Url
+             * @description معرّف المستند (يُمرَّر في التسجيل)
+             */
+            url: string;
+            /**
+             * Doc Type
+             * @description نوع المستند
+             */
+            doc_type: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /**
+         * CourierLogin
+         * @description م2 — دخول المندوب (نمط الكوكي الافتراضي: مفتاح مندوب رابع مستقل).
+         */
+        CourierLogin: {
+            /**
+             * Identifier
+             * @description البريد أو الجوال
+             */
+            identifier: string;
+            /** Password */
+            password: string;
+        };
+        /**
+         * CourierMeOut
+         * @description زاوية المندوب الكاملة (له وحده — بلا بيانات سرية للآخرين أبداً).
+         *
+         *     B-3: أُضيفت ``license_number`` (رقم البطاقة) و``preferred_shifts`` ومكونات
+         *     اللوحة المنظمة — المندوب يرى بياناته المسجلة كاملة كما تراها الإدارة.
+         */
+        CourierMeOut: {
+            /** Courier Id */
+            courier_id: number;
+            /** User Id */
+            user_id: number;
+            /** Document Full Name */
+            document_full_name: string;
+            /** Public Name */
+            public_name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Phone */
+            phone?: string | null;
+            /** Email */
+            email?: string | null;
+            /** Vehicle Type */
+            vehicle_type: string;
+            /** Vehicle Plate */
+            vehicle_plate: string | null;
+            /**
+             * License Number
+             * @description رقم البطاقة الشخصية اليمنية
+             */
+            license_number?: string | null;
+            /**
+             * Plate City Code
+             * @description كود محافظة اللوحة (1-22)
+             */
+            plate_city_code?: number | null;
+            /**
+             * Plate Number
+             * @description رقم اللوحة (4-6 خانات)
+             */
+            plate_number?: string | null;
+            /**
+             * Plate Letter
+             * @description حرف اللوحة العربي
+             */
+            plate_letter?: string | null;
+            /** Region Id */
+            region_id: number | null;
+            /** Preferred Shifts */
+            preferred_shifts?: string | null;
+            /** Verification Status */
+            verification_status: string;
+            /** Verification Status Ar */
+            verification_status_ar: string;
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /** Availability */
+            availability: string;
+            /** Availability Ar */
+            availability_ar: string;
+            /** Last Lat */
+            last_lat?: number | null;
+            /** Last Lng */
+            last_lng?: number | null;
+            /** Last Pulse At */
+            last_pulse_at?: string | null;
+            stats: components["schemas"]["CourierStatsOut"];
+            membership_card: components["schemas"]["CourierMembershipCardOut"];
+            /**
+             * Appeal Note
+             * @description توجيه التظلم عند الإيقاف/الرفض
+             */
+            appeal_note?: string | null;
+        };
+        /**
+         * CourierMembershipCardOut
+         * @description بطاقة عضوية المندوب (§6.2 — تُصدَر فور التوثيق تلقائياً).
+         */
+        CourierMembershipCardOut: {
+            /** Membership Number */
+            membership_number: string | null;
+            /** Public Name */
+            public_name: string;
+            /** Document Full Name */
+            document_full_name: string;
+            /** Vehicle Type */
+            vehicle_type: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Verified */
+            verified: boolean;
+            /** Issued At */
+            issued_at: string | null;
+            /**
+             * Next Review At
+             * @description مراجعة التوثيق القادمة (كل 12 شهراً)
+             */
+            next_review_at?: string | null;
+        };
+        /**
+         * CourierPublicOut
+         * @description الملف العلني (§3.2.6 كما نقّحه §19.4/1): يظهر **للمتجر حصراً** عند
+         *     النداء وبطاقة المهمة **وللإدارة** — لا يظهر للعميل النهائي أي عنصر
+         *     منه إطلاقاً (رفض صريح 403 برسالة عربية عند محاولته).
+         */
+        CourierPublicOut: {
+            /** Courier Id */
+            courier_id: number;
+            /** Public Name */
+            public_name: string;
+            /** Photo Url */
+            photo_url: string | null;
+            /** Vehicle Type */
+            vehicle_type: string;
+            /**
+             * Verified Badge
+             * @description شارة «مندوب موثق من توفير»
+             */
+            verified_badge: boolean;
+            /**
+             * Avg Rating
+             * @description متوسط التقييم المرجّح
+             */
+            avg_rating?: number | null;
+            /**
+             * Rating Count
+             * @default 0
+             */
+            rating_count: number;
+            /**
+             * Completed Tasks
+             * @default 0
+             */
+            completed_tasks: number;
+            /** Level */
+            level: string;
+            /** Level Ar */
+            level_ar: string;
+            /** Joined Year */
+            joined_year?: number | null;
+        };
+        /**
+         * CourierPublicUpdate
+         * @description م4 — تحديث بياناتي: الاسم العلني/الصورة/المنطقة/الورديات + (B-4)
+         *     حقول المركبة (نوع/لوحة) ورقم البطاقة — بنفس تحقق B-3 تماماً، وتسجيل
+         *     التعديلات في سجل التدقيق (COURIER_PROFILE_UPDATED).
+         */
+        CourierPublicUpdate: {
+            /** Public Name */
+            public_name?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
+            /** Region Id */
+            region_id?: number | null;
+            /** Preferred Shifts */
+            preferred_shifts?: string | null;
+            /**
+             * Vehicle Type
+             * @description motorcycle | electric_bike | other
+             */
+            vehicle_type?: string | null;
+            /**
+             * Vehicle Plate
+             * @description اللوحة اليمنية الكاملة "1-222156-أ" (B-4)
+             */
+            vehicle_plate?: string | null;
+            /**
+             * License Number
+             * @description رقم البطاقة الشخصية اليمنية (B-4)
+             */
+            license_number?: string | null;
+        };
+        /** CourierPulseIn */
+        CourierPulseIn: {
+            /** Lat */
+            lat: number;
+            /** Lng */
+            lng: number;
+            /**
+             * Accuracy M
+             * @description دقة الموقع بالأمتار
+             */
+            accuracy_m?: number | null;
+            /**
+             * Battery Level
+             * @description نسبة البطارية
+             */
+            battery_level?: number | null;
+            /**
+             * Client Time
+             * @description زمن النبضة من الجهاز
+             */
+            client_time?: string | null;
+        };
+        /** CourierRatingIn */
+        CourierRatingIn: {
+            /** Task Id */
+            task_id: number;
+            /**
+             * Stars
+             * @description النجوم العامة (إلزامي)
+             */
+            stars: number;
+            /**
+             * Timeliness
+             * @description الالتزام بالوقت
+             */
+            timeliness?: number | null;
+            /**
+             * Care
+             * @description سلامة الطلب
+             */
+            care?: number | null;
+            /**
+             * Conduct
+             * @description الهيئة والتعامل
+             */
+            conduct?: number | null;
+            /** Comment */
+            comment?: string | null;
+        };
+        /** CourierRatingOut */
+        CourierRatingOut: {
+            /** Id */
+            id: number;
+            /** Task Id */
+            task_id: number;
+            /** Courier Id */
+            courier_id: number;
+            /** Facility Id */
+            facility_id: number;
+            /** Stars */
+            stars: number;
+            /** Timeliness */
+            timeliness: number | null;
+            /** Care */
+            care: number | null;
+            /** Conduct */
+            conduct: number | null;
+            /** Comment */
+            comment: string | null;
+            /** Review State */
+            review_state: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Edited At */
+            edited_at: string | null;
+        };
+        /**
+         * CourierRegister
+         * @description حقول كيان المندوب كاملة + تحقق الجوال بكود (منظومة القائمة نفسها).
+         *
+         *     B-3: رقم البطاقة الشخصية اليمنية (``license_number``) واللوحة اليمنية
+         *     الكاملة (``vehicle_plate``) إلزاميان — نفس ما يرسله الفرونت اند الآن.
+         */
+        CourierRegister: {
+            /**
+             * Document Full Name
+             * @description الاسم الكامل كما في الوثيقة الرسمية (الثلاثي على الأقل)
+             */
+            document_full_name: string;
+            /**
+             * Public Name
+             * @description الاسم العلني الذي يظهر للمتاجر
+             */
+            public_name: string;
+            /**
+             * Birth Date
+             * @description تاريخ الميلاد
+             */
+            birth_date?: string | null;
+            /** Email */
+            email: string;
+            /** Phone */
+            phone: string;
+            /** Password */
+            password: string;
+            /** Password Confirm */
+            password_confirm: string;
+            /**
+             * Vehicle Type
+             * @description motorcycle | electric_bike | other
+             * @default motorcycle
+             */
+            vehicle_type: string;
+            /**
+             * Vehicle Plate
+             * @description اللوحة اليمنية الكاملة بصيغة "كود المحافظة-الرقم-الحرف" مثال: 1-222156-أ
+             */
+            vehicle_plate: string;
+            /**
+             * License Number
+             * @description رقم البطاقة الشخصية اليمنية (أرقام فقط، 5-20 خانة)
+             */
+            license_number: string;
+            /**
+             * License Expires At
+             * @description تاريخ انتهاء الرخصة
+             */
+            license_expires_at?: string | null;
+            /**
+             * Region Id
+             * @description منطقة العمل الأساسية
+             */
+            region_id?: number | null;
+            /**
+             * Preferred Shifts
+             * @description أوقات التفضيل (اختياري)
+             */
+            preferred_shifts?: string | null;
+            /** Photo Url */
+            photo_url?: string | null;
+            /** Id Document Path */
+            id_document_path?: string | null;
+            /** Id Document Type */
+            id_document_type?: string | null;
+            /** Id Document Number */
+            id_document_number?: string | null;
+            /** License Path */
+            license_path?: string | null;
+            /** Vehicle Photo Path */
+            vehicle_photo_path?: string | null;
+        };
+        /**
+         * CourierRegisterOut
+         * @description رسالة نجاح برقم متابعة (نفس سير طلبات العضوية القائم).
+         */
+        CourierRegisterOut: {
+            /** Courier Id */
+            courier_id: number;
+            /** User Id */
+            user_id: number;
+            /**
+             * Verification Status
+             * @default pending
+             */
+            verification_status: string;
+            /**
+             * Verification Status Ar
+             * @default قيد التوثيق
+             */
+            verification_status_ar: string;
+            /**
+             * Message
+             * @default شكراً — طلبك قيد التدقيق، عادةً خلال 24–48 ساعة
+             */
+            message: string;
+        };
+        /** CourierStatsOut */
+        CourierStatsOut: {
+            /**
+             * Completed Tasks
+             * @default 0
+             */
+            completed_tasks: number;
+            /**
+             * Service Km
+             * @default 0
+             */
+            service_km: number;
+            /**
+             * Total Earnings
+             * @default 0
+             */
+            total_earnings: number;
+            /**
+             * Active Days
+             * @default 0
+             */
+            active_days: number;
+            /** Avg Response Seconds */
+            avg_response_seconds?: number | null;
+            /**
+             * Level
+             * @default beginner
+             */
+            level: string;
+            /**
+             * Level Ar
+             * @default مبتدئ
+             */
+            level_ar: string;
+        };
+        /**
+         * CourierSuspendDecision
+         * @description م7 — إيقاف/تنشيط (قائمة أسباب قياسية §3.2.2).
+         */
+        CourierSuspendDecision: {
+            /** Action */
+            action: string;
+            /**
+             * Reason
+             * @description سبب الإيقاف (تقييم متدن/شكوى مؤكدة/انتهاء مستند/مخالفة سلوك/أخرى)
+             */
+            reason?: string | null;
+        };
+        /**
+         * CourierTaskOut
+         * @description شاشة مهمتي (§4.4) — للمندوب الحائز: بطاقة المسار + بطاقة الاتصال
+         *     بالعميل (الحائز حصراً) + الأصناف + المال + أزرار التقدم المتاحة.
+         */
+        CourierTaskOut: {
+            /** Task Id */
+            task_id: number;
+            /** Order Id */
+            order_id: number;
+            /** Status */
+            status: string;
+            /** Status Ar */
+            status_ar: string;
+            /** Facility Name */
+            facility_name: string | null;
+            /** Facility Lat */
+            facility_lat: number | null;
+            /** Facility Lng */
+            facility_lng: number | null;
+            /** Distance Km */
+            distance_km: number;
+            /** Distance M */
+            distance_m: number;
+            /** Distance Display */
+            distance_display: string;
+            /** Billed Km */
+            billed_km: number;
+            /** Fee */
+            fee: number;
+            /** Per Km Price */
+            per_km_price: number;
+            /** Breakdown */
+            breakdown: string;
+            /**
+             * Total Collect
+             * @description ما يحصّله المندوب نقداً (وجبات + أجرة)
+             * @default 0
+             */
+            total_collect: number;
+            customer?: components["schemas"]["CustomerContactCard"] | null;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["TaskItemLine"][];
+            /**
+             * Next Actions
+             * @default []
+             */
+            next_actions: string[];
+            /**
+             * Delivery Code Required
+             * @default false
+             */
+            delivery_code_required: boolean;
+            /** Reserved At */
+            reserved_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Created At */
+            created_at: string | null;
+        };
+        /** CourierTaskProgress */
+        CourierTaskProgress: {
+            /**
+             * Action
+             * @description arrived_store: وصلت للمتجر | confirm_pickup: استلمت الطلب | arrived_customer: وصلت للعميل | complete_delivery: تم التسليم (مع الكود) | problem: مشكلة تسليم
+             */
+            action: string;
+            /**
+             * Delivery Code
+             * @description كود التسليم (مع complete_delivery)
+             */
+            delivery_code?: string | null;
+            /**
+             * Problem Type
+             * @description نوع المشكلة (customer_no_answer|wrong_address|customer_refused|other)
+             */
+            problem_type?: string | null;
+            /** Problem Description */
+            problem_description?: string | null;
+            /**
+             * Receipt Photo Url
+             * @description صورة وصل الاستلام (بديل التحقق عند مشغولية المالك §4.4-5)
+             */
+            receipt_photo_url?: string | null;
+        };
+        /**
+         * CourierVerifyDecision
+         * @description م6 — قرار توثيق: verify | reject | request_completion.
+         */
+        CourierVerifyDecision: {
+            /** Action */
+            action: string;
+            /**
+             * Reason
+             * @description سبب إلزامي عند الرفض
+             */
+            reason?: string | null;
+            /**
+             * Notes
+             * @description ملاحظات إدارية داخلية
+             */
+            notes?: string | null;
+        };
+        /**
+         * CourierWalletCreate
+         * @description إضافة محفظة شخصية للمندوب (يستلم عليها أجور التوصيل من المطاعم).
+         */
+        CourierWalletCreate: {
+            /**
+             * Account Type
+             * @description point (رقم نقطة + اسمها) | phone (هاتف + اسم)
+             * @default point
+             */
+            account_type: string;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** Provider Id */
+            provider_id: number;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+        };
+        /**
+         * CourierWalletOut
+         * @description محفظة مندوب شخصية (للمندوب مالكها، وللتاجر لتحويل أجرة التوصيل).
+         */
+        CourierWalletOut: {
+            /** Id */
+            id: number;
+            /** Courier Id */
+            courier_id: number;
+            /** Provider Id */
+            provider_id: number;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Account Type */
+            account_type: string;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** Account Label */
+            account_label?: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Display Order */
+            display_order: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * CourierWalletUpdate
+         * @description تعديل محفظة مندوب — نفس حقول محفظة المنشأة.
+         */
+        CourierWalletUpdate: {
+            /** Provider Id */
+            provider_id?: number | null;
+            /** Account Type */
+            account_type?: string | null;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
+        };
+        /**
+         * CustomerContactCard
+         * @description بطاقة الاتصال بالعميل — **تُركَّب فقط في رد المندوب الحائز** بعد
+         *     الحجز وقبل الإغلاق (قانون الكشف §11.3-7: بيانات اتصال العميل تُكشف
+         *     للمندوب من الحجز حتى الإغلاق؛ ثم تُقفل — تبقى بالسجل الإداري).
+         */
+        CustomerContactCard: {
+            /** Customer Name */
+            customer_name: string;
+            /** Customer Phone */
+            customer_phone: string;
+            /** Delivery Address */
+            delivery_address: string | null;
+            /** Delivery Lat */
+            delivery_lat: number | null;
+            /** Delivery Lng */
+            delivery_lng: number | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Customer Location Available
+             * @description زر «عرض موقع العميل» (§19.2-4) — نقطة المسمار
+             * @default false
+             */
+            customer_location_available: boolean;
+        };
         /**
          * CustomerLogin
          * @description ``identifier`` accepts either the customer email or phone number.
@@ -1477,6 +5303,150 @@ export interface components {
             identifier: string;
             /** Password */
             password: string;
+        };
+        /** DecisionOut */
+        DecisionOut: {
+            /** Ok */
+            ok: boolean;
+            /** Message */
+            message: string;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** DeleteOut */
+        DeleteOut: {
+            /**
+             * Detail
+             * @default تم حذف التقييم
+             */
+            detail: string;
+        };
+        /** DeliveryEstimateIn */
+        DeliveryEstimateIn: {
+            /** Facility Id */
+            facility_id: number;
+            /**
+             * Lat
+             * @description نقطة العميل (المسمار)
+             */
+            lat?: number | null;
+            /** Lng */
+            lng?: number | null;
+        };
+        /**
+         * DeliveryEstimateOut
+         * @description «3 كم و250 م ≈ 4 كم × 200 = 800» — الشفافية الحرفية (المادة 8).
+         */
+        DeliveryEstimateOut: {
+            /** Distance Km */
+            distance_km: number;
+            /** Distance Display */
+            distance_display: string;
+            /** Billed Km */
+            billed_km: number;
+            /** Fee */
+            fee: number;
+            /** Per Km Price */
+            per_km_price: number;
+            /** Breakdown */
+            breakdown: string;
+            /** Imprecise Address */
+            imprecise_address: boolean;
+            /**
+             * Max Km Applied
+             * @description السقف الفعلي إن طبق
+             */
+            max_km_applied?: number | null;
+            /**
+             * Exceeds Cap
+             * @description خارج نطاق توصيل هذا المتجر
+             * @default false
+             */
+            exceeds_cap: boolean;
+            /** Note */
+            note?: string | null;
+        };
+        /**
+         * DeliveryProblemDecision
+         * @description قرار المالك على مشكلة تسليم (المالك صاحب القرار §4.7-ج).
+         */
+        DeliveryProblemDecision: {
+            /**
+             * Decision
+             * @description انتظار | إلغاء من طرف العميل | إلغاء بتعويض المندوب | تسليم تجاوزي
+             */
+            decision: string;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** DestinationIn */
+        DestinationIn: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "bank" | "wallet";
+            /** Holder Name */
+            holder_name: string;
+            /** Iban */
+            iban?: string | null;
+            /** Mobile */
+            mobile?: string | null;
+            /**
+             * Country
+             * @default SA
+             */
+            country: string;
+            /** City */
+            city?: string | null;
+        };
+        /** DestinationOut */
+        DestinationOut: {
+            /** Id */
+            id: number;
+            /** Courier Id */
+            courier_id: number;
+            /** Type */
+            type: string;
+            /** Holder Name */
+            holder_name: string;
+            /** Iban */
+            iban: string | null;
+            /** Mobile */
+            mobile: string | null;
+            /** Country */
+            country: string;
+            /** City */
+            city: string | null;
+            /** Is Verified */
+            is_verified: boolean;
+        };
+        /** DirectAssign */
+        DirectAssign: {
+            /**
+             * Courier Id
+             * @description معرف المندوب الخاص من قائمتك
+             */
+            courier_id: number;
+        };
+        /**
+         * EmbeddedPayVerifyRequest
+         * @description [v2] النموذج المدمج — مدخل التأكيد الوحيد من الفرونت.
+         *
+         *     التدفق: الفرونت يضمّن Moyasar Form (بالمفتاح العام pk_) داخل الموقع →
+         *     العميل يدخل بيانات بطاقته/Apple Pay/STC Pay ولا تلمس خادمنا أبداً →
+         *     Moyasar يعيد ``payment_id`` في الـcallback → الفرونت يرسله هنا →
+         *     الخادم يتحقق حتماً من Moyasar بمفتاح sk_ (status/amount/currency)
+         *     قبل تأكيد أي شيء. لا تصديق على أي قيمة قادمة من الفرونت —
+         *     ``payment_id`` وحده هو المدخل، والحقيقة تُقرأ من Moyasar حصراً.
+         */
+        EmbeddedPayVerifyRequest: {
+            /** Moyasar Payment Id */
+            moyasar_payment_id: string;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
         };
         /** FacilityBrief */
         FacilityBrief: {
@@ -1553,6 +5523,8 @@ export interface components {
             latitude?: number | null;
             /** Longitude */
             longitude?: number | null;
+            /** Location Source */
+            location_source?: string | null;
             /** Phone */
             phone?: string | null;
             /** Working Hours */
@@ -1601,10 +5573,30 @@ export interface components {
             discount_rate?: number;
         };
         /**
+         * FacilityTotalsOut
+         * @description إجماليات لكل منشأة (لوحة الإدارة — أعلى المتاجر).
+         */
+        FacilityTotalsOut: {
+            /** Facility Id */
+            facility_id: number;
+            /** Facility Name */
+            facility_name: string;
+            /**
+             * Orders Count
+             * @default 0
+             */
+            orders_count: number;
+            /**
+             * Approved Amount
+             * @default 0
+             */
+            approved_amount: number;
+        };
+        /**
          * FacilityType
          * @enum {string}
          */
-        FacilityType: "restaurant" | "cafe";
+        FacilityType: "restaurant" | "cafe" | "cafeteria";
         /** FacilityUpdate */
         FacilityUpdate: {
             /** Name */
@@ -1641,6 +5633,122 @@ export interface components {
             discount_rate?: number | null;
         };
         /**
+         * FacilityWalletCreate
+         * @description إضافة محفظة لمنشأة التاجر (مالك).
+         */
+        FacilityWalletCreate: {
+            /**
+             * Account Type
+             * @description point (رقم نقطة + اسمها) | phone (هاتف + اسم)
+             * @default point
+             */
+            account_type: string;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /**
+             * Provider Id
+             * @description معرّف المحفظة اليمنية من الدليل
+             */
+            provider_id: number;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+        };
+        /**
+         * FacilityWalletOut
+         * @description محفظة منشأة — تُعرض للعميل عند الدفع ولتاجر في لوحته.
+         *
+         *     ``account_label`` سطر جاهز للنسخ: «12345 (فرع أ)» أو «777123456 (أحمد)».
+         */
+        FacilityWalletOut: {
+            /** Id */
+            id: number;
+            /** Facility Id */
+            facility_id: number;
+            /** Provider Id */
+            provider_id: number;
+            /** Provider Name */
+            provider_name?: string | null;
+            /** Account Type */
+            account_type: string;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** Account Label */
+            account_label?: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Display Order */
+            display_order: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * FacilityWalletUpdate
+         * @description تعديل محفظة منشأة (مالك) — كل الحقول اختيارية.
+         */
+        FacilityWalletUpdate: {
+            /** Provider Id */
+            provider_id?: number | null;
+            /** Account Type */
+            account_type?: string | null;
+            /** Point Number */
+            point_number?: string | null;
+            /** Point Name */
+            point_name?: string | null;
+            /** Phone Number */
+            phone_number?: string | null;
+            /** Account Name */
+            account_name?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
+        };
+        /** FavoriteOut */
+        FavoriteOut: {
+            /** Facility Id */
+            facility_id: number;
+            /** Facility Name */
+            facility_name: string;
+            /** Facility Type */
+            facility_type?: string | null;
+            /** Notify Offers */
+            notify_offers: boolean;
+            /** Added At */
+            added_at?: string | null;
+        };
+        /** FavoriteToggleOut */
+        FavoriteToggleOut: {
+            /** Is Favorite */
+            is_favorite: boolean;
+            /** Notify Offers */
+            notify_offers: boolean;
+        };
+        /** FavoritesListOut */
+        FavoritesListOut: {
+            /** Items */
+            items: components["schemas"]["FavoriteOut"][];
+            /** Total */
+            total: number;
+        };
+        /**
          * FcmTokenDelete
          * @description حذف توكن FCM (تسجيل خروج الجهاز).
          */
@@ -1661,6 +5769,8 @@ export interface components {
             token: string;
             /** Device Info */
             device_info?: string | null;
+            /** Bundle Id */
+            bundle_id?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -1682,6 +5792,18 @@ export interface components {
              * @description معلومات الجهاز (user-agent / platform)
              */
             device_info?: string | null;
+            /**
+             * Bundle Id
+             * @description بصمة التطبيق (تطبيقات التجار المولّدة)
+             */
+            bundle_id?: string | null;
+        };
+        /** FinanceSettingsIn */
+        FinanceSettingsIn: {
+            /** Key */
+            key: string;
+            /** Value */
+            value: string;
         };
         /**
          * ForgotPasswordOut
@@ -1715,10 +5837,74 @@ export interface components {
              */
             email: string;
         };
+        /** FreeMembershipFlagIn */
+        FreeMembershipFlagIn: {
+            /**
+             * Is Free Membership Enabled
+             * @description تفعيل/تعطيل العضوية المجانية
+             */
+            is_free_membership_enabled: boolean;
+        };
+        /** FreeMembershipFlagOut */
+        FreeMembershipFlagOut: {
+            /**
+             * Is Free Membership Enabled
+             * @description عضوية توفير المجانية مفعّلة أم لا
+             */
+            is_free_membership_enabled: boolean;
+            /** Updated By */
+            updated_by?: number | null;
+        };
+        /**
+         * FreeMembershipSubscribeOut
+         * @description Response after a customer claims a free membership.
+         */
+        FreeMembershipSubscribeOut: {
+            /**
+             * Detail
+             * @default تم تفعيل عضويتك المجانية! استمتع بالخصم 30% في كل المنشآت المعتمدة.
+             */
+            detail: string;
+            /** Id */
+            id: number;
+            /** Membership Number */
+            membership_number: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Is Free
+             * @default true
+             */
+            is_free: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LocaleCountriesResponse */
+        LocaleCountriesResponse: {
+            /** Countries */
+            countries: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** LocaleSetRequest */
+        LocaleSetRequest: {
+            /**
+             * Country Code
+             * @description مفتاح الدولة
+             */
+            country_code: string;
+            /** National Id */
+            national_id?: string | null;
+            /** Commercial Registration */
+            commercial_registration?: string | null;
+            /** Iban */
+            iban?: string | null;
         };
         /**
          * MeOut
@@ -1810,15 +5996,20 @@ export interface components {
             /** User Id */
             user_id: number;
             /** Amount */
-            amount: number;
+            amount?: number | null;
             /** Payment Method */
-            payment_method: string;
+            payment_method?: string | null;
             /** Transfer Account Name */
-            transfer_account_name: string;
+            transfer_account_name?: string | null;
             /** Transfer Account Number */
-            transfer_account_number: string;
+            transfer_account_number?: string | null;
             /** Receipt Image Url */
-            receipt_image_url: string;
+            receipt_image_url?: string | null;
+            /**
+             * Is Free
+             * @default false
+             */
+            is_free: boolean;
             /**
              * Status
              * @description pending | approved | rejected
@@ -1857,6 +6048,54 @@ export interface components {
              * @example pending
              */
             status: string;
+        };
+        /** MerchantCourierCreate */
+        MerchantCourierCreate: {
+            /**
+             * Full Name
+             * @description الاسم الكامل
+             */
+            full_name: string;
+            /**
+             * Phone
+             * @description جوال المندوب
+             */
+            phone: string;
+            /**
+             * Email
+             * @description اختياري — يُولَّد داخلياً إن غاب
+             */
+            email?: string | null;
+            /**
+             * Password
+             * @description كلمة مرور الدخول
+             */
+            password: string;
+            /** Public Name */
+            public_name?: string | null;
+            /**
+             * Facility Id
+             * @description منشأته — افتراضياً أول منشآتك
+             */
+            facility_id?: number | null;
+            /**
+             * Vehicle Type
+             * @description motorcycle|electric_bike|other
+             * @default motorcycle
+             */
+            vehicle_type: string;
+            /** Vehicle Plate */
+            vehicle_plate?: string | null;
+        };
+        /** MerchantCourierUpdate */
+        MerchantCourierUpdate: {
+            /**
+             * Action
+             * @description suspend | reactivate
+             */
+            action?: string | null;
+            /** Public Name */
+            public_name?: string | null;
         };
         /** MessageOut */
         MessageOut: {
@@ -1901,54 +6140,37 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
-        /**
-         * NotificationOut
-         * @description إشعار — استجابة قائمة/تفاصيل.
-         */
-        NotificationOut: {
-            /**
-             * Id
-             * @description معرّف الإشعار
-             */
-            id: number;
-            /**
-             * User Id
-             * @description معرّف المستلم
-             */
-            user_id: number;
-            /**
-             * Title
-             * @description عنوان الإشعار
-             */
-            title: string;
-            /**
-             * Body
-             * @description نص الإشعار
-             */
-            body: string;
-            /**
-             * Notification Type
-             * @description النوع: order_new | order_confirmed | order_preparing | order_out_for_delivery | order_delivered | order_cancelled | membership_new_request | membership_received | membership_approved | membership_rejected | membership_expiring | facility_approved | facility_rejected | owner_registered | special_offer_new | special_offer_ending | special_offer_soldout
-             */
-            notification_type: string;
-            /**
-             * Data
-             * @description بيانات إضافية (JSON: order_id, facility_name...)
-             */
-            data?: {
-                [key: string]: unknown;
-            } | null;
-            /**
-             * Is Read
-             * @description مقروء؟
-             * @default false
-             */
-            is_read: boolean;
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
+        /** NotificationReviewRequest */
+        NotificationReviewRequest: {
+            /** Review Note */
+            review_note?: string | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+        };
+        /** NotificationSubmitRequest */
+        NotificationSubmitRequest: {
+            /** Amount */
+            amount: number;
+            /** Bank Name */
+            bank_name?: string | null;
+            /** Reference No */
+            reference_no?: string | null;
+            /** Transfer Date */
+            transfer_date?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+        };
+        /** NotifyToggleIn */
+        NotifyToggleIn: {
+            /** Notify Offers */
+            notify_offers: boolean;
+        };
+        /** NotifyToggleOut */
+        NotifyToggleOut: {
+            /** Facility Id */
+            facility_id: number;
+            /** Notify Offers */
+            notify_offers: boolean;
         };
         /**
          * OrderCreate
@@ -1976,10 +6198,15 @@ export interface components {
             delivery_address?: string | null;
             /**
              * Payment Method
-             * @description cash | wallet (wallet غير متاح حالياً)
+             * @description cash (الدفع عند الاستلام — الافتراضي) | wallet (تحويل يدوي عبر محفظة التاجر)
              * @default cash
              */
             payment_method: string;
+            /**
+             * Payment Wallet Id
+             * @description معرف محفظة المنشأة المختارة للتحويل (مطلوب مع payment_method=wallet)
+             */
+            payment_wallet_id?: number | null;
             /** Notes */
             notes?: string | null;
             /** @description معرّف العرض الخاص — null/undefined إن لم يكن على عرض. */
@@ -2052,10 +6279,25 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Payment Status */
+            payment_status?: string | null;
+            /** Payment Wallet Label */
+            payment_wallet_label?: string | null;
         };
         /**
          * OrderOut
          * @description Full order view (detail + list).
+         *
+         *     التوسعة الثلاثية (§16.3 نقطة التدخل 4 — استجابة موسّعة): الحقول
+         *     القائمة بأسمائها وأنواعها كما هي حرفياً + **حقول جديدة اختيارية
+         *     بعدها** (التوافق الرجعي 100% — الواجهة القديمة تتجاهل الجديد بأمان:
+         *     قاعدة العقد 18.1-1/2).
+         *
+         *     الخصوصية من التصميم (§19.1): هذه الزاوية تعرضها البوابات الثلاث —
+         *     حقول المندوب التعريفية **لا تُركَّب فيها أصلاً**؛ بطاقة المهمة
+         *     الحية وبطاقة المندوب العلنية للمندوب تُعرض من مسارات المالك/الإدارة
+         *     الخاصة (delivery.py)؛ وللمالك تُضاف بيانات توصيل العميل الكاملة
+         *     (سدّ الفجوة التشخيصية §16.3 نقطة 4) من نفس النداء القائم.
          */
         OrderOut: {
             /** Id */
@@ -2095,6 +6337,66 @@ export interface components {
              * @default []
              */
             items: components["schemas"]["OrderItemOut"][];
+            /**
+             * Payment Wallet Id
+             * @description محفظة الدفع المختارة (null = كاش)
+             */
+            payment_wallet_id?: number | null;
+            /**
+             * Payment Wallet Label
+             * @description سطر المحفظة (مثل: جوالي — 12345 (فرع أ))
+             */
+            payment_wallet_label?: string | null;
+            /**
+             * Payment Status
+             * @description حالة إيصالة التحويل: pending | approved | rejected | partial_requested (null = كاش أو لم يرفع بعد)
+             */
+            payment_status?: string | null;
+            /** @description إيصالة التحويل الكاملة (صورة الإشعار + المبلغ) إن وُجدت */
+            payment_receipt?: components["schemas"]["PaymentReceiptBriefOut"] | null;
+            /**
+             * Customer Name
+             * @description اسم عميل الطلب (للمالك/الإدارة)
+             */
+            customer_name?: string | null;
+            /**
+             * Customer Phone
+             * @description هاتف العميل (للمالك/الإدارة)
+             */
+            customer_phone?: string | null;
+            /**
+             * Composite Status
+             * @description الوسم المركب من المهمة الحية إن وُجدت
+             */
+            composite_status?: string | null;
+            /** Composite Status Ar */
+            composite_status_ar?: string | null;
+            /** Distance Km */
+            distance_km?: number | null;
+            /** Billed Km */
+            billed_km?: number | null;
+            /** Per Km Price */
+            per_km_price?: number | null;
+            /** Address Imprecise */
+            address_imprecise?: boolean | null;
+            /** Self Delivery */
+            self_delivery?: boolean | null;
+            /**
+             * Delivery Duration Minutes
+             * @description مدة التوصيل الفعلية (من طلب المندوب حتى الكود)
+             */
+            delivery_duration_minutes?: number | null;
+            /**
+             * Delivery Task Id
+             * @description معرّف مهمة التوصيل الحية إن وُجدت
+             */
+            delivery_task_id?: number | null;
+        };
+        /** OrderPayRequest */
+        OrderPayRequest: {
+            source: components["schemas"]["CardSourceIn"];
+            /** Idempotency Key */
+            idempotency_key?: string | null;
         };
         /**
          * OrderStatusUpdate
@@ -2112,8 +6414,94 @@ export interface components {
             status: string;
         };
         /**
+         * OtpRequestIn
+         * @description Request a verification code (sent via WhatsApp).
+         */
+        OtpRequestIn: {
+            /**
+             * Target
+             * @description رقم الجوال (أو البريد) لإرسال الكود
+             */
+            target: string;
+            /**
+             * Name
+             * @description اسم المستخدم (يُستخدم في رسالة واتساب)
+             */
+            name?: string | null;
+        };
+        /** OtpRequestOut */
+        OtpRequestOut: {
+            /**
+             * Detail
+             * @default تم إرسال الكود إلى رقمك عبر واتساب
+             */
+            detail: string;
+            /**
+             * Ttl Seconds
+             * @default 300
+             */
+            ttl_seconds: number;
+            /**
+             * Delivered
+             * @default true
+             */
+            delivered: boolean;
+            /** Dev Code */
+            dev_code?: string | null;
+            /** Absolute Test Mode */
+            absolute_test_mode?: boolean | null;
+        };
+        /**
+         * OtpResendIn
+         * @description Resend a code (respects cooldown).
+         */
+        OtpResendIn: {
+            /**
+             * Target
+             * @description رقم الجوال (أو البريد)
+             */
+            target: string;
+            /** Name */
+            name?: string | null;
+        };
+        /**
+         * OtpVerifyIn
+         * @description Verify a code.
+         */
+        OtpVerifyIn: {
+            /**
+             * Target
+             * @description رقم الجوال (أو البريد)
+             */
+            target: string;
+            /**
+             * Code
+             * @description كود التحقق
+             */
+            code: string;
+        };
+        /** OtpVerifyOut */
+        OtpVerifyOut: {
+            /**
+             * Verified
+             * @default true
+             */
+            verified: boolean;
+            /** Target */
+            target: string;
+            /**
+             * Verified Token
+             * @description توكن توثيق قصير الأجل (10 دقائق) — أرففه مع التسجيل
+             */
+            verified_token?: string | null;
+        };
+        /**
          * OwnerFacilityUpdate
          * @description The subset of facility fields a owner is allowed to edit.
+         *
+         *     B-6 (جولة الباك اند): ``working_hours`` يقبل نصاً حراً (قديم) أو كائناً
+         *     منظماً ``{"days": [...], "open": "08:00", "close": "23:00"}`` — يُخزَّن
+         *     JSON مضغوطاً في نفس العمود (توافق كامل مع النص القديم).
          */
         OwnerFacilityUpdate: {
             /** Name */
@@ -2128,12 +6516,25 @@ export interface components {
             longitude?: number | null;
             /** Phone */
             phone?: string | null;
-            /** Working Hours */
-            working_hours?: string | null;
+            /**
+             * Working Hours
+             * @description نص حر (قديم) أو كائن {days:[sat..], open:'08:00', close:'23:00'} (B-6 — يُخزّن JSON منظماً)
+             */
+            working_hours?: string | {
+                [key: string]: unknown;
+            } | null;
             /** Image Url */
             image_url?: string | null;
             /** Is Visible */
             is_visible?: boolean | null;
+        };
+        /** OwnerHandoverConfirm */
+        OwnerHandoverConfirm: {
+            /**
+             * Confirmed
+             * @description سلّمت الطلب للمندوب / رفض
+             */
+            confirmed: boolean;
         };
         /**
          * OwnerLogin
@@ -2152,8 +6553,22 @@ export interface components {
          *     The owner account is active immediately (can login) but the facility
          *     is created with ``is_approved=False`` pending admin review.
          *
-         *     ``discount_rate`` (10-30) is chosen at registration and **cannot** be
-         *     changed afterwards by the owner — only an admin may override it.
+         *     ``discount_rate`` (5-30 — جولة المحافظ: الحد الأدنى 5) is chosen at
+         *     registration and **cannot** be changed afterwards by the owner — only
+         *     an admin may override it.
+         *
+         *     جولة B (تقرير الفرونت اند 2026-09-18):
+         *         - B-2: ``latitude``/``longitude`` (اختياريان، يجب أن يأتيا معاً) +
+         *           ``location_source`` ("gps" | "map") — تُخزَّن في سجل المتجر عند
+         *           الإنشاء فيظهر مباشرة في ``/facilities?lat&lng`` ورادار المناديب.
+         *         - B-5: ``otp_verified_token`` اختياري — توكن قصير الأجل يعيده
+         *           ``POST /otp/verify``؛ الخادم يتحقق منه ويعلّم الحساب
+         *           ``phone_verified=true`` (أو يرفض عند تفعيل الوضع الصارم).
+         *         - B-6: ``working_hours`` يقبل نصاً حراً (قديم) أو كائناً منظماً
+         *           ``{"days":[...],"open":"08:00","close":"23:00"}`` (يُخزَّن JSON
+         *           مضغوطاً في نفس العمود).
+         *         - B-8: ``phone`` و``phone_facility`` يُطبَّعان مركزياً للصيغة
+         *           المحلية الخالصة (يقبل المسافات/+967/0967/الأرقام الهندية).
          */
         OwnerRegister: {
             /** Full Name */
@@ -2169,6 +6584,11 @@ export interface components {
             password: string;
             /** Password Confirm */
             password_confirm: string;
+            /**
+             * Otp Verified Token
+             * @description توكن توثيق OTP قصير الأجل — يوثّق ملكية الجوال قبل إنشاء الحساب
+             */
+            otp_verified_token?: string | null;
             /** Facility Name */
             facility_name: string;
             facility_type: components["schemas"]["FacilityType"];
@@ -2180,22 +6600,46 @@ export interface components {
             address?: string | null;
             /** Phone Facility */
             phone_facility?: string | null;
-            /** Working Hours */
-            working_hours?: string | null;
+            /**
+             * Working Hours
+             * @description نص حر (قديم) أو كائن {days:[sat..], open:'08:00', close:'23:00'} (B-6 — يُخزَّن JSON منظماً)
+             */
+            working_hours?: string | {
+                [key: string]: unknown;
+            } | null;
             /** Image Url */
             image_url?: string | null;
-            /**
-             * Discount Rate
-             * @description نسبة الخصم التي يختارها المالك عند التسجيل (10-30%)
-             * @default 30
-             */
-            discount_rate: number;
             latitude?: number | null;
             longitude?: number | null;
+            /**
+             * Location Source
+             * @description مصدر الموقع: gps (زر «أنا داخل المتجر») أو map (لصق من الخريطة)
+             */
+            location_source?: string | null;
+            /**
+             * Discount Rate
+             * @description نسبة الخصم الاختيارية التي يحررها المالك (0-20%) — الافتراضي بلا خصم
+             * @default 0
+             */
+            discount_rate: number;
+            /**
+             * Discount Hint
+             * @description تلميح اختياري عن فائدة الخصم يظهر مع المتجر
+             */
+            discount_hint?: string | null;
+            /**
+             * Country Code
+             * @description مفتاح الدولة مع العلم: 967 اليمن أو 966 السعودية
+             */
+            country_code?: string | null;
         };
         /**
          * OwnerRegisterOut
          * @description Owner registration response — no membership, includes facility_id and status.
+         *
+         *     B-5: ``phone_verified`` — هل وثّق الجوال عبر OTP قبل التسجيل (وضع
+         *     التوافق اللطيف: التسجيل بلا توثيق ينجح ويُعلّم false — الإدارة ترى
+         *     الحالة ويمكن تفعيل الوضع الصارم لاحقاً).
          */
         OwnerRegisterOut: {
             /** Detail */
@@ -2211,6 +6655,11 @@ export interface components {
             facility_id: number;
             /** Status */
             status: string;
+            /**
+             * Phone Verified
+             * @default false
+             */
+            phone_verified: boolean;
         };
         /**
          * OwnerStatsOut
@@ -2218,6 +6667,7 @@ export interface components {
          *
          *     تجمع عدّادات (منتجات/طلبات/إيراد), عروض خاصة نشطة, آخر 5 طلبات,
          *     أكثر المنتجات طلباً, وبيانات رسم طلبات آخر 7 أيام.
+         *     الجولة 21: زيارات المتجر, عملاء جدد, متوسط الفاتورة, ROI.
          */
         OwnerStatsOut: {
             /**
@@ -2304,6 +6754,61 @@ export interface components {
             /** @description توصيات تحسين الجاهزية الرقمية. */
             seo_tips: string[];
         };
+        /** OwnerTaskAction */
+        OwnerTaskAction: {
+            /**
+             * Action
+             * @description إلغاء قبل الإسناد | إلغاء بعد الحجز (بقيوده) | إعادة نداء | توصيل ذاتي
+             */
+            action: string;
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * OwnerTaskCardOut
+         * @description بطاقة الطلب عند المالك: الملف العلني الكامل للمندوب (الاسم العلني
+         *     والصورة والشارة والنجوم §3.2.6) + مسافة المندوب رقماً عند النداء لا
+         *     نقطة أبداً (§19.2 — المتجر يرى مسافة، لا إنساناً).
+         */
+        OwnerTaskCardOut: {
+            /** Task Id */
+            task_id: number;
+            /** Order Id */
+            order_id: number;
+            /** Status */
+            status: string;
+            /** Status Ar */
+            status_ar: string;
+            courier?: components["schemas"]["CourierPublicOut"] | null;
+            /** Distance Display */
+            distance_display: string;
+            /** Billed Km */
+            billed_km: number;
+            /** Fee */
+            fee: number;
+            /** Per Km Price */
+            per_km_price: number;
+            /** Breakdown */
+            breakdown: string;
+            /**
+             * Delivery Code
+             * @description الكود للعميل والإدارة — ليس للمالك (مناصفة الأدوار)
+             */
+            delivery_code?: string | null;
+            /** Reserved At */
+            reserved_at: string | null;
+            /** Picked Up At */
+            picked_up_at: string | null;
+            /** Completed At */
+            completed_at: string | null;
+            /** Delivery Duration Minutes */
+            delivery_duration_minutes?: number | null;
+            /**
+             * Owner Actions
+             * @default []
+             */
+            owner_actions: string[];
+        };
         /** PaginatedResponse[AuditLogOut] */
         PaginatedResponse_AuditLogOut_: {
             /** Items */
@@ -2340,7 +6845,7 @@ export interface components {
         /** PaginatedResponse[NotificationOut] */
         PaginatedResponse_NotificationOut_: {
             /** Items */
-            items: components["schemas"]["NotificationOut"][];
+            items: components["schemas"]["app__schemas__response__notification__NotificationOut"][];
             /** Total */
             total: number;
             /** Page */
@@ -2427,6 +6932,145 @@ export interface components {
             /** Pages */
             pages: number;
         };
+        /** PartnerLinkDecision */
+        PartnerLinkDecision: {
+            /** Action */
+            action: string;
+            /** Reason */
+            reason?: string | null;
+        };
+        /** PartnerLinkRequestIn */
+        PartnerLinkRequestIn: {
+            /**
+             * System Name
+             * @description اسم النظام/المزوّد
+             */
+            system_name: string;
+            /** Contact Email */
+            contact_email: string;
+            /**
+             * Link Mode
+             * @default internal_system
+             */
+            link_mode: string;
+        };
+        /** PartnerOfferEndIn */
+        PartnerOfferEndIn: {
+            /** External Id */
+            external_id: string;
+        };
+        /**
+         * PartnerOfferIn
+         * @description نداء نشر عرض خاص — النطاق 10–50% يُطبَّق **في الخدمة** (لا في النمط)
+         *     كي يُقيَّد الرفض بسجل المزامنات برسالة الحد نفسها ويُشعَر المالك
+         *     (سيناريو 16.8-1: «خصم 60% من شريك → صف مزامنة مرفوض بسبب: نطاق»).
+         */
+        PartnerOfferIn: {
+            /** External Id */
+            external_id: string;
+            /** Product External Id */
+            product_external_id: string;
+            /** Title */
+            title: string;
+            /** Offer Discount Rate */
+            offer_discount_rate: number;
+            /** Quantity Limit */
+            quantity_limit?: number | null;
+            /** Starts At */
+            starts_at?: string | null;
+            /** Ends At */
+            ends_at?: string | null;
+        };
+        /**
+         * PartnerProductHideIn
+         * @description نداء إخفاء/نفاد — يُسحب من الظهور فوراً (حماية طلبات المستحيل).
+         */
+        PartnerProductHideIn: {
+            /** External Id */
+            external_id: string;
+            /**
+             * Sold Out
+             * @description True = وسم «نفد» بدلاً من الإخفاء
+             * @default false
+             */
+            sold_out: boolean;
+        };
+        /**
+         * PartnerProductIn
+         * @description نداء نشر/تحديث منتج — باب خدمة المنتجات القائمة نفسها (كل تحقق
+         *     القائم يمر: نطاق/صورة/صياغة — §16.8 المرسى 2).
+         */
+        PartnerProductIn: {
+            /**
+             * External Id
+             * @description معرّف المنتج عند الشريك
+             */
+            external_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Price
+             * @description السعر الرسمي (ريال يمني)
+             */
+            price: number;
+            /** Category */
+            category: string;
+            /**
+             * Image Url
+             * @description رابط صورة من خادم الشريك
+             */
+            image_url?: string | null;
+            /**
+             * Is Available
+             * @default true
+             */
+            is_available: boolean;
+            /**
+             * Available Quantity
+             * @description null = غير محدود
+             */
+            available_quantity?: number | null;
+        };
+        /**
+         * PartnerProductUpdateIn
+         * @description نداء تحديث منتج — الحقول المتغيرة فقط.
+         */
+        PartnerProductUpdateIn: {
+            /** External Id */
+            external_id: string;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Price */
+            price?: number | null;
+            /** Category */
+            category?: string | null;
+            /** Image Url */
+            image_url?: string | null;
+            /** Is Available */
+            is_available?: boolean | null;
+            /** Available Quantity */
+            available_quantity?: number | null;
+        };
+        /**
+         * PartnerSyncResultOut
+         * @description نتيجة نداء شريك (نجاح برسالة عربية أو رفض بسبب + كود HTTP واضح).
+         */
+        PartnerSyncResultOut: {
+            /** Ok */
+            ok: boolean;
+            /** Action */
+            action: string;
+            /** Object Id */
+            object_id?: number | null;
+            /** Message */
+            message: string;
+            /** Reject Reason */
+            reject_reason?: string | null;
+        };
         /**
          * PasswordChangeRequest
          * @description Body for PUT /api/v1/me/password (Round 5).
@@ -2442,6 +7086,138 @@ export interface components {
              * @description كلمة المرور الجديدة (≥8)
              */
             new_password: string;
+        };
+        /** PaymentOut */
+        PaymentOut: {
+            /** Id */
+            id: number;
+            /** Order Id */
+            order_id: number;
+            /** Provider */
+            provider: string;
+            /** Moyasar Payment Id */
+            moyasar_payment_id: string;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /** Status */
+            status: string;
+            /** Source */
+            source: string;
+            /** Live */
+            live: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * PaymentReceiptBriefOut
+         * @description ملخص إيصالة الدفع المدمج داخل الطلب (جولة المحافظ).
+         */
+        PaymentReceiptBriefOut: {
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @description pending | approved | rejected | partial_requested (بانتظار تحويل العميل للمتبقي)
+             */
+            status: string;
+            /** Amount */
+            amount: number;
+            /** Receipt Image Url */
+            receipt_image_url: string;
+            /** Sender Name */
+            sender_name?: string | null;
+            /** Wallet Snapshot */
+            wallet_snapshot?: string | null;
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /** Reviewed At */
+            reviewed_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Paid Amount
+             * @description إجمالي ما أكّد التاجر استلامه (تراكمي)
+             */
+            paid_amount?: number | null;
+            /**
+             * Remaining Amount
+             * @description المتبقي على العميل
+             */
+            remaining_amount?: number | null;
+            /** Remaining Note */
+            remaining_note?: string | null;
+            /** Remaining Requested At */
+            remaining_requested_at?: string | null;
+            /**
+             * Completion Amount
+             * @description مبلغ تحويل المتبقي
+             */
+            completion_amount?: number | null;
+            /**
+             * Completion Image Url
+             * @description صورة إشعار تحويل المتبقي
+             */
+            completion_image_url?: string | null;
+            /** Completion Uploaded At */
+            completion_uploaded_at?: string | null;
+            /**
+             * Is Completion
+             * @description هل رُفع إشعار تكملة الدفعة الناقصة؟
+             * @default false
+             */
+            is_completion: boolean;
+        };
+        /** PayoutExecuteRequest */
+        PayoutExecuteRequest: {
+            /** Order Id */
+            order_id?: number | null;
+            /** Courier Id */
+            courier_id?: number | null;
+            /**
+             * Amount
+             * @description تجاوز يدوي للمبلغ الافتراضي
+             */
+            amount?: number | null;
+            /** Destination Id */
+            destination_id?: number | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
+        };
+        /** PayoutOut */
+        PayoutOut: {
+            /** Id */
+            id: number;
+            /** Courier Id */
+            courier_id: number;
+            /** Order Id */
+            order_id: number | null;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /** Destination Type */
+            destination_type: string;
+            /** Moyasar Payout Id */
+            moyasar_payout_id: string | null;
+            /** Status */
+            status: string;
+            /** Failure Reason */
+            failure_reason: string | null;
+            /** Attempt Count */
+            attempt_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /**
          * PendingFacilityOut
@@ -2480,6 +7256,102 @@ export interface components {
             image_url: string | null;
             latitude: number | null;
             longitude: number | null;
+        };
+        /**
+         * PricingPreviewOut
+         * @description معاينة السعر بعد الخصم (للتاجر أثناء إضافة وجبة/عرض).
+         */
+        PricingPreviewOut: {
+            /**
+             * Base Price
+             * @description السعر الرسمي المدخل
+             */
+            base_price: number;
+            /**
+             * Facility Discount Rate
+             * @description نسبة خصم منشأتك
+             */
+            facility_discount_rate: number;
+            /**
+             * Offer Discount Rate
+             * @description نسبة العرض الخاص (0 = لا عرض)
+             * @default 0
+             */
+            offer_discount_rate: number;
+            /**
+             * Member Price
+             * @description سعر العضو النهائي بعد الخصم (وهو ما يدفعه عميل العضوية)
+             */
+            member_price: number;
+            /**
+             * Non Member Price
+             * @description سعر غير العضو النهائي
+             */
+            non_member_price: number;
+            /**
+             * Member Saving
+             * @description وفر العضو مقارنة بالسعر الرسمي
+             * @default 0
+             */
+            member_saving: number;
+        };
+        /**
+         * PricingPreviewRequest
+         * @description طلب معاينة السعر بعد الخصم (مالك — أثناء إضافة وجبة/عرض).
+         */
+        PricingPreviewRequest: {
+            /**
+             * Price
+             * @description السعر الرسمي للوجبة (ريال يمني)
+             */
+            price: number;
+            /**
+             * Offer Discount Rate
+             * @description نسبة العرض الخاص إن وجدت (0-50) — اتركها فارغة للوجبات العادية
+             */
+            offer_discount_rate?: number | null;
+        };
+        /**
+         * PricingSettingsUpdate
+         * @description م22 — أي حقل من §5.3 (يسري على الجديد فقط — المادة 7).
+         */
+        PricingSettingsUpdate: {
+            /** Price Per Km */
+            price_per_km?: number | null;
+            /** Min Delivery Fee */
+            min_delivery_fee?: number | null;
+            /** Max Delivery Km */
+            max_delivery_km?: number | null;
+            /** Imprecise Address Fee */
+            imprecise_address_fee?: number | null;
+            /** Call Window Seconds */
+            call_window_seconds?: number | null;
+            /** Call Radius Km */
+            call_radius_km?: number | null;
+            /** Wave Courier Cap */
+            wave_courier_cap?: number | null;
+            /** Pulse Grace Seconds */
+            pulse_grace_seconds?: number | null;
+            /** Cancel Compensation Mode */
+            cancel_compensation_mode?: string | null;
+            /** Cancel Compensation Value */
+            cancel_compensation_value?: number | null;
+            /** Dual Tasks Enabled */
+            dual_tasks_enabled?: boolean | null;
+            /** Code Delivery Enabled */
+            code_delivery_enabled?: boolean | null;
+            /** Pulse Min Interval Seconds */
+            pulse_min_interval_seconds?: number | null;
+            /** Couriers Enabled */
+            couriers_enabled?: boolean | null;
+            /** Delivery Tasks Enabled */
+            delivery_tasks_enabled?: boolean | null;
+            /** Live Pricing Enabled */
+            live_pricing_enabled?: boolean | null;
+            /** Partner Gateway Enabled */
+            partner_gateway_enabled?: boolean | null;
+            /** Mandatory Order Location Enabled */
+            mandatory_order_location_enabled?: boolean | null;
         };
         /** ProductAvailabilityUpdate */
         ProductAvailabilityUpdate: {
@@ -2650,6 +7522,90 @@ export interface components {
             distance_km?: number | null;
         };
         /**
+         * ProviderTotalsOut
+         * @description إجماليات لكل محفظة يمنية (لوحة الإدارة).
+         */
+        ProviderTotalsOut: {
+            /** Provider Id */
+            provider_id: number;
+            /** Provider Name */
+            provider_name: string;
+            /**
+             * Orders Count
+             * @default 0
+             */
+            orders_count: number;
+            /**
+             * Approved Amount
+             * @default 0
+             */
+            approved_amount: number;
+        };
+        /** RadarCountOut */
+        RadarCountOut: {
+            /** Available Count */
+            available_count: number;
+            /** Radius Km */
+            radius_km: number;
+            /**
+             * Message
+             * @description «7 مناديب متاحين ضمن 5 كم»
+             * @default
+             */
+            message: string;
+        };
+        /** RatingCreateIn */
+        RatingCreateIn: {
+            /**
+             * Stars
+             * @description عدد النجوم 1-5
+             */
+            stars: number;
+            /**
+             * Comment
+             * @description تعليق اختياري
+             */
+            comment?: string | null;
+            /**
+             * Product Id
+             * @description معرّف المنتج (أو facility_id)
+             */
+            product_id?: number | null;
+            /**
+             * Facility Id
+             * @description معرّف المتجر (أو product_id)
+             */
+            facility_id?: number | null;
+        };
+        /** RatingOut */
+        RatingOut: {
+            /** Id */
+            id: number;
+            /** User Id */
+            user_id: number;
+            /** User Name */
+            user_name: string;
+            /** Stars */
+            stars: number;
+            /** Comment */
+            comment: string | null;
+            /** Created At */
+            created_at: string | null;
+        };
+        /** RatingsListOut */
+        RatingsListOut: {
+            /** Items */
+            items: components["schemas"]["RatingOut"][];
+            /** Total */
+            total: number;
+            /** Average */
+            average: number;
+            /** Page */
+            page: number;
+            /** Pages */
+            pages: number;
+        };
+        /**
          * RefreshRequest
          * @description Body for POST /api/v1/auth/refresh (Round 5).
          */
@@ -2720,6 +7676,26 @@ export interface components {
             user_id: number;
         };
         /**
+         * RequestRemainingPayment
+         * @description زر «طلب الدفعة الناقصة» — التاجر وجد التحويل أقل من المطلوب.
+         *
+         *     ``paid_amount`` هو المبلغ الذي **استلمه التاجر فعلياً** (تراكمي إن
+         *     تكرر الطلب) — المتبقي يحسبه الخادم (= إجمالي الطلب - المستلم) ويُشعَر
+         *     العميل به فوراً (داخل التطبيق + FCM).
+         */
+        RequestRemainingPayment: {
+            /**
+             * Paid Amount
+             * @description المبلغ المستلم فعلياً من العميل حتى الآن (ريال يمني — تراكمي)
+             */
+            paid_amount: number;
+            /**
+             * Note
+             * @description ملاحظة اختيارية للعميل (مثال: استلمنا 3000 فقط من 5000)
+             */
+            note?: string | null;
+        };
+        /**
          * ResetPasswordRequest
          * @description Body for PUT /api/v1/auth/reset-password.
          */
@@ -2743,11 +7719,108 @@ export interface components {
              */
             role: string;
         };
+        /** SavingsSummaryOut */
+        SavingsSummaryOut: {
+            /**
+             * Total Savings
+             * @description إجمالي ما وفّره المستخدم بفضل العضوية (ر.ي)
+             */
+            total_savings: number;
+            /**
+             * Month Savings
+             * @description التوفير هذا الشهر
+             */
+            month_savings: number;
+            /**
+             * Year Savings
+             * @description التوفير هذه السنة
+             */
+            year_savings: number;
+            /**
+             * Membership Amount
+             * @description قيمة العضوية المدفوعة (0 للمجانية)
+             */
+            membership_amount: number;
+            /**
+             * Is Free Membership
+             * @description عضوية مجانية أم مدفوعة
+             */
+            is_free_membership: boolean;
+            /**
+             * Net Savings
+             * @description صافي التوفير بعد خصم قيمة العضوية
+             */
+            net_savings: number;
+            /**
+             * Roi Percent
+             * @description عائد الاستثمار % (صافي التوفير / قيمة العضوية)
+             */
+            roi_percent: number;
+            /**
+             * Orders With Discount
+             * @description عدد الطلبات التي طُبّق فيها الخصم
+             */
+            orders_with_discount: number;
+            /**
+             * Currency
+             * @default ر.ي
+             */
+            currency: string;
+        };
+        /** SiteCreate */
+        SiteCreate: {
+            /**
+             * Facility Id
+             * @description المنشأة المستهدفة
+             */
+            facility_id: number;
+            /**
+             * Slug
+             * @description المعرّف الفرعي (مثل bake)
+             */
+            slug: string;
+            /**
+             * Custom Domain
+             * @description دومين التاجر الخاص (اختياري)
+             */
+            custom_domain?: string | null;
+            /** Site Title */
+            site_title?: string | null;
+            /** Seo Description */
+            seo_description?: string | null;
+        };
+        /** SiteStatus */
+        SiteStatus: {
+            /**
+             * Status
+             * @description draft | active | suspended
+             */
+            status: string;
+        };
+        /** SiteUpdate */
+        SiteUpdate: {
+            /** Slug */
+            slug?: string | null;
+            /**
+             * Custom Domain
+             * @description مرّر نصاً فارغاً لإزالة الدومين المخصص
+             */
+            custom_domain?: string | null;
+            /** Site Title */
+            site_title?: string | null;
+            /** Seo Description */
+            seo_description?: string | null;
+            /** Enabled Features */
+            enabled_features?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /**
          * SpecialOfferCreate
          * @description طلب إنشاء عرض خاص (مالك).
          *
-         *     ``offer_discount_rate`` يجب أن يكون بين 10 و 50. ``quantity_limit``
+         *     ``offer_discount_rate`` يجب أن يكون بين 5 و 50 (جولة المحافظ: خُفّض
+         *     الحد الأدنى من 10 إلى 5). ``quantity_limit``
          *     اختياري (null = غير محدود). ``ends_at`` اختياري (null = دائم).
          */
         SpecialOfferCreate: {
@@ -2763,7 +7836,7 @@ export interface components {
             title: string;
             /**
              * Offer Discount Rate
-             * @description نسبة خصم العرض الخاص (10-50%)
+             * @description نسبة خصم العرض الخاص (5-50%)
              */
             offer_discount_rate: number;
             /**
@@ -2938,6 +8011,17 @@ export interface components {
             /** Category */
             category?: string | null;
         };
+        /** TaskItemLine */
+        TaskItemLine: {
+            /** Product Name */
+            product_name: string | null;
+            /** Quantity */
+            quantity: number;
+            /** Unit Price */
+            unit_price: number;
+            /** Subtotal */
+            subtotal: number;
+        };
         /**
          * TokenOut
          * @description Login envelope. ``refresh_token`` (Round 5) is issued with every
@@ -2957,6 +8041,23 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** TokenPairOut */
+        TokenPairOut: {
+            /** Access Token */
+            access_token: string;
+            /** Refresh Token */
+            refresh_token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+            /**
+             * Role
+             * @default courier
+             */
+            role: string;
         };
         /**
          * TopProductOut
@@ -3082,12 +8183,17 @@ export interface components {
             password_confirm: string;
             /** Region Id */
             region_id?: number | null;
+            /**
+             * Otp Verified Token
+             * @description توكن توثيق OTP قصير الأجل — يوثّق ملكية الجوال قبل إنشاء الحساب
+             */
+            otp_verified_token?: string | null;
         };
         /**
          * UserRole
          * @enum {string}
          */
-        UserRole: "admin" | "owner" | "customer";
+        UserRole: "admin" | "owner" | "customer" | "courier";
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -3101,6 +8207,190 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** ViewIn */
+        ViewIn: {
+            /** User Id */
+            user_id?: number | null;
+        };
+        /** ViewOut */
+        ViewOut: {
+            /**
+             * Detail
+             * @default تم تسجيل الزيارة
+             */
+            detail: string;
+        };
+        /** WalletPaymentsFlagIn */
+        WalletPaymentsFlagIn: {
+            /**
+             * Wallet Payments Enabled
+             * @description تفعيل/تعطيل الدفع عبر المحافظ
+             */
+            wallet_payments_enabled: boolean;
+        };
+        /** WalletPaymentsFlagOut */
+        WalletPaymentsFlagOut: {
+            /**
+             * Wallet Payments Enabled
+             * @description الدفع عبر المحافظ مفعّل أم لا
+             */
+            wallet_payments_enabled: boolean;
+            /** Updated By */
+            updated_by?: number | null;
+        };
+        /**
+         * WalletPaymentsPage
+         * @description قائمة مدفوعات منشأة + الإجماليات (شاشة واحدة جاهزة).
+         */
+        WalletPaymentsPage: {
+            summary: components["schemas"]["WalletPaymentsSummary"];
+            /**
+             * Items
+             * @description سجلات المدفوعات (طلب + إيصالة)
+             */
+            items?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+            /**
+             * Page
+             * @default 1
+             */
+            page: number;
+            /**
+             * Pages
+             * @default 1
+             */
+            pages: number;
+        };
+        /**
+         * WalletPaymentsSummary
+         * @description إجماليات مدفوعات منشأة (شاشة «مدفوعات المطعم»).
+         */
+        WalletPaymentsSummary: {
+            /**
+             * Wallet Orders Count
+             * @description إجمالي طلبات المحافظ
+             * @default 0
+             */
+            wallet_orders_count: number;
+            /**
+             * Approved Count
+             * @default 0
+             */
+            approved_count: number;
+            /**
+             * Pending Count
+             * @default 0
+             */
+            pending_count: number;
+            /**
+             * Rejected Count
+             * @default 0
+             */
+            rejected_count: number;
+            /**
+             * Approved Amount
+             * @description مجموع المبالغ المؤكدة (وجبة+توصيل)
+             * @default 0
+             */
+            approved_amount: number;
+            /**
+             * Pending Amount
+             * @default 0
+             */
+            pending_amount: number;
+            /**
+             * Delivered Amount
+             * @description مجموع طلبات المحافظ الموصَّلة (المبلغ الذي اشتغل به التاجر فعلياً)
+             * @default 0
+             */
+            delivered_amount: number;
+            /**
+             * Cash Orders Count
+             * @description طلبات الدفع عند الاستلام (للمقارنة)
+             * @default 0
+             */
+            cash_orders_count: number;
+            /**
+             * Total Orders Count
+             * @default 0
+             */
+            total_orders_count: number;
+            /**
+             * Partial Requested Count
+             * @description طلبات بانتظار تكملة الدفعة الناقصة (العميل لم يحوّل المتبقي بعد)
+             * @default 0
+             */
+            partial_requested_count: number;
+            /**
+             * Partial Requested Amount
+             * @description إجمالي المبالغ المتبقية على العملاء (مطلوب تحويلها)
+             * @default 0
+             */
+            partial_requested_amount: number;
+            /**
+             * Completed Partial Count
+             * @description طلبات اكتملت دفعتها الناقصة (رُفع إشعار التكملة)
+             * @default 0
+             */
+            completed_partial_count: number;
+        };
+        /**
+         * WalletProviderCreate
+         * @description إنشاء محفظة يمنية جديدة (مشرف).
+         */
+        WalletProviderCreate: {
+            /**
+             * Name
+             * @description اسم المحفظة (مثل: جوالي)
+             */
+            name: string;
+            /**
+             * Code
+             * @description رمز لاتيني اختياري (jawali)
+             */
+            code?: string | null;
+            /**
+             * Display Order
+             * @default 0
+             */
+            display_order: number;
+        };
+        /**
+         * WalletProviderOut
+         * @description محفظة يمنية من الدليل (للجميع — قوائم الاختيار).
+         */
+        WalletProviderOut: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Code */
+            code?: string | null;
+            /** Is Active */
+            is_active: boolean;
+            /** Display Order */
+            display_order: number;
+        };
+        /**
+         * WalletProviderUpdate
+         * @description تعديل محفظة قائمة (مشرف) — تعطيل بدل الحذف عند وجود استخدام.
+         */
+        WalletProviderUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Code */
+            code?: string | null;
+            /** Is Active */
+            is_active?: boolean | null;
+            /** Display Order */
+            display_order?: number | null;
+        };
         /** RejectBody */
         app__api__v1__endpoints__admin__approval__RejectBody: {
             /**
@@ -3113,6 +8403,83 @@ export interface components {
         app__api__v1__endpoints__admin__membership_requests__RejectBody: {
             /** Reason */
             reason?: string | null;
+        };
+        /** NotificationOut */
+        app__schemas__request__finance__NotificationOut: {
+            /** Id */
+            id: number;
+            /** Owner Id */
+            owner_id: number;
+            /** Amount */
+            amount: number;
+            /** Currency */
+            currency: string;
+            /** Bank Name */
+            bank_name: string | null;
+            /** Reference No */
+            reference_no: string | null;
+            /** Transfer Date */
+            transfer_date: string | null;
+            /** Image Url */
+            image_url: string | null;
+            /** Status */
+            status: string;
+            /** Review Note */
+            review_note: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
+        /**
+         * NotificationOut
+         * @description إشعار — استجابة قائمة/تفاصيل.
+         */
+        app__schemas__response__notification__NotificationOut: {
+            /**
+             * Id
+             * @description معرّف الإشعار
+             */
+            id: number;
+            /**
+             * User Id
+             * @description معرّف المستلم
+             */
+            user_id: number;
+            /**
+             * Title
+             * @description عنوان الإشعار
+             */
+            title: string;
+            /**
+             * Body
+             * @description نص الإشعار
+             */
+            body: string;
+            /**
+             * Notification Type
+             * @description النوع: order_new | order_confirmed | order_preparing | order_out_for_delivery | order_delivered | order_cancelled | membership_new_request | membership_received | membership_approved | membership_rejected | membership_expiring | facility_approved | facility_rejected | owner_registered | special_offer_new | special_offer_ending | special_offer_soldout
+             */
+            notification_type: string;
+            /**
+             * Data
+             * @description بيانات إضافية (JSON: order_id, facility_name...)
+             */
+            data?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Is Read
+             * @description مقروء؟
+             * @default false
+             */
+            is_read: boolean;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
     };
     responses: never;
@@ -3184,6 +8551,8 @@ export interface operations {
                 lat?: number | null;
                 /** @description خط الطول للترتيب بالأقرب */
                 lng?: number | null;
+                /** @description B-6: فلترة المتاجر المفتوحة الآن (يعمل بدقة مع ساعات العمل المنظمة؛ النص الحر يبقى تقديرياً) */
+                open_now?: boolean | null;
             };
             header?: never;
             path?: never;
@@ -3267,6 +8636,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": string[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    record_facility_view_api_v1_facilities__facility_id__view_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ViewIn"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewOut"];
                 };
             };
             /** @description Validation Error */
@@ -3584,6 +8988,177 @@ export interface operations {
             };
         };
     };
+    membership_subscribe_free_api_v1_membership_subscribe_free_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FreeMembershipSubscribeOut"];
+                };
+            };
+        };
+    };
+    get_savings_summary_api_v1_savings_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavingsSummaryOut"];
+                };
+            };
+        };
+    };
+    create_or_update_rating_api_v1_ratings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RatingCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_ratings_api_v1_ratings__target_type___target_id__get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                target_type: string;
+                target_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RatingsListOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_aggregate_api_v1_ratings__target_type___target_id__aggregate_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_type: string;
+                target_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AggregateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_rating_endpoint_api_v1_ratings__rating_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                rating_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeleteOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_products_api_v1_products_get: {
         parameters: {
             query?: {
@@ -3770,6 +9345,40 @@ export interface operations {
             };
         };
     };
+    estimate_delivery_fee_api_v1_orders_delivery_estimate_get: {
+        parameters: {
+            query: {
+                facility_id: number;
+                /** @description نقطة العميل (المسمار) */
+                lat?: number | null;
+                lng?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_my_orders_api_v1_orders_get: {
         parameters: {
             query?: {
@@ -3839,6 +9448,72 @@ export interface operations {
             };
         };
     };
+    get_order_payment_api_v1_orders__order_id__payment_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pay_order_with_wallet_api_v1_orders__order_id__pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_pay_order_with_wallet_api_v1_orders__order_id__pay_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_order_api_v1_orders__order_id__get: {
         parameters: {
             query?: never;
@@ -3857,6 +9532,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    track_my_order_api_v1_orders__order_id__tracking_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -4007,7 +9713,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotificationOut"];
+                    "application/json": components["schemas"]["app__schemas__response__notification__NotificationOut"];
                 };
             };
             /** @description Validation Error */
@@ -4107,6 +9813,191 @@ export interface operations {
             };
         };
     };
+    toggle_favorite_endpoint_api_v1_favorites__facility_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteToggleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_favorites_endpoint_api_v1_favorites_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesListOut"];
+                };
+            };
+        };
+    };
+    set_notify_offers_endpoint_api_v1_favorites__facility_id__notify_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotifyToggleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotifyToggleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_otp_endpoint_api_v1_otp_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtpRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_otp_endpoint_api_v1_otp_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpVerifyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtpVerifyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resend_otp_endpoint_api_v1_otp_resend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpResendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtpRequestOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     upload_image_api_v1_uploads_post: {
         parameters: {
             query?: never;
@@ -4127,6 +10018,847 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_public_image_api_v1_uploads_public_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_public_image_api_v1_uploads_public_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_wallet_providers_api_v1_wallets_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletProviderOut"][];
+                };
+            };
+        };
+    };
+    list_facility_public_wallets_api_v1_facilities__facility_id__wallets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityWalletOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    moyasar_webhook_api_v1_payments_moyasar_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    pay_order_api_v1_finance_orders__order_id__pay_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrderPayRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    payments_config_api_v1_finance_payments_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    verify_embedded_payment_api_v1_finance_orders__order_id__pay_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmbeddedPayVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_payments_api_v1_finance_orders__order_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_payment_api_v1_finance_payments__payment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    execute_payout_api_v1_finance_payouts_execute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayoutExecuteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_payouts_api_v1_finance_payouts_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    poll_payouts_api_v1_finance_payouts_poll_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    add_destination_api_v1_finance_courier_destination_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DestinationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestinationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_destinations_api_v1_finance_courier_destinations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DestinationOut"][];
+                };
+            };
+        };
+    };
+    my_payouts_api_v1_finance_courier_my_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PayoutOut"][];
+                };
+            };
+        };
+    };
+    my_balance_api_v1_finance_courier_my_balance_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    ledger_entries_api_v1_finance_entries_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                per_page?: number;
+                entry_type?: string | null;
+                party_type?: string | null;
+                party_id?: number | null;
+                currency?: string | null;
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_csv_api_v1_finance_export_csv_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    owner_overview_api_v1_finance_owner_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    owner_card_api_v1_finance_owner_card_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    admin_owner_card_api_v1_finance_admin_owner__owner_id__card_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                owner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_notifications_api_v1_finance_yemen_notifications_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__request__finance__NotificationOut"][];
+                };
+            };
+        };
+    };
+    submit_notification_api_v1_finance_yemen_notifications_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__request__finance__NotificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    all_notifications_api_v1_finance_admin_yemen_notifications_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__request__finance__NotificationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_notification_api_v1_finance_admin_yemen_notifications__notification_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__request__finance__NotificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_notification_api_v1_finance_admin_yemen_notifications__notification_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__schemas__request__finance__NotificationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_settings_api_v1_finance_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    update_setting_api_v1_finance_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinanceSettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    countries_api_v1_locale_countries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocaleCountriesResponse"];
+                };
+            };
+        };
+    };
+    my_locale_api_v1_locale_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    set_locale_api_v1_locale_me_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocaleSetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -4174,6 +10906,26 @@ export interface operations {
         };
     };
     admin_dashboard_api_v1_admin_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    admin_kpis_api_v1_admin_kpis_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4976,6 +11728,343 @@ export interface operations {
             };
         };
     };
+    get_free_membership_flag_endpoint_api_v1_admin_settings_free_membership_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FreeMembershipFlagOut"];
+                };
+            };
+        };
+    };
+    set_free_membership_flag_endpoint_api_v1_admin_settings_free_membership_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FreeMembershipFlagIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FreeMembershipFlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_wallet_payments_flag_endpoint_api_v1_admin_settings_wallet_payments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletPaymentsFlagOut"];
+                };
+            };
+        };
+    };
+    set_wallet_payments_flag_endpoint_api_v1_admin_settings_wallet_payments_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletPaymentsFlagIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletPaymentsFlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    system_overview_api_v1_admin_system_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    system_replicas_api_v1_admin_system_replicas_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    system_shards_api_v1_admin_system_shards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    system_errors_api_v1_admin_system_errors_get: {
+        parameters: {
+            query?: {
+                /** @description عدد الأخطاء الأخيرة */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_all_providers_api_v1_admin_wallet_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletProviderOut"][];
+                };
+            };
+        };
+    };
+    create_provider_api_v1_admin_wallet_providers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletProviderCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletProviderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_provider_api_v1_admin_wallet_providers__provider_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_provider_api_v1_admin_wallet_providers__provider_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletProviderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletProviderOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    wallets_overview_api_v1_admin_wallets_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminWalletOverview"];
+                };
+            };
+        };
+    };
     owner_register_endpoint_api_v1_owner_register_post: {
         parameters: {
             query?: never;
@@ -5336,6 +12425,41 @@ export interface operations {
             };
         };
     };
+    pricing_preview_api_v1_owner__facility_id__pricing_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PricingPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PricingPreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     import_products_api_v1_owner__facility_id__products_import_post: {
         parameters: {
             query?: never;
@@ -5573,7 +12697,2883 @@ export interface operations {
             };
         };
     };
+    register_courier_api_v1_courier_auth_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierRegister"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierRegisterOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    login_courier_api_v1_courier_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierLogin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPairOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_profile_api_v1_courier_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierMeOut"];
+                };
+            };
+        };
+    };
+    update_my_public_profile_api_v1_courier_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierPublicUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierMeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_documents_recheck_api_v1_courier_me_documents_recheck_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_pulse_api_v1_courier_pulse_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierPulseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    toggle_availability_api_v1_courier_availability_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierAvailabilityToggle"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_open_calls_api_v1_courier_calls_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierCallCardOut"][];
+                };
+            };
+        };
+    };
+    accept_task_api_v1_courier_tasks_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CourierAcceptTask"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_current_task_api_v1_courier_tasks_current_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierTaskOut"];
+                };
+            };
+        };
+    };
+    get_task_detail_api_v1_courier_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierTaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    progress_my_task_api_v1_courier_tasks__task_id__progress_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierTaskProgress"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierTaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_tasks_api_v1_courier_tasks_get: {
+        parameters: {
+            query?: {
+                period?: string;
+                status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_stats_api_v1_courier_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    upload_courier_document_api_v1_courier_documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_courier_document_api_v1_courier_documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierDocUploadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_courier_document_api_v1_admin_couriers_documents__filename__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                filename: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    facility_courier_radar_api_v1_owner_facilities__facility_id__courier_radar_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarCountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_courier_api_v1_owner_orders__order_id__request_courier_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerTaskCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_owner_task_card_api_v1_owner_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerTaskCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_handover_api_v1_owner_tasks__task_id__handover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerHandoverConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerTaskCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_problem_api_v1_owner_tasks__task_id__problem_decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryProblemDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerTaskCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    owner_task_action_api_v1_owner_tasks__task_id__action_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OwnerTaskAction"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerTaskCardOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_courier_rating_api_v1_owner_courier_ratings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierRatingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierRatingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delivery_estimate_api_v1_owner_delivery_estimate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliveryEstimateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryEstimateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_courier_public_profile_api_v1_owner_couriers__courier_id__public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_facility_wallets_api_v1_owner_facilities__facility_id__wallets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityWalletOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityWalletCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityWalletOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets__wallet_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+                wallet_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_my_facility_wallet_api_v1_owner_facilities__facility_id__wallets__wallet_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+                wallet_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FacilityWalletUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FacilityWalletOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_my_facility_payments_api_v1_owner_facilities__facility_id__payments_get: {
+        parameters: {
+            query?: {
+                /** @description فلترة: pending | approved | rejected */
+                payment_status?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletPaymentsPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_courier_wallets_for_owner_api_v1_owner_couriers__courier_id__wallets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierWalletOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_remaining_payment_api_v1_owner_orders__order_id__payment_request_remaining_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                order_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRemainingPayment"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_verification_requests_api_v1_admin_couriers_verification_requests_get: {
+        parameters: {
+            query?: {
+                /** @description pending | awaiting_completion | verified | rejected | suspended */
+                status?: string | null;
+                search?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_verification_decision_api_v1_admin_couriers__courier_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierVerifyDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_suspend_decision_api_v1_admin_couriers__courier_id__suspend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierSuspendDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delivery_monitor_api_v1_admin_couriers_monitor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_my_wallets_api_v1_courier_wallets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierWalletOut"][];
+                };
+            };
+        };
+    };
+    create_my_wallet_api_v1_courier_wallets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierWalletCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierWalletOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_my_wallet_api_v1_courier_wallets__wallet_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wallet_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_my_wallet_api_v1_courier_wallets__wallet_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                wallet_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourierWalletUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourierWalletOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pricing_settings_api_v1_admin_pricing_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    update_pricing_settings_api_v1_admin_pricing_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PricingSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_product_api_v1_partner_products_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSyncResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_product_api_v1_partner_products_patch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSyncResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hide_product_api_v1_partner_products_hide_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerProductHideIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSyncResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_offer_api_v1_partner_offers_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerOfferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSyncResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_offer_api_v1_partner_offers_end_post: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerOfferEndIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PartnerSyncResultOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_link_api_v1_partner_verify_get: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_sync_logs_api_v1_partner_sync_logs_get: {
+        parameters: {
+            query?: {
+                result?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_health_api_v1_partner_health_get: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description مفتاح الشريك الموقَّع */
+                "X-Partner-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    request_partner_link_api_v1_partner_facilities__facility_id__link_request_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLinkRequestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    partner_link_status_api_v1_partner_facilities__facility_id__link_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                facility_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_partner_requests_api_v1_admin_partners_requests_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_partner_link_api_v1_admin_partners__partner_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerLinkDecision"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    partner_health_admin_api_v1_admin_partners__partner_id__health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    partner_sync_logs_admin_api_v1_admin_partners__partner_id__sync_logs_get: {
+        parameters: {
+            query?: {
+                result?: string | null;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    partners_guide_api_v1_partners_guide_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    get_my_brand_api_v1_owner_brand_get: {
+        parameters: {
+            query?: {
+                facility_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_my_brand_api_v1_owner_brand_put: {
+        parameters: {
+            query?: {
+                facility_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrandUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_my_brand_asset_api_v1_owner_brand_assets_post: {
+        parameters: {
+            query: {
+                kind: string;
+                facility_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_my_brand_asset_api_v1_owner_brand_assets_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_my_brand_asset_api_v1_owner_brand_assets__asset_id__delete: {
+        parameters: {
+            query?: {
+                facility_id?: number | null;
+            };
+            header?: never;
+            path: {
+                asset_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_brandable_facilities_api_v1_owner_brand_facilities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    resolve_host_api_v1_tenant_resolve_get: {
+        parameters: {
+            query: {
+                /** @description النطاق الزائر (مثل bake.tawfir.giize.com) */
+                host: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    site_config_api_v1_tenant__slug__config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    site_facility_api_v1_tenant__slug__catalog_facility_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    site_products_api_v1_tenant__slug__catalog_products_get: {
+        parameters: {
+            query?: {
+                /** @description فلترة حسب التصنيف */
+                category?: string | null;
+                /** @description بحث داخل منتجات المتجر */
+                search?: string | null;
+                only_available?: boolean;
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    site_offers_api_v1_tenant__slug__catalog_offers_get: {
+        parameters: {
+            query?: {
+                page?: number;
+                page_size?: number;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sites_api_v1_admin_tenant_sites_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_site_api_v1_admin_tenant_sites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_site_api_v1_admin_tenant_sites__site_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_status_api_v1_admin_tenant_sites__site_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteStatus"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    domain_check_api_v1_admin_tenant_sites__site_id__domain_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                site_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_tenant_site_api_v1_owner_tenant_site_get: {
+        parameters: {
+            query?: {
+                facility_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    console_login_api_v1_console_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsoleLogin"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    console_me_api_v1_console_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    brands_readiness_api_v1_console_brands_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_apps_api_v1_console_apps_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    issue_app_api_v1_console_apps_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AppIssue"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_app_api_v1_console_apps__build_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    keystore_details_api_v1_console_apps__build_id__keystore_get: {
+        parameters: {
+            query?: {
+                confirm?: boolean;
+            };
+            header?: never;
+            path: {
+                build_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_keystore_api_v1_console_apps__build_id__keystore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_keystore_api_v1_console_apps__build_id__keystore_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    launch_build_api_v1_console_apps__build_id__build_jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildJobLaunch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_build_jobs_api_v1_console_build_jobs_get: {
+        parameters: {
+            query?: {
+                build_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    build_result_api_v1_console_build_jobs__job_id__result_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildResult"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_bundle_api_v1_console_apps__build_id__bundle_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                build_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_registry_api_v1_console_registry_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    list_my_couriers_api_v1_owner_couriers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    create_my_courier_api_v1_owner_couriers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MerchantCourierCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_my_courier_api_v1_owner_couriers__courier_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courier_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MerchantCourierUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    direct_assign_my_courier_api_v1_owner_tasks__task_id__assign_courier_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DirectAssign"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    health_live_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    health_ready_health_ready_get: {
         parameters: {
             query?: never;
             header?: never;

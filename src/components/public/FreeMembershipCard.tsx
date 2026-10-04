@@ -122,7 +122,7 @@ export function FreeMembershipCard() {
           </h2>
           <p className="max-w-md text-sm text-muted-foreground">
             {result.detail ||
-              "احصل على خصم 30% في كل المتاجر المشتركة — بلا رسوم."}
+              "احصل على خصومات حصرية في كل المتاجر المشتركة — بلا رسوم."}
           </p>
         </div>
 
@@ -149,7 +149,7 @@ export function FreeMembershipCard() {
                 className="rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-soft"
                 style={{ background: "var(--logo-gold)" }}
               >
-                خصم 30%
+                خصومات حصرية
               </span>
             </div>
             <div className="space-y-1.5 text-left">
@@ -258,7 +258,7 @@ export function FreeMembershipCard() {
               style={{ background: "var(--logo-gold)" }}
             >
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              خصم 30% في كل المتاجر
+              خصومات حصرية في كل المتاجر
             </span>
             <span
               className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-soft"
@@ -296,7 +296,7 @@ export function FreeMembershipCard() {
           <ul className="space-y-3 text-sm">
             {[
               "بطاقة عضوية رقمية بنفس صيغة العضوية المدفوعة (16 خانة)",
-              "خصم 30% على كل طلباتك من المتاجر المشتركة في توفير",
+              "خصومات حصرية على كل طلباتك من المتاجر المشتركة في توفير",
               "عروض حصرية ومزايا مميزة لمدة سنة كاملة",
               "لا حاجة لتحويل بنكي ولا رفع إيصال — كلها فورية",
             ].map((benefit, i) => (

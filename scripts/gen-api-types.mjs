@@ -129,6 +129,13 @@ const ALIASES = [
   ["Region", "RegionOut"],
   ["RejectBody", "app__api__v1__endpoints__admin__membership_requests__RejectBody"],
   ["AdminLoginResponse", "TokenOut"],
+  /* جولة التوسعة المالية — السكمة الحية (199/196) أزادت أسماء مركّبة،
+     والكود التاريخي يستعمل الأسماء القصيرة: تُثبَّت هنا كأسماء تاريخية
+     كي يبقى المصدر وحيداً (api.openapi.ts) بلا أنواع يدوية مكررة. */
+  ["NotificationOut", "app__schemas__response__notification__NotificationOut"],
+  ["AuditLog", "AuditLogOut"],
+  ["User", "UserOut"],
+  ["UserDetail", "UserDetailOut"],
 ];
 
 const reexports = [];

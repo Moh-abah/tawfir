@@ -42,7 +42,7 @@ export async function generateMetadata({
     title: `${product.name} | توفير`,
     description:
       product.description ??
-      `${product.name} — اطلب من منصة توفير واستفد من خصم حتى 30% إن كنت عضواً`,
+      `${product.name} — اطلب من منصة توفير واستفد من خصومات حصرية إن كنت عضواً`,
     alternates: {
       canonical: `/products/${id}`,
     },
@@ -50,7 +50,7 @@ export async function generateMetadata({
       title: `${product.name} | توفير`,
       description:
         product.description ??
-        `${product.name} — اطلب من منصة توفير واستفد من خصم حتى 30% إن كنت عضواً`,
+        `${product.name} — اطلب من منصة توفير واستفد من خصومات حصرية إن كنت عضواً`,
       type: "website",
     },
   };
@@ -72,7 +72,7 @@ export default async function ProductDetailPage({
         name: product.name,
         description:
           product.description ??
-          `${product.name} — من منصة توفير مع خصم حتى 30% للأعضاء`,
+          `${product.name} — من منصة توفير مع خصومات حصرية للأعضاء`,
         brand: { "@type": "Brand", name: "توفير" },
         offers: {
           "@type": "Offer",

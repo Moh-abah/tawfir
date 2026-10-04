@@ -1,6 +1,7 @@
 import {
   UtensilsCrossed,
   Coffee,
+  Soup,
   Building2,
   Users,
   Package,
@@ -16,18 +17,21 @@ import type {
 
 export const TYPE_LABEL: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "كافتيريا",
+  cafe: "مقهى",
+  cafeteria: "كافتيريا",
 };
 
 export const TYPE_ICON: Record<FacilityType, typeof UtensilsCrossed> = {
   restaurant: UtensilsCrossed,
   cafe: Coffee,
+  cafeteria: Soup,
 };
 
 export const FILTER_CHIPS = [
   { key: "all", label: "الكل" },
   { key: "restaurant", label: "مطاعم" },
-  { key: "cafe", label: "كافتيريات" },
+  { key: "cafe", label: "مقاهي" },
+  { key: "cafeteria", label: "كافتيريات" },
 ] as const;
 
 export type FilterKey = (typeof FILTER_CHIPS)[number]["key"];
@@ -35,6 +39,8 @@ export type FilterKey = (typeof FILTER_CHIPS)[number]["key"];
 export const SCHEMA_ORG_TYPE: Record<FacilityType, string> = {
   restaurant: "Restaurant",
   cafe: "CafeOrCoffeeShop",
+  /* schema.org لا يملك نوع Cafeteria مستقلاً — الأقرب مطعم */
+  cafeteria: "Restaurant",
 };
 
 export const NOTIFICATION_ICONS = {

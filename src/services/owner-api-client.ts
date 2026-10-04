@@ -1,4 +1,5 @@
 import { useOwnerAuthStore } from "@/store/ownerAuth.store";
+import { extractArabicDetail } from "@/lib/api-error-msg";
 import { attemptRefresh } from "@/services/token-refresh";
 import { toast } from "@/hooks/use-toast";
 
@@ -136,17 +137,13 @@ async function fetchWithOwnerAuth<T>(
 
   if (!response.ok) {
     if (response.status === 422 && data && typeof data === "object" && "detail" in data) {
-      const detail = (data as Record<string, unknown>).detail;
-      if (Array.isArray(detail)) {
-        const msgs = detail
-          .filter((d): d is Record<string, string> => typeof d === "object" && d !== null && "msg" in d)
-          .map((d) => d.msg)
-          .join("، ");
-        throw new OwnerApiError(msgs || "بيانات غير صالحة", 422, data);
-      }
-      if (typeof detail === "string") {
-        throw new OwnerApiError(detail, 422, data);
-      }
+      /* detail قد يصل نصاً أو مصفوفة أو كائناً مركّباً (message/errors) —
+         المستخرج الموحّد يعيد النص العربي الجاهز للعرض دائماً */
+      throw new OwnerApiError(
+        extractArabicDetail((data as Record<string, unknown>).detail, "بيانات غير صالحة"),
+        422,
+        data
+      );
     }
     const message =
       (data && typeof data === "object" && "detail" in data

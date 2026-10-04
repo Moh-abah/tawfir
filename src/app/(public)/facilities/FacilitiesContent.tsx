@@ -16,7 +16,6 @@ import { useFacilities } from "@/hooks/useFacilities";
 import { useRegionStore } from "@/store/region.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import { resolveImageUrl } from "@/lib/format";
 import { useDebounce } from "@/hooks/useDebounce";
 import type { FacilityType, Facility } from "@/types/api.generated";
@@ -40,6 +39,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 const TYPE_BADGE_CLASS: Record<FacilityType, string> = {
   restaurant: "bg-secondary/15 text-secondary border-secondary/20",
   cafe: "bg-accent/15 text-accent-ink border-accent/20",
+  cafeteria: "bg-cat-facility-soft text-cat-facility border-cat-facility/20",
 };
 
 /* ------------------------------------------------------------------ */
@@ -76,7 +76,7 @@ function FacilityCard({
             />
           )}
           <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5">
-            <DiscountBadge percentage={facility.discount_rate ?? DISCOUNT_RATE} />
+            <DiscountBadge percentage={facility.discount_rate ?? 0} />
             {typeof productCount === "number" && productCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card/90 backdrop-blur-sm border border-border/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <Package className="h-3 w-3" />

@@ -71,6 +71,14 @@ import { useCancelOrder } from "@/hooks/useCancelOrder";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+/* جولة المالية v2 — السوق والدفعات الإلكترونية (طبقة الأساس المشتركة) */
+import { useFinanceOrderPayments, useLocaleMe } from "@/hooks/useFinance";
+import { isSaudiCountry } from "@/services/locale.service";
+import {
+  FinanceStatusBadge,
+  formatMoney,
+  MoneyText,
+} from "@/components/finance/finance-ui";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
 import {
@@ -163,10 +171,10 @@ function ReOrderSection({
   /* موقع بابك من الطلب السابق — يظهر محمّلاً (حدّثه بزر تحميل موقعي
      إن تحركت) — §6-3 الإحداثيات إلزامية دائماً */
   const [lat, setLat] = useState<number | null>(() =>
-    autoOpen ? order.delivery_lat : null
+    autoOpen ? (order.delivery_lat ?? null) : null
   );
   const [lng, setLng] = useState<number | null>(() =>
-    autoOpen ? order.delivery_lng : null
+    autoOpen ? (order.delivery_lng ?? null) : null
   );
   const [address, setAddress] = useState(() =>
     autoOpen ? order.delivery_address ?? "" : ""
@@ -954,7 +962,8 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
 
       {status === "pending" && (
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          {order.payment_is_completion || receipt?.is_completion
+          {(order as OrderOut & { payment_is_completion?: boolean | null })
+            .payment_is_completion || receipt?.is_completion
             ? "تم استلام إشعار المتبقي — بانتظار مراجعة التاجر."
             : "إشعار التحويل في مراجعة المتجر — سيؤكد الطلب بعد التحقق."}
         </p>
@@ -983,6 +992,67 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
   );
 }
 
+/* ─── جولة المالية v2 — قسم الدفع الإلكتروني (السوق السعودي حصراً) ───
+ * يظهر دائماً للسوق السعودي حتى لو الطلب كاش — الدفع الإلكتروني
+ * اختياري للعميل. دفعة paid → شارة «مدفوعة» وإخفاء زر الدفع.
+ * السوق اليمني لا يرى هذا القسم إطلاقاً (برونزية السوقين). */
+function OrderElectronicPaymentSection({ orderId }: { orderId: number }) {
+  const paymentsQuery = useFinanceOrderPayments(orderId);
+  const hasPaid =
+    paymentsQuery.data?.some((p) => p.status === "paid") ?? false;
+
+  return (
+    <section
+      className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
+      aria-label="الدفع الإلكتروني"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
+          <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
+          الدفع
+        </h2>
+        {paymentsQuery.isPending ? (
+          <Skeleton className="h-6 w-24 rounded-full" />
+        ) : hasPaid ? (
+          <FinanceStatusBadge status="paid" />
+        ) : paymentsQuery.isError ? (
+          <button
+            type="button"
+            onClick={() => paymentsQuery.refetch()}
+            className="min-h-[44px] text-xs font-bold text-destructive"
+          >
+            تعذّر جلب حالة الدفع — أعد المحاولة
+          </button>
+        ) : null}
+      </div>
+
+      {hasPaid ? (
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          تم تأكيد دفعتك عبر بوابة الدفع — لا حاجة لأي دفع إضافي، ويمكنك
+          متابعة الطلب كالمعتاد.
+        </p>
+      ) : (
+        <>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            ادفع قيمة الطلب الآن بأمان عبر مويسر (بطاقة أو Apple Pay) —
+            الدفع الإلكتروني اختياري حتى لو اخترت الكاش عند الاستلام.
+          </p>
+          <Button
+            asChild
+            size="lg"
+            className="mt-3 min-h-[44px] w-full gap-2 rounded-full"
+          >
+            <Link href={`/orders/${orderId}/pay`}>
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              ادفع الآن إلكترونيًا
+            </Link>
+          </Button>
+        </>
+      )}
+    </section>
+  );
+}
+
 function OrderView({
   order,
   reorderRequested = false,
@@ -993,6 +1063,15 @@ function OrderView({
   const prefersReduced = usePrefersReducedMotion();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const cancelMutation = useCancelOrder(order.id);
+  /* جولة المالية v2 — تحديد السوق لعملة عرض المبالغ وقسم الدفع */
+  const localeMe = useLocaleMe(true);
+  const isSaudiMarket =
+    localeMe.isSuccess &&
+    localeMe.data != null &&
+    isSaudiCountry(localeMe.data.country_code);
+  /* عملة المبالغ: سعودي → SAR (المبالغ الوطنية من الخادم)؛
+     يمني/أثناء التحميل → YER (السلوك الحالي دون تغيير) */
+  const orderCurrency = isSaudiMarket ? "SAR" : "YER";
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
@@ -1118,10 +1197,14 @@ function OrderView({
         )}
       </section>
 
-      {/* جولة المحافظ — بطاقة الدفع بالمحفظة (طلبات المحفظة فقط) */}
+      {/* جولة المحافظ — بطاقة الدفع بالمحفظة (طلبات المحفظة فقط — السوق اليمني) */}
       {order.payment_method === "wallet" && (
         <WalletPaymentCard order={order} />
       )}
+
+      {/* جولة المالية v2 — قسم الدفع الإلكتروني (السوق السعودي حصراً؛
+          اليمني لا يظهر له أي خيار دفع إلكتروني إطلاقاً) */}
+      {isSaudiMarket && <OrderElectronicPaymentSection orderId={order.id} />}
 
       {/* حوار تأكيد الإلغاء */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -1166,29 +1249,61 @@ function OrderView({
           ))}
         </ul>
         <Separator className="my-4" />
-        {/* ملخص الفاتورة */}
+        {/* ملخص الفاتورة — المبالغ الوطنية بعملة السوق من الخادم (برونزية-5) */}
         <div className="space-y-2 text-sm" dir="rtl">
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">المجموع الفرعي</span>
-            <span className="font-bold text-foreground tabular-nums">
-              {formatCurrency(order.subtotal)}
-            </span>
+            <MoneyText
+              amount={order.subtotal}
+              currency={orderCurrency}
+              className="font-bold text-foreground"
+            />
           </div>
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">رسوم التوصيل</span>
-            <span className="font-bold text-foreground tabular-nums">
-              {formatCurrency(order.delivery_fee)}
-            </span>
+            <MoneyText
+              amount={order.delivery_fee}
+              currency={orderCurrency}
+              className="font-bold text-foreground"
+            />
           </div>
+          {/* شفافية أجرة التوصيل الوطنية — أرقام حية من الطلب إن وُجدت */}
+          {(order.distance_km != null ||
+            order.billed_km != null ||
+            order.per_km_price != null) && (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              شفافية الأجرة:{" "}
+              {order.distance_km != null && (
+                <span dir="ltr" className="tabular-nums">
+                  {order.distance_km} كم
+                </span>
+              )}
+              {order.billed_km != null && (
+                <span dir="ltr" className="tabular-nums">
+                  {" "}— تُحتسب {order.billed_km} كم
+                </span>
+              )}
+              {order.per_km_price != null && (
+                <span dir="ltr" className="tabular-nums">
+                  {" "}× {order.per_km_price}/كم
+                </span>
+              )}
+            </p>
+          )}
+          {order.address_imprecise ? (
+            <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+              عنوان غير محدد بدقة
+            </span>
+          ) : null}
           <Separator className="my-1" />
           <div className="flex items-center justify-between">
             <span className="font-bold text-foreground">الإجمالي</span>
-            <span
-              className="text-base font-extrabold text-foreground tabular-nums"
-              dir="ltr"
-            >
-              {formatCurrency(order.total)}
-            </span>
+            <MoneyText
+              amount={order.total}
+              currency={orderCurrency}
+              strong
+              className="text-base text-foreground"
+            />
           </div>
         </div>
       </section>
@@ -1218,7 +1333,7 @@ function OrderView({
           <InfoRow
             icon={Truck}
             label="رسوم التوصيل"
-            value={formatCurrency(order.delivery_fee)}
+            value={formatMoney(order.delivery_fee, orderCurrency)}
           />
           <InfoRow
             icon={CreditCard}

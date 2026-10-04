@@ -116,7 +116,7 @@ function OfferCard({
   prefersReduced,
 }: OfferCardProps) {
   const progress = computeProgress(offer);
-  const ends = formatEndsAt(offer.ends_at);
+  const ends = formatEndsAt(offer.ends_at ?? null);
   const isActive = offer.is_active && !progress.isFinished;
 
   const productName = offer.product?.name ?? `منتج #${offer.product_id}`;
@@ -291,7 +291,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
         <p className="text-lg font-semibold">لا توجد عروض خاصة بعد</p>
         <p className="text-sm text-muted-foreground max-w-sm">
           أنشئ عرضك الأول — سيُشعِر كل أعضاء توفير فور نشره. مثلاً: «عرض حصري —
-          10 دجاجات بخصم 30%».
+          وجبات بخصم خاص».
         </p>
       </div>
       <Button

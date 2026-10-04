@@ -40,8 +40,9 @@ import type { OrderOut, PaymentMethod } from "@/types/api.generated";
  *
  * السلة كانت Sheet فقط (الجولة 11) — هذه الصفحة تضيف:
  * 1. تجربة ديسكتوب كاملة (عمودان: الأصناف + ملخص لاصق) + SEO
- * 2. اقتراح العضوية الذكي: غير العضو يرى «وفّر X ر.ي بهذا الطلب» بالاشتراك
- * 3. فاتورة تفصيلية: المجموع الأصلي − خصم العضوية + التوصيل = الإجمالي
+ * 2. اقتراح العضوية الذكي: غير العضو يرى بطاقة «اشترك بالعضوية ووفّر أكثر»
+ * 3. فاتورة تفصيلية: المجموع الأصلي − خصم العضوية (من /me) + أجرة التوصيل
+ *    الديناميكية حسب المسافة = الإجمالي (يكتمل عند توفر الأجرة)
  * 4. شاشة نجاح داخلية مع تتبّع مباشر
  *
  * الموبايل: عمود واحد + شريط تأكيد لاصق أسفل الشاشة فوق شريط التنقل.
@@ -57,17 +58,17 @@ export function CartPageContent() {
     totalCount,
     baseSubtotal,
     subtotal,
-    memberSavings,
-    delivery,
+    discountAmount,
+    deliveryFee,
     total,
     isMember,
     memberRate,
-    potentialSavings,
   } = useCartPricing();
 
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
+  const setDeliveryCoords = useCartStore((s) => s.setDeliveryCoords);
 
   const { accessToken, hydrated } = useCustomerAuth();
   const createOrder = useCreateOrder();
@@ -86,6 +87,10 @@ export function CartPageContent() {
 
   /* §6-3 — الموقع والعنوان إلزاميان في وضع التوصيل؛ الاستلام من المتجر يرفع الإلزامية */
   const isHandover = deliveryMode === "handover";
+  /* الاستلام من المتجر: لا أجرة توصيل — الإجمالي = المجموع بعد الخصم.
+     التوصيل: الأجرة ديناميكية حسب المسافة (null قبل تحديد الموقع) والإجمالي
+     يكتمل فقط عند توفرها — الرقم النهائي يؤكده الخادم عند إنشاء الطلب. */
+  const displayTotal = isHandover ? subtotal : total;
   const deliveryIncomplete = isHandover
     ? false
     : lat == null || lng == null || address.trim().length === 0;
@@ -260,9 +265,7 @@ export function CartPageContent() {
             </ul>
 
             {/* اقتراح العضوية — لغير الأعضاء فقط */}
-            {!isMember && potentialSavings > 0 && (
-              <MembershipUpsell savings={potentialSavings} />
-            )}
+            {!isMember && <MembershipUpsell />}
 
             {/* بيانات التوصيل والدفع */}
             <section className="space-y-4 rounded-2xl border border-border/50 bg-card p-4 shadow-soft sm:p-5">
@@ -278,6 +281,9 @@ export function CartPageContent() {
                 onLocated={(la, ln) => {
                   setLat(la);
                   setLng(ln);
+                  /* حفظ الموقع في مخزن السلة — لتقدير الأجرة الديناميكية
+                     في useCartPricing (الشريط العائم + الفاتورة) */
+                  setDeliveryCoords(la, ln);
                 }}
                 address={address}
                 onAddressChange={setAddress}
@@ -285,7 +291,8 @@ export function CartPageContent() {
                 onNotesChange={setNotes}
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={(m) => {
-                  setPaymentMethod(m);
+                  /* "electronic" غير متاح في تدفق السلة (سوق يمني افتراضياً) */
+                  setPaymentMethod(m === "electronic" ? "cash" : m);
                   if (m !== "wallet") setPaymentWalletId(null);
                 }}
                 paymentWalletId={paymentWalletId}
@@ -354,7 +361,7 @@ export function CartPageContent() {
                   </span>
                 </div>
 
-                {isMember && memberSavings > 0 && (
+                {isMember && discountAmount > 0 && (
                   <div className="flex items-center justify-between text-primary">
                     <span className="inline-flex items-center gap-1 font-bold">
                       <CheckCircle2
@@ -364,19 +371,29 @@ export function CartPageContent() {
                       خصم العضوية {memberRate}%
                     </span>
                     <span className="font-bold tabular-nums" dir="ltr">
-                      −{formatCurrency(memberSavings)}
+                      −{formatCurrency(discountAmount)}
                     </span>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">رسوم التوصيل</span>
-                  <span
-                    className="font-bold tabular-nums text-foreground"
-                    dir="ltr"
-                  >
-                    {formatCurrency(delivery)}
-                  </span>
+                  <span className="text-muted-foreground">أجرة التوصيل</span>
+                  {isHandover ? (
+                    <span className="text-xs font-bold text-muted-foreground">
+                      استلام من المتجر — بلا أجرة
+                    </span>
+                  ) : deliveryFee != null ? (
+                    <span
+                      className="font-bold tabular-nums text-foreground"
+                      dir="ltr"
+                    >
+                      {formatCurrency(deliveryFee)}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-muted-foreground">
+                      تُحسب حسب المسافة عند التأكيد
+                    </span>
+                  )}
                 </div>
 
                 <div className="my-2 h-px bg-border/40" />
@@ -385,12 +402,21 @@ export function CartPageContent() {
                   <span className="text-base font-extrabold text-foreground">
                     الإجمالي
                   </span>
-                  <span
-                    className="text-xl font-extrabold tabular-nums text-primary"
-                    dir="ltr"
-                  >
-                    {formatCurrency(total)}
-                  </span>
+                  {displayTotal != null ? (
+                    <span
+                      className="text-xl font-extrabold tabular-nums text-primary"
+                      dir="ltr"
+                    >
+                      {formatCurrency(displayTotal)}
+                    </span>
+                  ) : (
+                    <span
+                      className="text-base font-extrabold tabular-nums text-primary"
+                      dir="rtl"
+                    >
+                      {formatCurrency(subtotal)} + الأجرة
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -441,7 +467,9 @@ export function CartPageContent() {
                 )}
                 {createOrder.isPending
                   ? "جارٍ إرسال الطلب..."
-                  : `تأكيد الطلب — ${formatCurrency(total)}`}
+                  : displayTotal != null
+                    ? `تأكيد الطلب — ${formatCurrency(displayTotal)}`
+                    : "تأكيد الطلب"}
               </Button>
 
               <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
@@ -482,10 +510,12 @@ export function CartPageContent() {
           </span>
           <span
             className="text-base font-extrabold tabular-nums"
-            dir="ltr"
+            dir={displayTotal != null ? "ltr" : "rtl"}
             aria-hidden="true"
           >
-            {formatCurrency(total)}
+            {displayTotal != null
+              ? formatCurrency(displayTotal)
+              : `${formatCurrency(subtotal)} + الأجرة`}
           </span>
         </button>
       </div>
@@ -618,7 +648,7 @@ function CartPageLine({
 }
 
 /* ─── اقتراح العضوية الذكي — لغير الأعضاء ─── */
-function MembershipUpsell({ savings }: { savings: number }) {
+function MembershipUpsell() {
   return (
     <Link
       href="/membership/subscribe"
@@ -630,10 +660,10 @@ function MembershipUpsell({ savings }: { savings: number }) {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-foreground">
-            وفّر {formatCurrency(savings)} على هذا الطلب
+            اشترك بالعضوية ووفّر أكثر
           </p>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            اشترك بالعضوية واحصل على خصم حتى 30% على كل وجباتك.
+            خصومات حصرية على كل وجباتك من المتاجر المشتركة.
           </p>
         </div>
       </div>

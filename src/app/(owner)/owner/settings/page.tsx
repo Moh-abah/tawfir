@@ -28,7 +28,7 @@ import { useMyFacilities } from "@/hooks/useMyFacilities";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { APP_VERSION } from "@/lib/pwa/version";
 import { formatDate } from "@/lib/format";
-import { SITE_NAME, DELIVERY_FEE } from "@/lib/site-config";
+import { SITE_NAME } from "@/lib/site-config";
 import type { Facility } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
@@ -390,8 +390,8 @@ export default function OwnerSettingsPage() {
         <IosRow
           icon={Bell}
           iconClass="bg-primary/10 text-primary"
-          title="رسوم التوصيل"
-          value={`${DELIVERY_FEE} ر.ي ثابتة`}
+          title="أجرة التوصيل"
+          value="تُحسب حسب المسافة"
           trailing="none"
         />
         <div className="px-4 py-3">

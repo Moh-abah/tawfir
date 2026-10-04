@@ -20,6 +20,13 @@ interface CartState {
   /** معرّف المتجر الموحّد للسلة (single-facility constraint من الخادم). */
   facilityId: number | null;
   facilityName: string | null;
+  /** موقع التوصيل المحفوظ للسلة — لتقدير الأجرة الديناميكية حسب المسافة
+   *  (GET /orders/delivery-estimate عبر useCartPricing). إن وُجدت، يُقدَّر
+   *  الإجمالي مبكراً؛ الرقم النهائي يأتي دائماً من الخادم عند إنشاء الطلب. */
+  deliveryLat: number | null;
+  deliveryLng: number | null;
+  /** حفظ/مسح إحداثيات التوصيل المحفوظة للسلة. */
+  setDeliveryCoords: (lat: number, lng: number) => void;
   /** إضافة منتج للسلة — يرجع true عند النجاح، false عند تعارض المتجر. */
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => boolean;
   /** تحديث كمية منتج موجود (إن 0 → يُحذف). */
@@ -48,6 +55,10 @@ export const useCartStore = create<CartState>()(
       items: [],
       facilityId: null,
       facilityName: null,
+      deliveryLat: null,
+      deliveryLng: null,
+      setDeliveryCoords: (lat, lng) =>
+        set({ deliveryLat: lat, deliveryLng: lng }),
       addItem: (item, quantity = 1) => {
         const state = get();
         // تعارض المتجر — لا نُضيف بل نُرجع false ليُعالجه الواجهة
@@ -100,6 +111,8 @@ export const useCartStore = create<CartState>()(
             items,
             facilityId: items.length ? state.facilityId : null,
             facilityName: items.length ? state.facilityName : null,
+            deliveryLat: items.length ? state.deliveryLat : null,
+            deliveryLng: items.length ? state.deliveryLng : null,
           });
           return;
         }
@@ -118,10 +131,18 @@ export const useCartStore = create<CartState>()(
           items,
           facilityId: items.length ? state.facilityId : null,
           facilityName: items.length ? state.facilityName : null,
+          deliveryLat: items.length ? state.deliveryLat : null,
+          deliveryLng: items.length ? state.deliveryLng : null,
         });
       },
       clearCart: () =>
-        set({ items: [], facilityId: null, facilityName: null }),
+        set({
+          items: [],
+          facilityId: null,
+          facilityName: null,
+          deliveryLat: null,
+          deliveryLng: null,
+        }),
       totalCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
     {

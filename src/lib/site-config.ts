@@ -9,11 +9,6 @@ export const ADMIN_URL =
 export const OWNER_URL =
   process.env.NEXT_PUBLIC_OWNER_URL ?? 'https://facility.tawfir.giize.com';
 
-export const DISCOUNT_RATE = 30 as const;
-
-/** رسوم التوصيل الثابتة بالريال اليمني. */
-export const DELIVERY_FEE = 300 as const;
-
 /** مبلغ اشتراك العضوية السنوي بالريال اليمني. */
 export const MEMBERSHIP_AMOUNT = 3000 as const;
 

@@ -507,7 +507,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
 
             <Separator />
 
-            {/* ─── نسبة الخصم لتوفير (المشرف يمكنه تجاوز قيد 10-30%) ─── */}
+            {/* ─── نسبة الخصم لتوفير — نسبة الخصم يحددها التاجر (0 حتى الحد الأقصى من الإعدادات الحية) ─── */}
             <div className="space-y-2">
               <Label htmlFor="fac-discount-rate">نسبة الخصم لتوفير</Label>
               <Input
@@ -521,7 +521,7 @@ export function FacilityForm({ open, onOpenChange, initial }: FacilityFormProps)
                 {...register("discount_rate", { valueAsNumber: true })}
               />
               <p className="text-xs text-muted-foreground">
-                0-100% — المشرف يمكنه تجاوز قيد 5-30%
+                نسبة الخصم يحددها التاجر — من 0 حتى الحد الأقصى المسموح من الإعدادات الحية
               </p>
               {formState.errors.discount_rate && (
                 <p className="text-xs text-destructive">

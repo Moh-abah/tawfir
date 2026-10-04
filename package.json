@@ -3,7 +3,7 @@
   "version": "1.5.1",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "next dev -p 3000 ",
     "predev": "bun scripts/sync-version.mjs",
     "build": "next build",
     "prebuild": "bun scripts/sync-version.mjs && bun scripts/verify-assets.mjs",
@@ -19,6 +19,7 @@
     "api:types": "bun scripts/gen-api-types.mjs"
   },
   "dependencies": {
+    "@capacitor/browser": "^8.0.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/geolocation": "^8.0.0",
     "@dnd-kit/core": "^6.3.1",
@@ -110,7 +111,11 @@
     "typescript": "^5"
   },
   "trustedDependencies": [
+    "@prisma/client",
+    "@prisma/engines",
+    "prisma",
     "protobufjs",
+    "sharp",
     "unrs-resolver"
   ]
 }

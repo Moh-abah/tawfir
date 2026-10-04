@@ -66,7 +66,7 @@ export default async function FacilityDetailPage({
         name: facility.name,
         description:
           facility.description ??
-          `${facility.name} — من متاجر منصة توفير مع خصم حتى 30% للأعضاء`,
+          `${facility.name} — من متاجر منصة توفير مع خصومات حصرية للأعضاء`,
         servesCuisine: "Yemeni",
         acceptsReservations: "False",
         parentOrganization: { "@type": "Organization", name: "توفير" },

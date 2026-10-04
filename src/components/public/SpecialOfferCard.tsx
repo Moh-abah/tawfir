@@ -111,7 +111,7 @@ export function SpecialOfferCard({
   const originalPrice = specialOffer.base_price;
   const offerRate = specialOffer.offer_discount_rate;
 
-  const remaining = specialOffer.quantity_remaining;
+  const remaining = specialOffer.quantity_remaining ?? null;
   const soldOut = remaining !== null && remaining <= 0;
 
   return (
@@ -181,7 +181,7 @@ export function SpecialOfferCard({
 
         {/* العدّاد التنازلي — أسفل الصورة وسطاً */}
         <div className="absolute inset-x-0 bottom-2 flex justify-center">
-          <CountdownTimer endsAt={specialOffer.ends_at} />
+          <CountdownTimer endsAt={specialOffer.ends_at ?? null} />
         </div>
       </div>
 

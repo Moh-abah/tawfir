@@ -16,6 +16,7 @@ import {
   Navigation,
   RefreshCw,
   Search,
+  Soup,
   Sparkles,
   UtensilsCrossed,
   X,
@@ -49,7 +50,6 @@ import { useRegionStore } from "@/store/region.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { toast } from "@/hooks/use-toast";
 import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import { resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
 import { isFacilityOpen } from "@/lib/facility-hours";
@@ -68,7 +68,8 @@ const CATEGORIES: ReadonlyArray<{
   icon: LucideIcon;
 }> = [
   { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
-  { key: "cafe", label: "كافتيريات", icon: Coffee },
+  { key: "cafe", label: "مقاهي", icon: Coffee },
+  { key: "cafeteria", label: "كافتيريات", icon: Soup },
 ];
 
 const CATEGORY_CIRCLE: Record<
@@ -82,6 +83,10 @@ const CATEGORY_CIRCLE: Record<
   cafe: {
     active: "bg-cat-cafe text-white shadow-soft",
     idle: "bg-cat-cafe-soft text-cat-cafe",
+  },
+  cafeteria: {
+    active: "bg-cat-facility text-white shadow-soft",
+    idle: "bg-cat-facility-soft text-cat-facility",
   },
 };
 
@@ -502,9 +507,11 @@ function NearbySection() {
 /* ------------------------------------------------------------------ */
 function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerIndex?: number }) {
   const PlaceholderIcon = TYPE_ICON[facility.type];
+  /* شارة الخصم من نسب المتجر الحقيقية فقط (يحددها التاجر) —
+     بلا متجر/بلا نسب → لا شارة (لا رقم افتراضي) */
   const maxDiscount = facility.cards.length
     ? Math.max(...facility.cards.map((c) => c.discount_rate))
-    : DISCOUNT_RATE;
+    : 0;
 
   // الجولة 21 — شارة "مفتوح الآن" ديناميكية من working_hours
   const isOpen = isFacilityOpen(facility.working_hours);

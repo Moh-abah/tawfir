@@ -215,8 +215,12 @@ jobs:
             echo "::error::فشل تعديل server.url لوجهة بوابة المالك (facility.tawfir.giize.com/owner)"
             exit 1
           fi
-          if ! grep -q 'allowNavigation: \["tawfir.giize.com", "facility.tawfir.giize.com"\]' capacitor.config.ts; then
-            echo "::error::allowNavigation غير موجودة في capacitor.config.ts — تحويل 308 لبوابة المالك سيفتح المتصفح الخارجي!"
+          if ! grep -q '"tawfir.giize.com"' capacitor.config.ts || ! grep -q '"facility.tawfir.giize.com"' capacitor.config.ts; then
+            echo "::error::allowNavigation لم تعد تشمل مضيفي توفير في capacitor.config.ts — تحويل 308 لبوابة المالك سيفتح المتصفح الخارجي!"
+            exit 1
+          fi
+          if ! grep -q '"\*.moyasar.com"' capacitor.config.ts; then
+            echo "::error::allowNavigation بلا شبكة أمان مويسر (*.moyasar.com) — تحويلات 3DS قد تفتح المتصفح الخارجي وتُخرج المستخدم من التطبيق!"
             exit 1
           fi
           echo "── الهوية النهائية في capacitor.config.ts ──"

@@ -86,7 +86,7 @@ function GuestAccount() {
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
               سجّل الدخول لعرض بطاقتك وطلباتك، أو أنشئ حساباً جديداً
-              واشترك في عضوية توفير لتحصل على خصم حتى 30%.
+              واشترك في عضوية توفير لتحصل على خصومات حصرية.
             </p>
           </div>
           <div className="flex w-full flex-col gap-3">
@@ -440,8 +440,8 @@ function NoMembershipState({ me }: { me: MeOut }) {
               ليس لديك عضوية بعد
             </h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground leading-relaxed">
-              اشترك في عضوية توفير السنوية واحصل على خصم حتى 30% على كل طلباتك.
-              مبلغ 3000 ر.ي سنوياً، موافقة يدوية خلال 24-48 ساعة.
+              اشترك في عضوية توفير السنوية واحصل على خصومات حصرية على كل طلباتك.
+              موافقة يدوية خلال 24-48 ساعة.
             </p>
           </div>
           {/* ملاحظة عبر الأجهزة: قد يكون الطلب قيد المراجعة أو مرفوضاً */}

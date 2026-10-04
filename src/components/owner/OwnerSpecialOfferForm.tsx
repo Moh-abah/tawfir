@@ -374,7 +374,7 @@ export function OwnerSpecialOfferForm({
             </div>
             <Input
               id="offer-title"
-              placeholder="مثال: عرض حصري — 10 دجاجات بخصم 30%"
+              placeholder="مثال: عرض حصري — وجبات بخصم خاص"
               maxLength={255}
               aria-invalid={!!errors.title}
               {...register("title")}

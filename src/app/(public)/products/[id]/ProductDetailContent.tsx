@@ -40,7 +40,6 @@ import { useMe } from "@/hooks/useMe";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
-import { DISCOUNT_RATE } from "@/lib/site-config";
 import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
 import { haptic } from "@/lib/haptic";
 import type {
@@ -199,7 +198,7 @@ function SpecialOfferDetailCard({
           <Flame className="h-3.5 w-3.5" aria-hidden="true" />
           عرض خاص — خصم {offer.offer_discount_rate}%
         </span>
-        <OfferCountdownTimer endsAt={offer.ends_at} />
+        <OfferCountdownTimer endsAt={offer.ends_at ?? ""} />
       </div>
 
       <div className="flex flex-wrap items-baseline gap-3">
@@ -228,7 +227,7 @@ function SpecialOfferDetailCard({
           <Package className="h-3.5 w-3.5" aria-hidden="true" />
           {isMember ? "السعر للعضو" : "السعر بدون عضوية"}
         </span>
-        {remaining !== null && (
+        {remaining != null && (
           <span
             className={cn(
               "inline-flex items-center gap-1.5 font-bold",
@@ -278,11 +277,15 @@ export default function ProductDetailContent() {
     ) ?? null;
 
   const isMember = !!me.data?.membership?.is_active;
-  // نسبة الخصم من العضوية إن وُجدت، وإلا نسبة خصم المتجر من بيانات المنتج، وإلا القاعدة العامة
-  const facilityRate = product?.facility?.discount_rate ?? DISCOUNT_RATE;
-  const memberRate = me.data?.membership?.discount_rate ?? facilityRate;
+  /* نسبة العضوية الفعلية من /me حصراً — بلا ثابت؛ ونسبة المتجر (يحددها التاجر)
+     تُعرض للغير الأعضاء فقط إن كانت فعلاً > 0 (إعلان، لا تخمين) */
+  const facilityRate = product?.facility?.discount_rate ?? 0;
+  const memberRate = me.data?.membership?.discount_rate ?? 0;
+  const hasMemberDiscount = isMember && memberRate > 0;
   const priceNum = product ? parseFloat(product.price) || 0 : 0;
-  const finalPrice = isMember ? priceNum * (1 - memberRate / 100) : priceNum;
+  const finalPrice = hasMemberDiscount
+    ? priceNum * (1 - memberRate / 100)
+    : priceNum;
   const outOfStock =
     !!product &&
     (!product.is_available || product.available_quantity === 0);
@@ -431,7 +434,7 @@ export default function ProductDetailContent() {
             <div className="absolute right-3 top-3">
               <AvailabilityBadge
                 available={product.is_available}
-                quantity={product.available_quantity}
+                quantity={product.available_quantity ?? null}
               />
             </div>
             {/* الجولة 10 — زر المفضلة (قلب) أعلى يسار الصورة */}
@@ -505,7 +508,7 @@ export default function ProductDetailContent() {
             <SpecialOfferDetailCard offer={specialOffer} isMember={isMember} />
           ) : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 shadow-soft">
-              {isMember ? (
+              {hasMemberDiscount ? (
                 <>
                   <span
                     className="text-base text-muted-foreground line-through"
@@ -538,7 +541,9 @@ export default function ProductDetailContent() {
                     className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-ink transition-colors hover:bg-accent/20"
                   >
                     <Sparkles className="h-3 w-3" aria-hidden="true" />
-                    اشترك لخصم {facilityRate}%
+                    {facilityRate > 0
+                      ? `اشترك لخصم ${facilityRate}%`
+                      : "اشترك لخصم حصري"}
                   </button>
                 </>
               )}

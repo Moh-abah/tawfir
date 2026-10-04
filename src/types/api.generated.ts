@@ -1,863 +1,233 @@
 /**
- * Tawfir API types — derived from https://api.tawfir.giize.com/openapi.json
- * Source of truth: openapi.json (saved locally, fetched live from production).
+ * Tawfir API types — طبقة إعادة التصدير المولّدة آلياً (الجولة 22)
+ * ═══════════════════════════════════════════════════════════════════
+ * ⚠️ لا تُعدّل هذا الملف يدوياً — مولّد بواسطة `bun run api:types`.
  *
- * «توفير» — منصة يمنية للخصومات وطلب الوجبات.
- * الأدوار: العميل (تصفّح/طلب/اشتراك عضوية) · المالك (إدارة متجر) · المشرف.
+ * المصدر: openapi_live.json (نسخة من /openapi.json الحية للباك إند)
+ *   + scripts/openapi-patches.json (فروق موثّقة بين السكمة المحفوظة
+ *     والباك إند الحي — تُطبَّق قبل التوليد وتُبلَّغ في تقرير الأمر)
+ *   1) openapi-typescript → src/types/api.openapi.ts (الأنواع الخام)
+ *   2) هذا الملف: إعادة تصدير مسطّحة لكل المخططات + الأسماء التاريخية
+ *      + export * من api-extra.ts (أنواع أحدث من السكمة: OTP،
+ *        العضوية المجانية، الإشعارات الحقلية…)
+ *
+ * لتحديث الأنواع بعد تغييرات الباك إند:
+ *   curl https://api.tawfir.giize.com/openapi.json > openapi_live.json
+ *   bun run api:types
+ * ثم راجع تقرير الترقيعات: أي ترقيع صار «زائداً» = السكمة الرسمية
+ * لَحِقت به → احذفه من scripts/openapi-patches.json. أي نوع في
+ * api-extra.ts صار موجوداً في السكمة → انقله واحذفه من هناك.
  */
 
-// ─── Enums ────────────────────────────────────────────
-/** نوع المتجر — مطاعم وكافتيريات فقط (لا public_facility). */
-export type FacilityType = 'restaurant' | 'cafe';
-
-/** أدوار المستخدمين. */
-export type UserRole = 'admin' | 'owner' | 'customer';
-
-import type {
-  PaymentReceiptStatus,
-  PaymentReceiptBriefOut,
-} from './api-extra';
-
-/** حالة طلب العضوية. */
-export type MembershipRequestStatus = 'pending' | 'approved' | 'rejected';
-
-/** حالة الطلب (تتبّع). */
-export type OrderStatus =
-  | 'pending'
-  | 'confirmed'
-  | 'preparing'
-  | 'out_for_delivery'
-  | 'delivered'
-  | 'cancelled';
-
-/** طريقة الدفع. wallet غير متاحة حالياً (تُرجع 422). */
-export type PaymentMethod = 'cash' | 'wallet';
-
-// ─── Shared / Common ──────────────────────────────────
-export interface TokenOut {
-  access_token: string;
-  /** رمز تحديث صالح 7 أيام (الجولة 5) — يُستخدم مع POST /auth/refresh */
-  refresh_token?: string | null;
-  token_type: string;
-}
-
-export interface MessageOut {
-  detail: string;
-  status_code?: number;
-}
-
-// ─── Auth — Refresh & Password Reset (الجولة الختامية) ─
-/** جسم POST /auth/refresh */
-export interface RefreshRequest {
-  refresh_token: string;
-}
-
-/** استجابة POST /auth/forgot-password — reset_token يُرجع فقط خارج الإنتاج */
-export interface ForgotPasswordOut {
-  detail: string;
-  status_code?: number;
-  reset_token?: string | null;
-}
-
-/** جسم PUT /auth/reset-password */
-export interface ResetPasswordRequest {
-  token: string;
-  new_password: string;
-}
-
-/** جسم PUT /me/password */
-export interface PasswordChangeRequest {
-  current_password: string;
-  new_password: string;
-}
-
-// ─── Uploads (الجولة الختامية) ─────────────────────────
-/** استجابة POST /uploads — المالك/الأدمن فقط */
-export interface UploadOut {
-  /** مسار نسبي مثل /uploads/products/x.webp — يُعرض عبر resolveImageUrl */
-  url: string;
-  folder: string;
-  size_bytes: number;
-}
-
-export interface ValidationError {
-  loc: (string | number)[];
-  msg: string;
-  type: string;
-}
-
-export interface HTTPValidationError {
-  detail: ValidationError[];
-}
-
-// ─── Paginated ─────────────────────────────────────────
-export interface Paginated<T> {
-  items: T[];
-  total: number;
-  page: number;
-  pages: number;
-}
-
-// ─── Region ────────────────────────────────────────────
-export interface Region {
-  id: number;
-  name: string;
-  slug: string;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface RegionCreate {
-  name: string;
-  slug?: string;
-  is_active?: boolean;
-}
-
-export interface RegionUpdate {
-  name?: string;
-  slug?: string;
-  is_active?: boolean;
-}
-
-// ─── Card ──────────────────────────────────────────────
-export interface CardBrief {
-  id: number;
-  name: string;
-  discount_rate: number;
-}
-
-export interface Card {
-  id: number;
-  name: string;
-  platform_name: string;
-  discount_rate: number;
-  region_id: number;
-  is_published: boolean;
-  display_order: number;
-  facilities: CardBrief[];
-  created_at: string;
-}
-
-export interface CardCreate {
-  name: string;
-  platform_name?: string;
-  discount_rate?: number;
-  region_id: number;
-  is_published?: boolean;
-  display_order?: number;
-}
-
-export interface CardUpdate {
-  name?: string;
-  platform_name?: string;
-  discount_rate?: number;
-  region_id?: number;
-  is_published?: boolean;
-  display_order?: number;
-}
-
-// ─── Facility ──────────────────────────────────────────
-export interface FacilitySummaryOut {
-  id: number;
-  name: string;
-  type: FacilityType;
-  region_id: number;
-  image_url: string | null;
-  address: string | null;
-  phone: string | null;
-  working_hours: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  /** نسبة الخصم لعضوية توفير (10-30%). (الجولة 3) */
-  discount_rate?: number;
-}
-
-export interface Facility {
-  id: number;
-  name: string;
-  type: FacilityType;
-  region_id: number;
-  description: string | null;
-  is_visible: boolean;
-  display_order: number;
-  cards: CardBrief[];
-  owner_id: number | null;
-  address: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  phone: string | null;
-  working_hours: string | null;
-  image_url: string | null;
-  /** نسبة الخصم لعضوية توفير (الجولة 3). */
-  discount_rate?: number;
-  /** حالة موافقة المشرف — undefined تعامَل كمُوافق عليها (توافق عكسي). */
-  is_approved?: boolean;
-  /** سبب الرفض إن رُفضت — null عندما لا يوجد رفض. */
-  rejection_reason?: string | null;
-  /** تاريخ الموافقة — null قبل الموافقة. */
-  approved_at?: string | null;
-  created_at: string;
-}
-
-export interface FacilityCreate {
-  name: string;
-  type?: FacilityType;
-  region_id: number;
-  description?: string | null;
-  is_visible?: boolean;
-  display_order?: number;
-  card_ids?: number[];
-  owner_id?: number | null;
-  address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone?: string | null;
-  working_hours?: string | null;
-  image_url?: string | null;
-  /** نسبة الخصم لعضوية توفير (الجولة 3). */
-  discount_rate?: number;
-}
-
-export interface FacilityUpdate {
-  name?: string;
-  type?: FacilityType;
-  region_id?: number;
-  description?: string | null;
-  is_visible?: boolean;
-  display_order?: number;
-  card_ids?: number[];
-  owner_id?: number | null;
-  address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone?: string | null;
-  working_hours?: string | null;
-  image_url?: string | null;
-  /** نسبة الخصم لعضوية توفير (الجولة 3). */
-  discount_rate?: number;
-}
-
-/** تحديث جزئي للمالك على متجره فقط (لا نوع/منطقة). */
-export interface OwnerFacilityUpdate {
-  name?: string;
-  description?: string | null;
-  address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone?: string | null;
-  working_hours?: string | null;
-  image_url?: string | null;
-  is_visible?: boolean;
-}
-
-/** متجر معلّق بانتظار موافقة المشرف. */
-export interface PendingFacilityOut {
-  id: number;
-  name: string;
-  type: FacilityType;
-  region_id: number;
-  description: string | null;
-  owner_id: number;
-  owner_name: string | null;
-  owner_email: string;
-  owner_phone: string;
-  address: string | null;
-  phone: string | null;
-  working_hours: string | null;
-  image_url: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  /** نسبة الخصم المطلوبة للعضوية (الجولة 3). */
-  discount_rate?: number;
-  created_at: string;
-  rejection_reason: string | null;
-}
-
-// ─── Product ───────────────────────────────────────────
-/** منتج عند المالك (بدون معلومات المتجر المضمّنة). */
-export interface Product {
-  id: number;
-  facility_id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  category: string;
-  image_url: string | null;
-  is_available: boolean;
-  available_quantity: number | null;
-  display_order: number;
-  created_at: string;
-}
-
-/** تفاصيل منتج كاملة + معلومات المتجر. GET /products/{id}. */
-export interface ProductDetailOut {
-  id: number;
-  facility_id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  category: string;
-  image_url: string | null;
-  is_available: boolean;
-  available_quantity: number | null;
-  display_order: number;
-  created_at: string;
-  facility: FacilitySummaryOut;
-}
-
-/** منتج مع معلومات متجره + المسافة. GET /products و /products/nearby. */
-export interface ProductWithFacilityOut {
-  id: number;
-  facility_id: number;
-  name: string;
-  description: string | null;
-  price: string;
-  category: string;
-  image_url: string | null;
-  is_available: boolean;
-  available_quantity: number | null;
-  display_order: number;
-  created_at: string;
-  facility: FacilitySummaryOut;
-  /** المسافة بالمقسومة (ناتج /products/nearby). null في /products. */
-  distance_km: number | null;
-}
-
-export interface ProductCreate {
-  name: string;
-  description?: string | null;
-  price: number | string;
-  category: string;
-  image_url?: string | null;
-  is_available?: boolean;
-  available_quantity?: number | null;
-  display_order?: number;
-}
-
-export interface ProductUpdate {
-  name?: string;
-  description?: string | null;
-  price?: number | string | null;
-  category?: string;
-  image_url?: string | null;
-  is_available?: boolean;
-  available_quantity?: number | null;
-  display_order?: number;
-}
-
-export interface ProductAvailabilityUpdate {
-  is_available: boolean;
-}
-
-export interface ProductImportResult {
-  status: string;
-  imported_count: number;
-  errors: Record<string, unknown>[];
-  message: string;
-}
-
-// ─── Orders ────────────────────────────────────────────
-/** صنف داخل طلب جديد. */
-export interface OrderItemCreate {
-  product_id: number;
-  quantity: number;
-}
-
-/** جسم POST /orders. كل الأصناف يجب أن تنتمي لنفس المتجر. */
-export interface OrderCreate {
-  facility_id: number;
-  items: OrderItemCreate[];
-  delivery_lat?: number | null;
-  delivery_lng?: number | null;
-  delivery_address?: string | null;
-  payment_method?: PaymentMethod;
-  notes?: string | null;
-  /** معرّف العرض الخاص (الجولة 3) — null/undefined إن لم يكن على عرض. */
-  special_offer_id?: number | null;
-  /* ─── جولة المحافظ اليمنية (v1.1.0) ─── */
-  /** مطلوب مع payment_method = 'wallet' — محفظة التاجر المختارة للتحويل. */
-  payment_wallet_id?: number | null;
-}
-
-/** صنف داخل طلب موجود. */
-export interface OrderItemOut {
-  id: number;
-  product_id: number;
-  product_name: string | null;
-  quantity: number;
-  unit_price: number;
-  discount_applied: boolean;
-  subtotal: number;
-}
-
-/** طلب كامل (تفاصيل + قائمة أصنافه). GET /orders/{id}. */
-export interface OrderOut {
-  id: number;
-  customer_id: number;
-  facility_id: number;
-  facility_name: string | null;
-  status: OrderStatus;
-  delivery_lat: number | null;
-  delivery_lng: number | null;
-  delivery_address: string | null;
-  delivery_fee: number;
-  payment_method: PaymentMethod;
-  subtotal: number;
-  total: number;
-  notes: string | null;
-  created_at: string;
-  updated_at: string | null;
-  items: OrderItemOut[];
-  /* ─── جولة المحافظ اليمنية (v1.1.0) — يرسلها الباك إند دائماً — null للنقد ─── */
-  payment_status: PaymentReceiptStatus | null;
-  payment_wallet_id: number | null;
-  payment_wallet_label: string | null;
-  payment_receipt: PaymentReceiptBriefOut | null;
-  /** ما أكّده التاجر حتى الآن (تراكمي) — جولة الدفعة الناقصة. */
-  payment_paid_amount: number | null;
-  payment_remaining_amount: number | null;
-  /** true إذا كان إشعار الرفع الحالي «تكملة» للدفعة الناقصة. */
-  payment_is_completion: boolean;
-}
-
-/** عرض أخف للقوائم (بدون الأصناف). GET /orders و /admin/orders. */
-export interface OrderListOut {
-  id: number;
-  customer_id: number;
-  facility_id: number;
-  facility_name: string | null;
-  customer_name: string | null;
-  status: OrderStatus;
-  payment_method: PaymentMethod;
-  subtotal: number;
-  delivery_fee: number;
-  total: number;
-  created_at: string;
-  /* ─── جولة المحافظ اليمنية (v1.1.0) — null للنقد ─── */
-  payment_status: PaymentReceiptStatus | null;
-  payment_wallet_label: string | null;
-}
-
-/** جسم PATCH /orders/{id}/status. */
-export interface OrderStatusUpdate {
-  status: Exclude<OrderStatus, 'pending'>;
-}
-
-// ─── Membership ────────────────────────────────────────
-/** بيانات التحويل الثابتة قبل الاشتراك. GET /membership/info. */
-export interface MembershipInfoOut {
-  amount: number;
-  currency: string;
-  transfer_account_name: string;
-  transfer_account_number: string;
-  wallet_name: string;
-  instructions: string;
-  /** الجولة 20: علم العضوية المجانية المفعّل من لوحة المشرف.
-   *  عند true: العميل يحصل على عضوية مجانية بلا دفع ولا رفع إيصال. */
-  is_free_membership_enabled?: boolean;
-}
-
-/** ردّ فوري بعد رفع صورة التحويل. POST /membership/subscribe. */
-export interface MembershipSubscribeOut {
-  detail: string;
-  id: number;
-  status: MembershipRequestStatus;
-}
-
-/**
- * ردّ POST /membership/subscribe-free (الجولة 20).
- * يستدعيها العميل بعد تفعيل المشرف للعضوية المجانية — تمنح عضوية
- * approved فوراً بلا دفع ولا رفع إيصال (is_free=true).
- */
-export interface FreeMembershipSubscribeOut {
-  detail: string;
-  id: number;
-  membership_number: string;
-  expires_at: string;
-  is_free: boolean;
-}
-
-/** طلب اشتراك (رؤية العميل + المشرف). */
-export interface MembershipRequestOut {
-  id: number;
-  user_id: number;
-  amount: number;
-  payment_method: string;
-  transfer_account_name: string;
-  transfer_account_number: string;
-  receipt_image_url: string;
-  status: MembershipRequestStatus;
-  rejection_reason: string | null;
-  membership_number: string | null;
-  expires_at: string | null;
-  created_at: string;
-  reviewed_at: string | null;
-}
-
-/** بطاقة عضوية العميل المُوافق عليها (داخل /me). null حين لا توجد. */
-export interface MyMembershipCard {
-  membership_number: string;
-  membership_type: string;
-  discount_rate: number;
-  created_at: string;
-  expires_at: string;
-  is_active: boolean;
-}
-
-/** جسم رفض طلب الاشتراك. */
-export interface RejectBody {
-  reason: string;
-}
-
-// ─── OTP via WhatsApp (الجولة 20) ─────────────────────
-/** جسم POST /otp/request و POST /otp/resend. */
-export interface OtpRequestInput {
-  /** رقم الجوال المستهدف (يبدأ بـ 7 ومجموع 9 أرقام). */
-  target: string;
-  /** اسم المستخدم (اختياري — يُستخدم في نص رسالة واتساب). */
-  name?: string | null;
-}
-
-/** ردّ POST /otp/request و POST /otp/resend.
- *  - delivered: تم محاولة الإرسال عبر webhook واتساب
- *  - dev_code: كود 6 أرقام يُرجع فقط في وضع التطوير (للاختبار) */
-export interface OtpRequestOut {
-  detail: string;
-  ttl_seconds: number;
-  delivered: boolean;
-  dev_code?: string | null;
-}
-
-/** جسم POST /otp/verify. */
-export interface OtpVerifyInput {
-  target: string;
-  code: string;
-}
-
-/** ردّ POST /otp/verify عند النجاح. الفشل يُرجع 422 مع detail. */
-export interface OtpVerifyOut {
-  verified: boolean;
-  target: string;
-}
-
-// ─── Admin Free Membership Toggle (الجولة 20) ─────────
-/** ردّ GET /admin/settings/free-membership (auth: admin). */
-export interface AdminFreeMembershipOut {
-  is_free_membership_enabled: boolean;
-  updated_by: number | null;
-  updated_at?: string | null;
-}
-
-/** جسم PATCH /admin/settings/free-membership. */
-export interface AdminFreeMembershipUpdate {
-  is_free_membership_enabled: boolean;
-}
-
-// ─── User / Auth ───────────────────────────────────────
-export interface UserOut {
-  id: number;
-  full_name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface UserDetailOut extends UserOut {
-  region_id: number | null;
-}
-
-export interface UserRegister {
-  full_name: string;
-  email: string;
-  phone: string;
-  password: string;
-  password_confirm: string;
-  region_id?: number | null;
-}
-
-/** POST /auth/register — بلا عضوية تلقائية. */
-export interface RegisterOut {
-  detail: string;
-  status_code: number;
-  user_id: number;
-}
-
-export interface CustomerLogin {
-  identifier: string;
-  password: string;
-}
-
-export interface MeOut {
-  id: number;
-  full_name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  created_at: string;
-  membership: MyMembershipCard | null;
-}
-
-/** PUT /me — الاسم/الجوال فقط (البريد ثابت). */
-export interface MeUpdate {
-  full_name?: string;
-  phone?: string;
-}
-
-export interface RoleUpdate {
-  role: string;
-}
-
-export interface AdminLogin {
-  identifier: string;
-  password: string;
-}
-
-export interface OwnerLogin {
-  identifier: string;
-  password: string;
-}
-
-export interface OwnerRegister {
-  full_name: string;
-  email: string;
-  phone: string;
-  password: string;
-  password_confirm: string;
-  facility_name: string;
-  facility_type: FacilityType;
-  region_id: number;
-  /** نسبة الخصم لعضوية توفير (10-30). (الجولة 3) */
-  discount_rate?: number;
-  description?: string | null;
-  address?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  phone_facility?: string | null;
-  working_hours?: string | null;
-  image_url?: string | null;
-}
-
-export interface OwnerRegisterOut {
-  detail: string;
-  status_code: number;
-  user_id: number;
-  facility_id: number;
-  status: string;
-}
-
-// ─── Audit Log ─────────────────────────────────────────
-export interface AuditLogOut {
-  id: number;
-  user_id: number | null;
-  action_type: string;
-  details: Record<string, unknown>;
-  ip_address: string | null;
-  created_at: string;
-}
-
-// ─── Dashboard ─────────────────────────────────────────
-export interface DashboardStats {
-  regions: number;
-  cards: number;
-  published_cards: number;
-  facilities: number;
-  customers: number;
-  owners: number;
-  products: number;
-  available_products: number;
-  pending_facilities: number;
-  pending_membership_requests: number;
-  orders_today: number;
-}
-
-// ─── Notifications (الجولة 3) ──────────────────────────
-/** نوع الإشعار — يحدّد الأيقونة والمسار عند النقر. */
-export type NotificationType =
-  | "order_new"
-  | "order_confirmed"
-  | "order_preparing"
-  | "order_out_for_delivery"
-  | "order_delivered"
-  | "order_cancelled"
-  | "membership_new_request"
-  | "membership_received"
-  | "membership_approved"
-  | "membership_rejected"
-  | "membership_expiring"
-  | "facility_approved"
-  | "facility_rejected"
-  | "owner_registered"
-  | "special_offer_new"
-  | "special_offer_ending"
-  | "special_offer_soldout"
-  /* جولة المحافظ اليمنية */
-  | "order_payment_receipt"
-  | "order_payment_remaining"
-  | "order_payment_completion";
-
-/** إشعار — GET /notifications و PATCH /notifications/{id}/read. */
-export interface NotificationOut {
-  id: number;
-  user_id: number;
-  title: string;
-  body: string;
-  notification_type: NotificationType | string;
-  /** JSON إضافي (order_id, facility_name, ...). null إن لم يُرسل. */
-  data: Record<string, unknown> | null;
-  is_read: boolean;
-  created_at: string;
-}
-
-/** عدّاد غير المقروء — GET /notifications/unread-count. */
-export interface UnreadCountOut {
-  count: number;
-}
-
-// ─── FCM (الجولة 3) ───────────────────────────────────
-/** تسجيل توكن FCM — POST /fcm/token. */
-export interface FcmTokenRegister {
-  token: string;
-  device_info?: string | null;
-}
-
-/** حذف توكن FCM — DELETE /fcm/token. */
-export interface FcmTokenDelete {
-  token: string;
-}
-
-/** استجابة تسجيل/حذف توكن FCM. */
-export interface FcmTokenOut {
-  id: number;
-  user_id: number;
-  token: string;
-  device_info: string | null;
-  created_at: string;
-}
-
-// ─── Special Offers (الجولة 3) ─────────────────────────
-/** ملخص المتجر داخل العرض الخاص. */
-export interface SpecialOfferFacilityBrief {
-  id: number;
-  name: string;
-  type: FacilityType;
-  image_url: string | null;
-  address: string | null;
-  phone: string | null;
-}
-
-/** ملخص المنتج داخل العرض الخاص. */
-export interface SpecialOfferProductBrief {
-  id: number;
-  name: string;
-  price: number;
-  image_url: string | null;
-  category: string | null;
-}
-
-/** عرض خاص عام — GET /special-offers. التسعير مُحسب في الخادم. */
-export interface SpecialOfferOut {
-  id: number;
-  facility_id: number;
-  product_id: number;
-  title: string;
-  offer_discount_rate: number;
-  quantity_limit: number | null;
-  quantity_sold: number;
-  quantity_remaining: number | null;
-  is_active: boolean;
-  starts_at: string | null;
-  ends_at: string | null;
-  created_at: string;
-  facility: SpecialOfferFacilityBrief | null;
-  product: SpecialOfferProductBrief | null;
-  base_price: number;
-  member_price: number;
-  non_member_price: number;
-  facility_discount_rate: number;
-}
-
-/** جسم إنشاء عرض خاص — POST /owner/{fid}/special-offers. */
-export interface SpecialOfferCreate {
-  product_id: number;
-  title: string;
-  offer_discount_rate: number;
-  quantity_limit?: number | null;
-  ends_at?: string | null;
-}
-
-/** استجابة إنشاء عرض خاص — 201. */
-export interface SpecialOfferCreateOut {
-  id: number;
-  facility_id: number;
-  product_id: number;
-  title: string;
-  offer_discount_rate: number;
-  quantity_limit: number | null;
-  quantity_sold: number;
-  is_active: boolean;
-  starts_at: string | null;
-  ends_at: string | null;
-  created_at: string;
-}
-
-// ─── Owner Stats (الجولة 3) ────────────────────────────
-/** نقطة في رسم طلبات آخر 7 أيام. */
-export interface ChartPointOut {
-  date: string;
-  count: number;
-  revenue: number;
-}
-
-/** أكثر المنتجات طلباً في المتجر. */
-export interface TopProductOut {
-  product_id: number;
-  name: string;
-  count: number;
-  revenue: number;
-}
-
-/** إحصائيات المالك — GET /owner/{fid}/stats. */
-export interface OwnerStatsOut {
-  total_products: number;
-  available_products: number;
-  total_orders: number;
-  pending_orders: number;
-  completed_orders: number;
-  today_orders: number;
-  today_revenue: number;
-  total_revenue: number;
-  active_special_offers: number;
-  facility_discount_rate: number;
-  recent_orders: OrderListOut[];
-  top_products: TopProductOut[];
-  orders_chart: ChartPointOut[];
-  // الجولة 21 — مؤشرات تجارية متقدمة (Merchant Dashboard)
-  monthly_revenue: number;
-  avg_order_value: number;
-  new_customers: number;
-  total_customers: number;
-  monthly_visits: number;
-  total_visits: number;
-  roi_percent: number;
-  seo_score: number;
-  seo_tips: string[];
-}
-
-// ─── Compatibility aliases (مراجع تاريخية مسموحة) ────
-/** @deprecated Use Card */
-export type CardOut = Card;
-/** @deprecated Use Facility */
-export type FacilityOut = Facility;
-/** @deprecated Use UserOut */
-export type User = UserOut;
-/** @deprecated Use UserDetailOut */
-export type UserDetail = UserDetailOut;
-/** @deprecated Use AuditLogOut */
-export type AuditLog = AuditLogOut;
-/** @deprecated Use TokenOut */
-export type AdminLoginResponse = TokenOut;
-
-// ─── إعادة تصدير الأنواع اليدوية (api-extra) ──────────
-export * from './api-extra';
+import type { components } from "./api.openapi";
+
+/* ═══ إعادة تصدير من السكمة المرقّعة (مولّدة) ═══ */
+
+export type AdminLogin = components["schemas"]["AdminLogin"];
+export type AggregateOut = components["schemas"]["AggregateOut"];
+export type AppIssue = components["schemas"]["AppIssue"];
+export type AuditLogOut = components["schemas"]["AuditLogOut"];
+export type Body_import_products_api_v1_owner__facility_id__products_import_post = components["schemas"]["Body_import_products_api_v1_owner__facility_id__products_import_post"];
+export type Body_membership_subscribe_api_v1_membership_subscribe_post = components["schemas"]["Body_membership_subscribe_api_v1_membership_subscribe_post"];
+export type Body_pay_order_with_wallet_api_v1_orders__order_id__pay_post = components["schemas"]["Body_pay_order_with_wallet_api_v1_orders__order_id__pay_post"];
+export type Body_upload_courier_document_api_v1_courier_documents_post = components["schemas"]["Body_upload_courier_document_api_v1_courier_documents_post"];
+export type Body_upload_image_api_v1_uploads_post = components["schemas"]["Body_upload_image_api_v1_uploads_post"];
+export type Body_upload_keystore_api_v1_console_apps__build_id__keystore_post = components["schemas"]["Body_upload_keystore_api_v1_console_apps__build_id__keystore_post"];
+export type Body_upload_my_brand_asset_api_v1_owner_brand_assets_post = components["schemas"]["Body_upload_my_brand_asset_api_v1_owner_brand_assets_post"];
+export type Body_upload_public_image_api_v1_uploads_public_post = components["schemas"]["Body_upload_public_image_api_v1_uploads_public_post"];
+export type BrandUpdate = components["schemas"]["BrandUpdate"];
+export type BuildJobLaunch = components["schemas"]["BuildJobLaunch"];
+export type BuildResult = components["schemas"]["BuildResult"];
+export type CardBrief = components["schemas"]["CardBrief"];
+export type CardCreate = components["schemas"]["CardCreate"];
+export type CardOut = components["schemas"]["CardOut"];
+export type CardSourceIn = components["schemas"]["CardSourceIn"];
+export type CardUpdate = components["schemas"]["CardUpdate"];
+export type ChartPointOut = components["schemas"]["ChartPointOut"];
+export type ConsoleLogin = components["schemas"]["ConsoleLogin"];
+export type CourierAcceptTask = components["schemas"]["CourierAcceptTask"];
+export type CourierAvailabilityToggle = components["schemas"]["CourierAvailabilityToggle"];
+export type CourierCallCardOut = components["schemas"]["CourierCallCardOut"];
+export type CourierDocUploadOut = components["schemas"]["CourierDocUploadOut"];
+export type CourierLogin = components["schemas"]["CourierLogin"];
+export type CourierMeOut = components["schemas"]["CourierMeOut"];
+export type CourierMembershipCardOut = components["schemas"]["CourierMembershipCardOut"];
+export type CourierPublicOut = components["schemas"]["CourierPublicOut"];
+export type CourierPublicUpdate = components["schemas"]["CourierPublicUpdate"];
+export type CourierPulseIn = components["schemas"]["CourierPulseIn"];
+export type CourierRatingIn = components["schemas"]["CourierRatingIn"];
+export type CourierRatingOut = components["schemas"]["CourierRatingOut"];
+export type CourierRegister = components["schemas"]["CourierRegister"];
+export type CourierRegisterOut = components["schemas"]["CourierRegisterOut"];
+export type CourierStatsOut = components["schemas"]["CourierStatsOut"];
+export type CourierSuspendDecision = components["schemas"]["CourierSuspendDecision"];
+export type CourierTaskOut = components["schemas"]["CourierTaskOut"];
+export type CourierTaskProgress = components["schemas"]["CourierTaskProgress"];
+export type CourierVerifyDecision = components["schemas"]["CourierVerifyDecision"];
+export type CourierWalletCreate = components["schemas"]["CourierWalletCreate"];
+export type CourierWalletUpdate = components["schemas"]["CourierWalletUpdate"];
+export type CustomerContactCard = components["schemas"]["CustomerContactCard"];
+export type CustomerLogin = components["schemas"]["CustomerLogin"];
+export type DecisionOut = components["schemas"]["DecisionOut"];
+export type DeleteOut = components["schemas"]["DeleteOut"];
+export type DeliveryEstimateIn = components["schemas"]["DeliveryEstimateIn"];
+export type DeliveryEstimateOut = components["schemas"]["DeliveryEstimateOut"];
+export type DeliveryProblemDecision = components["schemas"]["DeliveryProblemDecision"];
+export type DestinationIn = components["schemas"]["DestinationIn"];
+export type DestinationOut = components["schemas"]["DestinationOut"];
+export type DirectAssign = components["schemas"]["DirectAssign"];
+export type EmbeddedPayVerifyRequest = components["schemas"]["EmbeddedPayVerifyRequest"];
+export type FacilityBrief = components["schemas"]["FacilityBrief"];
+export type FacilityCreate = components["schemas"]["FacilityCreate"];
+export type FacilityOut = components["schemas"]["FacilityOut"];
+export type FacilitySummaryOut = components["schemas"]["FacilitySummaryOut"];
+export type FacilityTotalsOut = components["schemas"]["FacilityTotalsOut"];
+export type FacilityType = components["schemas"]["FacilityType"];
+export type FacilityUpdate = components["schemas"]["FacilityUpdate"];
+export type FacilityWalletCreate = components["schemas"]["FacilityWalletCreate"];
+export type FacilityWalletUpdate = components["schemas"]["FacilityWalletUpdate"];
+export type FavoriteOut = components["schemas"]["FavoriteOut"];
+export type FavoriteToggleOut = components["schemas"]["FavoriteToggleOut"];
+export type FavoritesListOut = components["schemas"]["FavoritesListOut"];
+export type FcmTokenDelete = components["schemas"]["FcmTokenDelete"];
+export type FcmTokenOut = components["schemas"]["FcmTokenOut"];
+export type FcmTokenRegister = components["schemas"]["FcmTokenRegister"];
+export type FinanceSettingsIn = components["schemas"]["FinanceSettingsIn"];
+export type ForgotPasswordOut = components["schemas"]["ForgotPasswordOut"];
+export type ForgotPasswordRequest = components["schemas"]["ForgotPasswordRequest"];
+export type FreeMembershipFlagIn = components["schemas"]["FreeMembershipFlagIn"];
+export type FreeMembershipFlagOut = components["schemas"]["FreeMembershipFlagOut"];
+export type HTTPValidationError = components["schemas"]["HTTPValidationError"];
+export type LocaleCountriesResponse = components["schemas"]["LocaleCountriesResponse"];
+export type LocaleSetRequest = components["schemas"]["LocaleSetRequest"];
+export type MeOut = components["schemas"]["MeOut"];
+export type MeUpdate = components["schemas"]["MeUpdate"];
+export type MembershipInfoOut = components["schemas"]["MembershipInfoOut"];
+export type MembershipRequestOut = components["schemas"]["MembershipRequestOut"];
+export type MembershipSubscribeOut = components["schemas"]["MembershipSubscribeOut"];
+export type MerchantCourierCreate = components["schemas"]["MerchantCourierCreate"];
+export type MerchantCourierUpdate = components["schemas"]["MerchantCourierUpdate"];
+export type MessageOut = components["schemas"]["MessageOut"];
+export type MyMembershipCard = components["schemas"]["MyMembershipCard"];
+export type NotificationReviewRequest = components["schemas"]["NotificationReviewRequest"];
+export type NotificationSubmitRequest = components["schemas"]["NotificationSubmitRequest"];
+export type NotifyToggleIn = components["schemas"]["NotifyToggleIn"];
+export type NotifyToggleOut = components["schemas"]["NotifyToggleOut"];
+export type OrderCreate = components["schemas"]["OrderCreate"];
+export type OrderItemCreate = components["schemas"]["OrderItemCreate"];
+export type OrderItemOut = components["schemas"]["OrderItemOut"];
+export type OrderListOut = components["schemas"]["OrderListOut"];
+export type OrderOut = components["schemas"]["OrderOut"];
+export type OrderPayRequest = components["schemas"]["OrderPayRequest"];
+export type OrderStatusUpdate = components["schemas"]["OrderStatusUpdate"];
+export type OtpRequestIn = components["schemas"]["OtpRequestIn"];
+export type OtpResendIn = components["schemas"]["OtpResendIn"];
+export type OtpVerifyIn = components["schemas"]["OtpVerifyIn"];
+export type OwnerFacilityUpdate = components["schemas"]["OwnerFacilityUpdate"];
+export type OwnerHandoverConfirm = components["schemas"]["OwnerHandoverConfirm"];
+export type OwnerLogin = components["schemas"]["OwnerLogin"];
+export type OwnerRegister = components["schemas"]["OwnerRegister"];
+export type OwnerRegisterOut = components["schemas"]["OwnerRegisterOut"];
+export type OwnerStatsOut = components["schemas"]["OwnerStatsOut"];
+export type OwnerTaskAction = components["schemas"]["OwnerTaskAction"];
+export type OwnerTaskCardOut = components["schemas"]["OwnerTaskCardOut"];
+export type PaginatedResponse_AuditLogOut_ = components["schemas"]["PaginatedResponse_AuditLogOut_"];
+export type PaginatedResponse_CardOut_ = components["schemas"]["PaginatedResponse_CardOut_"];
+export type PaginatedResponse_FacilityOut_ = components["schemas"]["PaginatedResponse_FacilityOut_"];
+export type PaginatedResponse_NotificationOut_ = components["schemas"]["PaginatedResponse_NotificationOut_"];
+export type PaginatedResponse_OrderListOut_ = components["schemas"]["PaginatedResponse_OrderListOut_"];
+export type PaginatedResponse_PendingFacilityOut_ = components["schemas"]["PaginatedResponse_PendingFacilityOut_"];
+export type PaginatedResponse_ProductOut_ = components["schemas"]["PaginatedResponse_ProductOut_"];
+export type PaginatedResponse_ProductWithFacilityOut_ = components["schemas"]["PaginatedResponse_ProductWithFacilityOut_"];
+export type PaginatedResponse_SpecialOfferOut_ = components["schemas"]["PaginatedResponse_SpecialOfferOut_"];
+export type PaginatedResponse_UserOut_ = components["schemas"]["PaginatedResponse_UserOut_"];
+export type PaginatedResponse_dict_ = components["schemas"]["PaginatedResponse_dict_"];
+export type PartnerLinkDecision = components["schemas"]["PartnerLinkDecision"];
+export type PartnerLinkRequestIn = components["schemas"]["PartnerLinkRequestIn"];
+export type PartnerOfferEndIn = components["schemas"]["PartnerOfferEndIn"];
+export type PartnerOfferIn = components["schemas"]["PartnerOfferIn"];
+export type PartnerProductHideIn = components["schemas"]["PartnerProductHideIn"];
+export type PartnerProductIn = components["schemas"]["PartnerProductIn"];
+export type PartnerProductUpdateIn = components["schemas"]["PartnerProductUpdateIn"];
+export type PartnerSyncResultOut = components["schemas"]["PartnerSyncResultOut"];
+export type PasswordChangeRequest = components["schemas"]["PasswordChangeRequest"];
+export type PaymentOut = components["schemas"]["PaymentOut"];
+export type PayoutExecuteRequest = components["schemas"]["PayoutExecuteRequest"];
+export type PayoutOut = components["schemas"]["PayoutOut"];
+export type PendingFacilityOut = components["schemas"]["PendingFacilityOut"];
+export type PricingSettingsUpdate = components["schemas"]["PricingSettingsUpdate"];
+export type ProductAvailabilityUpdate = components["schemas"]["ProductAvailabilityUpdate"];
+export type ProductCreate = components["schemas"]["ProductCreate"];
+export type ProductDetailOut = components["schemas"]["ProductDetailOut"];
+export type ProductImportResult = components["schemas"]["ProductImportResult"];
+export type ProductOut = components["schemas"]["ProductOut"];
+export type ProductUpdate = components["schemas"]["ProductUpdate"];
+export type ProductWithFacilityOut = components["schemas"]["ProductWithFacilityOut"];
+export type ProviderTotalsOut = components["schemas"]["ProviderTotalsOut"];
+export type RadarCountOut = components["schemas"]["RadarCountOut"];
+export type RatingCreateIn = components["schemas"]["RatingCreateIn"];
+export type RatingOut = components["schemas"]["RatingOut"];
+export type RatingsListOut = components["schemas"]["RatingsListOut"];
+export type RefreshRequest = components["schemas"]["RefreshRequest"];
+export type RegionCreate = components["schemas"]["RegionCreate"];
+export type RegionOut = components["schemas"]["RegionOut"];
+export type RegionUpdate = components["schemas"]["RegionUpdate"];
+export type RegisterOut = components["schemas"]["RegisterOut"];
+export type RequestRemainingPayment = components["schemas"]["RequestRemainingPayment"];
+export type ResetPasswordRequest = components["schemas"]["ResetPasswordRequest"];
+export type RoleUpdate = components["schemas"]["RoleUpdate"];
+export type SavingsSummaryOut = components["schemas"]["SavingsSummaryOut"];
+export type SiteCreate = components["schemas"]["SiteCreate"];
+export type SiteStatus = components["schemas"]["SiteStatus"];
+export type SiteUpdate = components["schemas"]["SiteUpdate"];
+export type SpecialOfferCreate = components["schemas"]["SpecialOfferCreate"];
+export type SpecialOfferCreateOut = components["schemas"]["SpecialOfferCreateOut"];
+export type SpecialOfferFacilityBrief = components["schemas"]["SpecialOfferFacilityBrief"];
+export type SpecialOfferOut = components["schemas"]["SpecialOfferOut"];
+export type SpecialOfferProductBrief = components["schemas"]["SpecialOfferProductBrief"];
+export type TaskItemLine = components["schemas"]["TaskItemLine"];
+export type TokenOut = components["schemas"]["TokenOut"];
+export type TokenPairOut = components["schemas"]["TokenPairOut"];
+export type TopProductOut = components["schemas"]["TopProductOut"];
+export type UnreadCountOut = components["schemas"]["UnreadCountOut"];
+export type UploadOut = components["schemas"]["UploadOut"];
+export type UserCardOut = components["schemas"]["UserCardOut"];
+export type UserDetailOut = components["schemas"]["UserDetailOut"];
+export type UserOut = components["schemas"]["UserOut"];
+export type UserRegister = components["schemas"]["UserRegister"];
+export type UserRole = components["schemas"]["UserRole"];
+export type ValidationError = components["schemas"]["ValidationError"];
+export type ViewIn = components["schemas"]["ViewIn"];
+export type ViewOut = components["schemas"]["ViewOut"];
+export type WalletProviderCreate = components["schemas"]["WalletProviderCreate"];
+export type WalletProviderUpdate = components["schemas"]["WalletProviderUpdate"];
+export type app__api__v1__endpoints__admin__approval__RejectBody = components["schemas"]["app__api__v1__endpoints__admin__approval__RejectBody"];
+export type app__api__v1__endpoints__admin__membership_requests__RejectBody = components["schemas"]["app__api__v1__endpoints__admin__membership_requests__RejectBody"];
+export type app__schemas__request__finance__NotificationOut = components["schemas"]["app__schemas__request__finance__NotificationOut"];
+export type app__schemas__response__notification__NotificationOut = components["schemas"]["app__schemas__response__notification__NotificationOut"];
+
+/* ═══ أسماء تاريخية (مولّدة) ═══ */
+
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: CardOut */
+export type Card = components["schemas"]["CardOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: FacilityOut */
+export type Facility = components["schemas"]["FacilityOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: ProductOut */
+export type Product = components["schemas"]["ProductOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: RegionOut */
+export type Region = components["schemas"]["RegionOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: app__api__v1__endpoints__admin__membership_requests__RejectBody */
+export type RejectBody = components["schemas"]["app__api__v1__endpoints__admin__membership_requests__RejectBody"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: TokenOut */
+export type AdminLoginResponse = components["schemas"]["TokenOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: app__schemas__response__notification__NotificationOut */
+export type NotificationOut = components["schemas"]["app__schemas__response__notification__NotificationOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: AuditLogOut */
+export type AuditLog = components["schemas"]["AuditLogOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: UserOut */
+export type User = components["schemas"]["UserOut"];
+/** @legacy اسم تاريخي مستخدم في الكود — المصدر: UserDetailOut */
+export type UserDetail = components["schemas"]["UserDetailOut"];
+
+/* ═══ الأنواع غير الموجودة في السكمة (مُصانة يدوياً في api-extra.ts) ═══ */
+export * from "./api-extra";

@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
+  CreditCard,
   ListOrdered,
   Loader2,
   Minus,
@@ -28,20 +29,23 @@ import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import {
   DeliveryFields,
   MISSING_LOCATION_MSG,
+  type CheckoutMarket,
+  type CheckoutPaymentMethod,
+  type DeliveryMode,
 } from "@/components/public/DeliveryFields";
 import { useMe } from "@/hooks/useMe";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
+import { useDeliveryEstimate } from "@/hooks/useDeliveryEstimate";
+import { useLocaleMe } from "@/hooks/useFinance";
+import { isSaudiCountry } from "@/services/locale.service";
+import { MoneyText } from "@/components/finance/finance-ui";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
-import {
-  DELIVERY_FEE,
-  DISCOUNT_RATE,
-} from "@/lib/site-config";
-import type { DeliveryMode } from "@/components/public/DeliveryFields";
-import type { OrderOut, PaymentMethod } from "@/types/api.generated";
+import type { DeliveryEstimateOut } from "@/services/order.service";
+import type { OrderOut } from "@/types/api.generated";
 
 /**
  * نموذج منتج مُختصر لشاشة الطلب — يتوافق مع Product و ProductDetailOut
@@ -53,9 +57,10 @@ export interface CheckoutProduct {
   name: string;
   description?: string | null;
   price: string;
-  image_url: string | null;
+  /** السكمة الحية تجعلها اختيارية — تقبل undefined لتفادي تحويلات مصطنعة */
+  image_url: string | null | undefined;
   is_available: boolean;
-  available_quantity: number | null;
+  available_quantity: number | null | undefined;
 }
 
 /**
@@ -129,13 +134,74 @@ function QuantityStepper({
 
 function SuccessView({
   order,
+  market,
+  electronic,
   onClose,
 }: {
   order: OrderOut;
+  /** سوق العميل — يحدد الخطوة التالية بعد النجاح. */
+  market: CheckoutMarket;
+  /** هل اختار العميل «دفع إلكتروني» عند تأكيد الطلب؟ */
+  electronic: boolean;
   onClose: () => void;
 }) {
-  /* طلب محفظة → يوجّه العميل لشاشة الدفع لرفع إشعار التحويل */
+  /* السوق اليمني: طلب محفظة → شاشة الدفع لرفع إشعار التحويل (كما هو) */
   const isWalletOrder = order.payment_method === "wallet";
+  /* السوق السعودي + خيار إلكتروني: خطوة أخيرة — الدفع عبر مويسر.
+     عقدًا: الطلب أُنشئ payment_method="cash" — الدفع الإلكتروني
+     اختياري يُتمّ الآن أو لاحقاً من صفحة الطلب. */
+  const showElectronicNext = market === "saudi" && electronic;
+
+  if (showElectronicNext) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
+          <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
+        </span>
+        <div className="space-y-1">
+          <h3 className="text-xl font-extrabold text-foreground">تم استلام طلبك</h3>
+          <p className="text-sm text-muted-foreground">
+            رقم الطلب:{" "}
+            <span dir="ltr" className="font-bold tabular-nums text-foreground">
+              #{order.id}
+            </span>
+          </p>
+        </div>
+        <div className="w-full max-w-xs rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-right">
+          <p className="flex items-center gap-1.5 text-sm font-extrabold text-accent-ink">
+            <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
+            خطوة أخيرة — الدفع الإلكتروني
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-accent-ink/90">
+            ادفع الآن بأمان عبر مويسر (بطاقة أو Apple Pay) — بيانات بطاقتك لا
+            تلمس خوادمنا. يمكنك أيضاً الدفع كاش عند الاستلام.
+          </p>
+        </div>
+        <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
+          <Button
+            asChild
+            size="lg"
+            className="min-h-[48px] w-full rounded-full"
+            onClick={onClose}
+          >
+            <Link href={`/orders/${order.id}/pay`}>
+              <CreditCard className="h-4 w-4" aria-hidden="true" />
+              ادفع الآن
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            className="min-h-[44px] w-full rounded-full"
+            onClick={onClose}
+          >
+            كاش عند الاستلام — لاحقاً
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
       <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
@@ -217,11 +283,102 @@ function SuccessView({
 }
 
 /**
- * كسر سعر العرض الخاص — 4-5 أسطر موضّحة:
+ * سطر «رسوم التوصيل» الحي — بلا أي رقم ميت (البرونزية-3):
+ * قبل الموقع نص فقط، وبعده أجرة حية من GET /orders/delivery-estimate
+ * مع breakdown حرفي من الخادم (شفافية الرقم سياسة المنصة).
+ */
+function DeliveryFeeRow({
+  estimate,
+  hasLocation,
+  currency,
+}: {
+  estimate: {
+    data?: DeliveryEstimateOut;
+    isLoading: boolean;
+    isError: boolean;
+  };
+  hasLocation: boolean;
+  currency: string;
+}) {
+  const fee = estimate.data?.fee;
+  const hasFee = typeof fee === "number";
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">رسوم التوصيل</span>
+        {!hasLocation ? (
+          <span className="text-xs font-bold text-muted-foreground">
+            تُحسب حسب المسافة بعد تحديد موقعك
+          </span>
+        ) : estimate.isLoading && !estimate.data ? (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            جارٍ حساب الأجرة…
+          </span>
+        ) : hasFee ? (
+          <MoneyText
+            amount={fee}
+            currency={currency}
+            className="font-bold text-foreground"
+          />
+        ) : (
+          <span className="text-xs text-muted-foreground">تُحسب عند تأكيد الطلب</span>
+        )}
+      </div>
+
+      {/* breakdown حرفي من الخادم — شفافية التسعير */}
+      {hasFee && estimate.data?.breakdown && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {estimate.data.breakdown}
+        </p>
+      )}
+      {estimate.data?.imprecise_address && (
+        <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+          عنوان غير محدد بدقة
+        </span>
+      )}
+      {estimate.data?.note && (
+        <p className="text-[11px] leading-relaxed text-accent-foreground">
+          {estimate.data.note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** سطر الإجمالي + تنبيه التأكيد الخادمي (التقدير استرشادي §7-9). */
+function TotalRow({
+  total,
+  currency,
+}: {
+  total: number;
+  currency: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between border-t pt-2 text-base font-extrabold">
+        <span className="text-foreground">الإجمالي</span>
+        <MoneyText
+          amount={total}
+          currency={currency}
+          strong
+          className="text-primary"
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        الإجمالي النهائي يؤكده الخادم عند إنشاء الطلب
+      </p>
+    </div>
+  );
+}
+
+/**
+ * كسر سعر العرض الخاص — 4-5 أسطر موضّحة (كل المبالغ بعملة السوق الحية):
  *  - السعر الأصلي (مشطوب)
  *  - خصم العرض الخاص
  *  - خصم العضوية (للعضو فقط)
- *  - رسوم التوصيل
+ *  - رسوم التوصيل (حية — أو نص بلا رقم قبل تحديد الموقع)
  *  - الإجمالي
  */
 function SpecialOfferPriceBreakdown({
@@ -231,10 +388,12 @@ function SpecialOfferPriceBreakdown({
   isMember,
   quantity,
   subtotal,
-  delivery,
+  estimate,
+  hasLocation,
   total,
   offerRate,
   facilityRate,
+  currency,
 }: {
   base: number;
   offerDiscountPerUnit: number;
@@ -242,10 +401,16 @@ function SpecialOfferPriceBreakdown({
   isMember: boolean;
   quantity: number;
   subtotal: number;
-  delivery: number;
+  estimate: {
+    data?: DeliveryEstimateOut;
+    isLoading: boolean;
+    isError: boolean;
+  };
+  hasLocation: boolean;
   total: number;
   offerRate: number;
   facilityRate: number;
+  currency: string;
 }) {
   const baseTotal = base * quantity;
   const offerDiscountTotal = offerDiscountPerUnit * quantity;
@@ -269,61 +434,54 @@ function SpecialOfferPriceBreakdown({
       {/* السعر الأصلي */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">السعر الأصلي</span>
-        <span
-          className="text-xs font-medium text-muted-foreground line-through tabular-nums"
-          dir="ltr"
-        >
-          {formatCurrency(baseTotal)}
-        </span>
+        <MoneyText
+          amount={baseTotal}
+          currency={currency}
+          className="text-xs font-medium text-muted-foreground line-through"
+        />
       </div>
 
       {/* خصم العرض الخاص */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">خصم العرض الخاص</span>
-        <span
-          className="font-bold text-primary tabular-nums"
-          dir="ltr"
-        >
-          −{formatCurrency(offerDiscountTotal)}
-        </span>
+        <MoneyText
+          amount={-offerDiscountTotal}
+          currency={currency}
+          className="font-bold text-primary"
+        />
       </div>
 
       {/* خصم العضوية — للعضو فقط */}
       {isMember && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">خصم العضوية</span>
-          <span
-            className="font-bold text-success tabular-nums"
-            dir="ltr"
-          >
-            −{formatCurrency(facilityDiscountTotal)}
-          </span>
+          <MoneyText
+            amount={-facilityDiscountTotal}
+            currency={currency}
+            className="font-bold text-success"
+          />
         </div>
       )}
 
       {/* الإجمالي الفرعي */}
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">الإجمالي الفرعي</span>
-        <span className="font-bold text-foreground tabular-nums" dir="ltr">
-          {formatCurrency(subtotal)}
-        </span>
+        <MoneyText
+          amount={subtotal}
+          currency={currency}
+          className="font-bold text-foreground"
+        />
       </div>
 
-      {/* رسوم التوصيل */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">رسوم التوصيل</span>
-        <span className="font-bold text-foreground tabular-nums" dir="ltr">
-          {formatCurrency(delivery)}
-        </span>
-      </div>
+      {/* رسوم التوصيل — حية من الخادم أو نص بلا رقم */}
+      <DeliveryFeeRow
+        estimate={estimate}
+        hasLocation={hasLocation}
+        currency={currency}
+      />
 
       {/* الإجمالي */}
-      <div className="flex items-center justify-between border-t pt-2 text-base font-extrabold">
-        <span className="text-foreground">الإجمالي</span>
-        <span className="text-primary tabular-nums" dir="ltr">
-          {formatCurrency(total)}
-        </span>
-      </div>
+      <TotalRow total={total} currency={currency} />
     </div>
   );
 }
@@ -345,27 +503,55 @@ export function CheckoutSheet({
   const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cash");
   const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
+  /* هل نية الطلب الأخيرة كانت «دفع إلكتروني»؟ — لبطاقة الخطوة الأخيرة */
+  const [successElectronic, setSuccessElectronic] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  /* بوابة السوق — useLocaleMe مفعّل دائمًا داخل الشيت.
+     عند فشل/تأخر الجلب: نعتبرها يمني (السلوك الحالي) — hook يعيد المحاولة مرة. */
+  const localeMe = useLocaleMe(true);
+  const market: CheckoutMarket =
+    localeMe.isSuccess && localeMe.data != null && isSaudiCountry(localeMe.data.country_code)
+      ? "saudi"
+      : "yemen";
+  const isSaudiMarket = market === "saudi";
+
   const isMember = !!me.data?.membership?.is_active;
-  const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
+  /* نسبة الخصم حية من حساب العميل — لا ثابت تسعير في الكود (برونزية-3) */
+  const memberRate = me.data?.membership?.discount_rate;
   const priceNum = parseFloat(product.price) || 0;
+
+  /* طريقة الاستلام قبل حساب السعر — وضع الاستلام بلا تسعير توصيل */
+  const isHandover = deliveryMode === "handover";
+
+  /* التسعير الحي للتوصيل — نفس استعلام DeliveryFields (مفتاح مشترك:
+     طلب شبكة واحد مهما تعددت الأسطح). debounce 700ms داخل الـhook. */
+  const estimate = useDeliveryEstimate(
+    isHandover ? null : product.facility_id,
+    isHandover ? null : lat,
+    isHandover ? null : lng
+  );
+  const hasLocation = lat != null && lng != null;
+
+  /* عملة السوق — المبالغ من الخادم بعملة السوق (SAR للسعودية) */
+  const currency = isSaudiMarket ? "SAR" : "YER";
 
   // حساب السعر — يستعمل أسعار العرض الخاص إن وُجدت
   const unitPrice = specialOffer
     ? isMember
       ? specialOffer.member_price
       : specialOffer.non_member_price
-    : isMember
+    : isMember && memberRate != null
       ? priceNum * (1 - memberRate / 100)
       : priceNum;
   const subtotal = unitPrice * quantity;
-  const delivery = DELIVERY_FEE;
-  const total = subtotal + delivery;
+  /* أجرة التوصيل الحية عند توفرها — لا ثابت، ولا رقم افتراضي */
+  const deliveryFee = isHandover ? null : (estimate.data?.fee ?? null);
+  const total = subtotal + (deliveryFee ?? 0);
 
   // قيم العرض الخاصة لكسر السعر (لكل وحدة)
   const soBase = specialOffer?.base_price ?? 0;
@@ -383,11 +569,11 @@ export function CheckoutSheet({
 
   /* §6-3 — الموقع والعنوان إلزاميان في وضع التوصيل (الافتراضي).
      الاستلام من المتجر (تسليم يدوي) يرفع الإلزامية — UI فقط. */
-  const isHandover = deliveryMode === "handover";
   const locationMissing = !isHandover && (lat == null || lng == null);
   const addressMissing = !isHandover && address.trim().length === 0;
   const deliveryIncomplete = locationMissing || addressMissing;
-  /* المحفظة تتطلب اختيار محفظة المتجر أولاً (422: «اختر محفظة الدفع أولاً») */
+  /* المحفظة تتطلب اختيار محفظة المتجر أولاً (422: «اختر محفظة الدفع أولاً»)
+     — السوق اليمني فقط (المحفظة مخفية في السعودية) */
   const walletMissing = paymentMethod === "wallet" && paymentWalletId == null;
 
   const maxQty =
@@ -408,6 +594,7 @@ export function CheckoutSheet({
       setPaymentWalletId(null);
       setDeliveryMode("delivery");
       setSuccessOrder(null);
+      setSuccessElectronic(false);
       setErrorMsg(null);
     }, 250);
     return () => clearTimeout(t);
@@ -429,6 +616,10 @@ export function CheckoutSheet({
       return;
     }
     setErrorMsg(null);
+    /* عقد السوقين: "electronic" قيمة واجهة حصراً — الطلب يُرسل دائماً
+       payment_method="cash" في المسار الإلكتروني، والدفع الفعلي يحدث
+       لاحقاً عبر مويسر من /orders/{id}/pay (لا "electronic" للخادم). */
+    const serverPaymentMethod = paymentMethod === "electronic" ? "cash" : paymentMethod;
     createOrder.mutate(
       {
         facility_id: product.facility_id,
@@ -436,15 +627,16 @@ export function CheckoutSheet({
         delivery_lat: isHandover && lat == null ? null : lat,
         delivery_lng: isHandover && lng == null ? null : lng,
         delivery_address: address.trim() || null,
-        payment_method: paymentMethod,
+        payment_method: serverPaymentMethod,
         payment_wallet_id:
-          paymentMethod === "wallet" ? paymentWalletId : null,
+          serverPaymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
         special_offer_id: specialOffer?.id ?? null,
       },
       {
         onSuccess: (data) => {
           setSuccessOrder(data);
+          setSuccessElectronic(paymentMethod === "electronic");
           /* الجولة 17 — اهتزاز نجاح مزدوج (إحساس Native عند تأكيد الطلب) */
           haptic("success");
           toast({ title: "تم استلام طلبك بنجاح" });
@@ -490,7 +682,12 @@ export function CheckoutSheet({
         </SheetHeader>
 
         {successOrder ? (
-          <SuccessView order={successOrder} onClose={handleClose} />
+          <SuccessView
+            order={successOrder}
+            market={market}
+            electronic={successElectronic}
+            onClose={handleClose}
+          />
         ) : (
           <div className="flex flex-1 flex-col overflow-y-auto no-mobile-scrollbar">
             {/* ملخص الوجبة */}
@@ -553,7 +750,7 @@ export function CheckoutSheet({
               </div>
             </section>
 
-            {/* حساب السعر */}
+            {/* حساب السعر — كل المبالغ بعملة السوق الحية (برونزية-3/5) */}
             <section className="space-y-3 border-b p-4" aria-label="حساب السعر">
               {specialOffer ? (
                 <SpecialOfferPriceBreakdown
@@ -563,47 +760,56 @@ export function CheckoutSheet({
                   isMember={isMember}
                   quantity={quantity}
                   subtotal={subtotal}
-                  delivery={delivery}
+                  estimate={estimate}
+                  hasLocation={hasLocation && !isHandover}
                   total={total}
                   offerRate={specialOffer.offer_discount_rate}
                   facilityRate={specialOffer.facility_discount_rate}
+                  currency={currency}
                 />
               ) : (
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">سعر الوحدة</span>
-                    {isMember ? (
+                    {isMember && memberRate != null ? (
                       <span className="flex items-center gap-2">
-                        <span
+                        <MoneyText
+                          amount={priceNum}
+                          currency={currency}
                           className="text-xs text-muted-foreground line-through"
-                          dir="ltr"
-                        >
-                          {formatCurrency(priceNum)}
-                        </span>
-                        <span
+                        />
+                        <MoneyText
+                          amount={unitPrice}
+                          currency={currency}
                           className="font-bold text-foreground"
-                          dir="ltr"
-                        >
-                          {formatCurrency(unitPrice)}
-                        </span>
+                        />
                       </span>
                     ) : (
-                      <span className="font-bold text-foreground" dir="ltr">
-                        {formatCurrency(priceNum)}
-                      </span>
+                      <MoneyText
+                        amount={unitPrice}
+                        currency={currency}
+                        className="font-bold text-foreground"
+                      />
                     )}
                   </div>
 
-                  {isMember ? (
+                  {isMember && memberRate != null ? (
                     <div className="flex items-center justify-between rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
                       <span className="inline-flex items-center gap-1 font-bold">
                         <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                         خصم {memberRate}%
                       </span>
-                      <span className="font-bold" dir="ltr">
-                        −{formatCurrency(priceNum - unitPrice)}
-                      </span>
+                      <MoneyText
+                        amount={priceNum - unitPrice}
+                        currency={currency}
+                        className="font-bold"
+                      />
                     </div>
+                  ) : isMember ? (
+                    /* عضو بلا نسبة حية من الخادم — لا نخمّن رقم خصم */
+                    <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+                      خصم عضويتك يُطبَّق تلقائياً من الخادم عند تأكيد الطلب
+                    </p>
                   ) : (
                     <button
                       type="button"
@@ -612,7 +818,7 @@ export function CheckoutSheet({
                     >
                       <span className="inline-flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-accent-ink" aria-hidden="true" />
-                        اشترك في عضوية توفير لخصم {DISCOUNT_RATE}%
+                        اشترك في عضوية توفير لخصم حصري
                       </span>
                       <span className="font-bold text-accent-ink">اشترك</span>
                     </button>
@@ -620,27 +826,25 @@ export function CheckoutSheet({
 
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">الإجمالي الفرعي</span>
-                    <span className="font-bold text-foreground" dir="ltr">
-                      {formatCurrency(subtotal)}
-                    </span>
+                    <MoneyText
+                      amount={subtotal}
+                      currency={currency}
+                      className="font-bold text-foreground"
+                    />
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">رسوم التوصيل</span>
-                    <span className="font-bold text-foreground" dir="ltr">
-                      {formatCurrency(delivery)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between border-t pt-2 text-base font-extrabold">
-                    <span className="text-foreground">الإجمالي</span>
-                    <span className="text-primary" dir="ltr">
-                      {formatCurrency(total)}
-                    </span>
-                  </div>
+                  <DeliveryFeeRow
+                    estimate={estimate}
+                    hasLocation={hasLocation && !isHandover}
+                    currency={currency}
+                  />
+                  <TotalRow total={total} currency={currency} />
                 </>
               )}
             </section>
 
-            {/* موقع التوصيل + طريقة الدفع + ملاحظات — حقول مشتركة (2-c) */}
+            {/* موقع التوصيل + طريقة الدفع + ملاحظات — حقول مشتركة (2-c)
+                market يحدد بطاقات الدفع: سعودي → كاش + إلكتروني؛
+                يمني → كاش + محفظة (بلا أي أثر إلكتروني) */}
             <DeliveryFields
               lat={lat}
               lng={lng}
@@ -664,6 +868,7 @@ export function CheckoutSheet({
               onDeliveryModeChange={setDeliveryMode}
               disabled={outOfStock}
               facilityId={product.facility_id}
+              market={market}
             />
 
             {/* رسالة الخطأ */}
@@ -723,6 +928,11 @@ export function CheckoutSheet({
                   <>
                     <Wallet className="h-4 w-4" aria-hidden="true" />
                     تأكيد الطلب والدفع بالمحفظة
+                  </>
+                ) : paymentMethod === "electronic" ? (
+                  <>
+                    <CreditCard className="h-4 w-4" aria-hidden="true" />
+                    تأكيد الطلب — الدفع بعد التأكيد
                   </>
                 ) : (
                   <>

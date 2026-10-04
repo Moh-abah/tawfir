@@ -74,7 +74,7 @@ export function SavingsSummaryCard({
       : total_savings > membership_amount && !is_free_membership
         ? `وفّرت أكثر من قيمة اشتراكك بـ ${roi_percent}%! العضوية تستحق التجديد 🎉`
         : is_free_membership && total_savings > 0
-          ? "عضويتك المجانية توفّر لك — استمتع بالخصم 30%!"
+          ? "عضويتك المجانية توفّر لك — استمتع بالخصومات الحصرية!"
           : "استمر في الطلب لزيادة توفيرك";
 
   const containerAnim = prefersReduced

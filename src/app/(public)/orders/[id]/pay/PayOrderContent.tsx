@@ -1,0 +1,540 @@
+"use client";
+
+/**
+ * PayOrderContent — شاشة دفع الطلب إلكترونيًا /orders/{id}/pay
+ * ═══════════════════════════════════════════════════════════════
+ * بوّابة العرض (بترتيب حاسم):
+ *  1. حارس الجلسة: عميل غير مسجّل → /login?next=/orders/{id}/pay.
+ *  2. بوابة السوق: غير سعودي → «الدفع الإلكتروني متاح للسوق السعودي
+ *     فقط» — السوق اليمني كاش ولا يرى أي نموذج دفع إطلاقاً.
+ *  3. «مدفوع سابقًا»: دفعة paid موجودة → لا إعادة دفع.
+ *  4. وضع البوابة: embedded=false أو mode≠embedded → «تحت الصيانة»
+ *     (الدفع عند الاستلام متاح دائماً) — بلا نموذج.
+ *  5. embedded → ملخص المبلغ (MoneyText بعملة الطلب SAR) + نموذج
+ *     مويسر المدمج + ملاحظة أمان. المبلغ يأتي حياً من الطلب — لا
+ *     أرقام تسعير في الكود (برونزية-3).
+ *  6. جوال iOS + وسيلة applepay → زر Apple Pay أنيق يفتح نفس
+ *     الشاشة بوضع «الورقة النظيفة» (?sf=1) داخل SFSafariViewController
+ *     — متصفح داخل التطبيق (لا خروج) لأن ApplePaySession لا يعمل
+ *     داخل WKWebView (docs/MOBILE-PAYMENT-DECISIONS.md — قرار 3).
+ *  7. وضع الورقة (?sf=1) ← صفحة دفع نظيفة بلا غلاف — تُفتح من
+ *     التطبيق فقط وتستلم معاملات النموذج علنية الطبيعة (pk/مبلغ/
+ *     وسائل) — سلطة التحقق النهائية للباك إند حصراً (verify).
+ */
+
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  ExternalLink,
+  Loader2,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScreenHeader } from "@/components/shared/ScreenHeader";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { MoyasarEmbeddedForm } from "@/components/finance/MoyasarEmbeddedForm";
+import { MoneyText } from "@/components/finance/finance-ui";
+import { useOrderDetail } from "@/hooks/useOrderDetail";
+import {
+  useFinanceOrderPayments,
+  useLocaleMe,
+  usePaymentsConfig,
+} from "@/hooks/useFinance";
+import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { isSaudiCountry } from "@/services/locale.service";
+import {
+  nativeApplePayAvailable,
+  openApplePaySheet,
+  setApplePaySheetContext,
+  useSafariSheetParams,
+} from "@/lib/payment-bridge";
+
+export default function PayOrderContent({ orderId }: { orderId: string }) {
+  /* معرّف الطلب داخل Suspense احتياطاً (نمط الصفحات الداخلية في التطبيق).
+     PayEntry نقطة الفصل: وضع الورقة النظيفة يُفحص هنا (بعد useSearchParams
+     الذي يشتغل تحت Suspense بلا اختلاف ترطيب) قبل أي حارس جلسة. */
+  return (
+    <Suspense fallback={null}>
+      <PayEntry orderId={orderId} />
+    </Suspense>
+  );
+}
+
+function PayEntry({ orderId }: { orderId: string }) {
+  const searchParams = useSearchParams();
+  if (searchParams.get("sf") === "1") {
+    return <SafariSheetPay />;
+  }
+  return <PayRoute orderId={orderId} />;
+}
+
+function PayRoute({ orderId }: { orderId: string }) {
+  const router = useRouter();
+  const { accessToken, hydrated } = useCustomerAuth();
+
+  const numericId = useMemo(() => {
+    const n = Number(orderId);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [orderId]);
+  const loginHref = `/login?next=${encodeURIComponent(`/orders/${orderId}/pay`)}`;
+
+  /* حارس الجلسة — بعد ترطيب التوكن فقط (لا توجيه أثناء الترطيب) */
+  useEffect(() => {
+    if (hydrated && !accessToken) {
+      router.replace(loginHref);
+    }
+  }, [hydrated, accessToken, router, loginHref]);
+
+  if (!hydrated || !accessToken) {
+    return (
+      <>
+        <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
+        <div className="mx-auto max-w-2xl space-y-4 px-4 py-8 sm:px-6">
+          <Skeleton className="h-28 w-full rounded-2xl" />
+          <Skeleton className="h-48 w-full rounded-2xl" />
+          {!hydrated ? null : (
+            <p className="text-center text-sm text-muted-foreground">
+              جارٍ تحويلك لتسجيل الدخول…
+            </p>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  if (numericId === null) {
+    return (
+      <>
+        <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
+        <ErrorState
+          title="معرّف الطلب غير صالح"
+          message="تعذّر تحديد الطلب المطلوب."
+        />
+      </>
+    );
+  }
+
+  return <PayInner orderId={numericId} />;
+}
+
+function PayInner({ orderId }: { orderId: number }) {
+  const orderQuery = useOrderDetail(orderId);
+  const paymentsQuery = useFinanceOrderPayments(orderId);
+  const locale = useLocaleMe(true);
+
+  /* بوابة السوق — لا نموذج دفع قبل حسم البلد (الافتراضي غير السعودي ممنوع) */
+  const marketKnown = locale.isSuccess;
+  const isSaudi = locale.data != null && isSaudiCountry(locale.data.country_code);
+  const configEnabled = marketKnown && isSaudi;
+  const configQuery = usePaymentsConfig(configEnabled);
+
+  const hasPaid = paymentsQuery.data?.some((p) => p.status === "paid") ?? false;
+
+  /* ═══ Apple Pay على iOS (جولة الجوال v6) ═══ حالة الورقة — hooks
+     في الأعلى دائماً (قواعد hooks) قبل أي عائد مبكر. */
+  const [sheetState, setSheetState] = useState<"idle" | "opening">("idle");
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
+  /* ── 1) بوابة السوق: تحميل/خطأ/غير سعودي ── */
+  if (locale.isPending) {
+    return (
+      <Shell>
+        <PaySkeleton />
+      </Shell>
+    );
+  }
+  if (locale.isError) {
+    return (
+      <Shell>
+        <ErrorState
+          title="تعذّر تحديد سوقك"
+          message={locale.error?.message || "تحقق من اتصالك ثم أعد المحاولة."}
+          onRetry={() => locale.refetch()}
+        />
+      </Shell>
+    );
+  }
+  if (!isSaudi) {
+    return (
+      <Shell>
+        <GateCard
+          icon={<Banknote className="h-8 w-8 text-primary" aria-hidden="true" />}
+          title="الدفع الإلكتروني متاح للسوق السعودي فقط"
+          body="طلبك في سوق يعتمد الدفع نقداً عند الاستلام (كاش) — أو التحويل عبر محفظة المتجر من شاشة الدفع الخاصة بالطلب."
+        >
+          <Button asChild className="min-h-[44px] gap-2 rounded-full">
+            <Link href={`/orders/${orderId}`}>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              العودة إلى الطلب
+            </Link>
+          </Button>
+        </GateCard>
+      </Shell>
+    );
+  }
+
+  /* ── 2) فحص «مدفوع سابقًا» — ننتظر حسم الدفعات قبل أي نموذج دفع ── */
+  if (paymentsQuery.isLoading) {
+    return (
+      <Shell>
+        <PaySkeleton />
+      </Shell>
+    );
+  }
+  if (hasPaid) {
+    return (
+      <Shell>
+        <GateCard
+          icon={<CheckCircle2 className="h-10 w-10 text-success" aria-hidden="true" />}
+          title="مدفوع سابقًا"
+          body="هذا الطلب مدفوع بالكامل — لا حاجة لأي دفع إضافي. يمكنك متابعة حالة الطلب من صفحة الطلب."
+        >
+          <Button asChild className="min-h-[44px] gap-2 rounded-full">
+            <Link href={`/orders/${orderId}`}>متابعة الطلب</Link>
+          </Button>
+        </GateCard>
+      </Shell>
+    );
+  }
+
+  /* ── 3) تفاصيل الطلب — مصدر المبلغ الحي ── */
+  if (orderQuery.isPending) {
+    return (
+      <Shell>
+        <PaySkeleton />
+      </Shell>
+    );
+  }
+  if (orderQuery.isError || !orderQuery.data) {
+    return (
+      <Shell>
+        <ErrorState
+          title="تعذّر تحميل الطلب"
+          message={
+            orderQuery.error?.message ||
+            "تحقق من اتصالك بالإنترنت ثم أعد المحاولة."
+          }
+          onRetry={() => orderQuery.refetch()}
+        />
+      </Shell>
+    );
+  }
+
+  const order = orderQuery.data;
+  /* عملة الطلب في السوق السعودي موثقة: ريال سعودي (SAR) */
+  const orderCurrency = "SAR";
+
+  /* ── 4) وضع البوابة — direct أو تعطيل embedded → صيانة ── */
+  if (configQuery.isPending) {
+    return (
+      <Shell>
+        <PaySkeleton />
+      </Shell>
+    );
+  }
+  if (configQuery.isError || !configQuery.data) {
+    return (
+      <Shell>
+        <ErrorState
+          title="تعذّر تحميل إعدادات الدفع"
+          message={
+            configQuery.error?.message ||
+            "تحقق من اتصالك بالإنترنت ثم أعد المحاولة."
+          }
+          onRetry={() => configQuery.refetch()}
+        />
+      </Shell>
+    );
+  }
+  const config = configQuery.data;
+  const embeddedReady = config.embedded === true && config.mode === "embedded";
+
+  /* داخل تطبيق iOS لا يتوفر ApplePaySession في الـWKWebView — يعرض
+     نموذج مويسر البطاقات/STC Pay فقط، وزر Apple Pay أدناه يفتح
+     نفس الشاشة بوضع الورقة النظيفة داخل SFSafariViewController
+     (متصفح داخل التطبيق — المستخدم يعود بـ«تم» بلا خروج حقيقي). */
+  const applePayReady = embeddedReady && nativeApplePayAvailable(config.methods);
+
+  const handleApplePay = async () => {
+    if (sheetState !== "idle") return;
+    setSheetError(null);
+    setSheetState("opening");
+    setApplePaySheetContext({
+      amountMajor: order.total,
+      orderId: order.id,
+      publishableKey: config.publishable_key,
+      methods: config.methods,
+    });
+    const res = await openApplePaySheet(order.id);
+    if (res.closed) {
+      /* أُغلقت الورقة (بأي نتيجة) — الحالة الحقيقية من الخادم حصراً:
+         إن تم الدفع تنقلب الشاشة لبطاقة «مدفوع سابقًا» تلقائياً. */
+      setSheetState("idle");
+      void paymentsQuery.refetch();
+      void orderQuery.refetch();
+    } else {
+      setSheetState("idle");
+      setSheetError(res.error ?? "تعذّر فتح نافذة الدفع الآمنة — أعد المحاولة");
+    }
+  };
+
+  if (!embeddedReady) {
+    return (
+      <Shell>
+        <GateCard
+          icon={<Wrench className="h-8 w-8 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
+          title="الدفع الإلكتروني تحت الصيانة"
+          body="بوابة الدفع الإلكتروني غير متاحة حالياً من إدارة المنصة. الدفع عند الاستلام (كاش) متاح دائماً — والمتابعة إلى طلبك لا تتأثر."
+        >
+          <Button asChild variant="outline" className="min-h-[44px] gap-2 rounded-full">
+            <Link href={`/orders/${orderId}`}>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              العودة إلى الطلب
+            </Link>
+          </Button>
+        </GateCard>
+      </Shell>
+    );
+  }
+
+  /* ── 5) النموذج المدمج — المبلغ حي من الطلب والمفتاح من الإعدادات ── */
+  return (
+    <Shell>
+      <div className="space-y-5">
+        {/* ملخص المبلغ — بيانات حية من الخادم حصراً */}
+        <section
+          className="rounded-2xl border border-primary/25 bg-primary/5 p-5"
+          aria-label="ملخص المبلغ المطلوب"
+        >
+          <p className="text-sm font-bold text-muted-foreground">
+            المبلغ المطلوب لطلب رقم{" "}
+            <span dir="ltr" className="tabular-nums text-foreground">
+              #{order.id}
+            </span>
+          </p>
+          <div className="mt-1 text-3xl font-black text-primary">
+            <MoneyText amount={order.total} currency={orderCurrency} strong />
+          </div>
+          <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between">
+              <span>المجموع الفرعي</span>
+              <MoneyText amount={order.subtotal} currency={orderCurrency} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span>رسوم التوصيل</span>
+              <MoneyText amount={order.delivery_fee} currency={orderCurrency} />
+            </div>
+          </div>
+          {typeof order.distance_km === "number" &&
+            typeof order.billed_km === "number" &&
+            typeof order.per_km_price === "number" && (
+              <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                شفافية الأجرة:{" "}
+                <span dir="ltr" className="tabular-nums">
+                  {order.distance_km} كم
+                </span>{" "}
+                — تُحتسب{" "}
+                <span dir="ltr" className="tabular-nums">
+                  {order.billed_km} كم × {order.per_km_price}
+                </span>
+              </p>
+            )}
+          {order.address_imprecise ? (
+            <span className="mt-2 inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+              عنوان غير محدد بدقة
+            </span>
+          ) : null}
+        </section>
+
+        {/* نموذج مويسر المدمج — بيانات البطاقة لا تمر عبر خوادمنا */}
+        <section aria-label="نموذج الدفع الآمن">
+          {applePayReady ? (
+            <div className="mb-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => void handleApplePay()}
+                disabled={sheetState !== "idle"}
+                className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-black px-4 text-xl font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60"
+                aria-label="الدفع عبر Apple Pay — يفتح نافذة دفع آمنة داخل التطبيق"
+              >
+                {sheetState === "opening" ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <span dir="ltr">
+                    <span aria-hidden="true">&#63743;</span> Pay
+                  </span>
+                )}
+              </button>
+              <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
+                <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                يفتح داخل التطبيق — تعود فورًا بضغطة «تم»
+              </p>
+              {sheetError ? (
+                <p role="alert" className="text-center text-xs font-bold text-destructive">
+                  {sheetError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          <MoyasarEmbeddedForm
+            amountMajor={order.total}
+            orderId={order.id}
+            publishableKey={config.publishable_key}
+            methods={config.methods}
+          />
+          <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
+            بيانات بطاقتك لا تلمس خوادمنا — تُعالج داخل بوابة مويسر المشفّرة،
+            ونحن نتحقق من الدفعة تلقائياً بعد إتمامها.
+          </p>
+        </section>
+
+        <Button asChild variant="outline" className="min-h-[44px] w-full gap-2 rounded-full">
+          <Link href={`/orders/${orderId}`}>
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            رجوع إلى الطلب
+          </Link>
+        </Button>
+      </div>
+    </Shell>
+  );
+}
+
+/* ─── عناصر عرض مشتركة ──────────────────────────────────── */
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
+      <div className="mx-auto max-w-2xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
+        {children}
+      </div>
+    </>
+  );
+}
+
+function PaySkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-28 w-full rounded-2xl" />
+      <Skeleton className="h-56 w-full rounded-2xl" />
+      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        جارٍ تحضير شاشة الدفع…
+      </div>
+    </div>
+  );
+}
+
+function GateCard({
+  icon,
+  title,
+  body,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  body: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-border/60 bg-card p-6 text-center shadow-soft">
+      {icon}
+      <h2 className="text-lg font-extrabold text-foreground">{title}</h2>
+      <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+        {body}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/* ─── وضع «الورقة النظيفة» (?sf=1) — Apple Pay داخل تطبيق iOS ────── */
+
+/**
+ * SafariSheetPay — شاشة الدفع النظيفة التي تُفتح داخل
+ * SFSafariViewController من زر Apple Pay في التطبيق.
+ * • بلا جلسة عمداً: سياق الورقة معزول عن جلسة التطبيق — المعاملات
+ *   (المبلغ/المفتاح العلني/الوسائل) تأتي من الـURL علنية الطبيعة.
+ * • الأمن غير متأثر: المبلغ هنا استرشادي للنموذج فقط — التحقق
+ *   النهائي (مبلغ/عملة/طلب) في الباك إند عبر pay/verify حصراً،
+ *   وأي عبث يُنتج دفعة مرفوضة لا طلباً مدفوعاً.
+ * • SSR/الترطيب: المعاملات تُقرأ بعد الجبل فقط (بلا اختلاف ترطيب).
+ */
+function SafariSheetPay() {
+  /* null = خادم/لم تُرطَّب أو ليس وضع ورقة — حالة محايدة مطابقة للخادم */
+  const params = useSafariSheetParams();
+
+  const ready =
+    params != null &&
+    params.amountMajor != null &&
+    params.orderId != null &&
+    params.publishableKey != null &&
+    params.methods.length > 0;
+
+  return (
+    <div
+      className="mx-auto min-h-screen w-full max-w-md bg-background px-4 pb-10 pt-8"
+      dir="rtl"
+    >
+      <header className="mb-5 flex items-center justify-center gap-2">
+        <ShieldCheck className="h-5 w-5 text-success" aria-hidden="true" />
+        <h1 className="text-base font-extrabold text-foreground">
+          توفير — دفع آمن عبر مويسر
+        </h1>
+      </header>
+
+      {params === null || !ready ? (
+        params != null ? (
+          <div
+            role="alert"
+            className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-center text-sm leading-relaxed text-destructive"
+          >
+            رابط الدفع غير مكتمل — أغلق هذه النافذة واضغط زر Apple Pay من
+            شاشة الدفع داخل التطبيق من جديد.
+          </div>
+        ) : (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            جارٍ تجهيز نموذج الدفع…
+          </div>
+        )
+      ) : (
+        <>
+          <div className="mb-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 text-center">
+            <p className="text-xs font-bold text-muted-foreground">
+              المبلغ المطلوب لطلب رقم{" "}
+              <span dir="ltr" className="tabular-nums">
+                #{params.orderId}
+              </span>
+            </p>
+            <div className="mt-1 text-2xl font-black text-primary">
+              <MoneyText
+                amount={params.amountMajor as number}
+                currency="SAR"
+                strong
+              />
+            </div>
+          </div>
+          <MoyasarEmbeddedForm
+            amountMajor={params.amountMajor as number}
+            orderId={params.orderId as number}
+            publishableKey={params.publishableKey as string}
+            methods={params.methods}
+          />
+          <p className="mt-4 flex items-start justify-center gap-2 text-[11px] leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
+            بعد إتمام الدفع أغلق هذه النافذة بـ«تم» — ستظهر حالة الطلب
+            محدّثة داخل التطبيق فورًا.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}

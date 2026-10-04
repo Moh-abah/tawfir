@@ -252,6 +252,19 @@ export default function CourierProfilePage() {
         </dl>
       </section>
 
+      {/* المالية والمستحقات — جولة v2 (Task 4-c) */}
+      <Button
+        asChild
+        variant="outline"
+        size="lg"
+        className="h-13 w-full gap-2 rounded-2xl native-tap border-primary/30 text-primary hover:bg-primary/10"
+      >
+        <Link href="/courier/finance" aria-label="فتح المالية والمستحقات">
+          <Banknote className="h-5 w-5" aria-hidden="true" />
+          المالية والمستحقات — رصيدي ووجهات الصرف
+        </Link>
+      </Button>
+
       {/* محافظي — جولة المحافظ (أجور التوصيل) */}
       <Button
         asChild

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import {
   RefreshCcw,
   MoreHorizontal,
+  Bike,
   ShieldCheck,
   UserIcon,
   Store,
@@ -60,24 +61,28 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin: "\u0645\u0634\u0631\u0641",
   owner: "\u0645\u0627\u0644\u0643",
   customer: "\u0639\u0645\u064a\u0644",
+  courier: "\u0645\u0646\u062f\u0648\u0628",
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
   admin: "bg-primary/15 text-primary border-primary/25 hover:bg-primary/15",
   owner: "bg-accent/15 text-accent-ink border-accent/25 hover:bg-accent/15",
   customer: "bg-secondary/15 text-secondary border-secondary/25 hover:bg-secondary/15",
+  courier: "bg-teal-brand/15 text-teal-brand border-teal-brand/25 hover:bg-teal-brand/15",
 };
 
 const DIALOG_ROLE_BADGE_COLORS: Record<UserRole, string> = {
   customer: "bg-secondary/10 text-secondary",
   owner: "bg-accent/10 text-accent-ink",
   admin: "bg-primary/10 text-primary",
+  courier: "bg-teal-brand/10 text-teal-brand",
 };
 
 const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
   admin: <ShieldCheck className="h-3.5 w-3.5" />,
   owner: <Store className="h-3.5 w-3.5" />,
   customer: <UserIcon className="h-3.5 w-3.5" />,
+  courier: <Bike className="h-3.5 w-3.5" />,
 };
 
 const ROLES: UserRole[] = ["admin", "owner", "customer"];

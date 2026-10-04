@@ -11,6 +11,7 @@ import {
   Store,
   Users,
   UserCog,
+  Bike,
   Package,
   PackageCheck,
   Lightbulb,
@@ -353,23 +354,27 @@ const ROLE_LABELS: Record<UserRole, string> = {
   admin: "مشرف",
   owner: "مالك",
   customer: "عميل",
+  courier: "مندوب",
 };
 
 const ROLE_COLORS: Record<UserRole, string> = {
   admin: "bg-primary/15 text-primary border-primary/25 hover:bg-primary/15",
   owner: "bg-accent/15 text-accent-ink border-accent/25 hover:bg-accent/15",
   customer: "bg-secondary/15 text-secondary border-secondary/25 hover:bg-secondary/15",
+  courier: "bg-teal-brand/15 text-teal-brand border-teal-brand/25 hover:bg-teal-brand/15",
 };
 
 const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
   restaurant: "مطعم",
-  cafe: "كافتيريا",
+  cafe: "مقهى",
+  cafeteria: "كافتيريا",
 };
 
 const ROLE_ICONS: Record<UserRole, React.ReactNode> = {
   admin: <ShieldCheck className="h-3.5 w-3.5" />,
   owner: <Store className="h-3.5 w-3.5" />,
   customer: <UserIcon className="h-3.5 w-3.5" />,
+  courier: <Bike className="h-3.5 w-3.5" />,
 };
 
 /* ─── Recent activity skeleton ─────────────────────── */

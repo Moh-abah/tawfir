@@ -143,6 +143,27 @@ function NavLinks({ onNavigate, collapsed }: { onNavigate?: () => void; collapse
         {!collapsed && <span className="relative z-10">متجري</span>}
       </Link>
 
+      {/* ✦ 4-b: المالية — بطاقة التاجر المالية وإشعارات التسديد اليمنية */}
+      <Link
+        href="/owner/finance"
+        onClick={onNavigate}
+        title={collapsed ? "المالية" : undefined}
+        className={cn(
+          "relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-colors duration-150",
+          isActive(pathname, "/owner/finance")
+            ? "font-medium text-primary before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[3px] before:rounded-full before:bg-gradient-to-b before:from-secondary before:to-primary"
+            : "text-muted-foreground hover:bg-secondary/5 hover:text-foreground",
+          collapsed && "justify-center px-2"
+        )}
+        aria-current={isActive(pathname, "/owner/finance") ? "page" : undefined}
+      >
+        {isActive(pathname, "/owner/finance") && (
+          <span className="absolute inset-0 rounded-md bg-primary/10" />
+        )}
+        <Wallet className="h-5 w-5 shrink-0 relative z-10" />
+        {!collapsed && <span className="relative z-10">المالية</span>}
+      </Link>
+
       {isLoading && (
         <div className="px-3 py-2">
           <Skeleton className="h-4 w-32" />

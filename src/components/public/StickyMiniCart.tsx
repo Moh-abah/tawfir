@@ -5,11 +5,10 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ShoppingCart } from "lucide-react";
 import { useCartStore } from "@/store/cart.store";
-import { useMe } from "@/hooks/useMe";
+import { useCartPricing } from "@/hooks/useCartPricing";
 import { CartSheet } from "@/components/public/CartSheet";
 import { haptic } from "@/lib/haptic";
 import { formatCurrency } from "@/lib/format";
-import { DELIVERY_FEE, DISCOUNT_RATE } from "@/lib/site-config";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,9 +26,7 @@ import { cn } from "@/lib/utils";
  * (يظهر مجدداً عند التوقف).
  */
 export function StickyMiniCart() {
-  const items = useCartStore((s) => s.items);
   const facilityName = useCartStore((s) => s.facilityName);
-  const me = useMe();
   const prefersReduced = useReducedMotion();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -41,15 +38,9 @@ export function StickyMiniCart() {
     pathname
   );
 
-  const isMember = !!me.data?.membership?.is_active;
-  const memberRate = me.data?.membership?.discount_rate ?? DISCOUNT_RATE;
-  const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
-  const subtotal = items.reduce((sum, i) => {
-    const base = parseFloat(i.price) || 0;
-    const unit = isMember ? base * (1 - memberRate / 100) : base;
-    return sum + unit * i.quantity;
-  }, 0);
-  const total = subtotal + DELIVERY_FEE;
+  /* التسعير من المصدر الوحيد useCartPricing — نسبة العضوية من /me
+     والأجرة ديناميكية حسب المسافة (null قبل تحديد موقع) */
+  const { totalCount, subtotal, total } = useCartPricing();
   const hasItems = totalCount > 0;
 
   // إخفاء عند التمرير السريع للأسفل، إظهار عند التوقف/التمرير للأعلى
@@ -118,9 +109,17 @@ export function StickyMiniCart() {
               </div>
               <div className="shrink-0 text-left" dir="ltr">
                 <p className="text-[9px] leading-none text-white/70">الإجمالي</p>
-                <p className="text-base font-extrabold leading-tight tabular-nums">
-                  {formatCurrency(total)}
-                </p>
+                {total != null ? (
+                  <p className="text-base font-extrabold leading-tight tabular-nums">
+                    {formatCurrency(total)}
+                  </p>
+                ) : (
+                  /* أجرة التوصيل لم تُحسب بعد (بلا موقع محفوظ) — شفافية بلا أرقام ميتة */
+                  <p className="text-xs font-extrabold leading-tight tabular-nums">
+                    {formatCurrency(subtotal)}
+                    <span className="text-[9px] font-bold text-white/70"> + الأجرة</span>
+                  </p>
+                )}
               </div>
             </div>
           </motion.button>
