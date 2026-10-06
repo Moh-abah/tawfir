@@ -13,15 +13,33 @@ interface FacilityMeta {
   description: string | null;
 }
 
-async function getFacility(id: string): Promise<FacilityMeta | null> {
+/* v5.1 — جلب الـ metadata بسوق صريح: كل نداء بفلتر country_code
+   (ورأس X-Market الموحّد) — نجرب السوقين فالمتجر يُوصف بسوقه الحقيقي،
+   والزائر العابر للسوق يظل العنوان سليماً بلا تسريب قوائم مختلطة. */
+async function fetchFacilityInMarket(
+  id: number,
+  market: "966" | "967"
+): Promise<FacilityMeta | null> {
   try {
-    const res = await fetch(`${API_BASE}/facilities`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_BASE}/facilities?country_code=${market}`, {
+      headers: { "X-Market": market },
+      next: { revalidate: 60 },
+    });
     if (!res.ok) return null;
     const data: FacilityMeta[] = await res.json();
-    return data.find((f) => f.id === Number(id)) ?? null;
+    return data.find((f) => f.id === id) ?? null;
   } catch {
     return null;
   }
+}
+
+async function getFacility(id: string): Promise<FacilityMeta | null> {
+  const numericId = Number(id);
+  if (!Number.isFinite(numericId)) return null;
+  return (
+    (await fetchFacilityInMarket(numericId, "967")) ??
+    (await fetchFacilityInMarket(numericId, "966"))
+  );
 }
 
 export async function generateMetadata({

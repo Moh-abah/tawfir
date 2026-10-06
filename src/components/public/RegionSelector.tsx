@@ -4,6 +4,10 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, ChevronDown, MapPin } from "lucide-react";
 import { useRegions } from "@/hooks/useRegions";
+import {
+  useMarketRegionsByCode,
+  type CountryCode,
+} from "@/components/market/market-lookups";
 import { useRegionStore } from "@/store/region.store";
 import {
   Select,
@@ -29,21 +33,62 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
  *    بقائمة المناطق (rounded-t-2xl + مقبض سحب + safe-area)
  *  - الديسكتوب (sm+): Select كما هو
  *  - التبديل عبر CSS فقط (sm:hidden / hidden sm:flex) — صفر اختلاف ترطيب
+ *
+ * v5 — نمطان:
+ *  1. الافتراضي (بلا خصائص): قائمة سوق الجلسة عبر useRegions — الكتابة
+ *     في مخزن المنطقة العام (هيدر الرئيسية).
+ *  2. مضبوط (countryCode + value + onChange): مناطق سوق صريح — للنماذج
+ *     التي تختار سوقاً مستقلاً عن جلسة التصفح (تسجيل العميل/المالك) —
+ *     بلا أي كتابة في مخزن المنطقة العام.
  */
-export function RegionSelector() {
-  const { data, isLoading, error, refetch } = useRegions();
+interface RegionSelectorProps {
+  /** سوق صريح للقائمة (يستقل عن سوق الجلسة) — مع value/onChange. */
+  countryCode?: CountryCode | null;
+  value?: number | null;
+  onChange?: (id: number | null) => void;
+  disabled?: boolean;
+}
+
+export function RegionSelector({
+  countryCode,
+  value,
+  onChange,
+  disabled = false,
+}: RegionSelectorProps = {}) {
+  const explicit = countryCode != null;
+  const sessionRegions = useRegions();
+  const explicitRegions = useMarketRegionsByCode(countryCode);
+
+  const { data, isLoading, error, refetch } = explicit
+    ? {
+        data: explicitRegions.data,
+        isLoading: explicitRegions.isLoading,
+        error: explicitRegions.error,
+        refetch: explicitRegions.refetch,
+      }
+    : {
+        data: sessionRegions.data,
+        isLoading: sessionRegions.isLoading,
+        error: sessionRegions.error,
+        refetch: sessionRegions.refetch,
+      };
+
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const setSelectedRegion = useRegionStore((s) => s.setSelectedRegion);
   const prefersReduced = usePrefersReducedMotion();
 
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const selectedRegion = data?.find((r) => r.id === selectedRegionId);
+  /** المعروض: القيمة المضبوطة إن وُجد النمط، وإلا مخزن الجلسة. */
+  const currentId = explicit ? (value ?? null) : selectedRegionId;
 
-  const handleMobileSelect = (id: number) => {
-    setSelectedRegion(id);
+  function select(id: number) {
+    if (explicit) onChange?.(id);
+    else setSelectedRegion(id);
     setSheetOpen(false);
-  };
+  }
+
+  const selectedRegion = data?.find((r) => r.id === currentId);
 
   /* ── حالة الخطأ ───────────────────────────────── */
   if (error) {
@@ -81,9 +126,10 @@ export function RegionSelector() {
         onClick={() => setSheetOpen(true)}
         aria-label="اختيار المنطقة"
         aria-haspopup="dialog"
+        disabled={disabled}
         className="native-tap h-9 max-w-full gap-1 rounded-full px-2.5 sm:hidden"
       >
-        {!prefersReduced && !selectedRegionId && (
+        {!prefersReduced && !currentId && (
           <motion.span
             className="relative flex h-2 w-2 shrink-0"
             animate={{ opacity: [0.4, 1, 0.4] }}
@@ -107,7 +153,7 @@ export function RegionSelector() {
 
       {/* ── الديسكتوب: Select كما هو ── */}
       <div className="flex w-full items-center gap-2 sm:w-auto">
-        {!prefersReduced && !selectedRegionId && (
+        {!prefersReduced && !currentId && (
           <motion.span
             className="relative hidden h-2.5 w-2.5 sm:flex"
             animate={{ opacity: [0.4, 1, 0.4], scale: [0.85, 1.15, 0.85] }}
@@ -117,7 +163,7 @@ export function RegionSelector() {
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-primary" />
           </motion.span>
         )}
-        {selectedRegionId != null && (
+        {currentId != null && (
           <motion.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -128,8 +174,9 @@ export function RegionSelector() {
           </motion.span>
         )}
         <Select
-          value={selectedRegionId != null ? String(selectedRegionId) : ""}
-          onValueChange={(val) => setSelectedRegion(Number(val))}
+          value={currentId != null ? String(currentId) : ""}
+          onValueChange={(val) => select(Number(val))}
+          disabled={disabled}
         >
           <SelectTrigger
             className="hidden h-9 w-56 sm:flex"
@@ -172,14 +219,15 @@ export function RegionSelector() {
               ))
             ) : (
               data?.map((region) => {
-                const active = region.id === selectedRegionId;
+                const active = region.id === currentId;
                 return (
                   <button
                     key={region.id}
                     type="button"
                     role="option"
                     aria-selected={active}
-                    onClick={() => handleMobileSelect(region.id)}
+                    disabled={disabled}
+                    onClick={() => select(region.id)}
                     className={cn(
                       "native-tap flex min-h-[48px] w-full items-center justify-between rounded-xl px-4 py-3 text-right text-sm font-bold transition-colors",
                       active

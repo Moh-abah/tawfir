@@ -107,6 +107,9 @@ export function parseRegisterError(error: unknown): ParsedRegisterError {
 
 /** يربط رسالة الخادم النصية بالحقل المناسب حسب كلماتها */
 function mapDetailToField(detail: string): Record<string, string> {
+  /* v5 — حرس تعارض السوق (422): «تعارض سوق: المنطقة «صنعاء» تتبع سوق
+     اليمن بينما اخترت سوق السعودية…» — يعود للنموذج مع تلوين المنطقة. */
+  if (detail.includes("تعارض سوق")) return { region_id: detail };
   if (detail.includes("البريد")) return { email: detail };
   if (detail.includes("الجوال")) return { phone: detail };
   if (detail.includes("المنطقة")) return { region_id: detail };

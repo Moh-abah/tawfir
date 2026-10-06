@@ -52,6 +52,15 @@ import type { FacilityType, Product } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useFacilityView } from "@/hooks/useFacilityView";
+import {
+  useMarketFacility,
+  useCrossMarketFacility,
+} from "@/components/market/market-lookups";
+import { MarketUnavailableGuard } from "@/components/market/CrossMarketGuard";
+import {
+  useMarketStore,
+  effectiveMarket,
+} from "@/store/market.store";
 import { RatingsSection } from "@/components/public/RatingsSection";
 import {
   CheckoutSheet,
@@ -395,7 +404,23 @@ const prefersReduced = usePrefersReducedMotion();
   // الجولة 21 — تسجيل زيارة المتجر (للإحصائيات الحقيقية)
   useFacilityView(facilityId);
 
-  const { data: facilities, isLoading: facLoading, error: facError, refetch: facRefetch } = useFacilities();
+  /* v5.1 — جلب المتجر من قائمة سوق الجلسة (بفلتر country_code إلزامي
+     عبر رأس X-Market/معامل الخادم) — يصلح الروابط المباشرة لأي متجر
+     داخل السوق (كانت تفشل خارج المنطقة المختارة). المتجر من سوق آخر
+     لا يظهر في القائمة أصلاً (الخادم يخفيه) → حارس «غير متوفر». */
+  const market = useMarketStore((s) => s.market);
+  const sessionMarket = effectiveMarket(market);
+  const directFacility = useMarketFacility(facilityId);
+  /* البحث العابر — يُفعَّل فقط عند عدم العثور في سوق الجلسة:
+     للزائر يسمّي المتجر وسوقه (قائمة السوق الآخر برأس X-Market)،
+     وللمسجل يُخفيه الخادم عمداً فتبقى الرسالة العامة. */
+  const notInSessionMarket =
+    directFacility.isSuccess && directFacility.data == null;
+  const crossFacility = useCrossMarketFacility(facilityId, notInSessionMarket);
+  const facility = directFacility.data ?? null;
+  const facLoading =
+    directFacility.isLoading ||
+    (notInSessionMarket && crossFacility.isLoading);
   const { data: categories, isLoading: catLoading } = useProductCategories(facilityId);
   const { data: products, isLoading: prodLoading, error: prodError, refetch: prodRefetch } = useFacilityProducts(facilityId, {
     category: activeCategory !== "الكل" ? activeCategory : undefined,
@@ -437,11 +462,6 @@ const prefersReduced = usePrefersReducedMotion();
   const shownProducts = useMemo(
     () => (products ?? []).slice(0, visibleCount),
     [products, visibleCount]
-  );
-
-  const facility = useMemo(
-    () => (facilities ?? []).find((f) => f.id === facilityId) ?? null,
-    [facilities, facilityId]
   );
 
   /* ─── Open CheckoutSheet (auth-checked) ─────────── */
@@ -576,18 +596,66 @@ const prefersReduced = usePrefersReducedMotion();
     );
   }
 
-  if (facError) {
+  if (directFacility.isError) {
     return (
       <>
         <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <ErrorState title="تعذّر تحميل المتجر" message="حدث خطأ أثناء جلب بيانات المتجر" onRetry={() => facRefetch()} />
+          <ErrorState
+            title="تعذّر تحميل المتجر"
+            message="حدث خطأ أثناء جلب بيانات المتجر"
+            onRetry={() => void directFacility.refetch()}
+          />
         </div>
       </>
     );
   }
 
+  /* v5.1 — غير موجود بسوق الجلسة: حارس «غير متوفر في سوقك» —
+     بلا رسالة تقنية ولا إعادة محاولة (الخادم يُخفي السوق الآخر عمداً).
+     «المتجر غير موجود» الحقيقي يُعرض للزائر فقط بعد فحص السوقين معاً. */
   if (!facility) {
+    const crossFound = crossFacility.data ?? null;
+
+    /* البحث العابر ما زال يجري — هيكل تحميل (لا وميض «غير موجود») */
+    if (!crossFound && crossFacility.isLoading) {
+      return (
+        <>
+          <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
+            <Skeleton className="h-56 w-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <ProductGridSkeleton />
+          </div>
+        </>
+      );
+    }
+
+    /* عُثر عليه في السوق الآخر (زائر) أو الحالة غامضة (مسجل — الخادم
+       يُخفي سوق العنصر) → حارس ودود. */
+    if (crossFound || accessToken) {
+      return (
+        <>
+          <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
+          <MarketUnavailableGuard
+            sessionMarket={sessionMarket}
+            facilityName={crossFound?.name ?? null}
+            facilityMarket={
+              crossFound
+                ? sessionMarket === "saudi"
+                  ? "yemen"
+                  : "saudi"
+                : null
+            }
+          />
+        </>
+      );
+    }
+
+    /* زائر + فحص السوقين معاً بلا نتيجة → محذوف فعلاً */
     return (
       <>
         <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />

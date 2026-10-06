@@ -34,7 +34,10 @@ export function useRegister() {
       phone: string;
       password: string;
       password_confirm: string;
-      region_id: number;
+      /** v5 — المنطقة إلزامية للسوقين (السعودية 13 منطقة مبذورة). */
+      region_id?: number | null;
+      /** v5 — بلد السوق: يفرّض فصل القوائم ولوكالي الحساب منذ الولادة. */
+      country_code?: "966" | "967";
     }) => authService.register(data),
     onError: (error: Error) => {
       toast({

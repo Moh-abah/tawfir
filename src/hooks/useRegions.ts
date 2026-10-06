@@ -4,18 +4,28 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { regionService } from "@/services/region.service";
 import { useRegionStore } from "@/store/region.store";
+import { useMarketStore, effectiveCountryCode } from "@/store/market.store";
 
 /**
  * Public regions list (header dropdown). Auto-selects the first region
  * when none is chosen, so the cards/facilities queries can fire.
+ *
+ * v5 — الفصل الحقيقي للسوقين: القائمة إلزامية الفلترة بمفتاح بلد السوق
+ * الفعال (966/967) — لا استعلام مناطق بلا فلتر سوق في الواجهة العامة
+ * (القاعدة البرونزية). قبل معرفة السوق (أول تشغيل خلف البوابة) الاستعلام
+ * معطَّل كلياً. الإدارة (isAdmin) الاستثناء الوحيد — ترى كل الأسواق.
  */
 export function useRegions(isAdmin = false) {
   const setSelectedRegion = useRegionStore((s) => s.setSelectedRegion);
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
+  const market = useMarketStore((s) => s.market);
+  // الإدارة ترى كل المناطق دائماً — الفلترة للواجهة العامة فقط.
+  const countryCode = isAdmin ? null : effectiveCountryCode(market);
 
   const query = useQuery({
-    queryKey: ["regions", { isAdmin }],
-    queryFn: () => regionService.getRegions(isAdmin),
+    queryKey: ["regions", { isAdmin, countryCode }],
+    queryFn: () => regionService.getRegions(isAdmin, countryCode),
+    enabled: isAdmin || countryCode != null,
     staleTime: 10 * 60 * 1000, // 10 minutes — quasi-static
   });
 

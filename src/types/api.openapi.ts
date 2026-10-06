@@ -11,7 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Regions */
+        /**
+         * Get Regions
+         * @description المناطق النشطة — [v3] مرّر ``country_code`` لقائمة سوق واحد فقط.
+         */
         get: operations["get_regions_api_v1_regions_get"];
         put?: never;
         post?: never;
@@ -49,6 +52,9 @@ export interface paths {
          * Get Facilities
          * @description المنشآت العامة الموافق عليها والظاهرة، مع ترتيب اختياري حسب الأقرب مسافة
          *     وفلتر «المفتوح الآن» (B-6).
+         *
+         *     [v3] مرّر ``country_code`` لعرض سوق واحد فقط (يمني أو سعودي) — بلا فلتر
+         *     تعاد كل الأسواق (توافق رجعي للواجهات القديمة فقط).
          */
         get: operations["get_facilities_api_v1_facilities_get"];
         put?: never;
@@ -7623,6 +7629,12 @@ export interface components {
             /** Slug */
             slug: string;
             /**
+             * Country Code
+             * @description مفتاح الدولة (967 اليمن | 966 السعودية)
+             * @default 967
+             */
+            country_code: string;
+            /**
              * Is Active
              * @default true
              */
@@ -7636,6 +7648,11 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+            /**
+             * Country Code
+             * @default 967
+             */
+            country_code: string;
             /** Is Active */
             is_active: boolean;
             /**
@@ -7650,6 +7667,8 @@ export interface components {
             name?: string | null;
             /** Slug */
             slug?: string | null;
+            /** Country Code */
+            country_code?: string | null;
             /** Is Active */
             is_active?: boolean | null;
         };
@@ -8184,6 +8203,11 @@ export interface components {
             /** Region Id */
             region_id?: number | null;
             /**
+             * Country Code
+             * @description سوق العميل (967|966)
+             */
+            country_code?: string | null;
+            /**
              * Otp Verified Token
              * @description توكن توثيق OTP قصير الأجل — يوثّق ملكية الجوال قبل إنشاء الحساب
              */
@@ -8492,7 +8516,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     get_regions_api_v1_regions_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description [v3] فلتر السوق: 967 اليمن | 966 السعودية — الفرونت الجديد ملزم بإرساله */
+                country_code?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8506,6 +8533,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -8547,6 +8583,8 @@ export interface operations {
             query?: {
                 /** @description فلترة حسب المنطقة (اختياري) */
                 region_id?: number | null;
+                /** @description [v3] فلتر السوق (967|966) — الفرونت الجديد ملزم بإرساله لفصل السوقين */
+                country_code?: string | null;
                 /** @description خط العرض للترتيب بالأقرب */
                 lat?: number | null;
                 /** @description خط الطول للترتيب بالأقرب */
@@ -10947,7 +10985,10 @@ export interface operations {
     };
     list_regions_api_v1_admin_regions_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description فلتر السوق (اختياري) */
+                country_code?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -10961,6 +11002,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RegionOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

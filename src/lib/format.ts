@@ -63,15 +63,56 @@ export function resolveImageUrl(url: string | null | undefined): string {
   return `${MEDIA_API_ORIGIN}${path}`;
 }
 
-/** صياغة مبلغ بالريال اليمني (ر.ي) بالعربية. */
+/** صياغة مبلغ بعملة السوق الفعالة — تُقرأ من MarketProvider بعد معرفة
+ *  السوق، وتُرجع ر.ي قبله (توافق تاريخي + أمان SSR).
+ *  v7 — كانت مصفّاة تاريخياً على «ر.ي» للجميع (حتى السعودي). */
 export function formatCurrency(amount: string | number): string {
+  return formatMoney(amount);
+}
+
+/* ─── عملة العرض الفعالة (جولة الفصل الحقيقي بين السوقين v7) ──────── */
+
+export type CurrencyCode = "SAR" | "YER";
+
+/** العملة الفعالة الحالية — يضبطها MarketProvider بعد معرفة السوق
+ *  (locale/me للمسجل أو آخر سوق معروف للزائر). null = الافتراضي يمني
+ *  (توافق تاريخي + أمان SSR). */
+/** العملة المعروضة في أول رسم (خادم + أول ترطيب عميل) — من بيئة البناء
+ *  (تطبيقات التجار السعودية) أو يمني (توافق تاريخي). يُقارن عليها المزوّد
+ *  ليقرر إبطال الكاش على أول تحميل تحديداً. */
+export const FIRST_PAINT_CURRENCY: CurrencyCode =
+  process.env.NEXT_PUBLIC_DEFAULT_MARKET === "saudi" ? "SAR" : "YER";
+
+let ACTIVE_CURRENCY: CurrencyCode | null = null;
+
+/** ضبط عملة العرض الفعالة (يستدعيه MarketProvider حصراً). */
+export function setActiveCurrency(currency: CurrencyCode | null): void {
+  ACTIVE_CURRENCY = currency;
+}
+
+/** الرمز العربي لعملة — غير معروفة → الرمز اليمني (توافق تاريخي). */
+export function currencySymbol(currency: string | null | undefined): string {
+  return currency === "SAR" ? "ر.س" : "ر.ي";
+}
+
+/**
+ * صياغة مبلغ بعملة محددة أو العملة الفعالة:
+ *   1. وسيط العملة الصريح (المسارات المالية الحرجة).
+ *   2. العملة الفعالة من MarketProvider (السعودي يرى ر.س في كل الشاشات).
+ *   3. الافتراضي: ر.ي (سلوك تاريخي متوافق + أمان SSR).
+ */
+export function formatMoney(
+  amount: string | number,
+  currency?: string | null
+): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (Number.isNaN(num)) return "—";
   const formatted = new Intl.NumberFormat("ar-EG", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(num);
-  return `${formatted} ر.ي`;
+  const resolved = (currency ?? ACTIVE_CURRENCY ?? FIRST_PAINT_CURRENCY) as string;
+  return `${formatted} ${currencySymbol(resolved)}`;
 }
 
 /** تاريخ ISO بالعربية. */

@@ -14,6 +14,8 @@ export const authService = {
     password: string;
     password_confirm: string;
     region_id?: number | null;
+    /** v5 — بلد السوق (إلزامي إرساله من الواجهة): 967 يمن | 966 سعودي. */
+    country_code?: "966" | "967";
   }) => apiClient.post<RegisterOut>("/auth/register", data),
 
   /** دخول المشرف (POST /admin/login → TokenOut). */

@@ -6,6 +6,7 @@ import { Bike, CircleUserRound, Heart, LogIn, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { RegionSelector } from "@/components/public/RegionSelector";
+import { MarketSwitcher } from "@/components/market/MarketSwitcher";
 import { CartButton } from "@/components/public/CartButton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { NotificationBell } from "@/components/shared/NotificationBell";
@@ -78,8 +79,9 @@ export function MainHeader() {
           <TawfirLogo variant="mark" size="sm" />
         </div>
 
-        {/* منتقي المنطقة */}
-        <div className="flex min-w-0 flex-1 items-center justify-center sm:justify-end">
+        {/* مبدّل سوق الجلسة (علم) + منتقي المنطقة */}
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-1 sm:justify-end sm:gap-2">
+          <MarketSwitcher className="shrink-0" />
           <RegionSelector />
         </div>
 

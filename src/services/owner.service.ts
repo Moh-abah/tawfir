@@ -34,6 +34,9 @@ export interface OwnerRegisterInput {
   facility_name: string;
   facility_type: FacilityType;
   region_id: number;
+  /** v5 — بلد السوق: يجب أن يطابق منطقة المنشأة — وإلا 422 تعارض سوق.
+   *  إن غاب يُستنبط من المنطقة (الأفضل إرساله دائماً من اختيار المالك). */
+  country_code?: "966" | "967";
   description?: string | null;
   address?: string | null;
   phone_facility?: string | null;

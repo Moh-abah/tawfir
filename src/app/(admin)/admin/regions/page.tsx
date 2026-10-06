@@ -26,11 +26,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { RegionForm } from "@/components/admin/RegionForm";
-import {
-  useAdminRegions,
-  useDeleteRegion,
-} from "@/hooks/useAdminRegions";
+import { useAdminRegions, useDeleteRegion } from "@/hooks/useAdminRegions";
 import { useAdminFacilities } from "@/hooks/useAdminFacilities";
+import type { MarketCountryCode } from "@/services/region.service";
 import { cn } from "@/lib/utils";
 import type { Region } from "@/types/api.generated";
 
@@ -68,7 +66,12 @@ function TableSkeleton() {
 }
 
 export default function AdminRegionsPage() {
-  const { data: regions, isLoading, error, refetch } = useAdminRegions();
+  /* مبدّل سوق الأدمن (v5): 966/967 فلترة خادمية — null «كل الأسواق»
+     (الاستثناء الإداري الوحيد). */
+  const [marketFilter, setMarketFilter] = useState<MarketCountryCode | null>(
+    null
+  );
+  const { data: regions, isLoading, error, refetch } = useAdminRegions(marketFilter);
   const { data: facilitiesData } = useAdminFacilities(1, 200);
   const deleteRegion = useDeleteRegion();
 
@@ -131,7 +134,8 @@ export default function AdminRegionsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">إدارة المناطق</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            إضافة وتعديل وحذف المناطق المتاحة على المنصة.
+            إضافة وتعديل وحذف المناطق المتاحة على المنصة — لكل منطقة سوق
+            جنسيتها.
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2">
@@ -140,15 +144,51 @@ export default function AdminRegionsPage() {
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="ابحث بالاسم..."
-          className="pr-9"
-          aria-label="بحث"
-        />
+      {/* مبدّل سوق الأدمن + البحث — الجداول تُعرض بفلتر السوق المختار */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div
+          className="inline-flex w-fit rounded-xl border border-border/60 bg-card p-1"
+          role="radiogroup"
+          aria-label="فلتر السوق"
+        >
+          {(
+            [
+              { code: null, label: "كل الأسواق", flag: "🌍" },
+              { code: "967" as const, label: "اليمن", flag: "🇾🇪" },
+              { code: "966" as const, label: "السعودية", flag: "🇸🇦" },
+            ] as const
+          ).map((m) => {
+            const active = marketFilter === m.code;
+            return (
+              <button
+                key={m.label}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setMarketFilter(m.code)}
+                className={cn(
+                  "native-tap flex min-h-[38px] items-center gap-1.5 rounded-lg px-3.5 text-sm font-bold transition-colors",
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span aria-hidden="true">{m.flag}</span>
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative max-w-md flex-1">
+          <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ابحث بالاسم..."
+            className="pr-9"
+            aria-label="بحث"
+          />
+        </div>
       </div>
 
       {/* Visual stats row */}
@@ -182,6 +222,7 @@ export default function AdminRegionsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>الاسم</TableHead>
+              <TableHead>السوق</TableHead>
               <TableHead>المعرّف (slug)</TableHead>
               <TableHead>الحالة</TableHead>
               <TableHead>المتاجر</TableHead>
@@ -193,7 +234,7 @@ export default function AdminRegionsPage() {
           ) : error ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center">
+                <TableCell colSpan={6} className="py-10 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-sm text-destructive">
                       تعذّر تحميل المناطق.
@@ -215,7 +256,7 @@ export default function AdminRegionsPage() {
             <TableBody>
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-16 text-center"
                 >
                   <div className="flex flex-col items-center gap-2">
@@ -236,7 +277,31 @@ export default function AdminRegionsPage() {
                     key={region.id}
                     className={cn(BORDER_COLORS[index % BORDER_COLORS.length])}
                   >
-                    <TableCell className="font-medium">{region.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="flex items-center gap-2">
+                        <span
+                          aria-hidden="true"
+                          title={
+                            region.country_code === "966"
+                              ? "سوق السعودية"
+                              : "سوق اليمن"
+                          }
+                        >
+                          {region.country_code === "966" ? "🇸🇦" : "🇾🇪"}
+                        </span>
+                        {region.name}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          region.country_code === "966" ? "default" : "secondary"
+                        }
+                        className="gap-1 text-xs"
+                      >
+                        {region.country_code === "966" ? "السعودية ۹٦٦" : "اليمن ۹٦۷"}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-muted-foreground" dir="ltr">
                       {region.slug}
                     </TableCell>
@@ -293,6 +358,7 @@ export default function AdminRegionsPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         initial={editing}
+        defaultCountryCode={marketFilter ?? "967"}
       />
 
       <AlertDialog

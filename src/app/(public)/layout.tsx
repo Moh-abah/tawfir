@@ -18,7 +18,9 @@ import { useFavoritesStore } from "@/store/favorites.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { useCartStore } from "@/store/cart.store";
 import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
+import { useMarketStore } from "@/store/market.store";
 import { useRegions } from "@/hooks/useRegions";
+import { MarketProvider } from "@/components/shared/MarketProvider";
 
 /**
  * شاشات انطلاق iOS لتطبيق العميل — يرفعها React 19 إلى <head> تلقائياً.
@@ -107,15 +109,19 @@ export default function PublicLayout({
     void useCartStore.persist.rehydrate();
     /* الجولة 13 — ترطيب «شاهدت مؤخراً» */
     void useRecentlyViewedStore.persist.rehydrate();
+    /* v7 — ترطيب السوق الوطني (آخر سوق معروف) — المصدر الأعلى
+       (locale/me) يحسمه MarketProvider بعد ذلك إن وُجدت جلسة */
+    void useMarketStore.persist.rehydrate();
   }, []);
 
   return (
-    <div
-      className={cn(
-        "flex min-h-[100dvh] flex-col bg-background text-foreground",
-        isAuthRoute && "bg-transparent"
-      )}
-    >
+    <MarketProvider>
+      <div
+        className={cn(
+          "flex min-h-[100dvh] flex-col bg-background text-foreground",
+          isAuthRoute && "bg-transparent"
+        )}
+      >
       <IosSplashLinks />
       {!isAuthRoute && <WelcomeBanner />}
       {!isAuthRoute && <MainHeader />}
@@ -145,6 +151,7 @@ export default function PublicLayout({
       {!isReceiptRoute && !isAuthRoute && <StickyMiniCart />}
       {!isReceiptRoute && <ScrollToTop />}
       <CookieConsent />
-    </div>
+      </div>
+    </MarketProvider>
   );
 }

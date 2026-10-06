@@ -71,10 +71,21 @@ import type {
   OwnerRegisterResult,
 } from "@/services/owner.service";
 import type { ApiError } from "@/services/api-client";
-import { useRegions } from "@/hooks/useRegions";
+import {
+  useMarketStore,
+  effectiveMarket,
+  MARKET_COUNTRY,
+  MARKET_META,
+  type MarketKey,
+} from "@/store/market.store";
+import {
+  useAllMarketRegions,
+  type CountryCode,
+} from "@/components/market/market-lookups";
 import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { normalizeYemeniPhone, validateYemeniPhone } from "@/lib/yemen";
+import { toSaudiLocalNumber, validateSaudiPhone } from "@/lib/saudi";
 import type { FacilityType, OtpRequestOut } from "@/types/api.generated";
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -107,9 +118,13 @@ const registerSchema = z
       .email({ message: "صيغة البريد الإلكتروني غير صحيحة" }),
     /* الجوال: PhoneInput (2-a) يبث دائماً القيمة المطبّعة، والتحقق عبر
        validateYemeniPhone — يقبل ما كتبه المستخدم بمسافات ثم يُطبَّع */
-    phone: z.string().refine((v) => validateYemeniPhone(v) === null, {
-      message: PHONE_MSG,
-    }),
+    /* v5 — تحقق الجوال الفعلي حسب شريحة السوق في onSubmit (يدوياً):
+       المخطط هنا فحص طول أولي فقط — سعودي 05… / يمني 7… كلاهما يمر. */
+    phone: z
+      .string()
+      .refine((v) => /^[\d\s+\-()]+$/.test(v.trim()), {
+        message: "أدخل رقم جوال صحيح",
+      }),
     password: z
       .string()
       .min(6, { message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }),
@@ -131,8 +146,8 @@ const registerSchema = z
       .min(3, { message: "العنوان مطلوب (٣ أحرف على الأقل)" }),
     phone_facility: z
       .string()
-      .refine((v) => !v || validateYemeniPhone(v) === null, {
-        message: PHONE_MSG,
+      .refine((v) => !v || /^[\d\s+\-()]+$/.test(v.trim()), {
+        message: "أدخل رقم جوال صحيح للمتجر",
       }),
     working_hours: z.string().trim().optional(),
     image_url: z
@@ -258,7 +273,9 @@ function StepsIndicator({ control }: { control: Control<FormValues> }) {
   const step1Done =
     (fullName ?? "").trim().length >= 2 &&
     (email ?? "").trim().length > 0 &&
-    validateYemeniPhone(phone ?? "") === null &&
+    /* v5 — فحص طول أولي هنا (الشريحة خارج هذا المكوّن): التحقق الدقيق
+       حسب سوق التسجيل في onSubmit قبل إرسال OTP */
+    /^[\d\s+\-()]{9,}$/.test((phone ?? "").trim()) &&
     (password ?? "").length >= 6 &&
     password === passwordConfirm;
   const step2Done =
@@ -741,8 +758,27 @@ export default function OwnerRegisterPage() {
   /* رفع الصور يتطلب توكناً (401 قبل وجود حساب) → بطاقة توجيه + رابط */
   const [uploadNeedsAuth, setUploadNeedsAuth] = useState(false);
 
-  /* قائمة المناطق — عبر useRegions (يشارك الكاش عبر المفتاح الموحّد) */
-  const { data: regions, isLoading: regionsLoading } = useRegions(false);
+  /* v5 — سوق تسجيل المالك: افتراضه سوق الجلسة، وقابل للتغيير من الشريحة.
+     null قبل الترطيب — فرع موحّد (يمني) حتى لا يختلف أول رسم.
+     (الصفحة خارج (public) layout — الترطيب هنا مسؤوليتها.) */
+  const [market, setMarket] = useState<MarketKey | null>(null);
+  useEffect(() => {
+    void Promise.resolve(useMarketStore.persist.rehydrate())
+      .then(() => setMarket(effectiveMarket(useMarketStore.getState().market)))
+      .catch(() => setMarket(effectiveMarket(null)));
+  }, []);
+  const marketCountry: CountryCode =
+    market === "saudi" ? "966" : "967";
+
+  /* قائمة المناطق — قائمتا السوقين تُجلبان مرة واحدة (كلٌّ بفلتر
+     country_code الصريح — القاعدة البرونزية) وتُصفّى محلياً بسوق
+     المالك المختار: التبديل فوري بلا سباق جلب ولا وميض قائمة قديمة */
+  const {
+    regions: marketRegions,
+    isLoading: regionsLoading,
+  } = useAllMarketRegions();
+  const regions =
+    marketCountry === "966" ? marketRegions.saudi : marketRegions.yemen;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(registerSchema),
@@ -770,8 +806,21 @@ export default function OwnerRegisterPage() {
   /* ─── 1) إرسال النموذج → طلب كود OTP (قبل إنشاء المتجر) ─────── */
   function onSubmit(values: FormValues) {
     setServerGeneralError(null);
-    /* الجوال المطبّع "777123456" — هكذا يتوقعه /otp/request والباك اند */
-    const target = normalizeYemeniPhone(values.phone);
+    /* v5 — تحقق الجوال حسب سوق التسجيل (شريحة السوق) */
+    const phoneErr =
+      marketCountry === "966"
+        ? validateSaudiPhone(values.phone)
+        : validateYemeniPhone(values.phone);
+    if (phoneErr) {
+      form.setError("phone", { message: phoneErr });
+      return;
+    }
+    /* الجوال المطبّع: يمني "777123456" / سعودي "0501234567" —
+       هكذا يتوقعه /otp/request والباك اند */
+    const target =
+      marketCountry === "966"
+        ? toSaudiLocalNumber(values.phone)
+        : normalizeYemeniPhone(values.phone);
     requestOtp.mutate(
       { target, name: values.full_name.trim() || null },
       {
@@ -792,21 +841,31 @@ export default function OwnerRegisterPage() {
     if (!otpStage) return;
     /* القيم محفوظة في react-hook-form رغم إخفاء النموذج أثناء OTP */
     const values = form.getValues();
+    /* v5 — تطبيع الجوال حسب سوق التسجيل المختار */
+    const normalizedPhone =
+      marketCountry === "966"
+        ? toSaudiLocalNumber(values.phone) || values.phone
+        : normalizeYemeniPhone(values.phone) || values.phone;
     const payload: OwnerRegisterInput = {
       full_name: values.full_name.trim(),
       email: values.email.trim(),
-      /* يُرسل دائماً مطبّعاً "777123456" (بلا +967 ولا مسافات) */
-      phone: normalizeYemeniPhone(values.phone) || values.phone,
+      /* يُرسل دائماً مطبّعاً حسب سوق التسجيل */
+      phone: normalizedPhone,
       password: values.password,
       password_confirm: values.password_confirm,
       facility_name: values.facility_name.trim(),
       facility_type: values.facility_type,
       region_id: values.region_id,
+      /* v5 — بلد السوق من شريحة اختيار المالك: يطابق منطقة المتجر
+         وإلا ردّ الباك إند 422 «تعارض سوق» — تُعرض رسالتها على الحقل. */
+      country_code: marketCountry,
       description: values.description?.trim() || null,
       /* العنوان إلزامي — نص مقصوص دائماً وليس null */
       address: values.address.trim(),
       phone_facility: values.phone_facility
-        ? normalizeYemeniPhone(values.phone_facility) || null
+        ? marketCountry === "966"
+          ? toSaudiLocalNumber(values.phone_facility) || null
+          : normalizeYemeniPhone(values.phone_facility) || null
         : null,
       working_hours: values.working_hours?.trim() || null,
       image_url: values.image_url?.trim() || null,
@@ -1107,17 +1166,74 @@ export default function OwnerRegisterPage() {
                     )}
                   />
 
+                  {/* v5 — سوق تسجيل المالك (شريحة هادئة — افتراضها سوق
+                      الجلسة المستنبَط) + المنطقة مفلتة به حصراً */}
+                  <div className="space-y-2">
+                    <Label>سوق المتجر</Label>
+                    <div
+                      className="grid grid-cols-2 gap-2"
+                      role="radiogroup"
+                      aria-label="سوق المتجر"
+                    >
+                      {(
+                        [
+                          { key: "yemen" as const, code: "967" },
+                          { key: "saudi" as const, code: "966" },
+                        ]
+                      ).map((m) => {
+                        const meta = MARKET_META[m.key];
+                        const active = marketCountry === m.code;
+                        return (
+                          <button
+                            key={m.key}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            disabled={isBusy}
+                            onClick={() => {
+                              if (active) return;
+                              setMarket(m.key);
+                              /* منطقة السوق الآخر غير صالحة هنا — تصفير */
+                              form.setValue(
+                                "region_id",
+                                undefined as unknown as number,
+                                { shouldValidate: false }
+                              );
+                              form.clearErrors("region_id");
+                            }}
+                            className={cn(
+                              "native-tap flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 text-sm font-bold transition-colors",
+                              active
+                                ? "border-primary bg-primary/5 text-primary"
+                                : "border-border/60 text-muted-foreground hover:border-primary/40"
+                            )}
+                          >
+                            <span aria-hidden="true">{meta.flag}</span>
+                            <span>{meta.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      يحدّد قوائم المناطق والعملة وطرق الدفع لمتجرك — اختر
+                      منطقة من سوقك ثم أكمل.
+                    </p>
+                  </div>
+
                   {/* المنطقة */}
                   <Controller
                     name="region_id"
                     control={control}
                     render={({ field }) => (
                       <div className="space-y-2">
-                        <Label htmlFor="region_id">المنطقة</Label>
+                        <Label htmlFor="region_id">
+                          المنطقة ({marketCountry === "966" ? "السعودية" : "اليمن"})
+                        </Label>
                         {regionsLoading ? (
                           <Skeleton className="h-[44px] w-full" />
                         ) : (
                           <Select
+                            key={marketCountry}
                             value={field.value ? String(field.value) : ""}
                             onValueChange={(v) => field.onChange(Number(v))}
                             disabled={isBusy}

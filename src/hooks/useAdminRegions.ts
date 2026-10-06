@@ -1,14 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { regionService } from "@/services/region.service";
+import { regionService, type MarketCountryCode } from "@/services/region.service";
 import type { Region } from "@/types/api.generated";
 import { useToast } from "@/hooks/use-toast";
 
-export function useAdminRegions() {
+/**
+ * قوائم المناطق للإدارة — v5 (الفصل الحقيقي للسوقين)
+ * countryCode = "966"|"967" → فلترة خادمية بسوق مختار من مبدّل الأدمن.
+ * countryCode = null → «كل الأسواق» (الاستثناء الإداري الوحيد).
+ */
+export function useAdminRegions(countryCode: MarketCountryCode | null = null) {
   return useQuery({
-    queryKey: ["regions", { isAdmin: true }],
-    queryFn: () => regionService.getRegions(true),
+    queryKey: ["regions", { isAdmin: true, countryCode }],
+    queryFn: () => regionService.getRegions(true, countryCode),
     staleTime: 10 * 60 * 1000,
   });
 }
@@ -17,10 +22,20 @@ export function useCreateRegion() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: (data: { name: string }) => regionService.createRegion(data),
+    mutationFn: (data: {
+      name: string;
+      slug: string;
+      country_code: MarketCountryCode;
+    }) => regionService.createRegion(data),
     onSuccess: (region: Region) => {
       qc.invalidateQueries({ queryKey: ["regions"] });
-      toast({ title: "تمت إضافة المنطقة", description: region.name });
+      qc.invalidateQueries({ queryKey: ["facilities"] });
+      toast({
+        title: "تمت إضافة المنطقة",
+        description: `${region.name} — ${
+          region.country_code === "966" ? "سوق السعودية 🇸🇦" : "سوق اليمن 🇾🇪"
+        }`,
+      });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),
@@ -31,11 +46,25 @@ export function useUpdateRegion() {
   const qc = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name: string } }) =>
-      regionService.updateRegion(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: number;
+      data: { name: string; slug: string; country_code: MarketCountryCode };
+    }) => regionService.updateRegion(id, data),
     onSuccess: (region: Region) => {
+      /* v5 — إبطال واسع: تغيير جنسية المنطقة يورَّث لكل ما تحتها
+         (متاجر/بطاقات) فتتغير قوائم السوقين — كل الكاش الجيو يُصفَّف. */
       qc.invalidateQueries({ queryKey: ["regions"] });
-      toast({ title: "تم تحديث المنطقة", description: region.name });
+      qc.invalidateQueries({ queryKey: ["facilities"] });
+      qc.invalidateQueries({ queryKey: ["cards"] });
+      toast({
+        title: "تم تحديث المنطقة",
+        description: `${region.name} — ${
+          region.country_code === "966" ? "سوق السعودية 🇸🇦" : "سوق اليمن 🇾🇪"
+        }`,
+      });
     },
     onError: (e: Error) =>
       toast({ title: "خطأ", description: e.message, variant: "destructive" }),

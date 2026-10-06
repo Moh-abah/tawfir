@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import {
@@ -29,9 +29,16 @@ import { RegionSelector } from "@/components/public/RegionSelector";
 import { OtpVerifyForm } from "@/components/shared/OtpVerifyForm";
 import { MemberCard } from "@/components/public/MemberCard";
 import { useRegionStore } from "@/store/region.store";
+import { useMarketStore, effectiveMarket } from "@/store/market.store";
 import { useRegister } from "@/hooks/useRegister";
 import { useRequestOtp } from "@/hooks/useRequestOtp";
 import { customerAuthService } from "@/services/customer-auth.service";
+import { localeService } from "@/services/locale.service";
+import { normalizeYemeniPhone } from "@/lib/yemen";
+import {
+  isValidSaudiPhone,
+  toSaudiLocalNumber,
+} from "@/lib/saudi";
 import { useCustomerAuthStore } from "@/store/customerAuth.store";
 import { useToast } from "@/hooks/use-toast";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
@@ -58,16 +65,49 @@ const registerSchema = z
       .email({ message: "صيغة البريد الإلكتروني غير صحيحة" })
       .optional()
       .or(z.literal("")),
-    // الجوال اليمني: 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78 (لا يقبل 05 في البداية)
-    phone: z
-      .string()
-      .min(9, { message: "رقم الجوال يجب أن يكون 9 أرقام" })
-      .regex(/^(7[01378])\d{7}$/, {
-        message: "أدخل رقم جوال يمني صحيح (يبدأ بـ 70/71/73/77/78)",
-      }),
+    // v7 — التحقق الدقيق حسب بلد السوق المختار في superRefine أدناه.
+    phone: z.string().min(6, { message: "أدخل رقم الجوال" }),
     password: z.string().min(8, { message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }),
     password_confirm: z.string().min(8, { message: "تأكيد كلمة المرور مطلوب" }),
-    region_id: z.number().positive({ message: "يرجى اختيار منطقة" }),
+    // v5 — المناطق السعودية مبذورة (13 منطقة): المنطقة إلزامية للسوقين.
+    region_id: z.number().positive({ message: "يرجى اختيار منطقة" }).optional(),
+    // v7 — بلد السوق: يمني افتراضياً (توافق تاريخي) وسعودي خيار معلن.
+    country_code: z.enum(["967", "966"]),
+  })
+  .superRefine((d, ctx) => {
+    if (d.country_code === "966") {
+      if (!isValidSaudiPhone(d.phone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phone"],
+          message: "أدخل رقم جوال سعودي صحيح — يبدأ بـ 05 و10 خانات (مثال: 0501234567)",
+        });
+      }
+      // v5 — المناطق السعودية مبذورة: المنطقة إلزامية للسعودي كذلك.
+      if (d.region_id == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["region_id"],
+          message: "يرجى اختيار منطقة سوقك (السعودية)",
+        });
+      }
+    } else {
+      const normalized = normalizeYemeniPhone(d.phone);
+      if (!/^(7[01378])\d{7}$/.test(normalized)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["phone"],
+          message: "أدخل رقم جوال يمني صحيح (يبدأ بـ 70/71/73/77/78)",
+        });
+      }
+      if (d.region_id == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["region_id"],
+          message: "يرجى اختيار منطقة",
+        });
+      }
+    }
   })
   .refine((d) => d.password === d.password_confirm, {
     message: "كلمتا المرور غير متطابقتين",
@@ -86,6 +126,12 @@ const STEPS = [
   { num: 1, label: "البيانات الشخصية", icon: User },
   { num: 2, label: "كلمة المرور", icon: Lock },
   { num: 3, label: "تأكيد الحساب", icon: ShieldCheck },
+] as const;
+
+/* v7 — بلدان التسجيل المدعومان (مطابقان لـ /locale/countries). */
+const REGISTER_COUNTRIES = [
+  { code: "967", name: "اليمن", flag: "🇾🇪" },
+  { code: "966", name: "السعودية", flag: "🇸🇦" },
 ] as const;
 
 /* ─── Password Strength ───────────────────────────── */
@@ -552,6 +598,7 @@ export default function RegisterPage() {
     handleSubmit,
     setValue,
     watch,
+    clearErrors,
     formState: { errors },
   } = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -562,6 +609,7 @@ export default function RegisterPage() {
       password: "",
       password_confirm: "",
       region_id: undefined,
+      country_code: "967",
     },
   });
 
@@ -570,6 +618,20 @@ export default function RegisterPage() {
   const phone = watch("phone");
   const passwordValue = watch("password");
   const passwordConfirm = watch("password_confirm");
+  const countryCode = watch("country_code");
+
+  /* v5.1 — ذكاء صامت: بلد التسجيل الافتراضي = سوق الجلسة المستنبَط
+     (توكن المسجل / إشارات المتصفح للزائر) — مرة واحدة عند التركيب،
+     والمستخدم يعدّله من الشريحة إن أراد (بلا أي إجبار). */
+  const marketDefaultApplied = useRef(false);
+  useEffect(() => {
+    if (marketDefaultApplied.current) return;
+    marketDefaultApplied.current = true;
+    void Promise.resolve(useMarketStore.persist.rehydrate()).then(() => {
+      const m = effectiveMarket(useMarketStore.getState().market);
+      setValue("country_code", m === "saudi" ? "966" : "967");
+    });
+  }, [setValue]);
 
   /* ─── Compute progress & active step ──────────── */
   const { progress, currentStep } = useMemo(() => {
@@ -593,28 +655,38 @@ export default function RegisterPage() {
   }, [fullName, email, phone, passwordValue, passwordConfirm]);
 
   useEffect(() => {
-    if (selectedRegionId)
+    /* v5 — منطقة مخزن الجلسة تُستخدم لمسار اليمن فقط: السعودية لها
+       منتقي مضبوط بمناطقها الصريحة (بلا كتابة في مخزن الجلسة). */
+    if (countryCode === "967" && selectedRegionId)
       setValue("region_id", selectedRegionId, { shouldValidate: true });
-  }, [selectedRegionId, setValue]);
+  }, [selectedRegionId, countryCode, setValue]);
 
   /* ─── Stage transitions ───────────────────────── */
 
-  /** إرسال النموذج → طلب OTP → الانتقال لمرحلة OTP. */
+  /** إرسال النموذج → طلب OTP → الانتقال لمرحلة OTP.
+   *  v7 — تطبيع الجوال حسب بلد السوق: يمني 9 خانات (7…)،
+   *  سعودي بالصيغة المحلية 05… (الصيغة التي يقبلها الخادم حياً). */
   const onSubmit = (values: RegisterValues) => {
+    const normalizedPhone =
+      values.country_code === "966"
+        ? toSaudiLocalNumber(values.phone)
+        : normalizeYemeniPhone(values.phone);
     setOtpRequestError(null);
     requestOtp.mutate(
-      { target: values.phone, name: values.full_name },
+      { target: normalizedPhone, name: values.full_name },
       {
         onSuccess: (res) => {
 
           const email = (values.email ?? "").trim() || "";
           setStoredValues({
             full_name: values.full_name,
-            phone: values.phone,
+            phone: normalizedPhone,
             password: values.password,
             password_confirm: values.password_confirm,
+            /* v5 — المنطقة إلزامية للسوقين (السعودية 13 منطقة مبذورة) */
             region_id: values.region_id,
             email, // الآن نص قطعي
+            country_code: values.country_code,
           });
           setInitialOtpResult(res);
           setStage("otp");
@@ -650,6 +722,25 @@ export default function RegisterPage() {
             .setAuth(tokens.access_token, tokens.refresh_token ?? null);
           // إبطال كاش /me بعد تسجيل الدخول حتى يُجلب من جديد
           queryClient.invalidateQueries({ queryKey: ["me"] });
+          /* v7 — تثبيت السوق خادمياً فوراً: بلا هذا الاستدعاء يبقى
+             كل حديثٍ يمنياً افتراضياً (أُثبت حياً: حساب بجوال سعودي
+             0512… وُلّد بسوق 967/YER). الفشل غير معرقِل — شاشة
+             النجاح تُعرض ويُكمل من حسابه لاحقاً. */
+          try {
+            await localeService.setMe({
+              country_code: storedValues.country_code,
+            });
+            useMarketStore
+              .getState()
+              .setMarket(
+                storedValues.country_code === "966" ? "saudi" : "yemen"
+              );
+            queryClient.invalidateQueries({
+              queryKey: ["finance:locale-me"],
+            });
+          } catch {
+            /* تعيين السوق خادمياً لم يتحقق — يبقى الافتراضي */
+          }
           try {
             const me = await customerAuthService.getMe();
             membership = me.membership;
@@ -812,6 +903,56 @@ export default function RegisterPage() {
                 </Field>
 
                 <Field
+                  id="country"
+                  label="بلد السوق"
+                >
+                  <div
+                    className="grid grid-cols-2 gap-2"
+                    role="radiogroup"
+                    aria-label="بلد السوق"
+                  >
+                    {REGISTER_COUNTRIES.map((c) => {
+                      const active = countryCode === c.code;
+                      return (
+                        <button
+                          key={c.code}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          disabled={isFormDisabled}
+                          onClick={() => {
+                            if (countryCode === c.code) return;
+                            setValue("country_code", c.code, {
+                              shouldValidate: true,
+                            });
+                            /* v5 — منطقة السوق الآخر غير صالحة هنا:
+                               تصفير فوري + تنقية الخطأ القديم */
+                            setValue("region_id", undefined, {
+                              shouldValidate: false,
+                            });
+                            clearErrors("region_id");
+                          }}
+                          className={cn(
+                            "native-tap flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 text-sm font-bold transition-colors",
+                            active
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-border/60 text-muted-foreground hover:border-primary/40"
+                          )}
+                        >
+                          <span aria-hidden="true">{c.flag}</span>
+                          <span>{c.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    يحدّد عملتك (ر.ي / ر.س) وطريقة الدفع والمتاجر والمناطق الظاهرة لك.
+                  </p>
+                </Field>
+
+                <Separator />
+
+                <Field
                   id="phone"
                   label="رقم الجوال"
                   error={errors.phone?.message}
@@ -822,7 +963,7 @@ export default function RegisterPage() {
                     inputMode="tel"
                     dir="ltr"
                     autoComplete="tel"
-                    placeholder="771234567"
+                    placeholder={countryCode === "966" ? "0512345678" : "771234567"}
                     className="text-left"
                     disabled={isFormDisabled}
                     aria-invalid={!!errors.phone}
@@ -835,9 +976,26 @@ export default function RegisterPage() {
 
                 <Separator />
 
-                <Field id="region" label="المنطقة" error={errors.region_id?.message}>
-                  <RegionSelector />
-                </Field>
+                {countryCode === "967" ? (
+                  <Field id="region" label="المنطقة" error={errors.region_id?.message}>
+                    <RegionSelector disabled={isFormDisabled} />
+                  </Field>
+                ) : (
+                  <Field id="region" label="المنطقة (السعودية)" error={errors.region_id?.message}>
+                    {/* v5 — المنتقي المضبوط: مناطق السعودية الصريحة (13) —
+                        بلا أي كتابة في مخزن منطقة الجلسة */}
+                    <RegionSelector
+                      countryCode="966"
+                      value={watch("region_id") ?? null}
+                      onChange={(id) =>
+                        setValue("region_id", id ?? undefined, {
+                          shouldValidate: true,
+                        })
+                      }
+                      disabled={isFormDisabled}
+                    />
+                  </Field>
+                )}
 
                 <Separator />
 

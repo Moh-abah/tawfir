@@ -3,6 +3,7 @@ import { extractArabicDetail } from "@/lib/api-error-msg";
 import { useOwnerAuthStore } from "@/store/ownerAuth.store";
 import { attemptRefresh, type PortalRole } from "@/services/token-refresh";
 import { toast } from "@/hooks/use-toast";
+import { useMarketStore, effectiveCountryCode } from "@/store/market.store";
 
 const API_BASE = "/api";
 
@@ -121,6 +122,18 @@ async function fetchWithAuth<T>(
   const token = getToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    /* v5.1 — الزائر (بلا توكن بوابة) يُعرّف سوقه برأس X-Market.
+       الخادم يعطي الرأس أولوية على ?country_code — لذا إذا أعلن
+       الاستدعاءُ سوقَه صراحةً في الرابط (استعلام مستقل عن جلسة
+       التصفح: منتقي تسجيل المالك، البحث العابر) حاذينا الرأس معه
+       حتى لا تُخدم قائمة سوقٍ آخر ببيانات سوق الجلسة. */
+    const explicitInUrl = /country_code=(966|967)/.exec(url);
+    const market = useMarketStore.getState().market;
+    const cc =
+      explicitInUrl?.[1] ??
+      effectiveCountryCode(market);
+    if (cc) headers["X-Market"] = cc;
   }
 
   const fullUrl = url.startsWith("http") ? url : `${API_BASE}${url}`;
@@ -167,10 +180,6 @@ async function fetchWithAuth<T>(
     throw new ApiError("لا تملك صلاحية الوصول", 403, null);
   }
 
-  if (response.status === 404 && !authEndpoint) {
-    throw new ApiError("غير موجود", 404, null);
-  }
-
   if (response.status === 429) {
     throw new ApiError("عدد كبير من المحاولات، انتظر قليلاً ثم أعد المحاولة", 429, null);
   }
@@ -178,6 +187,24 @@ async function fetchWithAuth<T>(
   const contentType = response.headers.get("content-type");
   const isJson = contentType?.includes("application/json") ?? false;
   const data = isJson ? await response.json().catch(() => null) : null;
+
+  /* v5.1 — رأس الاستجابة X-Market يُقرأ ضمنياً من كل استعلاماتنا لأن
+     كل استعلام جغرافي يُعلن سوقه صراحةً (X-Market للزائر / توكن
+     الحساب للمسجل الذي تقرؤه الواجهة من locale/me في MarketProvider).
+     لا تبنٍّ صامت للرأس هنا: استجابات بوابات الأدمن/المالك على نفس
+     الجهاز لا يجوز أن تقلب سوق جلسة العميل، والبحث العابر بقائمة
+     السوق الآخر يعيد echo مخالفاً بطبيعته. */
+
+  if (response.status === 404 && !authEndpoint) {
+    /* v5.1 — 404 العابر للسوق يصل بـ detail عربي («غير متاح في سوقك
+       الحالي») — يُمرَّر كما هو ليعرضه الواجهة برسالة ودودة بدل
+       «غير موجود» التقنية. */
+    const detail404 =
+      data && typeof data === "object" && "detail" in data
+        ? String((data as Record<string, unknown>).detail)
+        : null;
+    throw new ApiError(detail404 ?? "غير موجود", 404, data);
+  }
 
   if (!response.ok) {
     if (response.status === 422 && data && typeof data === "object" && "detail" in data) {
