@@ -154,8 +154,8 @@ export default function AdminRegionsPage() {
           {(
             [
               { code: null, label: "كل الأسواق", flag: "🌍" },
-              { code: "967" as const, label: "اليمن", flag: "🇾🇪" },
-              { code: "966" as const, label: "السعودية", flag: "🇸🇦" },
+              { code: "967" as const, label: "اليمن" },
+              { code: "966" as const, label: "السعودية" },
             ] as const
           ).map((m) => {
             const active = marketFilter === m.code;
@@ -173,7 +173,6 @@ export default function AdminRegionsPage() {
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <span aria-hidden="true">{m.flag}</span>
                 {m.label}
               </button>
             );
@@ -287,7 +286,7 @@ export default function AdminRegionsPage() {
                               : "سوق اليمن"
                           }
                         >
-                          {region.country_code === "966" ? "🇸🇦" : "🇾🇪"}
+                          {region.country_code === "966" ? "سعودي" : "يمني"}
                         </span>
                         {region.name}
                       </span>

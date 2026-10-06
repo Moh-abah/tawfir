@@ -22,6 +22,7 @@ import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
 import { ForgotPasswordDialog } from "@/components/shared/ForgotPasswordDialog";
 import { useCustomerAuth, useCustomerLogin } from "@/hooks/useCustomerAuth";
+import { healMarketFromAccountPhone } from "@/components/shared/MarketProvider";
 import { useCourierLogin, useCourierMe, useCourierSession } from "@/hooks/useCourier";
 import { unlockCourierAudio } from "@/lib/courier-call-sound";
 import { haptic } from "@/lib/haptic";
@@ -152,6 +153,9 @@ function CustomerLoginForm() {
     }
     login.mutate(values, {
       onSuccess: () => {
+        /* v8.1.1 — جوال الحساب يحسم السوق فوراً (بلا انتظار إقلاع
+           جديد) ويُزامن الخادم إن خالف — بلا عرقلة للرحلة. */
+        void healMarketFromAccountPhone();
         router.replace(nextUrl);
       },
       onError: (e: Error) => {

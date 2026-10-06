@@ -34,10 +34,9 @@ import { cn } from "@/lib/utils";
 const COUNTRY_OPTIONS: Array<{
   code: MarketCountryCode;
   label: string;
-  flag: string;
 }> = [
-  { code: "967", label: "اليمن", flag: "🇾🇪" },
-  { code: "966", label: "السعودية", flag: "🇸🇦" },
+  { code: "967", label: "اليمن" },
+  { code: "966", label: "السعودية" },
 ];
 
 /* ─── توليد slug لاتيني من الاسم العربي (قابل للتحرير بعد التوليد) ── */
@@ -244,7 +243,6 @@ export function RegionForm({
                         : "border-border/60 text-muted-foreground hover:border-primary/40"
                     )}
                   >
-                    <span aria-hidden="true">{c.flag}</span>
                     <span>{c.label}</span>
                     <span className="text-[10px] opacity-70">({c.code})</span>
                   </button>
@@ -269,9 +267,9 @@ export function RegionForm({
               />
               <span>
                 أنت تحوّل «{initial?.name}» من سوق{" "}
-                {initial?.country_code === "966" ? "السعودية 🇸🇦" : "اليمن 🇾🇪"}{" "}
+                {initial?.country_code === "966" ? "السعودية" : "اليمن"}{" "}
                 إلى سوق{" "}
-                {selectedCountry === "966" ? "السعودية 🇸🇦" : "اليمن 🇾🇪"}.
+                {selectedCountry === "966" ? "السعودية" : "اليمن"}.
                 الجنسية تورَّث لكل ما تحت المنطقة (متاجرها وبطاقاتها) وتنتقل
                 فوراً بين قوائم السوقين. اضغط «حفظ» مرة أخرى للتأكيد.
               </span>

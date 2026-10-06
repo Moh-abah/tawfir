@@ -74,8 +74,7 @@ import type { ApiError } from "@/services/api-client";
 import {
   useMarketStore,
   effectiveMarket,
-  MARKET_COUNTRY,
-  MARKET_META,
+  detectMarketFromPhone,
   type MarketKey,
 } from "@/store/market.store";
 import {
@@ -758,7 +757,8 @@ export default function OwnerRegisterPage() {
   /* رفع الصور يتطلب توكناً (401 قبل وجود حساب) → بطاقة توجيه + رابط */
   const [uploadNeedsAuth, setUploadNeedsAuth] = useState(false);
 
-  /* v5 — سوق تسجيل المالك: افتراضه سوق الجلسة، وقابل للتغيير من الشريحة.
+  /* v6.1 — سوق تسجيل المالك: افتراضه سوق الجلسة المستنبَط، ثم تنقية
+     صامتة من بادئة جوال المالك (5… سعودي / 7… يمني) — بلا شريحة أعلام.
      null قبل الترطيب — فرع موحّد (يمني) حتى لا يختلف أول رسم.
      (الصفحة خارج (public) layout — الترطيب هنا مسؤوليتها.) */
   const [market, setMarket] = useState<MarketKey | null>(null);
@@ -800,6 +800,21 @@ export default function OwnerRegisterPage() {
     },
   });
   const { register: registerField, handleSubmit, control, formState } = form;
+
+  /* v6.1 — تتبّع السوق المستكشَف متأخراً (جغرافياً/بيئياً) ما دام الجوال
+     فارغاً — وبعد إدخال الجوال تصبح بادئته هي الحاسمة وحدها. */
+  const sessionMarketNow = useMarketStore((st) => st.market);
+  const ownerPhone = form.watch("phone");
+  useEffect(() => {
+    if (!sessionMarketNow || ownerPhone) return;
+    if (market === sessionMarketNow) return;
+    setMarket(sessionMarketNow);
+    /* منطقة السوق القديم غير صالحة هنا — تصفير */
+    form.setValue("region_id", undefined as unknown as number, {
+      shouldValidate: false,
+    });
+    form.clearErrors("region_id");
+  }, [sessionMarketNow, ownerPhone, market, form]);
 
   const isBusy = register.isPending || requestOtp.isPending;
 
@@ -1035,7 +1050,22 @@ export default function OwnerRegisterPage() {
                           <PhoneInput
                             id="phone"
                             value={field.value ?? ""}
-                            onValueChange={field.onChange}
+                            onValueChange={(v) => {
+                              field.onChange(v);
+                              /* v6.1 — اكتشاف صامت: بادئة الجوال تحسم سوق
+                                 المتجر (5… سعودي / 7… يمني) وتصفّر المنطقة
+                                 عند الانقلاب لأنها تنتمي لسوق آخر. */
+                              const detected = detectMarketFromPhone(v);
+                              if (detected && detected !== market) {
+                                setMarket(detected);
+                                form.setValue(
+                                  "region_id",
+                                  undefined as unknown as number,
+                                  { shouldValidate: false }
+                                );
+                                form.clearErrors("region_id");
+                              }
+                            }}
                             disabled={isBusy}
                             aria-invalid={!!formState.errors.phone}
                           />
@@ -1166,59 +1196,13 @@ export default function OwnerRegisterPage() {
                     )}
                   />
 
-                  {/* v5 — سوق تسجيل المالك (شريحة هادئة — افتراضها سوق
-                      الجلسة المستنبَط) + المنطقة مفلتة به حصراً */}
-                  <div className="space-y-2">
-                    <Label>سوق المتجر</Label>
-                    <div
-                      className="grid grid-cols-2 gap-2"
-                      role="radiogroup"
-                      aria-label="سوق المتجر"
-                    >
-                      {(
-                        [
-                          { key: "yemen" as const, code: "967" },
-                          { key: "saudi" as const, code: "966" },
-                        ]
-                      ).map((m) => {
-                        const meta = MARKET_META[m.key];
-                        const active = marketCountry === m.code;
-                        return (
-                          <button
-                            key={m.key}
-                            type="button"
-                            role="radio"
-                            aria-checked={active}
-                            disabled={isBusy}
-                            onClick={() => {
-                              if (active) return;
-                              setMarket(m.key);
-                              /* منطقة السوق الآخر غير صالحة هنا — تصفير */
-                              form.setValue(
-                                "region_id",
-                                undefined as unknown as number,
-                                { shouldValidate: false }
-                              );
-                              form.clearErrors("region_id");
-                            }}
-                            className={cn(
-                              "native-tap flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 text-sm font-bold transition-colors",
-                              active
-                                ? "border-primary bg-primary/5 text-primary"
-                                : "border-border/60 text-muted-foreground hover:border-primary/40"
-                            )}
-                          >
-                            <span aria-hidden="true">{meta.flag}</span>
-                            <span>{meta.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground">
-                      يحدّد قوائم المناطق والعملة وطرق الدفع لمتجرك — اختر
-                      منطقة من سوقك ثم أكمل.
-                    </p>
-                  </div>
+                  {/* v6.1 — سوق المتجر يُكتشف تلقائياً (بلا شريحة أعلام):
+                      افتراضه سوق الجلسة، وتنقية صامتة من بادئة جوال
+                      المالك نفسها — قوائم المناطق والعملة تتبعه. */}
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    يتعرّف النظام على سوق متجرك تلقائياً من موقعك ورقم جوالك —
+                    قوائم المناطق والعملة وطرق الدفع تتبعه.
+                  </p>
 
                   {/* المنطقة */}
                   <Controller

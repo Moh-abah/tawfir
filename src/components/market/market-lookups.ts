@@ -97,17 +97,6 @@ export function useAllMarketRegions() {
   };
 }
 
-/** علم سوق منطقة معطاة (من الخريطة المحمّلة) — للوسوم السريعة. */
-export function marketFlagForRegion(
-  map: Map<number, CountryCode>,
-  regionId: number | null | undefined
-): string | null {
-  if (regionId == null) return null;
-  const cc = map.get(regionId);
-  if (cc == null) return null;
-  return cc === "966" ? "🇸🇦" : "🇾🇪";
-}
-
 /** اسم سوق منطقة معطاة — للوسوم النصية. */
 export function marketNameForRegion(
   map: Map<number, CountryCode>,

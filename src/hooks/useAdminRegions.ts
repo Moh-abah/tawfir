@@ -33,7 +33,7 @@ export function useCreateRegion() {
       toast({
         title: "تمت إضافة المنطقة",
         description: `${region.name} — ${
-          region.country_code === "966" ? "سوق السعودية 🇸🇦" : "سوق اليمن 🇾🇪"
+          region.country_code === "966" ? "سوق السعودية" : "سوق اليمن"
         }`,
       });
     },
@@ -62,7 +62,7 @@ export function useUpdateRegion() {
       toast({
         title: "تم تحديث المنطقة",
         description: `${region.name} — ${
-          region.country_code === "966" ? "سوق السعودية 🇸🇦" : "سوق اليمن 🇾🇪"
+          region.country_code === "966" ? "سوق السعودية" : "سوق اليمن"
         }`,
       });
     },

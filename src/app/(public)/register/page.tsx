@@ -28,8 +28,7 @@ import { PasswordInput } from "@/components/shared/PasswordInput";
 import { RegionSelector } from "@/components/public/RegionSelector";
 import { OtpVerifyForm } from "@/components/shared/OtpVerifyForm";
 import { MemberCard } from "@/components/public/MemberCard";
-import { useRegionStore } from "@/store/region.store";
-import { useMarketStore, effectiveMarket } from "@/store/market.store";
+import { useMarketStore, effectiveMarket, detectMarketFromPhone } from "@/store/market.store";
 import { useRegister } from "@/hooks/useRegister";
 import { useRequestOtp } from "@/hooks/useRequestOtp";
 import { customerAuthService } from "@/services/customer-auth.service";
@@ -126,12 +125,6 @@ const STEPS = [
   { num: 1, label: "البيانات الشخصية", icon: User },
   { num: 2, label: "كلمة المرور", icon: Lock },
   { num: 3, label: "تأكيد الحساب", icon: ShieldCheck },
-] as const;
-
-/* v7 — بلدان التسجيل المدعومان (مطابقان لـ /locale/countries). */
-const REGISTER_COUNTRIES = [
-  { code: "967", name: "اليمن", flag: "🇾🇪" },
-  { code: "966", name: "السعودية", flag: "🇸🇦" },
 ] as const;
 
 /* ─── Password Strength ───────────────────────────── */
@@ -587,7 +580,6 @@ export default function RegisterPage() {
   const { mutate: registerMutate, isPending: isRegisterPending } =
     useRegister();
   const requestOtp = useRequestOtp();
-  const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const prefersReduced = usePrefersReducedMotion();
 
   const isOtpRequesting = requestOtp.isPending;
@@ -621,8 +613,8 @@ export default function RegisterPage() {
   const countryCode = watch("country_code");
 
   /* v5.1 — ذكاء صامت: بلد التسجيل الافتراضي = سوق الجلسة المستنبَط
-     (توكن المسجل / إشارات المتصفح للزائر) — مرة واحدة عند التركيب،
-     والمستخدم يعدّله من الشريحة إن أراد (بلا أي إجبار). */
+     (توكن المسجل / إشارات المتصفح للزائر) — مرة واحدة عند التركيب.
+     v6.1 — بلا أي منتقي أعلام: النظام هو من يتعرف على السوق. */
   const marketDefaultApplied = useRef(false);
   useEffect(() => {
     if (marketDefaultApplied.current) return;
@@ -632,6 +624,33 @@ export default function RegisterPage() {
       setValue("country_code", m === "saudi" ? "966" : "967");
     });
   }, [setValue]);
+
+  /* v6.1 — اكتشاف صامت من رقم الجوال نفسه: أول ما تتضح صيغة الرقم
+     (5… سعودي / 7… يمني) يتبنّى النموذج البلد تلقائياً — بلا أي علم
+     أو سؤال. تصفير المنطقة عند الانقلاب لأنها تنتمي لبلد آخر. */
+  useEffect(() => {
+    const detected = detectMarketFromPhone(phone);
+    if (!detected) return;
+    const target = detected === "saudi" ? "966" : "967";
+    if (countryCode !== target) {
+      setValue("country_code", target, { shouldValidate: false });
+      setValue("region_id", undefined, { shouldValidate: false });
+      clearErrors("region_id");
+    }
+  }, [phone, countryCode, setValue, clearErrors]);
+
+  /* v6.1 — النموذج يتبع السوق المستكشَف متأخراً (جغرافياً/بيئياً)
+     ما دام الجوال فارغاً — وبعد إدخال الجوال يصبح هو الحاسم وحده. */
+  const sessionMarket = useMarketStore((st) => st.market);
+  useEffect(() => {
+    if (!sessionMarket || phone) return;
+    const target = sessionMarket === "saudi" ? "966" : "967";
+    if (countryCode !== target) {
+      setValue("country_code", target, { shouldValidate: false });
+      setValue("region_id", undefined, { shouldValidate: false });
+      clearErrors("region_id");
+    }
+  }, [sessionMarket, phone, countryCode, setValue, clearErrors]);
 
   /* ─── Compute progress & active step ──────────── */
   const { progress, currentStep } = useMemo(() => {
@@ -653,13 +672,6 @@ export default function RegisterPage() {
     const pct = (filled / 5) * 100;
     return { progress: pct, currentStep: step };
   }, [fullName, email, phone, passwordValue, passwordConfirm]);
-
-  useEffect(() => {
-    /* v5 — منطقة مخزن الجلسة تُستخدم لمسار اليمن فقط: السعودية لها
-       منتقي مضبوط بمناطقها الصريحة (بلا كتابة في مخزن الجلسة). */
-    if (countryCode === "967" && selectedRegionId)
-      setValue("region_id", selectedRegionId, { shouldValidate: true });
-  }, [selectedRegionId, countryCode, setValue]);
 
   /* ─── Stage transitions ───────────────────────── */
 
@@ -903,56 +915,6 @@ export default function RegisterPage() {
                 </Field>
 
                 <Field
-                  id="country"
-                  label="بلد السوق"
-                >
-                  <div
-                    className="grid grid-cols-2 gap-2"
-                    role="radiogroup"
-                    aria-label="بلد السوق"
-                  >
-                    {REGISTER_COUNTRIES.map((c) => {
-                      const active = countryCode === c.code;
-                      return (
-                        <button
-                          key={c.code}
-                          type="button"
-                          role="radio"
-                          aria-checked={active}
-                          disabled={isFormDisabled}
-                          onClick={() => {
-                            if (countryCode === c.code) return;
-                            setValue("country_code", c.code, {
-                              shouldValidate: true,
-                            });
-                            /* v5 — منطقة السوق الآخر غير صالحة هنا:
-                               تصفير فوري + تنقية الخطأ القديم */
-                            setValue("region_id", undefined, {
-                              shouldValidate: false,
-                            });
-                            clearErrors("region_id");
-                          }}
-                          className={cn(
-                            "native-tap flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 text-sm font-bold transition-colors",
-                            active
-                              ? "border-primary bg-primary/5 text-primary"
-                              : "border-border/60 text-muted-foreground hover:border-primary/40"
-                          )}
-                        >
-                          <span aria-hidden="true">{c.flag}</span>
-                          <span>{c.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    يحدّد عملتك (ر.ي / ر.س) وطريقة الدفع والمتاجر والمناطق الظاهرة لك.
-                  </p>
-                </Field>
-
-                <Separator />
-
-                <Field
                   id="phone"
                   label="رقم الجوال"
                   error={errors.phone?.message}
@@ -970,32 +932,32 @@ export default function RegisterPage() {
                     {...register("phone")}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    سيُرسل كود تحقق 6 أرقام إلى هذا الرقم عبر واتساب.
+                    يتعرّف النظام على سوقك تلقائياً من رقم جوالك وموقعك — عملتك
+                    وطرق الدفع والمتاجر تُحدَّد تلقائياً.
                   </p>
                 </Field>
 
                 <Separator />
 
-                {countryCode === "967" ? (
-                  <Field id="region" label="المنطقة" error={errors.region_id?.message}>
-                    <RegionSelector disabled={isFormDisabled} />
-                  </Field>
-                ) : (
-                  <Field id="region" label="المنطقة (السعودية)" error={errors.region_id?.message}>
-                    {/* v5 — المنتقي المضبوط: مناطق السعودية الصريحة (13) —
-                        بلا أي كتابة في مخزن منطقة الجلسة */}
-                    <RegionSelector
-                      countryCode="966"
-                      value={watch("region_id") ?? null}
-                      onChange={(id) =>
-                        setValue("region_id", id ?? undefined, {
-                          shouldValidate: true,
-                        })
-                      }
-                      disabled={isFormDisabled}
-                    />
-                  </Field>
-                )}
+                {/* v6.1 — منتقي مضبوط بالبلد في المسارين: قائمة الحقل تتبع
+                    بلد النموذج حصراً (وليس سوق الجلسة) فلا تنقلب القائمة
+                    تحت قدمي المستخدم لو اكتُشف الموقع متأخراً. */}
+                <Field
+                  id="region"
+                  label={countryCode === "966" ? "المنطقة (السعودية)" : "المنطقة"}
+                  error={errors.region_id?.message}
+                >
+                  <RegionSelector
+                    countryCode={countryCode}
+                    value={watch("region_id") ?? null}
+                    onChange={(id) =>
+                      setValue("region_id", id ?? undefined, {
+                        shouldValidate: true,
+                      })
+                    }
+                    disabled={isFormDisabled}
+                  />
+                </Field>
 
                 <Separator />
 
