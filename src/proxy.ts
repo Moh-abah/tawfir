@@ -8,11 +8,14 @@ import type { NextRequest } from "next/server";
  *  • tawfir.giize.com        → بوابة العميل (عام)
  *  • admin.tawfir.giize.com  → /admin (محمي بكوكي tawfir_admin_token)
  *  • facility.tawfir.giize.com → /owner (محمي بكوكي tawfir_owner_token)
+ *  • console.tawfir.giize.com → /console (الكونسول المعزول لمصنع المنصات —
+ *    حراسة factory_admin داخل الصفحة نفسها بجلسة مستقلة، فلا حراسة كوكيز هنا)
  */
 
 const PUBLIC_HOST = "tawfir.giize.com";
 const ADMIN_HOST = "admin.tawfir.giize.com";
 const OWNER_HOST = "facility.tawfir.giize.com";
+const CONSOLE_HOST = "console.tawfir.giize.com";
 
 /** صفحات بوابة المالك العامة (بلا حراسة): الدخول + تسجيل متجر جديد */
 const OWNER_PUBLIC_PATHS = new Set(["/owner/login", "/owner/register"]);
@@ -103,6 +106,18 @@ export function proxy(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     }
+    return NextResponse.next();
+  }
+
+  // 3.5) CONSOLE_HOST: rewrite / → /console — جذر سب دومين الكونسول يفتح الكونسول المعزول مباشرة
+  //     (كان يقع في «النطاقات المجهولة» فيُعرض المتجر العادي — وهذا هو خلل المالك:
+  //      يفتح console.tawfir.giize.com فيراه موقع العملاء فيظن أنه حُوِّل للرئيسي)
+  if (host === CONSOLE_HOST) {
+    if (pathname === "/") {
+      url.pathname = "/console";
+      return NextResponse.rewrite(url);
+    }
+    // بقية المسارات تمر كما هي: /console تعمل، و/factory (مركز المصنع) متاح أيضاً هنا
     return NextResponse.next();
   }
 
