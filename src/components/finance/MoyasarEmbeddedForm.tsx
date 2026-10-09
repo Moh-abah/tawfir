@@ -69,13 +69,15 @@ function loadMoyasarScript(): Promise<void> {
 }
 
 export interface MoyasarEmbeddedFormProps {
-  /** المبلغ بالوحدة الكبرى (ريال سعودي) — يُحوَّل هللات داخلياً (×100). */
+  /** المبلغ بالوحدة الكبرى — يُحوَّل هللات داخلياً (×100). */
   amountMajor: number;
   orderId: number;
   /** المفتاح العام الحي من /finance/payments/config — لا قيم ميتة. */
   publishableKey: string;
   /** وسائل الدفع المسموحة من الخادم (credit | applepay | ...). */
   methods: string[];
+  /** عملة البوابة من /finance/payments/config (v3.2.1 — بلا ثابت). */
+  currency: string;
   /** وصف الدفعة الظاهر في لوحة مويسر. */
   description?: string;
 }
@@ -98,6 +100,7 @@ function MoyasarFormInner({
   orderId,
   publishableKey,
   methods,
+  currency,
   description,
   onRetry,
 }: MoyasarEmbeddedFormProps & { onRetry: () => void }) {
@@ -122,7 +125,7 @@ function MoyasarFormInner({
       element: ".mysr-form",
       /* هللات: الوحدة الموثقة لمويسر — تقريب آمن للأعداد الصحيحة */
       amount: Math.round(amountMajor * 100),
-      currency: "SAR",
+      currency,
       description: description ?? `توفير — طلب رقم ${orderId}`,
       publishable_api_key: publishableKey,
       /* العودة إلى شاشة التحقق الحتمي بعد إتمام النموذج */

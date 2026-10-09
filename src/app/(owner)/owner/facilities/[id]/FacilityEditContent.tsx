@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck } from "lucide-react";
+import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck, BadgePercent } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { OwnerMetricsCard } from "@/components/owner/OwnerMetricsCard";
 import { OwnerPartnerLinkCard } from "@/components/owner/OwnerPartnerLinkCard";
@@ -38,7 +38,11 @@ export default function FacilityEditContent() {
 const prefersReduced = usePrefersReducedMotion();
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const { data: facility, isLoading, isError, error } = useQuery<Facility>({
+  /* v3.2.1 — نوع موسّع بحقلَي حرية التاجر من العقد الحي
+     (GET /owner/facility/{id} يعيد discount_rate + discount_hint) */
+  const { data: facility, isLoading, isError, error } = useQuery<
+    Facility & { discount_rate?: number | null; discount_hint?: string | null }
+  >({
     queryKey: ["my-facility", facilityId],
     queryFn: () => ownerService.getMyFacility(facilityId),
   });
@@ -58,6 +62,8 @@ const prefersReduced = usePrefersReducedMotion();
       is_visible: false,
       latitude: null,
       longitude: null,
+      discount_rate: 0,
+      discount_hint: "",
     },
   });
   const { register, handleSubmit, control, reset } = form;
@@ -75,19 +81,30 @@ const prefersReduced = usePrefersReducedMotion();
         is_visible: facility.is_visible,
         latitude: facility.latitude,
         longitude: facility.longitude,
+        discount_rate: facility.discount_rate ?? 0,
+        discount_hint: facility.discount_hint ?? "",
       });
     }
   }, [facility, reset]);
 
   function onSubmit(data: OwnerFacilityUpdate) {
-    updateMutation.mutate(data, {
-      onSuccess: () => {
-        setShowSuccess(true);
-        setTimeout(() => {
-          router.push(`/owner/facilities/${facilityId}/products`);
-        }, 1200);
+    updateMutation.mutate(
+      {
+        ...data,
+        discount_rate: Number.isFinite(Number(data.discount_rate))
+          ? Number(data.discount_rate)
+          : 0,
+        discount_hint: data.discount_hint?.trim() ? data.discount_hint.trim() : null,
       },
-    });
+      {
+        onSuccess: () => {
+          setShowSuccess(true);
+          setTimeout(() => {
+            router.push(`/owner/facilities/${facilityId}/products`);
+          }, 1200);
+        },
+      },
+    );
   }
 
   const pageAnimation = prefersReduced
@@ -323,6 +340,63 @@ const prefersReduced = usePrefersReducedMotion();
                 <MapPin className="h-4 w-4" />
                 حدد على الخريطة
               </Button>
+            </div>
+
+            {/* Section Divider */}
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs text-muted-foreground">حرية التاجر — خصم الأعضاء</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            {/* v3.2.1 — حرية التاجر: التاجر يضبط خصم أعضاء توفير بنفسه (0–20)
+                عبر PUT /owner/facility/{id} — الحرس الخادمي يرفض ما فوق 20
+                برسالة تُعرض كما هي. */}
+            <div className="space-y-5">
+              <div className="flex items-center gap-2">
+                <BadgePercent className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-semibold">نسبة خصم أعضاء توفير في متجرك</h2>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="discount_rate">نسبة الخصم (0–20%)</Label>
+                  <Input
+                    id="discount_rate"
+                    type="number"
+                    min={0}
+                    max={20}
+                    step={1}
+                    dir="ltr"
+                    {...register("discount_rate", {
+                      valueAsNumber: true,
+                      min: { value: 0, message: "أقل نسبة مسموحة هي 0 (بلا خصم)" },
+                      max: { value: 20, message: "أقصى نسبة مسموحة هي 20%" },
+                    })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    0 = بلا خصم إطلاقاً — يظهر متجرك بسعره الرسمي لكل العملاء.
+                    أي نسبة من 1 إلى 20 تُعرض شارة خصم لعملائك الأعضاء تلقائياً.
+                  </p>
+                  {form.formState.errors.discount_rate && (
+                    <p className="text-sm font-medium text-destructive">
+                      {form.formState.errors.discount_rate.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="discount_hint">تلميح الخصم (اختياري)</Label>
+                  <Textarea
+                    id="discount_hint"
+                    rows={3}
+                    maxLength={280}
+                    placeholder="مثال: خصم 15% على كل الوجبات لأعضاء توفير"
+                    {...register("discount_hint")}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    يظهر مع متجرك لتوضيح فائدة الخصم للعملاء (حتى 280 حرفاً).
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Actions */}

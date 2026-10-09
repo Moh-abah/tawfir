@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "tag": "hw58",
+    "ran_at": "2026-10-09T15:17:45.128Z",
+    "api": "https://api.tawfir.giize.com/api/v1"
+  },
+  "summary": {
+    "pass": 35,
+    "fail": 0
+  },
+  "results": [
+    {
+      "step": "تهيئة: مناطق 966",
+      "status": "ok",
+      "detail": "الرياض=23 (14 منطقة)"
+    },
+    {
+      "step": "تهيئة: مناطق 967",
+      "status": "ok",
+      "detail": "صنعاء=7 (24 منطقة)"
+    },
+    {
+      "step": "دخول customer.sa@tawfir.test",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "step": "دخول customer.ye@tawfir.test",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "step": "دخول owner.sa@tawfir.test",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "step": "دخول owner.ye@tawfir.test",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "step": "دخول الأدمن الكلي",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "step": "بوابة مويسر (سعودي)",
+      "status": "ok",
+      "detail": "enabled=true · currency=SAR · methods=creditcard,applepay,stcpay"
+    },
+    {
+      "step": "عضوية: info سعودي",
+      "status": "ok",
+      "detail": "market=966 · amount=0 · ريال سعودي · discount_label=خصم يصل إلى 20%",
+      "evidence": "{\"amount\":0,\"currency\":\"ريال سعودي\",\"transfer_account_name\":null,\"transfer_account_number\":null,\"wallet_name\":null,\"instructions\":\"عضوية السوق السعودي مجانية — فعّلها بضغطة واحدة بدون أي دفع واستمتع بخصم يصل إلى 20% في م"
+    },
+    {
+      "step": "عضوية: تفعيل فوري مجاني",
+      "status": "ok",
+      "detail": "409 نشطة أصلاً (سلوك مقبول): لديك عضوية نشطة بالفعل"
+    },
+    {
+      "step": "عضوية: الحالة بعد التفعيل",
+      "status": "ok",
+      "detail": "نشطة · سنوية · خصم 20% · تنتهي 2027-10-09"
+    },
+    {
+      "step": "تصفح: قائمة سعودية نظيفة",
+      "status": "ok",
+      "detail": "26 منشأة · تلوث يمني=لا"
+    },
+    {
+      "step": "حرية التاجر: ضبط 15%",
+      "status": "ok",
+      "detail": "discount_rate=15 محفوظ"
+    },
+    {
+      "step": "تقدير التوصيل (عملة من الخادم)",
+      "status": "ok",
+      "detail": "fee=8 SAR · market=966"
+    },
+    {
+      "step": "طلب كاش بخصم تاجر 15%",
+      "status": "ok",
+      "detail": "الطلب #122 · subtotal=85 (المتوقع 85) · total=93 · fee=8",
+      "evidence": "{\"id\":122,\"subtotal\":85,\"total\":93}"
+    },
+    {
+      "step": "بطاقة مدى (مويسر)",
+      "status": "ok",
+      "detail": "حالة مويسر=paid"
+    },
+    {
+      "step": "verify يسجل الدفعة",
+      "status": "ok",
+      "detail": "دفعة #37 على الطلب #122"
+    },
+    {
+      "step": "قيود verify على بطاقة التاجر (بلا webhook)",
+      "status": "ok",
+      "detail": "عمولات=1200 SAR"
+    },
+    {
+      "step": "تتبع الطلب",
+      "status": "ok",
+      "detail": "status=بانتظار التأكيد"
+    },
+    {
+      "step": "إشعارات العميل",
+      "status": "ok",
+      "detail": "13 إشعاراً"
+    },
+    {
+      "step": "عضوية: info يمني",
+      "status": "ok",
+      "detail": "market=967 · amount=3000 ريال يمني · محفظة=محفظة جيب · حساب=780090882"
+    },
+    {
+      "step": "عضوية: اشتراك بإيصال (مسار اليمن)",
+      "status": "ok",
+      "detail": "409: لديك طلب اشتراك قيد المراجعة بالفعل"
+    },
+    {
+      "step": "تقدير التوصيل يمني (عملة من الخادم)",
+      "status": "ok",
+      "detail": "fee=300 YER · market=967"
+    },
+    {
+      "step": "طلب بمحفظة المتجر (اليمن)",
+      "status": "ok",
+      "detail": "الطلب #123 · total=1300 · طريقة=wallet · محفظة #46"
+    },
+    {
+      "step": "حرس العبور: يمني → منشأة سعودية",
+      "status": "ok",
+      "detail": "422: هذا المتجر في سوق السعودية ولا يخدم سوق اليمن — قوائم تطبيقك تعرض متاجر سوقك فقط"
+    },
+    {
+      "step": "بطاقة التاجر السعودي",
+      "status": "ok",
+      "detail": "currency=SAR · عمولات=1200 · ذمة=1200"
+    },
+    {
+      "step": "الخصم 0→15 (+تلميح)",
+      "status": "ok",
+      "detail": "محفوظ"
+    },
+    {
+      "step": "الخصم 21 → مرفوض 422",
+      "status": "ok",
+      "detail": "422: Validation error [{\"type\":\"less_than_equal\",\"loc\":[\"body\",\"discount_rate\"],\"msg\":\"Input should be less than or equal to 20\",\"input",
+      "evidence": "{\"detail\":{\"message\":\"Validation error\",\"errors\":[{\"type\":\"less_than_equal\",\"loc\":[\"body\",\"discount_rate\"],\"msg\":\"Input should be less than or equal to 20\",\"input\":21,\"ctx\":{\"le\":20}}]},\"status_code\":"
+    },
+    {
+      "step": "الخصم 15→0 (إغلاق الدورة)",
+      "status": "ok",
+      "detail": "بلا خصم"
+    },
+    {
+      "step": "OTP مندوب سعودي",
+      "status": "ok",
+      "detail": "verified_token"
+    },
+    {
+      "step": "تسجيل مندوب سعودي (X-Market 966)",
+      "status": "ok",
+      "detail": "courier=56 · هاتف 966522…"
+    },
+    {
+      "step": "لوكالي المندوب فور التسجيل (P0-1)",
+      "status": "ok",
+      "detail": "المخزن=966 · العملة=SAR — بلا أي PUT ترقيع!"
+    },
+    {
+      "step": "رصيد المندوب السعودي",
+      "status": "ok",
+      "detail": "receivable=0 · currency=SAR"
+    },
+    {
+      "step": "وجهة STC Pay سعودية",
+      "status": "ok",
+      "detail": "#32 · country=SA · mobile=966551…"
+    },
+    {
+      "step": "أدمن: pricing يعرض SA/YE",
+      "status": "ok",
+      "detail": "966={8/3كم/1.5} · 967={300/3كم/50} · تعديل: PUT /finance/settings (SA_/YE_ DELIVERY_*)"
+    }
+  ]
+}

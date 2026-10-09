@@ -40,7 +40,7 @@ export function Footer() {
           <div className="space-y-4">
             <TawfirLogo variant="lockup_fulltra" size="md" showPill />
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-              اول منصة يمنية يمنية توصّل بينك وبين أفضل العروض في مدينتك —
+              منصة توفير توصّل بينك وبين أفضل العروض في مدينتك —
               عضوية واحدة، ووفّر على كل طلب بخصومات حصرية للعضوية.
             </p>
           </div>

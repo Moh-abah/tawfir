@@ -13,7 +13,8 @@ export interface paths {
         };
         /**
          * Get Regions
-         * @description المناطق النشطة — [v3] مرّر ``country_code`` لقائمة سوق واحد فقط.
+         * @description المناطق النشطة لسوق الجلسة حصراً — بلا معامل يعاد سوق الجلسة
+         *     (وليس كل الأسواق كما سابقاً).
          */
         get: operations["get_regions_api_v1_regions_get"];
         put?: never;
@@ -53,8 +54,8 @@ export interface paths {
          * @description المنشآت العامة الموافق عليها والظاهرة، مع ترتيب اختياري حسب الأقرب مسافة
          *     وفلتر «المفتوح الآن» (B-6).
          *
-         *     [v3] مرّر ``country_code`` لعرض سوق واحد فقط (يمني أو سعودي) — بلا فلتر
-         *     تعاد كل الأسواق (توافق رجعي للواجهات القديمة فقط).
+         *     [v3.1] السوق **إجباري من الجلسة** — لا يوجد مسار يعيد أسواقاً مختلطة
+         *     بعد الآن: بلا معامل يعاد سوق الجلسة وحده (وليس كل الأسواق كما سابقاً).
          */
         get: operations["get_facilities_api_v1_facilities_get"];
         put?: never;
@@ -75,6 +76,8 @@ export interface paths {
         /**
          * Get Facility Products
          * @description Public product listing for a facility (cached when not searching).
+         *
+         *     [v3.1] حرس سوق: منشأة من سوق آخر → 404 حتى بمعرفها الصريح.
          */
         get: operations["get_facility_products_api_v1_facilities__facility_id__products_get"];
         put?: never;
@@ -92,7 +95,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Facility Product Categories */
+        /**
+         * Get Facility Product Categories
+         * @description [v3.1] حرس سوق كما المنتجات — نفس المنطق حرفياً.
+         */
         get: operations["get_facility_product_categories_api_v1_facilities__facility_id__products_categories_get"];
         put?: never;
         post?: never;
@@ -117,6 +123,8 @@ export interface paths {
          *
          *     الـclient يُرسل user_id اختيارياً (إن كان مسجلاً). لا نتحقق من auth
          *     لأنها مجرد إحصائية — لا تؤثر على الأمان.
+         *
+         *     [v3.1] متجر من سوق آخر → 404 (نفس دلالة المتجر المفقود).
          */
         post: operations["record_facility_view_api_v1_facilities__facility_id__view_post"];
         delete?: never;
@@ -285,11 +293,13 @@ export interface paths {
         };
         /**
          * Membership Info
-         * @description معلومات حساب التحويل الثابتة للاشتراك في العضوية + علم العضوية المجانية.
+         * @description معلومات العضوية لسوق الجلسة (v3.2 — إغلاق P0-4).
          *
-         *     تعرض المبلغ (3000 ريال يمني) واسم ورقم حساب التحويل (محمد يحيى عبه /
-         *     780090882) واسم المحفظة (محفظة جيب) والتعليمات + ``is_free_membership_enabled``
-         *     (عند true يُخفي التطبيق الدفع ويعرض عضوية مجانية).
+         *     اليمن: نفس بثّ اليوم حرفياً (3000 ريال يمني / محفظة جيب / 780090882).
+         *     السعودية: **عضوية مجانية** (المبلغ 0 — بلا أي دفع) بخصم يصل إلى 20%
+         *     حقيقي مُطبَّق خادمياً في إنشاء الطلب، والعلم ``is_free_membership_enabled``
+         *     يساوي true دائماً لهذا السوق. سوق الجلسة: X-Market ثم لوكالي الحساب
+         *     ثم بادئة الهاتف.
          */
         get: operations["membership_info_api_v1_membership_info_get"];
         put?: never;
@@ -380,6 +390,8 @@ export interface paths {
         /**
          * Create Or Update Rating
          * @description إنشاء أو تحديث تقييم (مستخدم واحد = تقييم واحد لكل هدف).
+         *
+         *     [v3.1] حرس السوق: هدف من سوق آخر ← 404 قبل أي كتابة.
          */
         post: operations["create_or_update_rating_api_v1_ratings_post"];
         delete?: never;
@@ -457,7 +469,9 @@ export interface paths {
         };
         /**
          * List Products
-         * @description قائمة المنتجات العامة عبر كل المنشآت المعتمدة والظاهرة.
+         * @description قائمة المنتجات العامة عبر منشآت سوق الجلسة المعتمدة والظاهرة.
+         *
+         *     [v3.1] السوق إجباري من الجلسة — بلا معامل يعاد سوق الجلسة وحده.
          *
          *     يمكن الفلترة بالمنشأة (facility_id)، نوع المنشأة (restaurant|cafe)،
          *     التصنيف (category)، أو البحث في الاسم (search). عند تمرير lat/lng
@@ -481,13 +495,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List Nearby Products
-         * @description المنتجات القريبة من موقع محدد (lat/lng) ضمن نصف قطر معطى.
-         *
-         *     تُرتّب النتائج تصاعدياً حسب المسافة بالكيلومتر وتشمل حقل
-         *     ``distance_km`` لكل منتج.
+         * Nearby Products
+         * @description منتجات قريبة من موقع — [v3.1] محصورة بسوق الجلسة حصراً.
          */
-        get: operations["list_nearby_products_api_v1_products_nearby_get"];
+        get: operations["nearby_products_api_v1_products_nearby_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -506,6 +517,8 @@ export interface paths {
         /**
          * Get Product
          * @description تفاصيل منتج عام مع ملخص المنشأة التابع لها.
+         *
+         *     [v3.1] منتج من سوق آخر → 404 حتى بمعرفه الصريح.
          */
         get: operations["get_product_api_v1_products__product_id__get"];
         put?: never;
@@ -525,7 +538,9 @@ export interface paths {
         };
         /**
          * List Public Special Offers
-         * @description قائمة كل العروض الخاصة النشطة عبر المنشآت المعتمدة والظاهرة.
+         * @description قائمة كل العروض الخاصة النشطة عبر منشآت سوق الجلسة المعتمدة والظاهرة.
+         *
+         *     [v3.1] السوق إجباري من الجلسة — بلا معامل يعاد سوق الجلسة وحده.
          *
          *     مرتبة: الأحدث أولاً. كل عرض يحوي: المنتج + المنشأة + سعر العضو +
          *     سعر غير العضو + الكمية المتبقية.
@@ -553,6 +568,8 @@ export interface paths {
         /**
          * Get Public Special Offer
          * @description تفاصيل عرض خاص نشط (مع حساب سعر العضو وغير العضو).
+         *
+         *     [v3.1] عرض من سوق آخر → 404 حتى بمعرفه الصريح.
          */
         get: operations["get_public_special_offer_api_v1_special_offers__offer_id__get"];
         put?: never;
@@ -872,7 +889,7 @@ export interface paths {
         put?: never;
         /**
          * Toggle Favorite Endpoint
-         * @description بدّل حالة مفضلة متجر (إضافة/إزالة).
+         * @description بدّل حالة مفضلة متجر (إضافة/إزالة) — [v3.1] من سوق آخر ← 404.
          */
         post: operations["toggle_favorite_endpoint_api_v1_favorites__facility_id__post"];
         delete?: never;
@@ -917,6 +934,8 @@ export interface paths {
         /**
          * Set Notify Offers Endpoint
          * @description تفعيل/تعطيل إشعارات العروض الخاصة لمتجر مفضل.
+         *
+         *     [v3.1] نفس حرس الإضافة — متجر من سوق آخر ← 404.
          */
         patch: operations["set_notify_offers_endpoint_api_v1_favorites__facility_id__notify_patch"];
         trace?: never;
@@ -1038,7 +1057,12 @@ export interface paths {
         };
         /**
          * List Wallet Providers
-         * @description قائمة المحافظ اليمنية النشطة (لشوائم الاختيار في كل الواجهات).
+         * @description قائمة المحافظ النشطة لسوق الجلسة (لشوائم الاختيار في كل الواجهات).
+         *
+         *     [v3.2] (إغلاق P1-6-أ) المحفظات المسجلة يمنية بالتصميم — السوق
+         *     السعودي يعود بقائمة فارغة من الخادم (لا يمكن لعميل سعودي رؤية
+         *     محافظ يمنية مهما أرسل من API مباشر). سوق الجلسة: X-Market ثم
+         *     لوكالي الحساب ثم بادئة الهاتف.
          */
         get: operations["list_wallet_providers_api_v1_wallets_providers_get"];
         put?: never;
@@ -1062,6 +1086,10 @@ export interface paths {
          *
          *     تعرض لكل محفظة: اسم المحفظة اليمنية + رقم النقطة/الهاتف + الاسم
          *     (``account_label`` جاهز للنسخ) — نفس ما سيظهر في نافذة الدفع المنبثقة.
+         *
+         *     [v3.2] (إغلاق P1-6-ب) حرس سوق: محافظ منشأة من سوق آخر تُرجع 404
+         *     مثل قائمة المنشآت نفسها — كانت تُقرأ عبر API مباشر حتى لو كانت
+         *     المنشأة نفسها مخفية عن سوق الطالب.
          */
         get: operations["list_facility_public_wallets_api_v1_facilities__facility_id__wallets_get"];
         put?: never;
@@ -1131,6 +1159,11 @@ export interface paths {
          *     الداشبورد) والمفتاح العام pk_ (آمن للنشر في المتصفح — المفتاح السري
          *     sk_ لا يخرج من الخادم أبداً) ورابط الـcallback والطرق المدعومة.
          *     الفرونت: انسخ publishable_key إلى Moyasar.init() مباشرة.
+         *
+         *     [v3.2] (إغلاق P1-3) الإعداد لكل سوق: اليمن يعود ``enabled=false``
+         *     بنمط «إشعارات التسديد» بلا مفاتيح إلكترونية — التمييز من الخادم لا
+         *     من إخفاء الواجهة؛ والسعودية كما هي بعملة SAR. سوق الجلسة من رأس
+         *     X-Market ثم لوكالي الحساب.
          */
         get: operations["payments_config_api_v1_finance_payments_config_get"];
         put?: never;
@@ -1280,7 +1313,13 @@ export interface paths {
         put?: never;
         /**
          * Add Destination
-         * @description المندوب يضيف وجهة استلامه: IBAN بنكي سعودي أو محفظة STC Pay (رقم 966).
+         * @description المندوب يضيف وجهة استلامه — بقالب سوقه (إغلاق P1-4 — v3.2).
+         *
+         *     السعودية: IBAN بنكي سعودي (SA…) أو محفظة STC Pay (9665XXXXXXXX).
+         *     اليمن: حساب بنكي يمني أو محفظة يمنية (7XXXXXXXX / 9677XXXXXXXX) —
+         *     كانت تُرفض 422 خادماً بينما الواجهة تسمح بها لمندوب اليمن.
+         *     سوق المندوب من لوكاليه ثم بادئة جواله (نفس قاعدة resolve_session_market)
+         *     ووجهة سوق مخالف تُرفض برسالة واضحة.
          */
         post: operations["add_destination_api_v1_finance_courier_destination_post"];
         delete?: never;
@@ -1565,7 +1604,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** My Locale */
+        /**
+         * My Locale
+         * @description [v3.2] (إغلاق P0-1-ب) غياب صف اللوكالي لم يعد يعيد «967 مثبتة
+         *     بكود» — بل يُستنبط السوق من بادئة جوال الحساب بنفس قاعدة
+         *     ``resolve_session_market`` (966 → السعودية) فلا يُضلَّم مندوب/عميل
+         *     سعودي بلا صف لوكالي بعد اليوم.
+         */
         get: operations["my_locale_api_v1_locale_me_get"];
         /**
          * Set Locale
@@ -2468,6 +2513,10 @@ export interface paths {
          * Register Courier
          * @description م1 — تسجيل مندوب جديد: الحساب (دور «مندوب» + حالة «قيد التوثيق»)
          *     + صف المندوب بمستنداته في معاملة واحدة.
+         *
+         *     [v3.2] (إغلاق P0-1) سوق المندوب يُحسم هنا: ``country_code`` في
+         *     الجسم ثم رأس ``X-Market`` ثم بادئة الجوال — وصف ``AccountLocale``
+         *     يُنشأ في نفس المعاملة (لا مندوب بلا سوق بعد اليوم).
          */
         post: operations["register_courier_api_v1_courier_auth_register_post"];
         delete?: never;
@@ -3231,6 +3280,10 @@ export interface paths {
          * Get Pricing Settings
          * @description م21 — قراءة الإعدادات التسعيرية الحية (كل بوابات العرض تقرأ
          *     نفس المصدر الواحد عبر الكاش القصير).
+         *
+         *     [v3.2] (إغلاق P0-5-ب) التعريفتان الوطنيتان (SA_/YE_ DELIVERY_*)
+         *     تُعرضان هنا أيضاً — كانت تعمل بقيم الكود الافتراضية بلا أي إمكانية
+         *     رؤية أو ضبط من لوحة الأدمن. تُعدَّل حياً من /finance/settings.
          */
         get: operations["get_pricing_settings_api_v1_admin_pricing_get"];
         put?: never;
@@ -4968,6 +5021,11 @@ export interface components {
             /** Password Confirm */
             password_confirm: string;
             /**
+             * Country Code
+             * @description سوق المندوب (967 اليمن | 966 السعودية)
+             */
+            country_code?: string | null;
+            /**
              * Vehicle Type
              * @description motorcycle | electric_bike | other
              * @default motorcycle
@@ -5344,6 +5402,9 @@ export interface components {
         /**
          * DeliveryEstimateOut
          * @description «3 كم و250 م ≈ 4 كم × 200 = 800» — الشفافية الحرفية (المادة 8).
+         *
+         *     [v3.2] (إغلاق P1-1) عملة السوق وسوقه في كل رد تسعير — العميل يرى
+         *     «8 ريال سعودي» لا رقماً بلا عملة، والفصل موثق من الخادم.
          */
         DeliveryEstimateOut: {
             /** Distance Km */
@@ -5373,6 +5434,16 @@ export interface components {
             exceeds_cap: boolean;
             /** Note */
             note?: string | null;
+            /**
+             * Currency
+             * @description SAR | YER — عملة السوق
+             */
+            currency?: string | null;
+            /**
+             * Market
+             * @description 966 | 967 — سوق التسعير
+             */
+            market?: string | null;
         };
         /**
          * DeliveryProblemDecision
@@ -5400,11 +5471,8 @@ export interface components {
             iban?: string | null;
             /** Mobile */
             mobile?: string | null;
-            /**
-             * Country
-             * @default SA
-             */
-            country: string;
+            /** Country */
+            country?: string | null;
             /** City */
             city?: string | null;
         };
@@ -5947,12 +6015,16 @@ export interface components {
         };
         /**
          * MembershipInfoOut
-         * @description Static transfer account info shown to the customer before subscribing.
+         * @description معلومات العضوية لسوق الجلسة (v3.2 — لكل سوق بثوابته).
+         *
+         *     اليمن: نفس العقد القائم حرفياً (3000 ريال يمني / محفظة جيب / تحويل).
+         *     السعودية: عضوية **مجانية** (amount=0، حقول التحويل null) بخصم يصل
+         *     إلى 20% حقيقي مُطبَّق خادمياً بسقف SA_MEMBERSHIP_DISCOUNT_MAX_PCT.
          */
         MembershipInfoOut: {
             /**
              * Amount
-             * @description مبلغ الاشتراك بالريال اليمني
+             * @description مبلغ الاشتراك (0 = مجاني)
              * @example 3000
              */
             amount: number;
@@ -5968,21 +6040,21 @@ export interface components {
              * @default محمد يحيى عبه
              * @example محمد يحيى عبه
              */
-            transfer_account_name: string;
+            transfer_account_name: string | null;
             /**
              * Transfer Account Number
              * @description رقم حساب التحويل
              * @default 780090882
              * @example 780090882
              */
-            transfer_account_number: string;
+            transfer_account_number: string | null;
             /**
              * Wallet Name
              * @description اسم المحفظة الإلكترونية
              * @default محفظة جيب
              * @example محفظة جيب
              */
-            wallet_name: string;
+            wallet_name: string | null;
             /**
              * Instructions
              * @description تعليمات الإرفاق
@@ -5991,6 +6063,30 @@ export interface components {
             instructions: string;
             /** @description الجولة 20: علم العضوية المجانية المفعّل من لوحة المشرف. */
             is_free_membership_enabled?: boolean;
+            /**
+             * Market
+             * @description سوق هذه العضوية (967 | 966)
+             * @default 967
+             */
+            market: string;
+            /**
+             * Market Name
+             * @description اسم السوق
+             * @default اليمن
+             */
+            market_name: string;
+            /**
+             * Discount Max Pct
+             * @description أقصى نسبة خصم يحققها العضو في سوقه (حقيقية خادمياً)
+             * @default 20
+             */
+            discount_max_pct: number;
+            /**
+             * Discount Label
+             * @description نص الخصم المعروض للسوق
+             * @default خصم يصل إلى 20%
+             */
+            discount_label: string;
         };
         /**
          * MembershipRequestOut
@@ -6533,6 +6629,16 @@ export interface components {
             image_url?: string | null;
             /** Is Visible */
             is_visible?: boolean | null;
+            /**
+             * Discount Rate
+             * @description نسبة خصم الأعضاء (0-20) — 0 = بلا خصم. اتركه غائباً لعدم التغيير
+             */
+            discount_rate?: number | null;
+            /**
+             * Discount Hint
+             * @description تلميح اختياري عن فائدة الخصم يظهر مع المتجر
+             */
+            discount_hint?: string | null;
         };
         /** OwnerHandoverConfirm */
         OwnerHandoverConfirm: {
@@ -7630,8 +7736,7 @@ export interface components {
             slug: string;
             /**
              * Country Code
-             * @description مفتاح الدولة (967 اليمن | 966 السعودية)
-             * @default 967
+             * @description مفتاح الدولة (967 اليمن | 966 السعودية) — إجباري
              */
             country_code: string;
             /**
@@ -8517,7 +8622,7 @@ export interface operations {
     get_regions_api_v1_regions_get: {
         parameters: {
             query?: {
-                /** @description [v3] فلتر السوق: 967 اليمن | 966 السعودية — الفرونت الجديد ملزم بإرساله */
+                /** @description [v3.1] للزوار فقط — المسجل يُفرض سوقه من حسابه */
                 country_code?: string | null;
             };
             header?: never;
@@ -8551,6 +8656,8 @@ export interface operations {
             query: {
                 /** @description Region id is required */
                 region_id: number;
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
             };
             header?: never;
             path?: never;
@@ -8583,7 +8690,7 @@ export interface operations {
             query?: {
                 /** @description فلترة حسب المنطقة (اختياري) */
                 region_id?: number | null;
-                /** @description [v3] فلتر السوق (967|966) — الفرونت الجديد ملزم بإرساله لفصل السوقين */
+                /** @description [v3.1] للزوار فقط — المسجل يُفرض سوقه من حسابه ويُتجاهل هذا المعامل */
                 country_code?: string | null;
                 /** @description خط العرض للترتيب بالأقرب */
                 lat?: number | null;
@@ -8627,6 +8734,8 @@ export interface operations {
                 search?: string | null;
                 /** @description Only available products */
                 only_available?: boolean;
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
             };
             header?: never;
             path: {
@@ -8658,7 +8767,10 @@ export interface operations {
     };
     get_facility_product_categories_api_v1_facilities__facility_id__products_categories_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
+            };
             header?: never;
             path: {
                 facility_id: number;
@@ -8976,7 +9088,9 @@ export interface operations {
     membership_info_api_v1_membership_info_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Market"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -8989,6 +9103,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MembershipInfoOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -9216,6 +9339,8 @@ export interface operations {
                 lng?: number | null;
                 /** @description نصف قطر البحث بالكيلومتر (اختياري) */
                 radius_km?: number | null;
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -9245,15 +9370,17 @@ export interface operations {
             };
         };
     };
-    list_nearby_products_api_v1_products_nearby_get: {
+    nearby_products_api_v1_products_nearby_get: {
         parameters: {
             query: {
                 /** @description خط عرض الموقع الحالي */
                 lat: number;
                 /** @description خط طول الموقع الحالي */
                 lng: number;
-                /** @description نصف قطر البحث بالكيلومتر (افتراضي 10) */
+                /** @description نصف قطر البحث */
                 radius_km?: number;
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -9285,7 +9412,10 @@ export interface operations {
     };
     get_product_api_v1_products__product_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
+            };
             header?: never;
             path: {
                 product_id: number;
@@ -9323,6 +9453,8 @@ export interface operations {
                 type?: string | null;
                 /** @description فلترة رمزية — جميع العروض تظهر لكن مع أسعار العضو/غير العضو */
                 only_members?: boolean;
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
                 page?: number;
                 page_size?: number;
             };
@@ -9354,7 +9486,10 @@ export interface operations {
     };
     get_public_special_offer_api_v1_special_offers__offer_id__get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description [v3.1] للزوار فقط */
+                country_code?: string | null;
+            };
             header?: never;
             path: {
                 offer_id: number;
@@ -10105,7 +10240,9 @@ export interface operations {
     list_wallet_providers_api_v1_wallets_providers_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Market"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10118,6 +10255,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WalletProviderOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -10211,7 +10357,9 @@ export interface operations {
     payments_config_api_v1_finance_payments_config_get: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Market"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10224,6 +10372,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -12750,7 +12907,9 @@ export interface operations {
     register_courier_api_v1_courier_auth_register_post: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-Market"?: string | null;
+            };
             path?: never;
             cookie?: never;
         };

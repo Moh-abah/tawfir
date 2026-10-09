@@ -37,7 +37,7 @@ import { useMe } from "@/hooks/useMe";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useDeliveryEstimate } from "@/hooks/useDeliveryEstimate";
 import { useLocaleMe } from "@/hooks/useFinance";
-import { isSaudiCountry } from "@/services/locale.service";
+import { isSaudiCountry, currencyFromCountry } from "@/services/locale.service";
 import { MoneyText } from "@/components/finance/finance-ui";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
@@ -521,8 +521,6 @@ export function CheckoutSheet({
   const isSaudiMarket = market === "saudi";
 
   const isMember = !!me.data?.membership?.is_active;
-  /* نسبة الخصم حية من حساب العميل — لا ثابت تسعير في الكود (برونزية-3) */
-  const memberRate = me.data?.membership?.discount_rate;
   const priceNum = parseFloat(product.price) || 0;
 
   /* طريقة الاستلام قبل حساب السعر — وضع الاستلام بلا تسعير توصيل */
@@ -537,17 +535,19 @@ export function CheckoutSheet({
   );
   const hasLocation = lat != null && lng != null;
 
-  /* عملة السوق — المبالغ من الخادم بعملة السوق (SAR للسعودية) */
-  const currency = isSaudiMarket ? "SAR" : "YER";
+  /* عملة السوق — من رد التسعير نفسه أولاً (v3.2.1: currency في delivery-estimate)،
+     وإلا تُشتق من سوق جلسة العميل المسجل (locale/me) عبر الخدمة المشتركة */
+  const currency =
+    estimate.data?.currency ??
+    currencyFromCountry(localeMe.data?.country_code);
 
-  // حساب السعر — يستعمل أسعار العرض الخاص إن وُجدت
+  // حساب السعر — أسعار العرض الخاص إن وُجدت (حقول خادمية)، وإلا سعر الخادم الرسمي.
+  // v3.2.1: لا حساب خصم محلي من /me — خصم المنشأة يطبقه الخادم عند إنشاء الطلب.
   const unitPrice = specialOffer
     ? isMember
       ? specialOffer.member_price
       : specialOffer.non_member_price
-    : isMember && memberRate != null
-      ? priceNum * (1 - memberRate / 100)
-      : priceNum;
+    : priceNum;
   const subtotal = unitPrice * quantity;
   /* أجرة التوصيل الحية عند توفرها — لا ثابت، ولا رقم افتراضي */
   const deliveryFee = isHandover ? null : (estimate.data?.fee ?? null);
@@ -771,44 +771,19 @@ export function CheckoutSheet({
                 <>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">سعر الوحدة</span>
-                    {isMember && memberRate != null ? (
-                      <span className="flex items-center gap-2">
-                        <MoneyText
-                          amount={priceNum}
-                          currency={currency}
-                          className="text-xs text-muted-foreground line-through"
-                        />
-                        <MoneyText
-                          amount={unitPrice}
-                          currency={currency}
-                          className="font-bold text-foreground"
-                        />
-                      </span>
-                    ) : (
-                      <MoneyText
-                        amount={unitPrice}
-                        currency={currency}
-                        className="font-bold text-foreground"
-                      />
-                    )}
+                    {/* v3.2.1 — سعر الخادم الرسمي بلا أي خصم وهمي محلي */}
+                    <MoneyText
+                      amount={unitPrice}
+                      currency={currency}
+                      className="font-bold text-foreground"
+                    />
                   </div>
 
-                  {isMember && memberRate != null ? (
-                    <div className="flex items-center justify-between rounded-lg bg-success/10 px-3 py-2 text-sm text-success">
-                      <span className="inline-flex items-center gap-1 font-bold">
-                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-                        خصم {memberRate}%
-                      </span>
-                      <MoneyText
-                        amount={priceNum - unitPrice}
-                        currency={currency}
-                        className="font-bold"
-                      />
-                    </div>
-                  ) : isMember ? (
-                    /* عضو بلا نسبة حية من الخادم — لا نخمّن رقم خصم */
+                  {isMember ? (
+                    /* v3.2.1 — لا حساب خصم في العميل: الخادم يطبق خصم المنشأة
+                       (إن فعّلها التاجر) عند تأكيد الطلب ويعيد الإجمالي النهائي. */
                     <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
-                      خصم عضويتك يُطبَّق تلقائياً من الخادم عند تأكيد الطلب
+                      خصم المنشأة (إن فعّلها التاجر) يُطبَّق من الخادم عند تأكيد الطلب — والإجمالي النهائي من رد الطلب
                     </p>
                   ) : (
                     <button

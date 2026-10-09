@@ -73,7 +73,7 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 /* جولة المالية v2 — السوق والدفعات الإلكترونية (طبقة الأساس المشتركة) */
 import { useFinanceOrderPayments, useLocaleMe } from "@/hooks/useFinance";
-import { isSaudiCountry } from "@/services/locale.service";
+import { isSaudiCountry, currencyFromCountry } from "@/services/locale.service";
 import {
   FinanceStatusBadge,
   formatMoney,
@@ -151,6 +151,12 @@ function ReOrderSection({
 }) {
   const createOrder = useCreateOrder();
   const router = useRouter();
+  /* جولة تدقيق الفصل: السوق السعودي بلا محفظة تاجر — قائمة إعادة الطلب
+     كانت ثابتة [كاش، محفظة] فيكل الأسواق فكان السعودي يختار محفظة
+     لا وجود لها في سوقه. الاستنباط نفسه المتبع في CheckoutSheet. */
+  const localeMe = useLocaleMe();
+  const isSaudi =
+    localeMe.isSuccess && localeMe.data != null && isSaudiCountry(localeMe.data.country_code);
 
   /* الجولة 12: تعبئة مسبقة من الطلب القديم (موقع/عنوان/ملاحظات/دفع).
    * الجولة 27 — عند القدوم من زر «أعد الطلب» في قائمة الطلبات
@@ -187,6 +193,9 @@ function ReOrderSection({
   );
   /* محفظة إعادة الطلب — طلب جديد يتطلب اختيار محفظة من جديد */
   const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
+  /* السعودية: أي محفظة موروثة من الطلب القديم تنقلب كاشاً صامتاً */
+  const shownMethod: PaymentMethod =
+    isSaudi && paymentMethod === "wallet" ? "cash" : paymentMethod;
 
   const openSheet = () => {
     haptic("tick");
@@ -247,7 +256,7 @@ function ReOrderSection({
       });
       return;
     }
-    if (paymentMethod === "wallet" && paymentWalletId == null) {
+    if (shownMethod === "wallet" && paymentWalletId == null) {
       toast({
         title: "اختر محفظة الدفع أولاً",
         description: "من قائمة محافظ المتجر",
@@ -265,9 +274,9 @@ function ReOrderSection({
         delivery_lat: lat,
         delivery_lng: lng,
         delivery_address: address.trim() || null,
-        payment_method: paymentMethod,
+        payment_method: shownMethod,
         payment_wallet_id:
-          paymentMethod === "wallet" ? paymentWalletId : null,
+          shownMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
@@ -473,7 +482,7 @@ function ReOrderSection({
             <div className="space-y-2">
               <Label className="text-xs font-bold">طريقة الدفع</Label>
               <RadioGroup
-                value={paymentMethod}
+                value={shownMethod}
                 onValueChange={(v) => {
                   const next = v as PaymentMethod;
                   setPaymentMethod(next);
@@ -483,7 +492,10 @@ function ReOrderSection({
               >
                 {[
                   { value: "cash", label: "نقداً عند الاستلام", icon: Banknote },
-                  { value: "wallet", label: "محفظة / تحويل يدوي", icon: Wallet },
+                  /* السعودية بلا محفظة تاجر (تدقيق الفصل) */
+                  ...(isSaudi
+                    ? []
+                    : [{ value: "wallet", label: "محفظة / تحويل يدوي", icon: Wallet }]),
                 ].map(({ value, label, icon: Icon }) => (
                   <label
                     key={value}
@@ -1069,9 +1081,8 @@ function OrderView({
     localeMe.isSuccess &&
     localeMe.data != null &&
     isSaudiCountry(localeMe.data.country_code);
-  /* عملة المبالغ: سعودي → SAR (المبالغ الوطنية من الخادم)؛
-     يمني/أثناء التحميل → YER (السلوك الحالي دون تغيير) */
-  const orderCurrency = isSaudiMarket ? "SAR" : "YER";
+  /* عملة المبالغ من سوق جلسة العميل (locale/me من الخادم) — v3.2.1 */
+  const orderCurrency = currencyFromCountry(localeMe.data?.country_code);
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };

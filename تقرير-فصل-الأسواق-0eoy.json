@@ -1,0 +1,457 @@
+{
+  "meta": {
+    "tag": "0eoy",
+    "ran_at": "2026-10-09T14:32:05.693Z",
+    "api": "https://api.tawfir.giize.com/api/v1",
+    "tool": "market-separation-audit — بوصمة"
+  },
+  "counts": {
+    "ok": 51,
+    "leak": 0,
+    "gap": 2,
+    "fe": 0,
+    "info": 17,
+    "fail": 0
+  },
+  "results": [
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "الوصول إلى api.tawfir.giize.com",
+      "status": "ok",
+      "detail": "200 (896ms)"
+    },
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "دخول الأدمن الكلي",
+      "status": "ok",
+      "detail": "توكن حي"
+    },
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "عقد OpenAPI الحي",
+      "status": "info",
+      "detail": "199 مساراً · X-Market موثق=نعم · country_code يظهر 21 مرة"
+    },
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "مناطق السعودية",
+      "status": "ok",
+      "detail": "14 منطقة"
+    },
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "مناطق اليمن",
+      "status": "ok",
+      "detail": "24 منطقة"
+    },
+    {
+      "phase": "٠ بيئة وعقد",
+      "step": "بوابة مويسر (مرجعي سعودي)",
+      "status": "ok",
+      "detail": "mode=embedded"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل عميل سعودي",
+      "status": "ok",
+      "detail": "user=221 (طلب country_code=966)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل عميل يمني",
+      "status": "ok",
+      "detail": "user=222 (طلب country_code=967)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل تاجر سعودي",
+      "status": "ok",
+      "detail": "user=223 facility=64 (طلب country_code=966)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل تاجر يمني",
+      "status": "ok",
+      "detail": "user=224 facility=65 (طلب country_code=967)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل مندوب سعودي",
+      "status": "ok",
+      "detail": "courier=51 (هاتف 966548… · X-Market المرسل=966)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "تسجيل مندوب يمني",
+      "status": "ok",
+      "detail": "courier=52 (هاتف 967747… · X-Market المرسل=بلا)"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق عميل سعودي المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=966 · المتوقع=966 · العملة=SAR",
+      "evidence": "{\"country_code\":\"966\",\"currency\":\"SAR\"}"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق عميل يمني المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=967 · المتوقع=967 · العملة=YER",
+      "evidence": "{\"country_code\":\"967\",\"currency\":\"YER\"}"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق تاجر سعودي المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=966 · المتوقع=966 · العملة=SAR",
+      "evidence": "{\"country_code\":\"966\",\"currency\":\"SAR\"}"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق تاجر يمني المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=967 · المتوقع=967 · العملة=YER",
+      "evidence": "{\"country_code\":\"967\",\"currency\":\"YER\"}"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق مندوب سعودي المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=966 · المتوقع=966 · العملة=SAR",
+      "evidence": "{\"country_code\":\"966\",\"currency\":\"SAR\"}"
+    },
+    {
+      "phase": "١ هوية وتسجيل",
+      "step": "سوق مندوب يمني المخزن خادمياً",
+      "status": "ok",
+      "detail": "المخزن=967 · المتوقع=967 · العملة=YER",
+      "evidence": "{\"country_code\":\"967\",\"currency\":\"YER\"}"
+    },
+    {
+      "phase": "٢ اعتمادات",
+      "step": "اعتماد منشأة تاجر سعودي",
+      "status": "ok",
+      "detail": "معتمدة"
+    },
+    {
+      "phase": "٢ اعتمادات",
+      "step": "اعتماد منشأة تاجر يمني",
+      "status": "ok",
+      "detail": "معتمدة"
+    },
+    {
+      "phase": "٢ اعتمادات",
+      "step": "توثيق مندوب سعودي",
+      "status": "ok",
+      "detail": "موثق"
+    },
+    {
+      "phase": "٢ اعتمادات",
+      "step": "توثيق مندوب يمني",
+      "status": "ok",
+      "detail": "موثق"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "قائمة الزائر country_code=966",
+      "status": "ok",
+      "detail": "26 منشأة · تتضمن منشأة السوق الآخر=لا · منشأتنا موجودة=true"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "قائمة الزائر country_code=967",
+      "status": "ok",
+      "detail": "26 منشأة · تتضمن منشأة السوق الآخر=لا · منشأتنا موجودة=true"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "قائمة الزائر بلا country_code",
+      "status": "info",
+      "detail": "26 منشأة · خلط السوقين=لا"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "عميل سعودي يفتح منشأة يمنية (توكن)",
+      "status": "ok",
+      "detail": "الخادم رفض (404) — حارس خادمي سليم"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "عميل يمني يفتح منشأة سعودية (توكن)",
+      "status": "ok",
+      "detail": "الخادم رفض (404)"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "عميل سعودي يقرأ منتجات منشأة يمنية",
+      "status": "ok",
+      "detail": "المتجر غير متاح في سوقك الحالي"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "عميل سعودي يطلب من منشأة يمنية",
+      "status": "ok",
+      "detail": "رفض 422: هذا المتجر في سوق اليمن ولا يخدم سوق السعودية — قوائم تطبيقك تعرض متاجر سوقك فقط"
+    },
+    {
+      "phase": "٣ منشآت عبر السوقين",
+      "step": "عميل يمني يطلب من منشأة سعودية",
+      "status": "ok",
+      "detail": "رفض 422: هذا المتجر في سوق السعودية ولا يخدم سوق اليمن — قوائم تطبيقك تعرض متاجر سوقك فقط"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "تقدير توصيل منشأة سعودية",
+      "status": "ok",
+      "detail": "fee=8 SAR",
+      "evidence": "{\"distance_km\":1.602,\"distance_display\":\"1 كم و602 م\",\"billed_km\":2,\"fee\":8,\"per_km_price\":2,\"breakdown\":\"8 (أول 3 كم — المسافة ضمن النطاق)\",\"imprecise_address\""
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "تقدير توصيل منشأة يمنية",
+      "status": "ok",
+      "detail": "fee=300 YER",
+      "evidence": "{\"distance_km\":1.523,\"distance_display\":\"1 كم و523 م\",\"billed_km\":2,\"fee\":300,\"per_km_price\":50,\"breakdown\":\"300 (أول 3 كم — المسافة ضمن النطاق)\",\"imprecise_add"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "تقدير توصيل منشأة سعودية (المحرك الوطني + منع تلاعب الرأس)",
+      "status": "ok",
+      "detail": "fee(966)=8 SAR · fee(967)=8 — المحرك الوطني السعودي (8/3كم/1.5) والرأس لا يغيّر السعر",
+      "evidence": "{\"direct\":{\"distance_km\":1.602,\"distance_display\":\"1 كم و602 م\",\"billed_km\":2,\"fee\":8,\"per_km_price\":2,\"breakdown\":\"8 (أول 3 كم — المسافة ضمن النطاق)\",\"imprecise_address\":false,\"max_km_applied\":10,\"exceeds_cap\":false,\"note\":null,\"currency\":"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "معاينة تسعير تاجر سعودي",
+      "status": "gap",
+      "detail": "بند P1-1 جزئي باقٍ: currency غائب في pricing-preview (موجود في delivery-estimate) — الواجهة تعرض بعملة سوق المالك من locale/me",
+      "evidence": "{\"base_price\":50,\"facility_discount_rate\":10,\"offer_discount_rate\":10,\"member_price\":40,\"non_member_price\":45,\"member_saving\":10}"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "معاينة تسعير تاجر يمني",
+      "status": "gap",
+      "detail": "بند P1-1 جزئي باقٍ: currency غائب في pricing-preview (موجود في delivery-estimate) — الواجهة تعرض بعملة سوق المالك من locale/me",
+      "evidence": "{\"base_price\":5000,\"facility_discount_rate\":10,\"offer_discount_rate\":10,\"member_price\":4000,\"non_member_price\":4500,\"member_saving\":1000}"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "GET /admin/pricing (السطح الوطني لكل سوق)",
+      "status": "ok",
+      "detail": "national: 966={base_fee:8, base_km:3, per_km:1.5} · 967={base_fee:300, base_km:3, per_km:50} · التعديل: PUT /finance/settings (SA_/YE_ DELIVERY_*) (السطح القديم price_per_km=200 غير مُستهلك: live_pricing_enabled=false)",
+      "evidence": "{\"national\":{\"966\":{\"country_code\":\"966\",\"base_fee\":8,\"base_km\":3,\"per_km\":1.5},\"967\":{\"country_code\":\"967\",\"base_fee\":300,\"base_km\":3,\"per_km\":50},\"editable_via\":\"PUT /finance/settings (SA_/YE_ DELIVERY_*)\"},\"live_pricing_enabled\":false}"
+    },
+    {
+      "phase": "٤ تسعير",
+      "step": "GET /finance/settings (مفاتيح سوقية)",
+      "status": "info",
+      "detail": "SA_*=0 مفتاحاً (…) · YE_*=0 (…) — والمحرك الوطني مُثبت عملياً بالتقديرات (سعودي 8 ريال / يمني 300)",
+      "evidence": "[\"items\"]"
+    },
+    {
+      "phase": "٥ بوابات الدفع",
+      "step": "payments/config للزائر",
+      "status": "ok",
+      "detail": "الخادم يرفض الزائر (401/401) — وسائل الدفع تُشتق للمسجل من سوقه، وللزائر تعرضها الواجهة من سوق الجلسة والحرس الخادمي (422) يعوض أي تجاوز"
+    },
+    {
+      "phase": "٥ بوابات الدفع",
+      "step": "payments/config لعميل سعودي مقابل يمني",
+      "status": "ok",
+      "detail": "يختلف بالسوق — فصل خادمي سليم"
+    },
+    {
+      "phase": "٥ بوابات الدفع",
+      "step": "POST /orders/{id}/pay على طلب يمني",
+      "status": "info",
+      "detail": "الخطأ المطلوب: Validation error [{\"type\":\"missing\",\"loc\":[\"body\",\"receipt_image\"],\"msg\":\"Field required\",\"input\":null}]"
+    },
+    {
+      "phase": "٥ بوابات الدفع",
+      "step": "حرس المحفظة السعودية (P0-6)",
+      "status": "ok",
+      "detail": "رفض خادمي (422) بمحفظة حقيقية #42: الدفع عبر المحافظ غير متاح في السوق السعودي حالياً — ادفع نقداً عند الاستلام أو إلكترونياً عبر البطاقة ← الحرس السوقي نفسه ✓"
+    },
+    {
+      "phase": "٥ بوابات الدفع",
+      "step": "طلب سعودي كاش مرجعي",
+      "status": "ok",
+      "detail": "طلب #110 · total=33 · delivery_fee=8 "
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "GET /wallets/providers بكل الصيغ",
+      "status": "ok",
+      "detail": "القائمة تختلف بالسوق — فصل سليم",
+      "evidence": "زائر X-Market: 966 → Missing bearer token | زائر X-Market: 967 → Missing bearer token | عميل سعودي (توكن) →  | عميل يمني (توكن) → جوالي،محفظة جيب،فلوسك،كاش،وان كاش،محفظة كريمي،المحفظة الوطنية،موبايل موني،محفظة ATM | تاجر سعودي (توكن) → "
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "محفظة استلام تاجر سعودي",
+      "status": "info",
+      "detail": "#44 · currency=(بلا عملة في الرد)"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "محفظة استلام تاجر يمني",
+      "status": "info",
+      "detail": "#45 · currency=(بلا عملة في الرد)"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "عميل سعودي يقرأ محافظ منشأة يمنية",
+      "status": "ok",
+      "detail": "المنشأة غير موجودة"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "مندوب سعودي: وجهة صرف country=SA (كما ترسل الواجهة)",
+      "status": "info",
+      "detail": "قُبلت · country المخزن=SA · currency=—"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "مندوب يمني: وجهة صرف country=SA (ماذا تفعل واجهتنا فعلاً!)",
+      "status": "info",
+      "detail": "الخادم رفض (422): وجهة الاستلام يجب أن تكون في سوقك (اليمن)"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "مندوب يمني: وجهة صرف country=YE",
+      "status": "ok",
+      "detail": "قُبلت · country=YE · currency=—"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "رصيد مندوب سعودي",
+      "status": "info",
+      "detail": "receivable=0 · currency=SAR"
+    },
+    {
+      "phase": "٦ محافظ",
+      "step": "رصيد مندوب يمني",
+      "status": "info",
+      "detail": "receivable=0 · currency=YER"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "بطاقة تاجر سعودي المالية",
+      "status": "ok",
+      "detail": "currency=SAR (المتوقع SAR) · عمولات=100 · ذمة=100",
+      "evidence": "{\"currency\":\"SAR\",\"commissions\":100}"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "بطاقة تاجر يمني المالية",
+      "status": "ok",
+      "detail": "currency=YER (المتوقع YER) · عمولات=90 · ذمة=90",
+      "evidence": "{\"currency\":\"YER\",\"commissions\":90}"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "دفع إلكتروني سعودي + verify",
+      "status": "ok",
+      "detail": "دفعة #33 مسجلة على الطلب #111 (حالة مويسر=paid)"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "قيود verify تنطلق بلا webhook (القسم الرابع)",
+      "status": "ok",
+      "detail": "طلب #111: order_payment=موجود ✓ · platform_commission=موجود ✓ · بطاقة التاجر: عمولات=300",
+      "evidence": "[{\"id\":86,\"entry_type\":\"delivery_fee_hold\",\"party_type\":\"platform\",\"party_id\":0,\"order_id\":111,\"amount\":800,\"currency\":\"SAR\",\"status\":\"pending\",\"ref_id\":\"HOLD-111\",\"note\":\"أجرة توصيل معلقة — بانتظار اختيار المندوب\",\"created_at\":\"2026-10-09 14:31:43.397359+00:00\"},{\"id\":85,\"entry_type\":\"delivery_fee_"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "admin/wallets/overview",
+      "status": "info",
+      "detail": "{\"wallet_payments_enabled\":true,\"providers_count\":9,\"active_providers_count\":9,\"facility_wallets_count\":45,\"courier_wallets_count\":0,\"wallet_orders_count\":1,\"wallet_orders_amount\":"
+    },
+    {
+      "phase": "٧ مالية",
+      "step": "admin/payouts — العملات الموجودة",
+      "status": "info",
+      "detail": "عملات=SAR"
+    },
+    {
+      "phase": "٨ مناديب",
+      "step": "سوق المندوب السعودي المخزن",
+      "status": "ok",
+      "detail": "country_code=966 ✓ 966"
+    },
+    {
+      "phase": "٨ مناديب",
+      "step": "رادار: نداء سعودي ← مندوب سعودي (قبل إصلاح السوق)",
+      "status": "ok",
+      "detail": "النداء وصل (سوق المندوب سليم)"
+    },
+    {
+      "phase": "٨ مناديب",
+      "step": "ترقيع PUT /locale/me {966} للمندوب السعودي",
+      "status": "ok",
+      "detail": "السوق انقلب 966"
+    },
+    {
+      "phase": "٨ مناديب",
+      "step": "رادار بعد الترقيع",
+      "status": "ok",
+      "detail": "النداء وصل بعد الترقيع (task=24 · fee=8)"
+    },
+    {
+      "phase": "٨ مناديب",
+      "step": "رادار: نداء سعودي ← مندوب يمني (موجود جغرافياً)",
+      "status": "ok",
+      "detail": "لم يصل — الرادار يفلتر بالسوق ✓ (الفيلترة موجودة، المشكلة في تخزين السوق عند التسجيل فقط)"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "فصل المناطق (966/967)",
+      "status": "ok",
+      "detail": "سعودية=14 · يمنية=24 · بلا فلتر=38"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "POST /admin/regions بلا country_code",
+      "status": "info",
+      "detail": "Validation error [{\"type\":\"missing\",\"loc\":[\"body\",\"country_code\"],\"msg\":\"Field required\",\"input\":{\"name\":\"بصمة-فحص-افتراضي-0eoy\",\"slug\":\"basma-0eoy\"}}]"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "admin/settings/free-membership",
+      "status": "info",
+      "detail": "enabled=true — علم واحد عالمي بلا بُعد سوق"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "admin/settings/wallet-payments",
+      "status": "info",
+      "detail": "{\"wallet_payments_enabled\":true,\"updated_by\":null}"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "membership/info لـعميل سعودي",
+      "status": "ok",
+      "detail": "amount=0 · currency=ريال سعودي · محفظة=null · حساب=null",
+      "evidence": "{\"amount\":0,\"currency\":\"ريال سعودي\",\"transfer_account_name\":null,\"transfer_account_number\":null,\"wallet_name\":null,\"instructions\":\"عضوية السوق السعودي مجانية — فعّلها بضغطة واحدة بدون أي دفع واستمتع بخصم يصل إلى 20% في م"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "membership/info لـعميل يمني",
+      "status": "ok",
+      "detail": "amount=3000 · currency=ريال يمني · محفظة=محفظة جيب · حساب=780090882",
+      "evidence": "{\"amount\":3000,\"currency\":\"ريال يمني\",\"transfer_account_name\":\"محمد يحيى عبه\",\"transfer_account_number\":\"780090882\",\"wallet_name\":\"محفظة جيب\",\"instructions\":\"حوّل المبلغ ثم ارفق صورة التحويل وانتظر الموافقة\",\"is_free_mem"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "إشعارات عميل سعودي",
+      "status": "info",
+      "detail": "0 إشعاراً · حقول سوق=—"
+    },
+    {
+      "phase": "٩ إعدادات وعضوية",
+      "step": "إشعارات عميل يمني",
+      "status": "info",
+      "detail": "0 إشعاراً · حقول سوق=—"
+    }
+  ]
+}

@@ -81,6 +81,10 @@ export interface DeliveryEstimateOut {
   max_km_applied: number;
   exceeds_cap: boolean;
   note: string | null;
+  /** v3.2.1 — عملة السوق من الخادم (SAR/YER) */
+  currency?: string;
+  /** v3.2.1 — سوق التسعير من الخادم (966/967) */
+  market?: string;
 }
 
 export interface OrderTrackingOut {

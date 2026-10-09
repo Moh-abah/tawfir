@@ -74,7 +74,6 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
     deliveryFee,
     total,
     isMember,
-    memberRate,
   } = useCartPricing();
 
   const [lat, setLat] = useState<number | null>(null);
@@ -279,16 +278,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                     {formatCurrency(baseSubtotal)}
                   </span>
                 </div>
-                {isMember && discountAmount > 0 && (
-                  <div className="flex items-center justify-between text-primary">
-                    <span className="inline-flex items-center gap-1 font-bold">
-                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      خصم العضوية {memberRate}%
-                    </span>
-                    <span className="font-bold tabular-nums" dir="ltr">
-                      −{formatCurrency(discountAmount)}
-                    </span>
-                  </div>
+                {/* v3.2.1 — لا خصم مُقدَّر واجهياً: خصم المنشأة يطبقه الخادم
+                    عند تأكيد الطلب، والإجمالي النهائي من رد الطلب نفسه. */}
+                {isMember && (
+                  <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
+                    خصم المنشأة (إن فعّلها التاجر) يُطبَّق تلقائياً عند تأكيد الطلب
+                  </p>
                 )}
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">أجرة التوصيل</span>

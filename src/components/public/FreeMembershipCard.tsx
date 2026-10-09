@@ -33,18 +33,25 @@ import type { CustomerApiError } from "@/services/customer-api-client";
 import { formatMembershipNumber, formatExpiry } from "@/lib/format";
 
 /**
- * FreeMembershipCard — الجولة 20.
+ * FreeMembershipCard — الجولة 20 + v3.2.1 (الفصل السوقي).
  *
- * تُعرض في /membership/subscribe عند تفعيل المشرف للعلم
- * `is_free_membership_enabled`. تشرح العضوية المجانية بصراحة:
+ * تُعرض في /membership/subscribe للسوق السعودي حصراً (info.market === "966"
+ * والمبلغ 0 من رد الخادم). تشرح العضوية المجانية بصراحة:
  *  - بلا دفع · بلا رفع إيصال · موافقة فورية.
- *  - زر CTA واحد «احصل على عضويتك مجاناً» → POST /membership/subscribe-free.
+ *  - زر CTA واحد «تفعيل فوري مجاني — خصم يصل إلى 20%» (نص الخصم من
+ *    discount_label القادم من الخادم) → POST /membership/subscribe-free.
  *  - عند النجاح: تتحول البطاقة إلى شاشة نجاح داخلية تعرض رقم العضوية
  *    الحقيقي + تاريخ الانتهاء + بطاقة العضوية الكاملة (بعد invalidate /me).
  *
  * الهوية البصرية: كحلي #0A1A2F + ذهبي #D4AF37 + زمرد #0E7D62.
  */
-export function FreeMembershipCard() {
+export function FreeMembershipCard({
+  discountLabel,
+  instructions,
+}: {
+  discountLabel?: string;
+  instructions?: string;
+} = {}) {
   const router = useRouter();
   const { toast } = useToast();
   const prefersReduced = usePrefersReducedMotion();
@@ -235,6 +242,7 @@ export function FreeMembershipCard() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           احصل على بطاقة الخصومات الذكية مجاناً — بلا دفع ولا رفع إيصال
+          {discountLabel ? ` — ${discountLabel}` : ""}
         </p>
       </header>
 
@@ -269,8 +277,8 @@ export function FreeMembershipCard() {
             </span>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-foreground/85 dark:text-white/85">
-            فريق توفير يمنحك العضوية السنوية مجاناً خلال هذه الفترة — لا حاجة
-            لتحويل بنكي ولا رفع إيصال. فقط اضغط الزر وستظهر بطاقتك فوراً.
+            {instructions ||
+              "فريق توفير يمنحك العضوية السنوية مجاناً خلال هذه الفترة — لا حاجة لتحويل بنكي ولا رفع إيصال. فقط اضغط الزر وستظهر بطاقتك فوراً."}
           </p>
         </div>
       </div>
@@ -340,7 +348,9 @@ export function FreeMembershipCard() {
         ) : (
           <>
             <Crown className="h-5 w-5" aria-hidden="true" />
-            احصل على عضويتك مجاناً
+            {discountLabel
+              ? `تفعيل فوري مجاني — ${discountLabel}`
+              : "تفعيل فوري مجاني"}
           </>
         )}
       </Button>

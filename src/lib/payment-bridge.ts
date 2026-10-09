@@ -74,6 +74,8 @@ export interface SafariSheetParams {
  orderId: number | null;
  publishableKey: string | null;
  methods: string[];
+ /** عملة البوابة من /finance/payments/config (v3.2.1 — من الخادم). */
+ currency: string | null;
 }
 
 /**
@@ -86,6 +88,7 @@ export function readSafariSheetParams(): SafariSheetParams {
   orderId: null,
   publishableKey: null,
   methods: [],
+  currency: null,
  };
  if (typeof window === "undefined") return empty;
  try {
@@ -93,6 +96,7 @@ export function readSafariSheetParams(): SafariSheetParams {
   const amt = Number(q.get("amt"));
   const id = Number(q.get("order"));
   const pk = q.get("pk") ?? "";
+  const cur = q.get("cur") ?? "";
   const methods = (q.get("m") ?? "")
    .split(",")
    .map((s) => s.trim())
@@ -102,6 +106,7 @@ export function readSafariSheetParams(): SafariSheetParams {
    orderId: Number.isFinite(id) && id > 0 ? id : null,
    publishableKey: pk.startsWith("pk_") ? pk : null,
    methods,
+   currency: /^[A-Z]{3}$/.test(cur) ? cur : null,
   };
  } catch {
   return empty;
@@ -157,6 +162,7 @@ export async function openApplePaySheet(orderId: number): Promise<ApplePaySheetR
    url.searchParams.set("order", String(orderId));
    if (extra.publishableKey) url.searchParams.set("pk", extra.publishableKey);
    if (extra.methods.length) url.searchParams.set("m", extra.methods.join(","));
+   if (extra.currency) url.searchParams.set("cur", extra.currency);
   }
 
   let resolveClosed: () => void = () => { };

@@ -34,6 +34,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { GeoLocationField } from "@/components/shared/GeoLocationField";
 import { WalletPickerList } from "@/components/wallets/WalletPickerList";
 import { useDeliveryEstimate } from "@/hooks/useDeliveryEstimate";
+import { useLocaleMe } from "@/hooks/useFinance";
+import { isSaudiCountry } from "@/services/locale.service";
 import { formatCurrency } from "@/lib/format";
 import type { PaymentMethod } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
@@ -106,7 +108,7 @@ export interface DeliveryFieldsProps {
   /**
    * سوق المستخدم — يحدد بطاقات الدفع:
    * saudi → كاش + دفع إلكتروني (بلا محفظة تاجر)؛
-   * yemen (الافتراضي للتوافق مع بقية المستدعين) → كاش + محفظة
+   * yemen (الاستنباط الذاتي عند غيابه — locale/me) → كاش + محفظة
    * وبلا أي أثر للدفع الإلكتروني.
    */
   market?: CheckoutMarket;
@@ -131,9 +133,19 @@ export function DeliveryFields({
   idPrefix = "",
   facilityId = null,
   showAddressRequired = true,
-  market = "yemen",
+  market,
 }: DeliveryFieldsProps) {
-  const isSaudiMarket = market === "saudi";
+  /* السوق المستنبط: البروب الصريح أولاً (CheckoutSheet) — وإلا استنباط
+     ذاتي من locale/me بنفس منطق CheckoutSheet (فشل/تأخر → يمني للتوافق).
+     جولة تدقيق الفصل: السلة (Sheet + Page) لم تكن تمرر السوق فكان العميل
+     السعودي يرى بطاقة «محفظة / تحويل يدوي» اليمنية ولا يرى الإلكتروني. */
+  const localeMe = useLocaleMe();
+  const resolvedMarket: CheckoutMarket =
+    market ??
+    (localeMe.isSuccess && localeMe.data != null && isSaudiCountry(localeMe.data.country_code)
+      ? "saudi"
+      : "yemen");
+  const isSaudiMarket = resolvedMarket === "saudi";
   const wrapClass =
     variant === "sheet" ? "space-y-2 border-b border-border/50 p-4" : "space-y-2";
 

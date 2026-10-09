@@ -86,13 +86,10 @@ export function ProductCard({ product, className, priority = false, staggerIndex
   const hasRating = !!ratingAgg.data && ratingAgg.data.count > 0;
 
   const isMember = !!me.data?.membership?.is_active;
-  /* نسبة العضوية الفعلية من /me فقط — بلا ثابت؛ صفر/غياب = لا خصم يُعرض */
-  const memberRate = me.data?.membership?.discount_rate ?? 0;
-  const hasMemberDiscount = isMember && memberRate > 0;
+  /* v3.2.1 — السعر من الخادم حصراً: الخادم يطبق خصم المنشأة عند إنشاء الطلب
+   * (subtotal مخفّض في رد الطلب)، والواجهة لا تحسب أي خصم محلياً —
+   * الحساب السابق من /me كان خصماً وهمياً لن يدفعه العميل أبداً. */
   const priceNum = parseFloat(product.price) || 0;
-  const finalPrice = hasMemberDiscount
-    ? priceNum * (1 - memberRate / 100)
-    : priceNum;
   const outOfStock =
     !product.is_available || product.available_quantity === 0;
 
@@ -245,22 +242,11 @@ export function ProductCard({ product, className, priority = false, staggerIndex
 
           <div className="mt-auto flex items-end justify-between gap-1.5 pt-1">
             <div className="flex min-w-0 flex-col">
-              {hasMemberDiscount && (
-                <span
-                  className="text-[10px] tabular-nums text-muted-foreground line-through"
-                  dir="ltr"
-                >
-                  {formatCurrency(priceNum)}
-                </span>
-              )}
               <span
-                className={cn(
-                  "text-xs font-bold tabular-nums",
-                  hasMemberDiscount ? "text-primary" : "text-foreground"
-                )}
+                className="text-xs font-bold tabular-nums text-foreground"
                 dir="ltr"
               >
-                {formatCurrency(finalPrice)}
+                {formatCurrency(priceNum)}
               </span>
             </div>
             {/* زر طلب دائري Native — هدف لمس 44px */}

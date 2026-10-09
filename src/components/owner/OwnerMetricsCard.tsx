@@ -2,8 +2,11 @@
 
 import { TrendingUp, Users, Eye, Target, Sparkles, Lightbulb, DollarSign, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { useOwnerStats } from "@/hooks/useOwnerStats";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { ownerApiClient } from "@/services/owner-api-client";
+import { formatMoney } from "@/components/finance/finance-ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,8 +25,9 @@ interface OwnerMetricsCardProps {
   className?: string;
 }
 
-function formatYER(amount: number): string {
-  return new Intl.NumberFormat("ar-YE", { maximumFractionDigits: 0 }).format(
+/** تنسيق عدد مجرد (زيارات/عملاء) — بلا عملة. */
+function formatNum(amount: number): string {
+  return new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 0 }).format(
     amount,
   );
 }
@@ -34,6 +38,19 @@ export function OwnerMetricsCard({
 }: OwnerMetricsCardProps) {
   const { data, isLoading } = useOwnerStats(facilityId);
   const prefersReduced = usePrefersReducedMotion();
+
+  /* v3.2.1 — عملة التاجر من سوقه (GET /locale/me بتوكن المالك):
+     الحقل currency في الرد هو المصدر (SAR/YER) — بلا أي ثابت عرض. */
+  const localeMe = useQuery({
+    queryKey: ["owner:locale-me"],
+    queryFn: () =>
+      ownerApiClient.get<{ country_code?: string | null; currency?: string | null }>(
+        "/locale/me",
+      ),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+  const currency = localeMe.data?.currency ?? undefined;
 
   if (isLoading || !data) {
     return (
@@ -58,14 +75,14 @@ export function OwnerMetricsCard({
     {
       icon: <DollarSign className="h-4 w-4" />,
       label: "إيراد 30 يوم",
-      value: `${formatYER(data.monthly_revenue)} ر.ي`,
+      value: formatMoney(data.monthly_revenue, currency),
       color: "text-primary",
       bg: "bg-primary/10",
     },
     {
       icon: <ShoppingBag className="h-4 w-4" />,
       label: "متوسط الفاتورة",
-      value: `${formatYER(data.avg_order_value)} ر.ي`,
+      value: formatMoney(data.avg_order_value, currency),
       color: "text-accent-ink",
       bg: "bg-accent/15",
     },
@@ -80,7 +97,7 @@ export function OwnerMetricsCard({
     {
       icon: <Eye className="h-4 w-4" />,
       label: "زيارات المتجر",
-      value: `${formatYER(data.monthly_visits)}`,
+      value: formatNum(data.monthly_visits),
       color: "text-chart-4",
       bg: "bg-chart-4/10",
     },

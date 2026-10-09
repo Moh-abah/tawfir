@@ -277,15 +277,11 @@ export default function ProductDetailContent() {
     ) ?? null;
 
   const isMember = !!me.data?.membership?.is_active;
-  /* نسبة العضوية الفعلية من /me حصراً — بلا ثابت؛ ونسبة المتجر (يحددها التاجر)
-     تُعرض للغير الأعضاء فقط إن كانت فعلاً > 0 (إعلان، لا تخمين) */
+  /* v3.2.1 — السعر من الخادم حصراً: نسبة المتجر (يحددها التاجر) تُعرض شارة
+     فقط إن كانت > 0، والخصم الفعلي يطبقه الخادم عند إنشاء الطلب —
+     حُذف الحساب المحلي من /me (كان خصماً وهمياً لا يطبقه الخادم). */
   const facilityRate = product?.facility?.discount_rate ?? 0;
-  const memberRate = me.data?.membership?.discount_rate ?? 0;
-  const hasMemberDiscount = isMember && memberRate > 0;
   const priceNum = product ? parseFloat(product.price) || 0 : 0;
-  const finalPrice = hasMemberDiscount
-    ? priceNum * (1 - memberRate / 100)
-    : priceNum;
   const outOfStock =
     !!product &&
     (!product.is_available || product.available_quantity === 0);
@@ -508,45 +504,30 @@ export default function ProductDetailContent() {
             <SpecialOfferDetailCard offer={specialOffer} isMember={isMember} />
           ) : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-card p-4 shadow-soft">
-              {hasMemberDiscount ? (
-                <>
-                  <span
-                    className="text-base text-muted-foreground line-through"
-                    dir="ltr"
-                  >
-                    {formatCurrency(priceNum)}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-extrabold text-accent-foreground">
-                    <Sparkles className="h-3 w-3" aria-hidden="true" />
-                    خصم {memberRate}%
-                  </span>
-                  <span
-                    className="ml-auto text-2xl font-extrabold text-primary"
-                    dir="ltr"
-                  >
-                    {formatCurrency(finalPrice)}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span
-                    className="text-2xl font-extrabold text-foreground"
-                    dir="ltr"
-                  >
-                    {formatCurrency(priceNum)}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => router.push("/account")}
-                    className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-ink transition-colors hover:bg-accent/20"
-                  >
-                    <Sparkles className="h-3 w-3" aria-hidden="true" />
-                    {facilityRate > 0
-                      ? `اشترك لخصم ${facilityRate}%`
-                      : "اشترك لخصم حصري"}
-                  </button>
-                </>
+              {/* v3.2.1 — السعر الرسمي من الخادم + شارة خصم المتجر إن فعّلها التاجر (> 0 فقط).
+                  الخصم الفعلي يطبقه الخادم عند إنشاء الطلب — لا حساب سعر في العميل. */}
+              <span
+                className="text-2xl font-extrabold text-foreground"
+                dir="ltr"
+              >
+                {formatCurrency(priceNum)}
+              </span>
+              {facilityRate > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-extrabold text-accent-foreground">
+                  <Sparkles className="h-3 w-3" aria-hidden="true" />
+                  خصم {facilityRate}% للأعضاء
+                </span>
               )}
+              <button
+                type="button"
+                onClick={() => router.push("/account")}
+                className="ml-auto inline-flex items-center gap-1 rounded-full bg-accent/15 px-3 py-1.5 text-xs font-bold text-accent-ink transition-colors hover:bg-accent/20"
+              >
+                <Sparkles className="h-3 w-3" aria-hidden="true" />
+                {facilityRate > 0
+                  ? `اشترك لخصم ${facilityRate}%`
+                  : "اشترك لخصم حصري"}
+              </button>
             </div>
           )}
 

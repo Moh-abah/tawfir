@@ -47,7 +47,7 @@ import {
   usePaymentsConfig,
 } from "@/hooks/useFinance";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
-import { isSaudiCountry } from "@/services/locale.service";
+import { isSaudiCountry, currencyFromCountry } from "@/services/locale.service";
 import {
   nativeApplePayAvailable,
   openApplePaySheet,
@@ -128,11 +128,11 @@ function PayInner({ orderId }: { orderId: number }) {
   const paymentsQuery = useFinanceOrderPayments(orderId);
   const locale = useLocaleMe(true);
 
-  /* بوابة السوق — لا نموذج دفع قبل حسم البلد (الافتراضي غير السعودي ممنوع) */
+  /* بوابة السوق — لا نموذج دفع قبل حسم البلد (الافتراضي غير السعودي ممنوع).
+     v3.2.1: قرار تفعيل الدفع من رد الخادم نفسه (config.enabled) —
+     966 → true بطرق مويسر، 967 → false نمط إشعارات. */
   const marketKnown = locale.isSuccess;
-  const isSaudi = locale.data != null && isSaudiCountry(locale.data.country_code);
-  const configEnabled = marketKnown && isSaudi;
-  const configQuery = usePaymentsConfig(configEnabled);
+  const configQuery = usePaymentsConfig(marketKnown);
 
   const hasPaid = paymentsQuery.data?.some((p) => p.status === "paid") ?? false;
 
@@ -160,7 +160,7 @@ function PayInner({ orderId }: { orderId: number }) {
       </Shell>
     );
   }
-  if (!isSaudi) {
+  if (!isSaudiCountry(locale.data?.country_code)) {
     return (
       <Shell>
         <GateCard
@@ -227,8 +227,8 @@ function PayInner({ orderId }: { orderId: number }) {
   }
 
   const order = orderQuery.data;
-  /* عملة الطلب في السوق السعودي موثقة: ريال سعودي (SAR) */
-  const orderCurrency = "SAR";
+  /* عملة البوابة من رد الخادم نفسه (v3.2.1: payments/config.currency) */
+  const orderCurrency = configQuery.data?.currency ?? currencyFromCountry(locale.data?.country_code);
 
   /* ── 4) وضع البوابة — direct أو تعطيل embedded → صيانة ── */
   if (configQuery.isPending) {
@@ -254,6 +254,26 @@ function PayInner({ orderId }: { orderId: number }) {
   }
   const config = configQuery.data;
   const embeddedReady = config.embedded === true && config.mode === "embedded";
+  /* v3.2.1 — الحرس الخادمي: العلم enabled من الرد هو الحاكم.
+     967 يعيد enabled=false بنمط إشعارات → بطاقة ودودة بدل نموذج مويسر. */
+  if (config.enabled === false) {
+    return (
+      <Shell>
+        <GateCard
+          icon={<Banknote className="h-8 w-8 text-primary" aria-hidden="true" />}
+          title="الدفع الإلكتروني غير متاح في سوقك"
+          body="سوقك يسدد عبر إشعارات التحويل — ادفع نقداً عند الاستلام أو ارفع إشعار التحويل من شاشة الدفع الخاصة بالطلب."
+        >
+          <Button asChild className="min-h-[44px] gap-2 rounded-full">
+            <Link href={`/orders/${orderId}`}>
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              العودة إلى الطلب
+            </Link>
+          </Button>
+        </GateCard>
+      </Shell>
+    );
+  }
 
   /* داخل تطبيق iOS لا يتوفر ApplePaySession في الـWKWebView — يعرض
      نموذج مويسر البطاقات/STC Pay فقط، وزر Apple Pay أدناه يفتح
@@ -270,6 +290,7 @@ function PayInner({ orderId }: { orderId: number }) {
       orderId: order.id,
       publishableKey: config.publishable_key,
       methods: config.methods,
+      currency: config.currency ?? null,
     });
     const res = await openApplePaySheet(order.id);
     if (res.closed) {
@@ -387,6 +408,7 @@ function PayInner({ orderId }: { orderId: number }) {
             orderId={order.id}
             publishableKey={config.publishable_key}
             methods={config.methods}
+            currency={config.currency ?? orderCurrency}
           />
           <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
@@ -476,6 +498,7 @@ function SafariSheetPay() {
     params.amountMajor != null &&
     params.orderId != null &&
     params.publishableKey != null &&
+    params.currency != null &&
     params.methods.length > 0;
 
   return (
@@ -517,7 +540,7 @@ function SafariSheetPay() {
             <div className="mt-1 text-2xl font-black text-primary">
               <MoneyText
                 amount={params.amountMajor as number}
-                currency="SAR"
+                currency={(params.currency ?? "SAR") as string}
                 strong
               />
             </div>
@@ -527,6 +550,7 @@ function SafariSheetPay() {
             orderId={params.orderId as number}
             publishableKey={params.publishableKey as string}
             methods={params.methods}
+            currency={(params.currency ?? "SAR") as string}
           />
           <p className="mt-4 flex items-start justify-center gap-2 text-[11px] leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />

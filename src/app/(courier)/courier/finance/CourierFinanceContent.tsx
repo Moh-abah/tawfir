@@ -15,6 +15,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowRight,
@@ -63,6 +64,7 @@ import type {
   DestinationOut,
   PayoutOut,
 } from "@/types/api.generated";
+import { courierApiClient } from "@/services/courier-api-client";
 import { cn } from "@/lib/utils";
 
 /* ═══════════════ أدوات عرض مساعدة ═══════════════ */
@@ -248,6 +250,23 @@ function DestinationFormDialog({
   const [serverError, setServerError] = useState<string | null>(null);
   const createMutation = useCreateCourierDestination();
 
+  /* جولة تدقيق الفصل: بلد وجهة الصرف من سوق المندوب (GET /locale/me بتوكن
+     المندوب) — كانت SA مصمتة في الفرعين فكان المندوب اليمني يُسجّل بوجهة
+     سعودية. ومحفظة STC Pay خيار سعودي حصراً (الخادم يطلب 9665…) —
+     فتُخفى عن مندوب اليمن حتى يدعم الخادم وجهات يمنية. */
+  const localeMe = useQuery({
+    queryKey: ["courier:locale-me"],
+    queryFn: () =>
+      courierApiClient.get<{ country_code?: string | null }>("/locale/me"),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+  const isSaudiCourier =
+    String(localeMe.data?.country_code ?? "") === "966";
+  const destinationCountry = isSaudiCourier ? "SA" : "YE";
+  /* لا حاجة لتأثير جانبي: خيار المحفظة مخفي عن اليمنيين منذ أول عرض
+     (isSaudiCourier=false أثناء التحميل أيضاً) — فلا يمكن بلوغه أصلاً. */
+
   const sameTypeExists = destinations.some((d) => d.type === type);
 
   const setField = (key: keyof FormValues, value: string) => {
@@ -269,7 +288,7 @@ function DestinationFormDialog({
             holder_name: holder,
             iban: toEnglishDigits(values.iban).replace(/[\s-]/g, ""),
             city: values.city.trim() || null,
-            country: "SA",
+            country: destinationCountry,
           }
         : {
             type: "wallet",
@@ -278,7 +297,7 @@ function DestinationFormDialog({
               const raw = toEnglishDigits(values.mobile).replace(/[^\d]/g, "");
               return raw.startsWith("05") ? `966${raw.slice(1)}` : raw;
             })(),
-            country: "SA",
+            country: destinationCountry,
           };
 
     createMutation.mutate(body, {
@@ -319,9 +338,19 @@ function DestinationFormDialog({
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="نوع الوجهة">
           {(
             [
-              { value: "bank", label: "حساب بنكي", hint: "IBAN", icon: Landmark },
-              { value: "wallet", label: "محفظة STC Pay", hint: "رقم الجوال", icon: Smartphone },
-            ] as const
+              { value: "bank" as const, label: "حساب بنكي", hint: "IBAN", icon: Landmark },
+              /* محفظة STC Pay — سعودي حصراً (الخادم يطلب 9665…) */
+              ...(isSaudiCourier
+                ? [
+                    {
+                      value: "wallet" as const,
+                      label: "محفظة STC Pay",
+                      hint: "رقم الجوال",
+                      icon: Smartphone,
+                    },
+                  ]
+                : []),
+            ]
           ).map((opt) => (
             <button
               key={opt.value}
@@ -385,7 +414,11 @@ function DestinationFormDialog({
                   dir="ltr"
                   value={values.iban}
                   onChange={(e) => setField("iban", e.target.value)}
-                  placeholder="SA00 0000 0000 0000 0000 0000"
+                  placeholder={
+                    isSaudiCourier
+                      ? "SA00 0000 0000 0000 0000 0000"
+                      : "YE00 0000 0000 0000 0000 0000"
+                  }
                   inputMode="text"
                   autoComplete="off"
                   className="min-h-[44px] rounded-2xl text-left"
@@ -394,7 +427,9 @@ function DestinationFormDialog({
                 {errors.iban ? (
                   <p className="text-[11px] font-bold text-destructive">{errors.iban}</p>
                 ) : (
-                  <p className="text-[11px] text-muted-foreground">IBAN يبدأ بـ SA</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    IBAN يبدأ بـ {destinationCountry}
+                  </p>
                 )}
               </div>
               <div className="space-y-1.5">

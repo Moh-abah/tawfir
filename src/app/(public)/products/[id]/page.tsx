@@ -11,16 +11,30 @@ interface ProductMeta {
   id: number;
   name: string;
   description: string | null;
+  /** v3.2.1 — سوق المنتج (من محاولة الجلب الناجحة) لتعملة SEO */
+  market?: "966" | "967";
+}
+
+/** عملة SEO انطلاقاً من سوق المنتج — طبقة SEO حصراً (مرآة currencyFromCountry). */
+function seoCurrency(market: ProductMeta["market"]): string {
+  return market === "966" ? "SAR" : "YER";
+}
+
+/** جلب المنتج للـSEO — بوابة المنتجات سوقية الآن، فنجرب السوقين بالترتيب. */
+async function fetchProductMeta(id: string, market: "966" | "967") {
+  const res = await fetch(`${API_BASE}/products/${id}`, {
+    headers: { "X-Market": market },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as ProductMeta;
+  return { ...data, market };
 }
 
 async function getProductMeta(id: string): Promise<ProductMeta | null> {
   try {
-    const res = await fetch(`${API_BASE}/products/${id}`, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) return null;
-    const data: ProductMeta = await res.json();
-    return data;
+    /* السوقان متطابقان في البنية — النجاح الأول يحسم سوق المنتج */
+    return (await fetchProductMeta(id, "966")) ?? (await fetchProductMeta(id, "967"));
   } catch {
     return null;
   }
@@ -77,7 +91,7 @@ export default async function ProductDetailPage({
         offers: {
           "@type": "Offer",
           availability: "https://schema.org/InStock",
-          priceCurrency: "YER",
+          priceCurrency: seoCurrency(product.market),
           seller: { "@type": "Organization", name: "توفير" },
         },
       }

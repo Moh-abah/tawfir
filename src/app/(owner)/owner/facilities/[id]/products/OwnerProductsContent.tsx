@@ -74,7 +74,8 @@ import {
   useToggleProductAvailability,
 } from "@/hooks/useOwnerProducts";
 import { ownerService } from "@/services/owner.service";
-import { useQueryClient } from "@tanstack/react-query";
+import { ownerApiClient } from "@/services/owner-api-client";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { ImageUploader } from "@/components/shared/ImageUploader";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -150,6 +151,18 @@ function ProductFormFields({
     setForm({ ...form, [key]: value });
   };
 
+  /* v3.2.1 — سوق المالك من GET /locale/me (توكن المالك):
+     السوق السعودي ← سعر صحيح (step=1) بلا كسور عشرية —
+     الخادم يرفض الكسور 422 برسالة عربية تُعرض كما هي. */
+  const localeMe = useQuery({
+    queryKey: ["owner:locale-me"],
+    queryFn: () =>
+      ownerApiClient.get<{ country_code?: string | null }>('/locale/me'),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+  const isSaudiMarket = String(localeMe.data?.country_code ?? '') === '966';
+
   /* جولة المحافظ + شفافية التاجر — معاينة حية للسعر النهائي بعد الخصم
      (وجبات عادية: بلا خصم عرض — خصم المنشأة فقط للعضو) */
   const priceNum = parseFloat(form.price) || 0;
@@ -181,12 +194,17 @@ function ProductFormFields({
           <Input
             id="p-price"
             type="number"
-            step="0.01"
+            step={isSaudiMarket ? 1 : "0.01"}
             min="0"
             dir="ltr"
             value={form.price}
             onChange={(e) => set("price", e.target.value)}
           />
+          {isSaudiMarket && (
+            <p className="text-xs text-muted-foreground">
+              في السوق السعودي الأسعار أعداد صحيحة بالريال (مثال: 8 أو 15) — بلا كسور عشرية
+            </p>
+          )}
           {errors.price && <p className="text-xs text-destructive">{errors.price}</p>}
         </div>
         <div className="space-y-2">
@@ -487,6 +505,13 @@ const prefersReduced = usePrefersReducedMotion();
         if (typeof msg === "string" && msg.includes("already exists")) {
           setFormErrors((prev) => ({ ...prev, name: "اسم المنتج موجود مسبقا" }));
           toast({ title: "اسم مكرر", description: "اسم المنتج موجود مسبقا", variant: "destructive" });
+        } else if (typeof msg === "string" && msg.trim()) {
+          /* v3.2.1 — رسالة الخادم العربية تُعرض كما هي
+             (مثال: «في السوق السعودي تكون الأسعار بالريال الصحيح بلا كسور عشرية…») */
+          toast({ title: "تعذّر حفظ المنتج", description: msg, variant: "destructive" });
+          if (msg.includes("السعر")) {
+            setFormErrors((prev) => ({ ...prev, price: msg }));
+          }
         }
       }
     }

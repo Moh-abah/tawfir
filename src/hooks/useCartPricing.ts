@@ -18,9 +18,11 @@ export interface PricedCartItem extends CartItem {
  * حسابات تسعير السلة — مصدر واحد للحقيقة تستخدمه صفحة /cart وCartSheet
  * وشريط السلة العائم (وأي شاشة قادمة).
  *
- * فلسفة التسعير الحية (بلا أي أرقام ميتة في الكود):
- * - نسبة العضوية الفعلية من GET /me فقط (membership.discount_rate) —
- *   بلا أي نسبة افتراضية؛ عضو بلا نسبة → لا خصم يُعرض.
+ * فلسفة التسعير الحية (بلا أي أرقام ميتة في الكود) — v3.2.1:
+ * - السعر من الخادم حصراً: الواجهة لا تحسب أي خصم محلياً. خصم المنشأة
+ *   (يحدده التاجر 0–20) يطبقه الخادم عند إنشاء الطلب، والإجمالي النهائي
+ *   يأتي من رد الطلب نفسه. الحساب السابق من /me كان خصماً وهمياً
+ *   لا يطبقه الخادم أبداً (أثبت طلب #115/#116).
  * - أجرة التوصيل ديناميكية حسب المسافة (GET /orders/delivery-estimate)
  *   عبر useDeliveryEstimate بموقع التوصيل المحفوظ في cart store إن وُجد —
  *   وإلا deliveryFee = null (لم تُحسب بعد).
@@ -36,18 +38,18 @@ export function useCartPricing() {
   const me = useMe();
 
   const isMember = !!me.data?.membership?.is_active;
-  /* نسبة العضوية الفعلية من /me حصراً — لا ثابت ولا fallback تسعيري */
-  const memberRate = me.data?.membership?.discount_rate ?? 0;
 
   const pricedItems: PricedCartItem[] = items.map((i) => {
     const base = parseFloat(i.price) || 0;
-    const unit = isMember && memberRate > 0 ? base * (1 - memberRate / 100) : base;
+    /* v3.2.1 — بلا أي خصم محلي: unit = base دائماً */
+    const unit = base;
     return { ...i, base, unit, lineTotal: unit * i.quantity };
   });
 
   const baseSubtotal = pricedItems.reduce((s, i) => s + i.base * i.quantity, 0);
-  const subtotal = pricedItems.reduce((s, i) => s + i.lineTotal, 0);
-  const discountAmount = baseSubtotal - subtotal;
+  const subtotal = baseSubtotal;
+  /* 0 دائماً — الخصم الفعلي يحسمه الخادم عند إنشاء الطلب (لا يُقدَّر هنا) */
+  const discountAmount = 0;
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   /* أجرة التوصيل الديناميكية — تُقدَّر فقط عند توفر المتجر + الموقع المحفوظ
@@ -66,7 +68,7 @@ export function useCartPricing() {
     totalCount,
     baseSubtotal,
     subtotal,
-    /** ما خصمته العضوية فعلياً عن أصناف السلة (0 لغير الأعضاء أو بلا نسبة) */
+    /** 0 دائماً في v3.2.1 — لا خصم مُقدَّر واجهياً */
     discountAmount,
     /** أجرة التوصيل المقدَّرة حسب المسافة — null قبل تحديد موقع/جلسة */
     deliveryFee,
@@ -74,6 +76,5 @@ export function useCartPricing() {
     /** إجمالي مكتمل فقط عند توفر الأجرة — وإلا null (يحسمه الخادم عند التأكيد) */
     total,
     isMember,
-    memberRate,
   };
 }

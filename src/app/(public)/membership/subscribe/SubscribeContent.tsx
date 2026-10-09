@@ -757,17 +757,22 @@ export default function SubscribeContent() {
   return (
     <>
       <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
-      {/* الجولة 20: علم العضوية المجانية مفعّل → عرض بطاقة الاشتراك المجاني
-          بدلاً من شاشة الدفع + رفع الإيصال. */}
-      {info.data.is_free_membership_enabled ? (
-        <FreeMembershipCard />
+      {/* v3.2.1 — الفصل السوقي للعضوية يُقرأ من رد الخادم نفسه (info.market):
+          السوق السعودي (966 + مبلغ 0) → عضوية مجانية بتفعيل فوري، ومسار الإيصال
+          مخفي هناك إطلاقاً. السوق اليمني (967) → مساره القائم كما هو:
+          تحويل + رفع إيصال + موافقة المشرف. */}
+      {info.data.market === "966" && info.data.amount === 0 ? (
+        <FreeMembershipCard
+          discountLabel={info.data.discount_label ?? undefined}
+          instructions={info.data.instructions ?? undefined}
+        />
       ) : (
         <SubscribeForm
           amount={info.data.amount || MEMBERSHIP_AMOUNT}
-          transferAccountName={info.data.transfer_account_name}
-          transferAccountNumber={info.data.transfer_account_number}
-          walletName={info.data.wallet_name}
-          instructions={info.data.instructions}
+          transferAccountName={info.data.transfer_account_name ?? ""}
+          transferAccountNumber={info.data.transfer_account_number ?? ""}
+          walletName={info.data.wallet_name ?? ""}
+          instructions={info.data.instructions ?? ""}
         />
       )}
     </>

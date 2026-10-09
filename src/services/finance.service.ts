@@ -29,13 +29,19 @@ import type { PaymentOut, PayoutOut, DestinationIn, DestinationOut } from "@/typ
 
 /* ═══════════════ أنواع العقود الحية (موثقة من الاستجابات الفعلية) ═══════════════ */
 
-/** استجابة GET /finance/payments/config */
+/** استجابة GET /finance/payments/config — v3.2.1: بقية حقل السوق */
 export interface PaymentsConfig {
-  mode: "embedded" | "direct" | string;
+  /** v3.2.1 — هل الدفع الإلكتروني متاح في سوق المستخدم (966=true، 967=false) */
+  enabled: boolean;
+  mode: "embedded" | "direct" | "notifications" | string;
   embedded: boolean;
   publishable_key: string;
   callback_url?: string | null;
   methods: string[];
+  /** v3.2.1 — عملة السوق من الخادم (SAR/YER) */
+  currency?: string;
+  /** v3.2.1 — سوق البوابة من الخادم (966/967) */
+  market?: string;
 }
 
 /** طلب POST /finance/orders/{order_id}/pay/verify */
