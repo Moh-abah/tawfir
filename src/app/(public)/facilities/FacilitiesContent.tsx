@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
-import { Search, UtensilsCrossed, Coffee, Landmark, MapPin, SearchX, ArrowUpDown, Clock, Eye, X, Package, BadgePercent } from "lucide-react";
+import { Search, UtensilsCrossed, Coffee, Landmark, MapPin, SearchX, ArrowUpDown, Clock, Eye, X, Package, BadgePercent, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScreenHeader } from "@/components/shared/ScreenHeader";
@@ -104,6 +104,16 @@ function FacilityCard({
             <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 shrink-0" />
               <span className="line-clamp-1">{facility.address}</span>
+            </p>
+          ) : null}
+          {/* v3.2.2 — تلميح الخصم من التاجر يُعرض للعملاء (بصمة §4-ب) */}
+          {facility.discount_hint ? (
+            <p
+              className="mt-2 flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold leading-none text-accent-foreground"
+              title={facility.discount_hint}
+            >
+              <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span className="line-clamp-1">{facility.discount_hint}</span>
             </p>
           ) : null}
         </div>

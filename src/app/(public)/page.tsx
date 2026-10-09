@@ -655,6 +655,16 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
             <span className="line-clamp-1">{facility.working_hours}</span>
           </p>
         )}
+        {/* v3.2.2 — تلميح الخصم من التاجر يُعرض للعملاء (بصمة §4-ب) */}
+        {facility.discount_hint ? (
+          <p
+            className="flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold leading-none text-accent-foreground"
+            title={facility.discount_hint}
+          >
+            <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span className="line-clamp-1">{facility.discount_hint}</span>
+          </p>
+        ) : null}
         <Button
           asChild
           variant="outline"

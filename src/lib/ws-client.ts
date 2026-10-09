@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * عميل WebSocket للإشعارات الفورية — الجولة 3 + إصلاح الإحياء.
+ * عميل WebSocket للإشعارات الفورية — الجولة 3 + إصلاح الإحياء + نبض v3.2.2.
  *
  * يتصل بـ wss://api.tawfir.giize.com/api/v1/ws/notifications?token=XXX
  * عند استدعاء connect(token). يقطع الاتصال عند disconnect().
@@ -15,6 +15,10 @@
  *    (الصفحة تصبح مرئية) أو عودة الاتصال (online) نُصفّر العدّاد
  *    ونعيد الاتصال فوراً إن كان هناك توكن نشط — فلا تفقد الإشعارات
  *    الفورية بعد انقطاع طويل.
+ *  - v3.2.2 — نبض القناة: الخادم الآن يرسل hello عند الفتح ويجيب pong
+ *    على ping (مثبت حياً: 101 + hello + ping→pong). نرسل نحن ping
+ *    دورياً كي لا يقطع nginx الاتصال صامتاً (proxy_read_timeout)، ونرد
+ *    فوراً على ping الخادم، ونغلق قسرياً عند صمت أطول من الحرس.
  */
 
 type WsMessageHandler = (msg: unknown) => void;
@@ -38,6 +42,15 @@ const AUTH_RECOVERY_THRESHOLD = 2;
 /* حد أدنى بين محاولات الاستشفاء — منع عاصفة تجديد عند انقطاع الشبكة */
 const AUTH_RECOVERY_COOLDOWN_MS = 30_000;
 
+/* v3.2.2 — نبض القناة على مستوى التطبيق:
+   الخادم يرسل {"type":"hello"} عند الفتح ويجيب {"type":"pong"} على
+   {"type":"ping"}. نرسل نحن ping كل 30 ث (أقل من مهلة nginx الافتراضية
+   60 ث كي لا يقطع البروكسي اتصالاً صامتاً)، ونرد فوراً على ping الخادم،
+   وإن لم يصل أي شيء وارد خلال 75 ث أغلقنا القناة قسرياً ليتبع onclose
+   مسار إعادة الاتصال المعتاد بدل انتظار ميتة صامتة أطول. */
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const HEARTBEAT_WATCHDOG_MS = 75_000;
+
 class NotificationWebSocketClient {
   private socket: WebSocket | null = null;
   private currentToken: string | null = null;
@@ -50,6 +63,9 @@ class NotificationWebSocketClient {
   private consecutiveFailures = 0;
   private authRecoveryHandler: WsAuthRecoveryHandler | null = null;
   private lastAuthRecoveryAt = 0;
+  /* v3.2.2 — نبض القناة: مؤقّت الدوري + طابع آخر رسالة واردة */
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private lastIncomingAt = 0;
 
   constructor() {
     if (typeof window === "undefined") return;
@@ -149,15 +165,28 @@ class NotificationWebSocketClient {
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
       this.consecutiveFailures = 0;
+      this.lastIncomingAt = Date.now();
+      this.startHeartbeat();
       this.emitStatus("connected");
     };
 
     this.socket.onmessage = (event) => {
+      this.lastIncomingAt = Date.now();
       try {
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(event.data) as Record<string, unknown>;
+        /* v3.2.2 — إطارات التحكم (ping/pong) تُعالَج داخلياً ولا تُمرَّر
+           للمستهلكين: ping الخادم نرد عليه فوراً بـpong (إن لم نرد
+           يعتبرنا ميتاً)، وpong نبضة حياة تكفي لحرس النبضة. */
+        if (data && typeof data === "object" && data.type === "ping") {
+          this.rawSend(JSON.stringify({ type: "pong" }));
+          return;
+        }
+        if (data && typeof data === "object" && data.type === "pong") {
+          return;
+        }
         this.messageHandlers.forEach((h) => h(data));
       } catch {
-        // الرسالة ليست JSON صالحة — تجاهلها بهدوء.
+        // الرسالة ليست JSON صالحة — تجاهلها بهدوء (وتُغذي حرس النبضة أعلاه).
       }
     };
 
@@ -237,11 +266,12 @@ class NotificationWebSocketClient {
   }
 
   /**
-   * تفكيك المقبس الحالي فقط (معالجات + مؤقّت إعادة الاتصال) — تنظيف
-   * داخلي قبل فتح مقبس جديد. لا يصفّر العدادات ولا يغيّر التوكن ولا
-   * عَلَم الإغلاق المتعمّد — هذه مسؤولية disconnect() الكامل.
+   * تفكيك المقبس الحالي فقط (معالجات + مؤقّت إعادة الاتصال + النبض) —
+   * تنظيف داخلي قبل فتح مقبس جديد. لا يصفّر العدادات ولا يغيّر التوكن
+   * ولا عَلَم الإغلاق المتعمّد — هذه مسؤولية disconnect() الكامل.
    */
   private teardownSocket(): void {
+    this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -294,6 +324,48 @@ class NotificationWebSocketClient {
 
   private emitStatus(status: Parameters<WsStatusHandler>[0]): void {
     this.statusHandlers.forEach((h) => h(status));
+  }
+
+  /* ───── v3.2.2 — نبض القناة (ping/pong على مستوى التطبيق) ───── */
+
+  /** إرسال خام آمن — يتجاهل بصمت إن لم تكن القناة مفتوحة. */
+  private rawSend(payload: string): void {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      try {
+        this.socket.send(payload);
+      } catch {
+        // منافسة إغلاق محتملة — تجاهل؛ الحرس/الـonclose يتكفلان بالباقي.
+      }
+    }
+  }
+
+  /** بدء النبض الدوري + حرس النبضة (يُستدعى من onopen حصراً). */
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      if (this.socket?.readyState !== WebSocket.OPEN) return;
+      /* حرس النبضة: لا رسائل واردة خلال المهلة = اتصال ميت بصمت
+         (بروكسي قطعه بلا إشعار) — إغلاق قسري ليتبعه onclose بمسار
+         إعادة الاتصال المعتاد بدل انتظار ميتة أطول. */
+      if (Date.now() - this.lastIncomingAt > HEARTBEAT_WATCHDOG_MS) {
+        console.warn("[Tawfir WS] لا نبض خلال 75 ث — إغلاق قسري لإعادة الاتصال");
+        try {
+          this.socket.close();
+        } catch {
+          // تجاهل — onclose سيتكفل بالتنظيف.
+        }
+        return;
+      }
+      this.rawSend(JSON.stringify({ type: "ping" }));
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  /** إيقاف النبض (عند التفكيك/الإغلاق المتعمّد). */
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
   }
 }
 

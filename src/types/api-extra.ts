@@ -427,4 +427,8 @@ export interface PricingPreviewOut {
   member_price: number;
   non_member_price: number;
   member_saving: number;
+  /** v3.2.2 — عملة سوق المنشأة (SAR/YER) تُصدَّر الآن في الرد (بصمة §4-أ). */
+  currency?: string | null;
+  /** v3.2.2 — رمز سوق المنشأة (966/967) تُصدَّر الآن في الرد. */
+  market?: string | null;
 }

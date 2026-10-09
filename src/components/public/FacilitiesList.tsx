@@ -2,6 +2,7 @@
 
 import { useFacilities } from "@/hooks/useFacilities";
 import type { FacilityType } from "@/types/api.generated";
+import { Sparkles } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -106,11 +107,23 @@ export function FacilitiesList() {
               </Badge>
             </div>
           </CardHeader>
-          {f.description ? (
-            <CardContent>
-              <CardDescription className="line-clamp-2">
-                {f.description}
-              </CardDescription>
+          {(f.description || f.discount_hint) ? (
+            <CardContent className="space-y-2">
+              {f.description ? (
+                <CardDescription className="line-clamp-2">
+                  {f.description}
+                </CardDescription>
+              ) : null}
+              {/* v3.2.2 — تلميح الخصم من التاجر يُعرض للعملاء (بصمة §4-ب) */}
+              {f.discount_hint ? (
+                <span
+                  className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-[11px] font-extrabold leading-none text-accent-foreground shadow-sm"
+                  title={f.discount_hint}
+                >
+                  <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{f.discount_hint}</span>
+                </span>
+              ) : null}
             </CardContent>
           ) : null}
         </Card>

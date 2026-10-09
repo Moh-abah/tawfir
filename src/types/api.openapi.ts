@@ -5619,6 +5619,8 @@ export interface components {
              * @default 30
              */
             discount_rate: number;
+            /** Discount Hint */
+            discount_hint?: string | null;
             /**
              * Created At
              * Format: date-time
@@ -7406,6 +7408,16 @@ export interface components {
              * @default 0
              */
             member_saving: number;
+            /**
+             * Currency
+             * @description عملة سوق المنشأة (SAR للسعودية / YER لليمن)
+             */
+            currency: string;
+            /**
+             * Market
+             * @description رمز سوق المنشأة (966/967)
+             */
+            market?: string | null;
         };
         /**
          * PricingPreviewRequest

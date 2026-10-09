@@ -225,7 +225,7 @@ function ProductFormFields({
           <p className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">سعر الوجبة الذي أدخلته:</span>
             <span dir="ltr" className="font-bold tabular-nums text-foreground">
-              {formatCurrency(previewApi.data.base_price)}
+              {formatCurrency(previewApi.data.base_price, previewApi.data.currency)}
             </span>
           </p>
           <p className="mt-1.5 flex items-center justify-between">
@@ -233,17 +233,17 @@ function ProductFormFields({
               عميل العضو يدفع (خصم متجرك {previewApi.data.facility_discount_rate}%):
             </span>
             <span dir="ltr" className="font-extrabold tabular-nums text-primary">
-              {formatCurrency(previewApi.data.member_price)}
+              {formatCurrency(previewApi.data.member_price, previewApi.data.currency)}
             </span>
           </p>
           <p className="mt-1 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">غير العضو يدفع:</span>
             <span dir="ltr" className="font-bold tabular-nums text-foreground">
-              {formatCurrency(previewApi.data.non_member_price)}
+              {formatCurrency(previewApi.data.non_member_price, previewApi.data.currency)}
             </span>
           </p>
           <p className="mt-1.5 text-[11px] font-bold text-success">
-            وفر العضو {formatCurrency(previewApi.data.member_saving ?? 0)} — معاينة حية من
+            وفر العضو {formatCurrency(previewApi.data.member_saving ?? 0, previewApi.data.currency)} — معاينة حية من
             الخادم بنفس معادلات الدفع الفعلية.
           </p>
         </div>

@@ -7,6 +7,7 @@ import Link from "next/link";
 import {  Phone, MapPin, Clock, Search, ExternalLink,
   UtensilsCrossed, Coffee, Landmark, ArrowRight, PackageOpen, ChevronLeft,
   Share2, Flag, Check, Heart, Copy, Twitter, MessageCircle, ShoppingBag, ZoomIn,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -757,6 +758,16 @@ const prefersReduced = usePrefersReducedMotion();
                 <span className="mt-2 inline-block rounded-full bg-secondary/90 px-3 py-1 text-xs font-medium text-white">
                   {TYPE_LABEL[facility.type]}
                 </span>
+                {/* v3.2.2 — تلميح الخصم الذي يكتبه التاجر صار يُخزَّن ويُعرض
+                    للعملاء (كان يُقبل ويُهمل خادمياً — بصمة §4-ب). */}
+                {facility.discount_hint ? (
+                  <span className="mt-2 flex max-w-fit items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-[11px] font-extrabold leading-none text-accent-foreground shadow-lg shadow-accent/25 sm:text-xs">
+                    <Sparkles className="h-3 w-3 shrink-0" aria-hidden="true" />
+                    <span className="truncate" title={facility.discount_hint}>
+                      {facility.discount_hint}
+                    </span>
+                  </span>
+                ) : null}
               </div>
               <DiscountBadge percentage={facility.discount_rate ?? 0} />
             </div>

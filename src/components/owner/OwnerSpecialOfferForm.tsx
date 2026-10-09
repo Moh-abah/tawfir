@@ -435,17 +435,17 @@ export function OwnerSpecialOfferForm({
                     <div className="mt-1 flex items-center justify-between">
                       <span className="font-medium">عميل العضو يدفع:</span>
                       <span className="font-extrabold text-primary" dir="ltr">
-                        {formatCurrency(pricePreviewApi.data.member_price)}
+                        {formatCurrency(pricePreviewApi.data.member_price, pricePreviewApi.data.currency)}
                       </span>
                     </div>
                     <div className="mt-1 flex items-center justify-between">
                       <span className="font-medium">غير العضو يدفع:</span>
                       <span className="font-semibold text-foreground" dir="ltr">
-                        {formatCurrency(pricePreviewApi.data.non_member_price)}
+                        {formatCurrency(pricePreviewApi.data.non_member_price, pricePreviewApi.data.currency)}
                       </span>
                     </div>
                     <p className="mt-2 text-xs font-bold text-success">
-                      وفر العضو {formatCurrency(pricePreviewApi.data.member_saving ?? 0)} بدل
+                      وفر العضو {formatCurrency(pricePreviewApi.data.member_saving ?? 0, pricePreviewApi.data.currency)} بدل
                       السعر الأساسي — التراكمي مع خصم متجرك
                       ({pricePreviewApi.data.facility_discount_rate}%){" "}
                       + عرضك ({pricePreviewApi.data.offer_discount_rate ?? 0}%).

@@ -66,8 +66,11 @@ export function resolveImageUrl(url: string | null | undefined): string {
 /** صياغة مبلغ بعملة السوق الفعالة — تُقرأ من MarketProvider بعد معرفة
  *  السوق، وتُرجع ر.ي قبله (توافق تاريخي + أمان SSR).
  *  v7 — كانت مصفّاة تاريخياً على «ر.ي» للجميع (حتى السعودي). */
-export function formatCurrency(amount: string | number): string {
-  return formatMoney(amount);
+export function formatCurrency(
+  amount: string | number,
+  currency?: string | null
+): string {
+  return formatMoney(amount, currency);
 }
 
 /* ─── عملة العرض الفعالة (جولة الفصل الحقيقي بين السوقين v7) ──────── */
