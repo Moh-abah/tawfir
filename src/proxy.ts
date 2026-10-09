@@ -169,7 +169,7 @@ export function proxy(request: NextRequest) {
 
   return NextResponse.next();
 }
-
+ 
 export const config = {
   /**
    * مسارات مستثناة من المعالجة (تُخدم كما هي على كل النطاقات):
