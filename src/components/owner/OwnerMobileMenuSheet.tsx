@@ -11,6 +11,7 @@ import {
   LogOut,
   Home,
   Wallet,
+  Blocks,
   ChevronLeft,
 } from "lucide-react";
 import {
@@ -110,6 +111,14 @@ export function OwnerMobileMenuSheet({
       icon: Wallet,
       iconClass: "bg-success/10 text-success",
       href: "/owner/finance",
+    },
+    {
+      // ✦ v4.1: التكاملات — اربط كاشيرك والتوصيل الخارجي (النموذج المركزي)
+      key: "integrations",
+      label: "التكاملات",
+      icon: Blocks,
+      iconClass: "bg-primary/10 text-primary",
+      href: "/owner/integrations",
     },
     {
       key: "stats",

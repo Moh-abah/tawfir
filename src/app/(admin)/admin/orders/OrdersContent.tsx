@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ShoppingBag,
   RefreshCcw,
@@ -48,6 +49,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useAdminOrders, useAdminOrderDetail } from "@/hooks/useAdminOrders";
+import { ExternalDeliveryCard } from "@/components/integrations/ExternalDeliveryCard";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "@/lib/constants";
@@ -345,6 +347,14 @@ function OrderDetailsDialog({
                 </Table>
               </div>
             </div>
+
+            {/* ✦ v4.1: بطاقة التوصيل الخارجي — الإضافة الوحيدة المسموحة على صفحة الطلب
+               (تُركَّب فقط عندما طبقة التكاملات منشورة، وإلا صفر تغيير بصري) */}
+            <ExternalDeliveryCard
+              orderId={order.id}
+              facilityId={order.facility_id}
+              orderStatus={order.status}
+            />
           </div>
         ) : null}
 
@@ -504,6 +514,14 @@ function OrderCard({
 
 /* ─── المكوّن الرئيسي ────────────────────────────────── */
 export default function OrdersContent() {
+  return (
+    <Suspense>
+      <OrdersContentInner />
+    </Suspense>
+  );
+}
+
+function OrdersContentInner() {
   const prefersReduced = usePrefersReducedMotion();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [customerIdInput, setCustomerIdInput] = useState("");
@@ -515,6 +533,26 @@ export default function OrdersContent() {
   const debouncedSearch = useDebounce(searchInput, 350);
   const [page, setPage] = useState(1);
   const [detailsId, setDetailsId] = useState<number | null>(null);
+
+  /* ✦ v4.1: ربط سجل الأحداث — فتح تفاصيل الطلب من بارامتر ?order=N
+     اشتقاق خالص في وقت العرض (متسق SSR/ hydration بلا أي effect)،
+     وتنظيف الرابط في معالج الإغلاق فقط (event handler — آمن للقاعدة) */
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const rawOrderParam = searchParams.get("order");
+  const paramOrder =
+    rawOrderParam && !Number.isNaN(Number(rawOrderParam)) && Number(rawOrderParam) > 0
+      ? Number(rawOrderParam)
+      : null;
+  const activeDetailsId = detailsId ?? paramOrder;
+
+  function closeDetails() {
+    setDetailsId(null);
+    if (paramOrder != null) {
+      router.replace(pathname, { scroll: false });
+    }
+  }
 
   const queryStatus =
     statusFilter === "all" ? null : (statusFilter as OrderStatus);
@@ -833,10 +871,10 @@ export default function OrdersContent() {
 
       {/* مودال تفاصيل الطلب */}
       <OrderDetailsDialog
-        orderId={detailsId}
-        open={detailsId !== null}
+        orderId={activeDetailsId}
+        open={activeDetailsId !== null}
         onOpenChange={(v) => {
-          if (!v) setDetailsId(null);
+          if (!v) closeDetails();
         }}
       />
     </div>

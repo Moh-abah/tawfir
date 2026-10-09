@@ -21,6 +21,7 @@ import {
   Banknote,
   Cable,
   Wallet,
+  Blocks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/couriers", label: "أسطول المناديب", icon: Bike },
   { href: "/admin/pricing", label: "تسعير التوصيل", icon: Banknote },
   { href: "/admin/partners", label: "روابط الشركاء", icon: Cable },
+  { href: "/admin/integrations", label: "التكاملات", icon: Blocks },
   { href: "/admin/membership-requests", label: "طلبات العضوية", icon: BadgeCheck, badgeKey: "membership-requests" },
   { href: "/admin/facilities", label: "المتاجر", icon: Store, badgeKey: "facilities" },
   { href: "/admin/facilities/pending", label: "طلبات المتاجر المعلّقة", icon: Hourglass, badgeKey: "pending" },
