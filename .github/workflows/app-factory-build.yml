@@ -1,0 +1,381 @@
+# ══════════════════════════════════════════════════════════════════════
+#  🏭 مصنع تطبيقات التجار — بناء APK + AAB موسوم ببصمة التاجر (v1)
+# ══════════════════════════════════════════════════════════════════════
+#  يبني نسخة تاجر من قشرة توفير الحية (نفس خطوات build-android.yml المثبتة
+#  التي أنتجت 19 تشغيلة ناجحة) لكن بهوية التاجر بالكامل:
+#
+#    1) فحص مبكر للمدخلات والأسرار (فشل في 20 ثانية بدل 10 دقائق)
+#    2) Bun + Java 21 + Android SDK في سحابة GitHub (لا شيء على جهازك)
+#    3) تطبيق هوية التاجر على capacitor.config.ts قبل cap add:
+#       الحزمة (com.xxx.yyy) + الاسم + نطاق الفتح + المضيف في allowNavigation
+#       + لون الهوية يُستبدل في patch-android-identity.mjs (#005B82 → لون التاجر)
+#    4) (اختياري) أيقونة/سبلاش التاجر من روابط أصول الهوية — وإلا أيقونات توفير
+#    5) (اختياري) google-services.json التاجر — بدونه يعمل التطبيق بلا إشعارات
+#       أصلية FCM (ملف عام غير سرّي — رابط عام من حزمة الكونسول أو أي استضافة)
+#    6) cap add android + تحقق هوية مزدوج (build.gradle وstrings.xml)
+#       + تحقق نهائي ثالث من الحزمة داخل الـAPK الناتج نفسه (aapt2)
+#    7) توقيع بـkeystore التاجر (من الأسرار TAWFIR_* — لا يُكتب بالمستودع أبداً)
+#    8) APK موقّع (تثبيت مباشر) + AAB موقّع (Google Play) + بصمات SHA-256
+#       — كلها Artifacts قابلة للتنزيل أسفل صفحة التشغيل
+#
+#  الأسرار المطلوبة (مرة واحدة لكل تاجر — Settings → Secrets and variables → Actions):
+#    TAWFIR_KEYSTORE_BASE64   keystore التاجر Base64 (من حزمة ZIP الكونسولية → مجلد signing/)
+#    TAWFIR_STORE_PASSWORD    كلمة مرور المخزن (الكونسول → تفاصيل الخزنة)
+#    TAWFIR_KEY_ALIAS         الاسم المستعار للمفتاح
+#    TAWFIR_KEY_PASSWORD      كلمة مرور المفتاح
+#    (ملاحظة PKCS12: كلمة مرور المفتاح = كلمة مرور المخزن — سلوك Java القياسي)
+#
+#  حدود v1 الموثقة بصدق (راجع دليل التفعيل):
+#    • تاجر واحد في كل مرة (الأسرار على مستوى المستودع — تُحدّث لكل تاجر)
+#    • فلتر Deep Links autoVerify يبقى على نطاق توفير الرئيسي (assetlinks
+#      للنطاقات الخاصة بالتجار لاحقاً — لا يؤثر على عمل التطبيق)
+#    • أيقونة adaptive قد تقص حواف أيقونة بلا هامش أمان
+# ══════════════════════════════════════════════════════════════════════
+
+name: "🏭 بناء تطبيق تاجر — APK + AAB"
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_id:
+        description: "بصمة التاجر الانفرادية (مثال: com.wajh.demoapp)"
+        required: true
+        type: string
+      app_name:
+        description: "اسم التطبيق الظاهر (مثال: مطعم واجهة)"
+        required: true
+        type: string
+      server_url:
+        description: "نطاق فتح التطبيق (https)"
+        required: true
+        default: "https://tawfir.giize.com"
+        type: string
+      primary_color:
+        description: "اللون الأساسي HEX (مثال: #E23744)"
+        required: false
+        default: "#005B82"
+        type: string
+      icon_url:
+        description: "رابط أيقونة PNG 1024×1024 (اختياري — افتراضياً أيقونة توفير)"
+        required: false
+        default: ""
+        type: string
+      splash_url:
+        description: "رابط سبلاش PNG 2732×2732 (اختياري)"
+        required: false
+        default: ""
+        type: string
+      fcm_json_url:
+        description: "رابط google-services.json للتاجر (اختياري — بدونه لا إشعارات native)"
+        required: false
+        default: ""
+        type: string
+      version_name:
+        description: "اسم الإصدار versionName (مثال 1.0.0)"
+        required: true
+        default: "1.0.0"
+        type: string
+      version_code:
+        description: "كود الإصدار versionCode (رقم صاعد)"
+        required: true
+        default: "1"
+        type: string
+      build_type:
+        description: "نوع الناتج"
+        required: true
+        default: "both"
+        type: choice
+        options: [both, apk, aab]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: factory-${{ inputs.package_id }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: "🔧 تاجر: ${{ inputs.package_id }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PACKAGE_ID: ${{ inputs.package_id }}
+      APP_NAME: ${{ inputs.app_name }}
+      SERVER_URL: ${{ inputs.server_url }}
+      PRIMARY_COLOR: ${{ inputs.primary_color }}
+      ICON_URL: ${{ inputs.icon_url }}
+      SPLASH_URL: ${{ inputs.splash_url }}
+      FCM_URL: ${{ inputs.fcm_json_url }}
+      VERSION_NAME: ${{ inputs.version_name }}
+      VERSION_CODE: ${{ inputs.version_code }}
+      BUILD_TYPE: ${{ inputs.build_type }}
+      TAWFIR_KEYSTORE_BASE64: ${{ secrets.TAWFIR_KEYSTORE_BASE64 }}
+      TAWFIR_STORE_PASSWORD: ${{ secrets.TAWFIR_STORE_PASSWORD }}
+      TAWFIR_KEY_ALIAS: ${{ secrets.TAWFIR_KEY_ALIAS }}
+      TAWFIR_KEY_PASSWORD: ${{ secrets.TAWFIR_KEY_PASSWORD }}
+
+    steps:
+      - name: "⬇️ تحميل الكود"
+        uses: actions/checkout@v5
+
+      - name: "🔍 فحص المدخلات والأسرار (فشل مبكر بدل 10 دقائق انتظار)"
+        run: |
+          set -e
+          if ! echo "$PACKAGE_ID" | grep -Eq '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$'; then
+            echo "::error::بصمة غير صالحة: «$PACKAGE_ID» — الصيغة com.xxx.yyy بأحرف صغيرة/أرقام/شرطات سفلية"
+            exit 1
+          fi
+          if ! echo "$PRIMARY_COLOR" | grep -Eq '^#[0-9A-Fa-f]{6}$'; then
+            echo "::error::لون غير صالح: «$PRIMARY_COLOR» — الصيغة #RRGGBB"
+            exit 1
+          fi
+          case "$SERVER_URL" in
+            https://*) : ;;
+            *) echo "::error::server_url يجب أن يبدأ بـ https://"; exit 1 ;;
+          esac
+          case "$APP_NAME" in
+            *'"'*|*'|'*) echo "::error::اسم التطبيق لا يقبل علامة \" أو |"; exit 1 ;;
+          esac
+          for S in TAWFIR_KEYSTORE_BASE64 TAWFIR_STORE_PASSWORD TAWFIR_KEY_ALIAS TAWFIR_KEY_PASSWORD; do
+            VAL="$(eval echo "\${$S:-}")"
+            if [ -z "$VAL" ]; then
+              echo "::error::السر «$S» غير مضبوط — Settings → Secrets and variables → Actions → New repository secret"
+              exit 1
+            fi
+          done
+          MERCHANT_HOST="$(echo "$SERVER_URL" | sed -E 's#https://##; s#/.*$##')"
+          case "$BUILD_TYPE" in
+            apk) TASKS="assembleRelease" ;;
+            aab) TASKS="bundleRelease" ;;
+            *)   TASKS="assembleRelease bundleRelease" ;;
+          esac
+          {
+            echo "MERCHANT_HOST=$MERCHANT_HOST"
+            echo "EXPECTED_APP_ID=$PACKAGE_ID"
+            printf 'EXPECTED_APP_NAME=%s\n' "$APP_NAME"
+            echo "BUILD_TASKS=$TASKS"
+          } >> "$GITHUB_ENV"
+          echo "✓ المدخلات سليمة — المضيف: $MERCHANT_HOST — مهام Gradle: $TASKS"
+
+      - name: "🥟 تثبيت Bun"
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: "☕ تثبيت Java 21 (Temurin) — Capacitor 8 يتطلب 21"
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: "🤖 تجهيز Android SDK (التراخيص + منصة 36)"
+        run: |
+          SDKM="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          echo "sdkmanager: $SDKM"
+          yes | "$SDKM" --licenses >/dev/null 2>&1 || true
+          yes | "$SDKM" "platforms;android-36" "platform-tools" >/dev/null 2>&1 || true
+          echo "✓ التراخيص مقبولة ومنصة API 36 متوفرة"
+
+      - name: "📦 تثبيت الاعتماديات (bun install)"
+        run: bun install --frozen-lockfile
+
+      - name: "🔧 إصلاح sharp لبيئة linux-x64 (إلزامي — بدونه يفشل capacitor-assets)"
+        run: |
+          rm -rf node_modules/@capacitor/assets/node_modules/sharp \
+                 node_modules/@capacitor/assets/node_modules/@img
+          if ! node -e "require('sharp')" 2>/dev/null; then
+            echo "⚠ ثنائيات sharp الجذر ناقصة — تثبيتها عبر npm (linux-x64)"
+            SHARP_REQ="$(node -p "require('./package.json').dependencies.sharp ?? require('./package.json').devDependencies.sharp")"
+            npm install --no-save --no-package-lock --platform=linux --arch=x64 "sharp@${SHARP_REQ#^}"
+          fi
+          node -e "require('sharp')({create:{width:8,height:8,channels:3,background:'#005B82'}}).png().toBuffer().then(()=>console.log('✓ sharp تعمل على linux-x64')).catch(e=>{console.error('✗ sharp معطلة:',e.message);process.exit(1)})"
+
+      - name: "🏪 تطبيق هوية التاجر (الحزمة + الاسم + النطاق + اللون) — قبل cap add"
+        run: |
+          set -e
+          # 1) الحزمة والاسم في capacitor.config.ts (سطور الكود فقط — التعليقات
+          #    لا تطابق النمط لأنها بلا علامات اقتباس)
+          sed -i "s|appId: \"[^\"]*\"|appId: \"${PACKAGE_ID}\"|" capacitor.config.ts
+          sed -i "s|appName: \"[^\"]*\"|appName: \"${APP_NAME}\"|" capacitor.config.ts
+          # 2) وجهة فتح التطبيق
+          sed -i "s|url: \"https://tawfir\.giize\.com\",|url: \"${SERVER_URL}\",|" capacitor.config.ts
+          # 3) إبقاء تنقلات نطاق التاجر داخل الـWebView (بدون تكرار إن كان هو الافتراضي)
+          if ! grep -q "\"${MERCHANT_HOST}\"," capacitor.config.ts; then
+            sed -i "s|^   \"tawfir.giize.com\",|   \"${MERCHANT_HOST}\",\n   \"tawfir.giize.com\",|" capacitor.config.ts
+          fi
+          # 4) لون الهوية في سكربت الترقيع (السبلاش الصلب + خلفيات النظام)
+          sed -i "s/#005B82/${PRIMARY_COLOR}/g" scripts/patch-android-identity.mjs
+          echo "── الهوية المطبقة (المحطات الأولى) ──"
+          grep -nE '^\s*(appId|appName):' capacitor.config.ts
+          grep -n 'url: "' capacitor.config.ts | head -n1
+          echo "✓ هوية التاجر مطبقة على capacitor.config.ts وسكربت الترقيع"
+
+      - name: "🎨 أصول التاجر: أيقونة + سبلاش (اختياري — افتراضياً هوية توفير)"
+        run: |
+          set -e
+          if [ -n "$ICON_URL" ]; then
+            curl -fsSL --retry 3 "$ICON_URL" -o resources/icon.png
+            SIZE=$(stat -c%s resources/icon.png)
+            [ "$SIZE" -gt 1000 ] || { echo "::error::أيقونة التاجر فارغة/صغيرة (${SIZE} بايت)"; exit 1; }
+            file resources/icon.png | grep -qi "png" || { echo "::error::الأيقونة ليست PNG"; exit 1; }
+            # الأيقونة التكيفية تُولَّد من الأيقونة الجديدة (حذف قديمة توفير يمنع مزج الهويات)
+            rm -f resources/icon-foreground.png resources/icon-background.png
+            echo "✓ أيقونة التاجر مثبتة (${SIZE} بايت) — ملاحظة: الأيقونات التكيفية قد تقص الحواف؛ يفضل أيقونة بهامش أمان"
+          else
+            echo "(لا أيقونة تاجر — تُستخدم أيقونة توفير كما هي)"
+          fi
+          if [ -n "$SPLASH_URL" ]; then
+            curl -fsSL --retry 3 "$SPLASH_URL" -o resources/splash.png
+            SIZE=$(stat -c%s resources/splash.png)
+            [ "$SIZE" -gt 1000 ] || { echo "::error::السبلاش فارغ/صغير (${SIZE} بايت)"; exit 1; }
+            echo "✓ سبلاش التاجر مثبت (${SIZE} بايت)"
+          else
+            echo "(لا سبلاش تاجر — يُستخدم سبلاش توفير/اللون الصلب)"
+          fi
+
+      - name: "🔥 إشعارات التاجر FCM (اختياري — google-services.json)"
+        run: |
+          set -e
+          if [ -n "$FCM_URL" ]; then
+            curl -fsSL --retry 3 "$FCM_URL" -o google-services.json
+            grep -q '"project_id"' google-services.json || { echo "::error::الملف ليس google-services.json صالحاً"; exit 1; }
+            echo "✓ google-services.json التاجر جاهز في الجذر — سكربت الترقيع سيفعّل FCM تلقائياً"
+          else
+            echo "(بدون FCM — التطبيق يعمل بلا إشعارات native؛ يمكن إضافتها في إصدار لاحق)"
+          fi
+
+      - name: "🆕 إنشاء مشروع Android من الصفر (cap add android)"
+        run: |
+          rm -rf android
+          npx cap add android
+
+      - name: "🔍 التحقق من إنشاء المشروع"
+        run: |
+          if [ ! -f "android/app/src/main/AndroidManifest.xml" ]; then
+            echo "::error::AndroidManifest.xml غير موجود — فشل إنشاء مشروع Android"
+            exit 1
+          fi
+          echo "✓ AndroidManifest.xml موجود"
+
+      - name: "🛡️ تحقق الهوية في build.gradle وstrings.xml (فشل مبكر — قبل دقائق Gradle)"
+        run: |
+          ACTUAL_ID="$(grep -oP 'applicationId\s+"\K[^"]+' android/app/build.gradle | head -n1)"
+          ACTUAL_NAME="$(grep -oP '<string name="app_name">\K[^<]+' android/app/src/main/res/values/strings.xml | head -n1)"
+          echo "applicationId المولَّد : $ACTUAL_ID"
+          echo "الحزمة المتوقعة       : $EXPECTED_APP_ID"
+          echo "app_name المولَّد      : $ACTUAL_NAME"
+          echo "الاسم المتوقع         : $EXPECTED_APP_NAME"
+          if [ "$ACTUAL_ID" != "$EXPECTED_APP_ID" ]; then
+            echo "::error::applicationId ($ACTUAL_ID) لا يطابق بصمة التاجر ($EXPECTED_APP_ID) — إيقاف قبل بناء حزمة خاطئة"
+            exit 1
+          fi
+          if [ "$ACTUAL_NAME" != "$EXPECTED_APP_NAME" ]; then
+            echo "::error::app_name ($ACTUAL_NAME) لا يطابق اسم التاجر ($EXPECTED_APP_NAME)"
+            exit 1
+          fi
+          echo "✓ هوية التاجر مطابقة 100% في المشروع المولَّد"
+
+      - name: "🎨 توليد كل الأيقونات والسبلاش من resources/ بجميع الكثافات"
+        run: npx capacitor-assets generate --android
+
+      - name: "🔐 فك keystore التاجر من الأسرار"
+        run: |
+          printf '%s' "$TAWFIR_KEYSTORE_BASE64" \
+            | sed '/^-----/d' \
+            | tr -d '\r\n ' \
+            | base64 -d > android/tawfeer-release.keystore
+          SIZE=$(stat -c%s android/tawfeer-release.keystore)
+          if [ "$SIZE" -lt 1000 ]; then
+            echo "::error::ملف الـKeystore أصغر من المتوقع (${SIZE} بايت) — تأكد أن TAWFIR_KEYSTORE_BASE64 هو Base64 الصحيح لملف keystore التاجر"
+            exit 1
+          fi
+          echo "✓ keystore التاجر جاهز (${SIZE} بايت)"
+
+      - name: "🖌️ تفعيل هوية التاجر + الإصدار + التوقيع (تحقق بنيوي آلي داخل السكربت)"
+        run: bun scripts/patch-android-identity.mjs
+        env:
+          KEYSTORE_PASSWORD: ${{ env.TAWFIR_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ env.TAWFIR_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ env.TAWFIR_KEY_PASSWORD }}
+
+      - name: "🔄 مزامنة Capacitor (نسخة الويب + تسجيل الإضافات)"
+        run: npx cap sync android
+
+      - name: "🏗️ بناء ${{ env.BUILD_TASKS }} موقّع بـkeystore التاجر"
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew $BUILD_TASKS --no-daemon --stacktrace
+
+      - name: "✅ التحقق النهائي: حزمة الـAPK المنتَج + توقيع الـAAB + توثيق شهادة التاجر"
+        run: |
+          set -e
+          APK_DIR="android/app/build/outputs/apk/release"
+          AAB_DIR="android/app/build/outputs/bundle/release"
+          APK_FILE="$(ls "$APK_DIR"/app-release*.apk 2>/dev/null | head -n1 || true)"
+          AAPT2="$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort -V | tail -n1)"
+          if [ -n "$APK_FILE" ]; then
+            echo "الـAPK الناتج: $(basename "$APK_FILE")"
+            BADGE_PKG="$("$AAPT2" dump badging "$APK_FILE" | grep -oP "package: name='\K[^']+" | head -n1)"
+            BADGE_LABEL="$("$AAPT2" dump badging "$APK_FILE" | grep -oP "application-label:'\K[^']*" | head -n1)"
+            echo "حزمة الـAPK المنتَج : $BADGE_PKG"
+            echo "اسم الـAPK المنتَج  : $BADGE_LABEL"
+            echo "الحزمة المتوقعة     : $EXPECTED_APP_ID"
+            if [ "$BADGE_PKG" != "$EXPECTED_APP_ID" ]; then
+              echo "::error::حزمة الـAPK الناتج ($BADGE_PKG) لا تطابق بصمة التاجر ($EXPECTED_APP_ID)!"
+              exit 1
+            fi
+            echo "✓ حزمة الـAPK مطابقة لبصمة التاجر ($BADGE_PKG) — لن يتعارض مع أي تطبيق آخر"
+            APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -n1)"
+            echo "── شهادة توقيع التاجر (للتوثيق) ──"
+            "$APKSIGNER" verify --print-certs "$APK_FILE" | grep -E "DN:|SHA-1|SHA-256" || true
+            echo "ملاحظة v1: مقارنة assetlinks (Deep Links autoVerify) تخص keystore توفير الرئيسي — للتاجر لاحقاً عند تفعيل نطاقه"
+          else
+            echo "(build_type=aab — لا APK للفحص)"
+          fi
+          if [ "$BUILD_TYPE" != "apk" ]; then
+            AAB_FILE="$(ls "$AAB_DIR"/*.aab 2>/dev/null | head -n1 || true)"
+            if [ -z "$AAB_FILE" ]; then
+              echo "::error::ملف AAB غير موجود — فشل bundleRelease؟"
+              exit 1
+            fi
+            echo "✓ AAB جاهز: $(du -h "$AAB_FILE" | cut -f1)"
+            if ! jarsigner -verify "$AAB_FILE" >/dev/null 2>&1; then
+              echo "::error::الـAAB غير موقّع بشكل صالح"
+              exit 1
+            fi
+            echo "✓ توقيع الـAAB سليم (jarsigner) — جاهز للرفع على Google Play"
+          fi
+
+      - name: "📤 تجهيز الـArtifacts (باسم بصمة التاجر + الإصدار)"
+        run: |
+          APK_DIR="android/app/build/outputs/apk/release"
+          AAB_DIR="android/app/build/outputs/bundle/release"
+          OUT_DIR="$RUNNER_TEMP/factory-build"
+          mkdir -p "$OUT_DIR"
+          APK_FILE="$(ls "$APK_DIR"/app-release*.apk 2>/dev/null | head -n1 || true)"
+          AAB_FILE="$(ls "$AAB_DIR"/*.aab 2>/dev/null | head -n1 || true)"
+          if [ -n "$APK_FILE" ]; then
+            OUT_APK="${PACKAGE_ID}-v${VERSION_NAME}-${VERSION_CODE}.apk"
+            cp "$APK_FILE" "$OUT_DIR/$OUT_APK"
+            (cd "$OUT_DIR" && sha256sum "$OUT_APK" > "$OUT_APK.sha256")
+          fi
+          if [ -n "$AAB_FILE" ]; then
+            OUT_AAB="${PACKAGE_ID}-v${VERSION_NAME}-${VERSION_CODE}.aab"
+            cp "$AAB_FILE" "$OUT_DIR/$OUT_AAB"
+            (cd "$OUT_DIR" && sha256sum "$OUT_AAB" > "$OUT_AAB.sha256")
+          fi
+          [ -n "$APK_FILE" ] || [ -n "$AAB_FILE" ] || { echo "::error::لا نواتج إطلاقاً"; exit 1; }
+          ls -lh "$OUT_DIR"
+          echo "FACTORY_OUT_DIR=$OUT_DIR" >> "$GITHUB_ENV"
+
+      - name: "📤 رفع نواتج التاجر للتنزيل (Artifacts)"
+        uses: actions/upload-artifact@v4
+        with:
+          name: factory-${{ inputs.package_id }}-v${{ inputs.version_name }}-vc${{ inputs.version_code }}
+          path: |
+            ${{ env.FACTORY_OUT_DIR }}/*.apk
+            ${{ env.FACTORY_OUT_DIR }}/*.aab
+            ${{ env.FACTORY_OUT_DIR }}/*.sha256
+          if-no-files-found: error

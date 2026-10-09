@@ -2778,3 +2778,610 @@ tawfir-backend        | 2026-10-10 01:13:56,454 INFO [tawfir.access] request_id=
 tawfir-backend        | INFO:     127.0.0.1:54746 - "GET /health/live HTTP/1.1" 200 OK
 tawfir-backend        | 2026-10-10 01:14:11,539 INFO [tawfir.access] request_id=768a8b7e GET /health/live -> 200 in 4.14ms
 tawfir-backend        | INFO:     127.0.0.1:59632 - "GET /health/live HTTP/1.1" 200 OK
+
+
+
+tawfir-backend        | 2026-10-10 01:24:24,626 INFO [tawfir.access] request_id=fa53b12e GET /api/v1/facilities -> 200 in 13.74ms
+tawfir-backend        | INFO:     172.21.0.1:45918 - "GET /api/v1/facilities?country_code=967 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,462 INFO [tawfir.access] request_id=aa6ca226 GET /api/v1/facilities/32/products -> 404 in 10.16ms
+tawfir-backend        | INFO:     172.21.0.1:55072 - "GET /api/v1/facilities/32/products HTTP/1.1" 404 Not Found
+tawfir-backend        | 2026-10-10 01:24:25,519 INFO [tawfir.access] request_id=b2b3d4b9 GET /api/v1/facilities/32/products -> 404 in 13.34ms
+tawfir-backend        | INFO:     172.21.0.1:55092 - "GET /api/v1/facilities/32/products?only_available=true HTTP/1.1" 404 Not Found
+tawfir-backend        | 2026-10-10 01:24:25,523 INFO [tawfir.access] request_id=854bd5fe GET /api/v1/facilities -> 200 in 18.78ms
+tawfir-backend        | INFO:     172.21.0.1:55076 - "GET /api/v1/facilities?country_code=966 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,527 INFO [tawfir.access] request_id=daf3db31 GET /api/v1/facilities/32/products/categories -> 404 in 13.05ms
+tawfir-backend        | INFO:     172.21.0.1:55094 - "GET /api/v1/facilities/32/products/categories HTTP/1.1" 404 Not Found
+tawfir-backend        | 2026-10-10 01:24:25,578 INFO [tawfir.access] request_id=c8405753 GET /api/v1/me -> 200 in 20.33ms
+tawfir-backend        | INFO:     172.21.0.1:55096 - "GET /api/v1/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,592 INFO [tawfir.access] request_id=448dd471 POST /api/v1/facilities/32/view -> 200 in 20.26ms
+tawfir-backend        | INFO:     172.21.0.1:55102 - "POST /api/v1/facilities/32/view HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,690 INFO [tawfir.access] request_id=105f79ce GET /api/v1/orders -> 200 in 27.68ms
+tawfir-backend        | INFO:     172.21.0.1:55108 - "GET /api/v1/orders?page=1&page_size=20 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,811 INFO [tawfir.access] request_id=0feaf609 GET /api/v1/locale/me -> 200 in 16.24ms
+tawfir-backend        | INFO:     172.21.0.1:55124 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:55126 - "POST /api/v1/facilities/32/view HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,828 INFO [tawfir.access] request_id=35924096 POST /api/v1/facilities/32/view -> 200 in 19.52ms
+tawfir-backend        | 2026-10-10 01:24:25,852 INFO [tawfir.access] request_id=cf3b0f7c POST /api/v1/facilities/32/view -> 200 in 17.24ms
+tawfir-backend        | INFO:     172.21.0.1:55142 - "POST /api/v1/facilities/32/view HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:25,873 INFO [tawfir.access] request_id=929be1eb GET /api/v1/facilities/32/products/categories -> 404 in 11.06ms
+tawfir-backend        | INFO:     172.21.0.1:55152 - "GET /api/v1/facilities/32/products/categories HTTP/1.1" 404 Not Found
+tawfir-backend        | INFO:     172.21.0.1:55168 - "WebSocket /api/v1/ws/notifications?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSIsImlhdCI6MTc5MTU4NDY1NywiZXhwIjoxNzkxNTg1NTU3LCJ0eXBlIjoiYWNjZXNzIiwicm9sZSI6ImN1c3RvbWVyIiwiaXNfYWRtaW4iOmZhbHNlLCJlbWFpbCI6ImN1c3RvbWVyLnNhQHRhd2Zpci50ZXN0In0.U6fctyPPikkWbR8p857dhfiyPWcKXzW39K-ObmJlVCo" [accepted]
+tawfir-backend        | INFO:     connection open
+tawfir-backend        | 2026-10-10 01:24:25,886 INFO [tawfir.ws] WS connected: user=99
+tawfir-backend        | 2026-10-10 01:24:25,900 INFO [tawfir.access] request_id=21daced4 GET /api/v1/facilities/32/products -> 404 in 13.34ms
+tawfir-backend        | INFO:     172.21.0.1:55172 - "GET /api/v1/facilities/32/products?only_available=true HTTP/1.1" 404 Not Found
+tawfir-backend        | 2026-10-10 01:24:25,938 INFO [tawfir.access] request_id=0e2d1236 GET /api/v1/facilities -> 200 in 12.50ms
+tawfir-backend        | INFO:     172.21.0.1:55176 - "GET /api/v1/facilities?country_code=966 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:26,085 INFO [tawfir.access] request_id=719a9393 GET /api/v1/locale/me -> 200 in 8.39ms
+tawfir-backend        | INFO:     172.21.0.1:55182 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:26,109 INFO [tawfir.access] request_id=4245bbd5 GET /api/v1/me -> 200 in 10.80ms
+tawfir-backend        | INFO:     172.21.0.1:55192 - "GET /api/v1/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:26,388 INFO [tawfir.access] request_id=ad1e94c1 GET /api/v1/me -> 200 in 13.61ms
+tawfir-backend        | INFO:     172.21.0.1:55198 - "GET /api/v1/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:26,768 INFO [tawfir.access] request_id=3ecb94a0 GET /api/v1/facilities/32/products -> 200 in 17.04ms
+tawfir-backend        | INFO:     172.21.0.1:55210 - "GET /api/v1/facilities/32/products HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:27,181 INFO [tawfir.access] request_id=5372dc78 GET /api/v1/facilities/32/products -> 200 in 17.95ms
+tawfir-backend        | INFO:     172.21.0.1:55232 - "GET /api/v1/facilities/32/products?only_available=true HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:27,183 INFO [tawfir.access] request_id=923dc17a GET /api/v1/facilities/32/products/categories -> 200 in 29.11ms
+tawfir-backend        | INFO:     172.21.0.1:55224 - "GET /api/v1/facilities/32/products/categories HTTP/1.1" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:55238 - "GET /api/v1/ratings/facility/32?page=1 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:27,488 INFO [tawfir.access] request_id=9b593eb8 GET /api/v1/ratings/facility/32 -> 200 in 10.40ms
+tawfir-backend        | 2026-10-10 01:24:27,512 INFO [tawfir.access] request_id=72e549d0 GET /api/v1/locale/me -> 200 in 18.12ms
+tawfir-backend        | INFO:     172.21.0.1:55246 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:55260 - "WebSocket /api/v1/ws/notifications?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5OSIsImlhdCI6MTc5MTU4NDY1NywiZXhwIjoxNzkxNTg1NTU3LCJ0eXBlIjoiYWNjZXNzIiwicm9sZSI6ImN1c3RvbWVyIiwiaXNfYWRtaW4iOmZhbHNlLCJlbWFpbCI6ImN1c3RvbWVyLnNhQHRhd2Zpci50ZXN0In0.U6fctyPPikkWbR8p857dhfiyPWcKXzW39K-ObmJlVCo" [accepted]
+tawfir-backend        | INFO:     connection open
+tawfir-backend        | 2026-10-10 01:24:29,107 INFO [tawfir.ws] WS connected: user=99
+tawfir-backend        | 2026-10-10 01:24:29,609 INFO [tawfir.ws] WS disconnected: user=99
+tawfir-backend        | 2026-10-10 01:24:29,678 INFO [tawfir.ws] WS disconnected: user=99
+tawfir-backend        | INFO:     127.0.0.1:47422 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:24:32,794 INFO [tawfir.access] request_id=42fee434 GET /health/live -> 200 in 2.54ms
+tawfir-backend        | 2026-10-10 01:24:47,903 INFO [tawfir.access] request_id=dc0058b0 GET /health/live -> 200 in 5.62ms
+tawfir-backend        | INFO:     127.0.0.1:50600 - "GET /health/live HTTP/1.1" 200 OK
+
+
+tawfir-backend        | 2026-10-10 01:24:59,598 INFO [tawfir.access] request_id=5dca0869 GET /api/v1/locale/countries -> 200 in 4.02ms
+tawfir-backend        | INFO:     172.21.0.1:44042 - "GET /api/v1/locale/countries HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:00,137 INFO [tawfir.access] request_id=665fc4aa POST /api/v1/admin/login -> 200 in 331.90ms
+tawfir-backend        | INFO:     172.21.0.1:44050 - "POST /api/v1/admin/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:00,373 INFO [tawfir.access] request_id=58bceac9 GET /openapi.json -> 200 in 26.98ms
+tawfir-backend        | INFO:     172.21.0.1:44066 - "GET /openapi.json HTTP/1.0" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:44080 - "GET /api/v1/regions?country_code=966 HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:01,406 INFO [tawfir.access] request_id=215441c9 GET /api/v1/regions -> 200 in 14.70ms
+tawfir-backend        | 2026-10-10 01:25:01,630 INFO [tawfir.access] request_id=5a344e66 GET /api/v1/regions -> 200 in 9.95ms
+tawfir-backend        | INFO:     172.21.0.1:44086 - "GET /api/v1/regions?country_code=967 HTTP/1.1" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:44090 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:02,193 INFO [tawfir.access] request_id=3c2f00ea POST /api/v1/auth/login -> 200 in 353.95ms
+tawfir-backend        | 2026-10-10 01:25:02,426 INFO [tawfir.access] request_id=d41ad080 GET /api/v1/finance/payments/config -> 200 in 27.25ms
+tawfir-backend        | INFO:     172.21.0.1:44102 - "GET /api/v1/finance/payments/config HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:02,692 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:02,695 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 0554565833: {"success":false,"error":"t: t"}
+tawfir-backend        | 2026-10-10 01:25:02,695 INFO [tawfir.access] request_id=6a1722e6 POST /api/v1/otp/request -> 200 in 60.33ms
+tawfir-backend        | INFO:     172.21.0.1:44116 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:02,914 INFO [tawfir.otp] OTP verified for 0554565833
+tawfir-backend        | 2026-10-10 01:25:02,917 INFO [tawfir.access] request_id=8e4ca543 POST /api/v1/otp/verify -> 200 in 16.14ms
+tawfir-backend        | INFO:     172.21.0.1:44128 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:03,015 INFO [tawfir.access] request_id=94076193 GET /health/live -> 200 in 2.58ms
+tawfir-backend        | INFO:     127.0.0.1:44286 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-celery-worker  | [2026-10-10 01:25:03,790: INFO/MainProcess] Task send_registration_confirmation[f05e9c75-f884-4156-9160-6fd2ac4b68c9] received
+tawfir-backend        | 2026-10-10 01:25:03,887 INFO [tawfir.membership] Free membership granted: id=54 user=281 num=2797166640082237
+tawfir-backend        | 2026-10-10 01:25:03,887 INFO [tawfir.registration] Free membership auto-granted on registration for user=281 (market=966)
+tawfir-backend        | 2026-10-10 01:25:03,902 INFO [tawfir.access] request_id=53a20b08 POST /api/v1/auth/register -> 201 in 775.81ms
+tawfir-backend        | INFO:     172.21.0.1:44140 - "POST /api/v1/auth/register HTTP/1.1" 201 Created
+tawfir-celery-worker  | [2026-10-10 01:25:03,957: ERROR/ForkPoolWorker-1] Failed to send welcome email to basma.audit.ksa.35xc@tawfir-sa.com
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/email_tasks.py", line 77, in send_welcome_email
+tawfir-celery-worker  |     server.login(settings.smtp_user, settings.smtp_password)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 739, in login
+tawfir-celery-worker  |     (code, resp) = self.auth(
+tawfir-celery-worker  |                    ^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 642, in auth
+tawfir-celery-worker  |     (code, resp) = self.docmd("AUTH", mechanism + " " + response)
+tawfir-celery-worker  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 432, in docmd
+tawfir-celery-worker  |     return self.getreply()
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 405, in getreply
+tawfir-celery-worker  |     raise SMTPServerDisconnected("Connection unexpectedly closed")
+tawfir-celery-worker  | smtplib.SMTPServerDisconnected: Connection unexpectedly closed
+tawfir-celery-worker  | [2026-10-10 01:25:03,980: INFO/MainProcess] Task send_registration_sms[0a384371-8927-43b9-9b42-7f88303e12c4] received
+tawfir-celery-worker  | [2026-10-10 01:25:03,982: INFO/ForkPoolWorker-1] Task send_registration_confirmation[f05e9c75-f884-4156-9160-6fd2ac4b68c9] succeeded in 0.1832574550062418s: {'email': 'basma.audit.ksa.35xc@tawfir-sa.com', 'phone': '0554565833', 'user': 'بصمة عميل سعودي 35xc'}
+tawfir-celery-worker  | [2026-10-10 01:25:04,068: ERROR/ForkPoolWorker-2] Failed to send SMS to 0554565833
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+tawfir-celery-worker  |     yield
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 250, in handle_request
+tawfir-celery-worker  |     resp = self._pool.handle_request(req)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+tawfir-celery-worker  |     raise exc from None
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+tawfir-celery-worker  |     response = connection.handle_request(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+tawfir-celery-worker  |     raise exc
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+tawfir-celery-worker  |     stream = self._connect(request)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+tawfir-celery-worker  |     stream = self._network_backend.connect_tcp(**kwargs)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+tawfir-celery-worker  |     with map_exceptions(exc_map):
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+tawfir-celery-worker  |     raise to_exc(exc) from exc
+tawfir-celery-worker  | httpcore.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  |
+tawfir-celery-worker  | The above exception was the direct cause of the following exception:
+tawfir-celery-worker  |
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/sms_tasks.py", line 22, in send_registration_sms
+tawfir-celery-worker  |     response = httpx.post(
+tawfir-celery-worker  |                ^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 304, in post
+tawfir-celery-worker  |     return request(
+tawfir-celery-worker  |            ^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 109, in request
+tawfir-celery-worker  |     return client.request(
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 825, in request
+tawfir-celery-worker  |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 914, in send
+tawfir-celery-worker  |     response = self._send_handling_auth(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+tawfir-celery-worker  |     response = self._send_handling_redirects(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+tawfir-celery-worker  |     response = self._send_single_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 1014, in _send_single_request
+tawfir-celery-worker  |     response = transport.handle_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 249, in handle_request
+tawfir-celery-worker  |     with map_httpcore_exceptions():
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+tawfir-celery-worker  |     raise mapped_exc(message) from exc
+tawfir-celery-worker  | httpx.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  | [2026-10-10 01:25:04,078: INFO/ForkPoolWorker-2] Task send_registration_sms[0a384371-8927-43b9-9b42-7f88303e12c4] succeeded in 0.0940520130097866s: {'phone': '0554565833', 'user': 'بصمة عميل سعودي 35xc'}
+tawfir-backend        | 2026-10-10 01:25:04,185 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:04,188 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 769533231: {"success":false,"error":"Error: No LID for user\ns (https://static.whatsapp.net/rsrc.php/v4/yE/r/MZ9huW0IOca.js:85:180)"}
+tawfir-backend        | 2026-10-10 01:25:04,189 INFO [tawfir.access] request_id=37f7c503 POST /api/v1/otp/request -> 200 in 83.49ms
+tawfir-backend        | INFO:     172.21.0.1:44154 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:04,413 INFO [tawfir.otp] OTP verified for 769533231
+tawfir-backend        | 2026-10-10 01:25:04,416 INFO [tawfir.access] request_id=dddb0ab7 POST /api/v1/otp/verify -> 200 in 13.62ms
+tawfir-backend        | INFO:     172.21.0.1:44158 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-celery-worker  | [2026-10-10 01:25:05,118: INFO/MainProcess] Task send_registration_confirmation[ccd47321-6747-4c5c-9ccf-b8bc0e85ccdf] received
+tawfir-backend        | 2026-10-10 01:25:05,219 INFO [tawfir.membership] Free membership granted: id=55 user=282 num=4682023380961904
+tawfir-backend        | 2026-10-10 01:25:05,220 INFO [tawfir.registration] Free membership auto-granted on registration for user=282 (market=967)
+tawfir-backend        | 2026-10-10 01:25:05,221 INFO [tawfir.access] request_id=f30af1e0 POST /api/v1/auth/register -> 201 in 596.98ms
+tawfir-backend        | INFO:     172.21.0.1:44174 - "POST /api/v1/auth/register HTTP/1.1" 201 Created
+tawfir-celery-worker  | [2026-10-10 01:25:05,271: ERROR/ForkPoolWorker-1] Failed to send welcome email to basma.audit.kye.35xc@tawfir-sa.com
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/email_tasks.py", line 77, in send_welcome_email
+tawfir-celery-worker  |     server.login(settings.smtp_user, settings.smtp_password)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 739, in login
+tawfir-celery-worker  |     (code, resp) = self.auth(
+tawfir-celery-worker  |                    ^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 642, in auth
+tawfir-celery-worker  |     (code, resp) = self.docmd("AUTH", mechanism + " " + response)
+tawfir-celery-worker  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 432, in docmd
+tawfir-celery-worker  |     return self.getreply()
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 405, in getreply
+tawfir-celery-worker  |     raise SMTPServerDisconnected("Connection unexpectedly closed")
+tawfir-celery-worker  | smtplib.SMTPServerDisconnected: Connection unexpectedly closed
+tawfir-celery-worker  | [2026-10-10 01:25:05,276: INFO/MainProcess] Task send_registration_sms[da12df62-3736-4d7d-8fc1-a95889a9a24c] received
+tawfir-celery-worker  | [2026-10-10 01:25:05,276: INFO/ForkPoolWorker-1] Task send_registration_confirmation[ccd47321-6747-4c5c-9ccf-b8bc0e85ccdf] succeeded in 0.15707052871584892s: {'email': 'basma.audit.kye.35xc@tawfir-sa.com', 'phone': '769533231', 'user': 'بصمة عميل يمني 35xc'}
+tawfir-celery-worker  | [2026-10-10 01:25:05,318: ERROR/ForkPoolWorker-1] Failed to send SMS to 769533231
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+tawfir-celery-worker  |     yield
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 250, in handle_request
+tawfir-celery-worker  |     resp = self._pool.handle_request(req)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+tawfir-celery-worker  |     raise exc from None
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+tawfir-celery-worker  |     response = connection.handle_request(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+tawfir-celery-worker  |     raise exc
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+tawfir-celery-worker  |     stream = self._connect(request)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+tawfir-celery-worker  |     stream = self._network_backend.connect_tcp(**kwargs)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+tawfir-celery-worker  |     with map_exceptions(exc_map):
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+tawfir-celery-worker  |     raise to_exc(exc) from exc
+tawfir-celery-worker  | httpcore.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  |
+tawfir-celery-worker  | The above exception was the direct cause of the following exception:
+tawfir-celery-worker  |
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/sms_tasks.py", line 22, in send_registration_sms
+tawfir-celery-worker  |     response = httpx.post(
+tawfir-celery-worker  |                ^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 304, in post
+tawfir-celery-worker  |     return request(
+tawfir-celery-worker  |            ^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 109, in request
+tawfir-celery-worker  |     return client.request(
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 825, in request
+tawfir-celery-worker  |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 914, in send
+tawfir-celery-worker  |     response = self._send_handling_auth(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+tawfir-celery-worker  |     response = self._send_handling_redirects(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+tawfir-celery-worker  |     response = self._send_single_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 1014, in _send_single_request
+tawfir-celery-worker  |     response = transport.handle_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 249, in handle_request
+tawfir-celery-worker  |     with map_httpcore_exceptions():
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+tawfir-celery-worker  |     raise mapped_exc(message) from exc
+tawfir-celery-worker  | httpx.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  | [2026-10-10 01:25:05,324: INFO/ForkPoolWorker-1] Task send_registration_sms[da12df62-3736-4d7d-8fc1-a95889a9a24c] succeeded in 0.047109185717999935s: {'phone': '769533231', 'user': 'بصمة عميل يمني 35xc'}
+tawfir-backend        | 2026-10-10 01:25:05,460 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:05,462 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 0539750923: {"success":false,"error":"t: t"}
+tawfir-backend        | INFO:     172.21.0.1:54024 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:05,463 INFO [tawfir.access] request_id=e32b0744 POST /api/v1/otp/request -> 200 in 36.09ms
+tawfir-backend        | 2026-10-10 01:25:05,678 INFO [tawfir.otp] OTP verified for 0539750923
+tawfir-backend        | INFO:     172.21.0.1:54026 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:05,684 INFO [tawfir.access] request_id=a71bcc36 POST /api/v1/otp/verify -> 200 in 14.44ms
+tawfir-backend        | 2026-10-10 01:25:06,819 INFO [tawfir.fcm] [FCM] Firebase Admin جاهز (project=tawfeer-b99c2)
+tawfir-backend        | 2026-10-10 01:25:07,170 WARNING [tawfir.fcm] [FCM] فشل توكن f8sfyWZb8_0PIeBVcKn9Ye:A… (code=NOT_FOUND): Device unregistered.
+tawfir-backend        | 2026-10-10 01:25:07,171 WARNING [tawfir.fcm] [FCM] فشل توكن eVUoC02Pr4tjxxZN5ELsJA:A… (code=NOT_FOUND): NotRegistered
+tawfir-backend        | 2026-10-10 01:25:07,171 INFO [tawfir.fcm] [FCM] sent 1/3 tokens (type=owner_registered)
+tawfir-backend        | 2026-10-10 01:25:07,182 INFO [tawfir.owner_registration] Owner registered: user=283 facility=68 'مطعم فحص الفصل السعودي 35xc' (pending approval, discount=10%, phone_verified=True, has_location=True)
+tawfir-backend        | 2026-10-10 01:25:07,183 INFO [tawfir.access] request_id=6db13664 POST /api/v1/owner/register -> 201 in 1292.34ms
+tawfir-backend        | INFO:     172.21.0.1:54038 - "POST /api/v1/owner/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:07,467 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:07,470 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 721630900: {"success":false,"error":"Error: No LID for user\ns (https://static.whatsapp.net/rsrc.php/v4/yE/r/MZ9huW0IOca.js:85:180)"}
+tawfir-backend        | 2026-10-10 01:25:07,471 INFO [tawfir.access] request_id=50f560f6 POST /api/v1/otp/request -> 200 in 84.38ms
+tawfir-backend        | INFO:     172.21.0.1:54054 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:07,681 INFO [tawfir.otp] OTP verified for 721630900
+tawfir-backend        | INFO:     172.21.0.1:54064 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:07,683 INFO [tawfir.access] request_id=3c9da0ca POST /api/v1/otp/verify -> 200 in 9.75ms
+tawfir-backend        | 2026-10-10 01:25:08,495 INFO [tawfir.fcm] [FCM] Firebase Admin جاهز (project=tawfeer-b99c2)
+tawfir-backend        | 2026-10-10 01:25:08,814 WARNING [tawfir.fcm] [FCM] فشل توكن f8sfyWZb8_0PIeBVcKn9Ye:A… (code=NOT_FOUND): Device unregistered.
+tawfir-backend        | 2026-10-10 01:25:08,815 WARNING [tawfir.fcm] [FCM] فشل توكن eVUoC02Pr4tjxxZN5ELsJA:A… (code=NOT_FOUND): NotRegistered
+tawfir-backend        | 2026-10-10 01:25:08,815 INFO [tawfir.fcm] [FCM] sent 1/3 tokens (type=owner_registered)
+tawfir-backend        | 2026-10-10 01:25:08,821 INFO [tawfir.owner_registration] Owner registered: user=284 facility=69 'مطعم فحص الفصل اليمني 35xc' (pending approval, discount=10%, phone_verified=True, has_location=True)
+tawfir-backend        | 2026-10-10 01:25:08,822 INFO [tawfir.access] request_id=384dae7d POST /api/v1/owner/register -> 201 in 933.38ms
+tawfir-backend        | INFO:     172.21.0.1:54080 - "POST /api/v1/owner/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:09,065 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:09,067 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 0593536174: {"success":false,"error":"t: t"}
+tawfir-backend        | 2026-10-10 01:25:09,068 INFO [tawfir.access] request_id=b4efee48 POST /api/v1/otp/request -> 200 in 40.42ms
+tawfir-backend        | INFO:     172.21.0.1:54096 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:09,275 INFO [tawfir.otp] OTP verified for 0593536174
+tawfir-backend        | 2026-10-10 01:25:09,277 INFO [tawfir.access] request_id=4d3bd7e3 POST /api/v1/otp/verify -> 200 in 6.50ms
+tawfir-backend        | INFO:     172.21.0.1:54106 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:09,912 INFO [tawfir.courier_registration] Courier registered id=65 user=285
+tawfir-backend        | 2026-10-10 01:25:09,913 INFO [tawfir.access] request_id=4045977d POST /api/v1/courier/auth/register -> 201 in 433.67ms
+tawfir-backend        | INFO:     172.21.0.1:54116 - "POST /api/v1/courier/auth/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:10,730 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 200 OK"
+tawfir-backend        | 2026-10-10 01:25:10,733 INFO [tawfir.access] request_id=2755c270 POST /api/v1/otp/request -> 200 in 615.40ms
+tawfir-backend        | INFO:     172.21.0.1:54126 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:10,948 INFO [tawfir.otp] OTP verified for 736878630
+tawfir-backend        | INFO:     172.21.0.1:54132 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:10,949 INFO [tawfir.access] request_id=22e19b2a POST /api/v1/otp/verify -> 200 in 6.60ms
+tawfir-backend        | 2026-10-10 01:25:11,607 INFO [tawfir.courier_registration] Courier registered id=66 user=286
+tawfir-backend        | 2026-10-10 01:25:11,608 INFO [tawfir.access] request_id=f31dd788 POST /api/v1/courier/auth/register -> 201 in 428.09ms
+tawfir-backend        | INFO:     172.21.0.1:54148 - "POST /api/v1/courier/auth/register HTTP/1.1" 201 Created
+
+
+
+tawfir-backend        | INFO:     127.0.0.1:44286 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-celery-worker  | [2026-10-10 01:25:03,790: INFO/MainProcess] Task send_registration_confirmation[f05e9c75-f884-4156-9160-6fd2ac4b68c9] received
+tawfir-backend        | 2026-10-10 01:25:03,887 INFO [tawfir.membership] Free membership granted: id=54 user=281 num=2797166640082237
+tawfir-backend        | 2026-10-10 01:25:03,887 INFO [tawfir.registration] Free membership auto-granted on registration for user=281 (market=966)
+tawfir-backend        | 2026-10-10 01:25:03,902 INFO [tawfir.access] request_id=53a20b08 POST /api/v1/auth/register -> 201 in 775.81ms
+tawfir-backend        | INFO:     172.21.0.1:44140 - "POST /api/v1/auth/register HTTP/1.1" 201 Created
+tawfir-celery-worker  | [2026-10-10 01:25:03,957: ERROR/ForkPoolWorker-1] Failed to send welcome email to basma.audit.ksa.35xc@tawfir-sa.com
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/email_tasks.py", line 77, in send_welcome_email
+tawfir-celery-worker  |     server.login(settings.smtp_user, settings.smtp_password)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 739, in login
+tawfir-celery-worker  |     (code, resp) = self.auth(
+tawfir-celery-worker  |                    ^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 642, in auth
+tawfir-celery-worker  |     (code, resp) = self.docmd("AUTH", mechanism + " " + response)
+tawfir-celery-worker  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 432, in docmd
+tawfir-celery-worker  |     return self.getreply()
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 405, in getreply
+tawfir-celery-worker  |     raise SMTPServerDisconnected("Connection unexpectedly closed")
+tawfir-celery-worker  | smtplib.SMTPServerDisconnected: Connection unexpectedly closed
+tawfir-celery-worker  | [2026-10-10 01:25:03,980: INFO/MainProcess] Task send_registration_sms[0a384371-8927-43b9-9b42-7f88303e12c4] received
+tawfir-celery-worker  | [2026-10-10 01:25:03,982: INFO/ForkPoolWorker-1] Task send_registration_confirmation[f05e9c75-f884-4156-9160-6fd2ac4b68c9] succeeded in 0.1832574550062418s: {'email': 'basma.audit.ksa.35xc@tawfir-sa.com', 'phone': '0554565833', 'user': 'بصمة عميل سعودي 35xc'}
+tawfir-celery-worker  | [2026-10-10 01:25:04,068: ERROR/ForkPoolWorker-2] Failed to send SMS to 0554565833
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+tawfir-celery-worker  |     yield
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 250, in handle_request
+tawfir-celery-worker  |     resp = self._pool.handle_request(req)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+tawfir-celery-worker  |     raise exc from None
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+tawfir-celery-worker  |     response = connection.handle_request(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+tawfir-celery-worker  |     raise exc
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+tawfir-celery-worker  |     stream = self._connect(request)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+tawfir-celery-worker  |     stream = self._network_backend.connect_tcp(**kwargs)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+tawfir-celery-worker  |     with map_exceptions(exc_map):
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+tawfir-celery-worker  |     raise to_exc(exc) from exc
+tawfir-celery-worker  | httpcore.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  |
+tawfir-celery-worker  | The above exception was the direct cause of the following exception:
+tawfir-celery-worker  |
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/sms_tasks.py", line 22, in send_registration_sms
+tawfir-celery-worker  |     response = httpx.post(
+tawfir-celery-worker  |                ^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 304, in post
+tawfir-celery-worker  |     return request(
+tawfir-celery-worker  |            ^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 109, in request
+tawfir-celery-worker  |     return client.request(
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 825, in request
+tawfir-celery-worker  |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 914, in send
+tawfir-celery-worker  |     response = self._send_handling_auth(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+tawfir-celery-worker  |     response = self._send_handling_redirects(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+tawfir-celery-worker  |     response = self._send_single_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 1014, in _send_single_request
+tawfir-celery-worker  |     response = transport.handle_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 249, in handle_request
+tawfir-celery-worker  |     with map_httpcore_exceptions():
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+tawfir-celery-worker  |     raise mapped_exc(message) from exc
+tawfir-celery-worker  | httpx.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  | [2026-10-10 01:25:04,078: INFO/ForkPoolWorker-2] Task send_registration_sms[0a384371-8927-43b9-9b42-7f88303e12c4] succeeded in 0.0940520130097866s: {'phone': '0554565833', 'user': 'بصمة عميل سعودي 35xc'}
+tawfir-backend        | 2026-10-10 01:25:04,185 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:04,188 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 769533231: {"success":false,"error":"Error: No LID for user\ns (https://static.whatsapp.net/rsrc.php/v4/yE/r/MZ9huW0IOca.js:85:180)"}
+tawfir-backend        | 2026-10-10 01:25:04,189 INFO [tawfir.access] request_id=37f7c503 POST /api/v1/otp/request -> 200 in 83.49ms
+tawfir-backend        | INFO:     172.21.0.1:44154 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:04,413 INFO [tawfir.otp] OTP verified for 769533231
+tawfir-backend        | 2026-10-10 01:25:04,416 INFO [tawfir.access] request_id=dddb0ab7 POST /api/v1/otp/verify -> 200 in 13.62ms
+tawfir-backend        | INFO:     172.21.0.1:44158 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-celery-worker  | [2026-10-10 01:25:05,118: INFO/MainProcess] Task send_registration_confirmation[ccd47321-6747-4c5c-9ccf-b8bc0e85ccdf] received
+tawfir-backend        | 2026-10-10 01:25:05,219 INFO [tawfir.membership] Free membership granted: id=55 user=282 num=4682023380961904
+tawfir-backend        | 2026-10-10 01:25:05,220 INFO [tawfir.registration] Free membership auto-granted on registration for user=282 (market=967)
+tawfir-backend        | 2026-10-10 01:25:05,221 INFO [tawfir.access] request_id=f30af1e0 POST /api/v1/auth/register -> 201 in 596.98ms
+tawfir-backend        | INFO:     172.21.0.1:44174 - "POST /api/v1/auth/register HTTP/1.1" 201 Created
+tawfir-celery-worker  | [2026-10-10 01:25:05,271: ERROR/ForkPoolWorker-1] Failed to send welcome email to basma.audit.kye.35xc@tawfir-sa.com
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/email_tasks.py", line 77, in send_welcome_email
+tawfir-celery-worker  |     server.login(settings.smtp_user, settings.smtp_password)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 739, in login
+tawfir-celery-worker  |     (code, resp) = self.auth(
+tawfir-celery-worker  |                    ^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 642, in auth
+tawfir-celery-worker  |     (code, resp) = self.docmd("AUTH", mechanism + " " + response)
+tawfir-celery-worker  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 432, in docmd
+tawfir-celery-worker  |     return self.getreply()
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/smtplib.py", line 405, in getreply
+tawfir-celery-worker  |     raise SMTPServerDisconnected("Connection unexpectedly closed")
+tawfir-celery-worker  | smtplib.SMTPServerDisconnected: Connection unexpectedly closed
+tawfir-celery-worker  | [2026-10-10 01:25:05,276: INFO/MainProcess] Task send_registration_sms[da12df62-3736-4d7d-8fc1-a95889a9a24c] received
+tawfir-celery-worker  | [2026-10-10 01:25:05,276: INFO/ForkPoolWorker-1] Task send_registration_confirmation[ccd47321-6747-4c5c-9ccf-b8bc0e85ccdf] succeeded in 0.15707052871584892s: {'email': 'basma.audit.kye.35xc@tawfir-sa.com', 'phone': '769533231', 'user': 'بصمة عميل يمني 35xc'}
+tawfir-celery-worker  | [2026-10-10 01:25:05,318: ERROR/ForkPoolWorker-1] Failed to send SMS to 769533231
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+tawfir-celery-worker  |     yield
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 250, in handle_request
+tawfir-celery-worker  |     resp = self._pool.handle_request(req)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 256, in handle_request
+tawfir-celery-worker  |     raise exc from None
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection_pool.py", line 236, in handle_request
+tawfir-celery-worker  |     response = connection.handle_request(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 101, in handle_request
+tawfir-celery-worker  |     raise exc
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 78, in handle_request
+tawfir-celery-worker  |     stream = self._connect(request)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_sync/connection.py", line 124, in _connect
+tawfir-celery-worker  |     stream = self._network_backend.connect_tcp(**kwargs)
+tawfir-celery-worker  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_backends/sync.py", line 207, in connect_tcp
+tawfir-celery-worker  |     with map_exceptions(exc_map):
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+tawfir-celery-worker  |     raise to_exc(exc) from exc
+tawfir-celery-worker  | httpcore.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  |
+tawfir-celery-worker  | The above exception was the direct cause of the following exception:
+tawfir-celery-worker  |
+tawfir-celery-worker  | Traceback (most recent call last):
+tawfir-celery-worker  |   File "/app/app/workers/sms_tasks.py", line 22, in send_registration_sms
+tawfir-celery-worker  |     response = httpx.post(
+tawfir-celery-worker  |                ^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 304, in post
+tawfir-celery-worker  |     return request(
+tawfir-celery-worker  |            ^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_api.py", line 109, in request
+tawfir-celery-worker  |     return client.request(
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 825, in request
+tawfir-celery-worker  |     return self.send(request, auth=auth, follow_redirects=follow_redirects)
+tawfir-celery-worker  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 914, in send
+tawfir-celery-worker  |     response = self._send_handling_auth(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 942, in _send_handling_auth
+tawfir-celery-worker  |     response = self._send_handling_redirects(
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 979, in _send_handling_redirects
+tawfir-celery-worker  |     response = self._send_single_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_client.py", line 1014, in _send_single_request
+tawfir-celery-worker  |     response = transport.handle_request(request)
+tawfir-celery-worker  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 249, in handle_request
+tawfir-celery-worker  |     with map_httpcore_exceptions():
+tawfir-celery-worker  |          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/contextlib.py", line 158, in __exit__
+tawfir-celery-worker  |     self.gen.throw(value)
+tawfir-celery-worker  |   File "/usr/local/lib/python3.12/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+tawfir-celery-worker  |     raise mapped_exc(message) from exc
+tawfir-celery-worker  | httpx.ConnectError: [Errno -2] Name or service not known
+tawfir-celery-worker  | [2026-10-10 01:25:05,324: INFO/ForkPoolWorker-1] Task send_registration_sms[da12df62-3736-4d7d-8fc1-a95889a9a24c] succeeded in 0.047109185717999935s: {'phone': '769533231', 'user': 'بصمة عميل يمني 35xc'}
+tawfir-backend        | 2026-10-10 01:25:05,460 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:05,462 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 0539750923: {"success":false,"error":"t: t"}
+tawfir-backend        | INFO:     172.21.0.1:54024 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:05,463 INFO [tawfir.access] request_id=e32b0744 POST /api/v1/otp/request -> 200 in 36.09ms
+tawfir-backend        | 2026-10-10 01:25:05,678 INFO [tawfir.otp] OTP verified for 0539750923
+tawfir-backend        | INFO:     172.21.0.1:54026 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:05,684 INFO [tawfir.access] request_id=a71bcc36 POST /api/v1/otp/verify -> 200 in 14.44ms
+tawfir-backend        | 2026-10-10 01:25:06,819 INFO [tawfir.fcm] [FCM] Firebase Admin جاهز (project=tawfeer-b99c2)
+tawfir-backend        | 2026-10-10 01:25:07,170 WARNING [tawfir.fcm] [FCM] فشل توكن f8sfyWZb8_0PIeBVcKn9Ye:A… (code=NOT_FOUND): Device unregistered.
+tawfir-backend        | 2026-10-10 01:25:07,171 WARNING [tawfir.fcm] [FCM] فشل توكن eVUoC02Pr4tjxxZN5ELsJA:A… (code=NOT_FOUND): NotRegistered
+tawfir-backend        | 2026-10-10 01:25:07,171 INFO [tawfir.fcm] [FCM] sent 1/3 tokens (type=owner_registered)
+tawfir-backend        | 2026-10-10 01:25:07,182 INFO [tawfir.owner_registration] Owner registered: user=283 facility=68 'مطعم فحص الفصل السعودي 35xc' (pending approval, discount=10%, phone_verified=True, has_location=True)
+tawfir-backend        | 2026-10-10 01:25:07,183 INFO [tawfir.access] request_id=6db13664 POST /api/v1/owner/register -> 201 in 1292.34ms
+tawfir-backend        | INFO:     172.21.0.1:54038 - "POST /api/v1/owner/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:07,467 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:07,470 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 721630900: {"success":false,"error":"Error: No LID for user\ns (https://static.whatsapp.net/rsrc.php/v4/yE/r/MZ9huW0IOca.js:85:180)"}
+tawfir-backend        | 2026-10-10 01:25:07,471 INFO [tawfir.access] request_id=50f560f6 POST /api/v1/otp/request -> 200 in 84.38ms
+tawfir-backend        | INFO:     172.21.0.1:54054 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:07,681 INFO [tawfir.otp] OTP verified for 721630900
+tawfir-backend        | INFO:     172.21.0.1:54064 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:07,683 INFO [tawfir.access] request_id=3c9da0ca POST /api/v1/otp/verify -> 200 in 9.75ms
+tawfir-backend        | 2026-10-10 01:25:08,495 INFO [tawfir.fcm] [FCM] Firebase Admin جاهز (project=tawfeer-b99c2)
+tawfir-backend        | 2026-10-10 01:25:08,814 WARNING [tawfir.fcm] [FCM] فشل توكن f8sfyWZb8_0PIeBVcKn9Ye:A… (code=NOT_FOUND): Device unregistered.
+tawfir-backend        | 2026-10-10 01:25:08,815 WARNING [tawfir.fcm] [FCM] فشل توكن eVUoC02Pr4tjxxZN5ELsJA:A… (code=NOT_FOUND): NotRegistered
+tawfir-backend        | 2026-10-10 01:25:08,815 INFO [tawfir.fcm] [FCM] sent 1/3 tokens (type=owner_registered)
+tawfir-backend        | 2026-10-10 01:25:08,821 INFO [tawfir.owner_registration] Owner registered: user=284 facility=69 'مطعم فحص الفصل اليمني 35xc' (pending approval, discount=10%, phone_verified=True, has_location=True)
+tawfir-backend        | 2026-10-10 01:25:08,822 INFO [tawfir.access] request_id=384dae7d POST /api/v1/owner/register -> 201 in 933.38ms
+tawfir-backend        | INFO:     172.21.0.1:54080 - "POST /api/v1/owner/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:09,065 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 500 Internal Server Error"
+tawfir-backend        | 2026-10-10 01:25:09,067 WARNING [tawfir.otp] WhatsApp OTP webhook returned 500 for 0593536174: {"success":false,"error":"t: t"}
+tawfir-backend        | 2026-10-10 01:25:09,068 INFO [tawfir.access] request_id=b4efee48 POST /api/v1/otp/request -> 200 in 40.42ms
+tawfir-backend        | INFO:     172.21.0.1:54096 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:09,275 INFO [tawfir.otp] OTP verified for 0593536174
+tawfir-backend        | 2026-10-10 01:25:09,277 INFO [tawfir.access] request_id=4d3bd7e3 POST /api/v1/otp/verify -> 200 in 6.50ms
+tawfir-backend        | INFO:     172.21.0.1:54106 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:09,912 INFO [tawfir.courier_registration] Courier registered id=65 user=285
+tawfir-backend        | 2026-10-10 01:25:09,913 INFO [tawfir.access] request_id=4045977d POST /api/v1/courier/auth/register -> 201 in 433.67ms
+tawfir-backend        | INFO:     172.21.0.1:54116 - "POST /api/v1/courier/auth/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:10,730 INFO [httpx] HTTP Request: POST http://tawfir-whatsapp-otp:3040/send-otp "HTTP/1.1 200 OK"
+tawfir-backend        | 2026-10-10 01:25:10,733 INFO [tawfir.access] request_id=2755c270 POST /api/v1/otp/request -> 200 in 615.40ms
+tawfir-backend        | INFO:     172.21.0.1:54126 - "POST /api/v1/otp/request HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:10,948 INFO [tawfir.otp] OTP verified for 736878630
+tawfir-backend        | INFO:     172.21.0.1:54132 - "POST /api/v1/otp/verify HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:10,949 INFO [tawfir.access] request_id=22e19b2a POST /api/v1/otp/verify -> 200 in 6.60ms
+tawfir-backend        | 2026-10-10 01:25:11,607 INFO [tawfir.courier_registration] Courier registered id=66 user=286
+tawfir-backend        | 2026-10-10 01:25:11,608 INFO [tawfir.access] request_id=f31dd788 POST /api/v1/courier/auth/register -> 201 in 428.09ms
+tawfir-backend        | INFO:     172.21.0.1:54148 - "POST /api/v1/courier/auth/register HTTP/1.1" 201 Created
+tawfir-backend        | 2026-10-10 01:25:12,150 INFO [tawfir.access] request_id=4bacac7a POST /api/v1/auth/login -> 200 in 336.27ms
+tawfir-backend        | INFO:     172.21.0.1:54162 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+tawfir-backend        | INFO:     172.21.0.1:54164 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:12,685 INFO [tawfir.access] request_id=eb29d3f3 POST /api/v1/auth/login -> 200 in 330.88ms
+tawfir-backend        | 2026-10-10 01:25:13,248 INFO [tawfir.access] request_id=4f893bcd POST /api/v1/owner/login -> 200 in 355.95ms
+tawfir-backend        | INFO:     172.21.0.1:54166 - "POST /api/v1/owner/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:13,781 INFO [tawfir.access] request_id=64db469b POST /api/v1/owner/login -> 200 in 326.86ms
+tawfir-backend        | INFO:     172.21.0.1:54178 - "POST /api/v1/owner/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:14,300 INFO [tawfir.access] request_id=a4d9ea48 POST /api/v1/courier/auth/login -> 200 in 315.32ms
+tawfir-backend        | INFO:     172.21.0.1:54192 - "POST /api/v1/courier/auth/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:14,842 INFO [tawfir.access] request_id=e0dedff2 POST /api/v1/courier/auth/login -> 200 in 337.45ms
+tawfir-backend        | INFO:     172.21.0.1:54194 - "POST /api/v1/courier/auth/login HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:15,069 INFO [tawfir.access] request_id=1a304449 GET /api/v1/locale/me -> 200 in 17.93ms
+tawfir-backend        | INFO:     172.21.0.1:53584 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:15,285 INFO [tawfir.access] request_id=794b3828 GET /api/v1/locale/me -> 200 in 10.53ms
+tawfir-backend        | INFO:     172.21.0.1:53592 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:15,500 INFO [tawfir.access] request_id=13deadab GET /api/v1/locale/me -> 200 in 9.85ms
+tawfir-backend        | INFO:     172.21.0.1:53606 - "GET /api/v1/locale/me HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:25:15,716 INFO [tawfir.access] request_id=ac71a0a7 GET /api/v1/locale/me -> 200 i
+
+
+tawfir-backend        | 2026-10-10 01:26:50,749 INFO [tawfir] Call-window sweep handled 2 task(s)
+tawfir-backend        | 2026-10-10 01:27:03,834 INFO [tawfir.access] request_id=5060e5f0 GET /health/live -> 200 in 5.34ms
+tawfir-backend        | INFO:     127.0.0.1:58494 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:27:05,735 INFO [tawfir] Call-window sweep handled 1 task(s)
+tawfir-backend        | 2026-10-10 01:27:18,924 INFO [tawfir.access] request_id=0ed47ae6 GET /health/live -> 200 in 2.72ms
+tawfir-backend        | INFO:     127.0.0.1:34576 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:27:34,007 INFO [tawfir.access] request_id=9f1954f9 GET /health/live -> 200 in 3.82ms
+tawfir-backend        | INFO:     127.0.0.1:51228 - "GET /health/live HTTP/1.1" 200 OK
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tawfir-backend        | 2026-10-10 01:27:49,094 INFO [tawfir.access] request_id=283aca1f GET /health/live -> 200 in 3.02ms
+tawfir-backend        | INFO:     127.0.0.1:44150 - "GET /health/live HTTP/1.1" 200 OK
+
+
+
+
+tawfir-backend        | 2026-10-10 01:27:50,800 INFO [tawfir] Call-window sweep handled 2 task(s)
+tawfir-backend        | 2026-10-10 01:28:04,184 INFO [tawfir.access] request_id=06dc8ef2 GET /health/live -> 200 in 2.72ms
+tawfir-backend        | INFO:     127.0.0.1:36360 - "GET /health/live HTTP/1.1" 200 OK
+tawfir-backend        | 2026-10-10 01:28:05,813 INFO [tawfir] Call-window sweep handled 1 task(s)
+tawfir-redis          | 1:M 09 Oct 2026 22:28:08.094 * 100 changes in 300 seconds. Saving...
+tawfir-redis          | 1:M 09 Oct 2026 22:28:08.095 * Background saving started by pid 1011348
+tawfir-redis          | 1011348:C 09 Oct 2026 22:28:08.103 * DB saved on disk
+tawfir-redis          | 1011348:C 09 Oct 2026 22:28:08.103 * Fork CoW for RDB: current 0 MB, peak 0 MB, average 0 MB
+tawfir-redis          | 1:M 09 Oct 2026 22:28:08.196 * Background saving terminated with success
