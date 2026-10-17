@@ -13,6 +13,11 @@
  *    حتمياً من الدفعة عبر POST /finance/orders/{id}/pay/verify.
  *  - publishable_api_key يأتي حياً من GET /finance/payments/config —
  *    لا مفتاح مكتوب في الكود.
+ *  - مصدر السكربت: حزمة moyasar-payment-form الرسمية عبر jsDelivr
+ *    (عقد docs.moyasar.com الحالي — Basic Integration). مويسر أوقفت
+ *    مسارها القديم cdn.moyasar.com/mpay/* بالكامل (S3 AccessDenied
+ *    لكل الإصدارات) وكان تثبيت 1.7.3 القديم سبب «فشل تحميل بوابة
+ *    الدفع» لدى العملاء.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,11 +33,71 @@ declare global {
   }
 }
 
-/** سكربت النموذج المدمج الرسمي (إصدار مثبّت — CDN مويسر). */
-const MOYASAR_JS_URL = "https://cdn.moyasar.com/mpay/1.7.3/moyasar.js";
+/* ═══ مصادر الحزمة الرسمية بالترتيب (v2.3.0 المثبّتة ثم نطاق 2.x احتياطاً) ═══
+   jsDelivr يخدمها بلا حجب جغرافي وبكاش immutable — وأي فشل (شبكة أو
+   محتوى غير سكربتي) ينزل تلقائياً للمرشح التالي قبل إعلان الخطأ. */
+const MOYASAR_JS_URLS = [
+  "https://cdn.jsdelivr.net/npm/moyasar-payment-form@2.3.0/dist/moyasar.umd.min.js",
+  "https://cdn.jsdelivr.net/npm/moyasar-payment-form@2/dist/moyasar.umd.min.js",
+] as const;
 
-/* وعد تحميل مفرد على مستوى الوحدة — السكربت يُحمّل مرة واحدة مهما تكرر التركيب.
-   عند فشل CDN تُسقط الإشارة كي يسمح زر الإعادة بمحاولة تحميل جديدة. */
+/* أنماط النموذج الرسمية — الحزمة الجديدة لا تضيف أنماطها بنفسها
+   (عكس mpay القديم) فيلزم ربط moyasar.css صراحة. الربط جهد أفضل:
+   فشلها تدهور عرضي فقط ولا يمنع الدفع فلا نعلن خطأً للعميل بسببها. */
+const MOYASAR_CSS_URLS = [
+  "https://cdn.jsdelivr.net/npm/moyasar-payment-form@2.3.0/dist/moyasar.css",
+  "https://cdn.jsdelivr.net/npm/moyasar-payment-form@2/dist/moyasar.css",
+] as const;
+
+/* ربط الأنماط مرة واحدة على مستوى الوحدة */
+let moyasarCssInjected = false;
+
+function injectMoyasarCss(): void {
+  if (typeof document === "undefined" || moyasarCssInjected) return;
+  for (const href of MOYASAR_CSS_URLS) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    document.head.appendChild(link);
+  }
+  moyasarCssInjected = true;
+}
+
+/** تحميل مرشح واحد — لا ينجح إلا إذا ظهر الكائن العالمي Moyasar فعلاً.
+    بعض مزودات الكاش تعيد صفحة خطأ (XML/HTML) بحالة 200 فحدث load
+    ينطلق بلا مكتبة — الحكم النهائي على الكائن العالمي لا على الحدث. */
+function tryLoadScript(src: string): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script");
+    const cleanup = () => script.remove();
+    script.src = src;
+    script.async = true;
+    script.addEventListener(
+      "load",
+      () => {
+        if (window.Moyasar) resolve();
+        else {
+          cleanup();
+          reject(new Error("bad-payload"));
+        }
+      },
+      { once: true }
+    );
+    script.addEventListener(
+      "error",
+      () => {
+        cleanup();
+        reject(new Error("network"));
+      },
+      { once: true }
+    );
+    document.head.appendChild(script);
+  });
+}
+
+/* وعد تحميل مفرد على مستوى الوحدة — السكربت يُحمّل مرة واحدة مهما
+   تكرر التركيب. عند فشل كل المرشحين تُسقط الإشارة كي يسمح زر
+   الإعادة بمحاولة جديدة من أولها. */
 let moyasarScriptPromise: Promise<void> | null = null;
 
 function loadMoyasarScript(): Promise<void> {
@@ -40,30 +105,22 @@ function loadMoyasarScript(): Promise<void> {
   if (window.Moyasar) return Promise.resolve();
   if (moyasarScriptPromise) return moyasarScriptPromise;
 
-  moyasarScriptPromise = new Promise<void>((resolve, reject) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      `script[src="${MOYASAR_JS_URL}"]`
-    );
-    const script = existing ?? document.createElement("script");
+  injectMoyasarCss();
 
-    const onLoad = () => {
-      if (window.Moyasar) resolve();
-      else reject(new Error("تعذّر تهيئة بوابة الدفع"));
-    };
-    const onError = () => {
-      moyasarScriptPromise = null;
-      script.remove();
-      reject(new Error("تعذّر تحميل بوابة الدفع — تحقق من اتصالك بالإنترنت"));
-    };
-
-    script.addEventListener("load", onLoad, { once: true });
-    script.addEventListener("error", onError, { once: true });
-    if (!existing) {
-      script.src = MOYASAR_JS_URL;
-      script.async = true;
-      document.head.appendChild(script);
+  moyasarScriptPromise = (async () => {
+    for (const src of MOYASAR_JS_URLS) {
+      try {
+        await tryLoadScript(src);
+        return;
+      } catch {
+        /* ننتقل للمرشح التالي */
+      }
     }
-  });
+    moyasarScriptPromise = null;
+    throw new Error(
+      "تعذّر تحميل بوابة الدفع — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"
+    );
+  })();
 
   return moyasarScriptPromise;
 }
@@ -121,6 +178,14 @@ function MoyasarFormInner({
       return;
     }
 
+    /* حزمة مويسر v2 صارمة: وجود applepay في methods دون تكوين Apple
+       Pay يرمي «Apple Pay configuration is required» ويمنع رسم النموذج
+       كله. أبل باي في توفير مسارها الخاص حصراً (زر الدفع داخل التطبيق
+       عبر SFSafariViewController — docs/MOBILE-PAYMENT-DECISIONS.md قرار
+       3) لا النموذج المدمج، وللخادم لا تكوين أبل باي يُمرَّر للنموذج —
+       فلنمرر للنموذج وسائل الدفع ما يدعمه بلا تكوين إضافي. */
+    const embeddedMethods = methods.filter((m) => m !== "applepay");
+
     window.Moyasar.init({
       element: ".mysr-form",
       /* هللات: الوحدة الموثقة لمويسر — تقريب آمن للأعداد الصحيحة */
@@ -131,7 +196,7 @@ function MoyasarFormInner({
       /* العودة إلى شاشة التحقق الحتمي بعد إتمام النموذج */
       callback_url:
         window.location.origin + `/payment/return?order=${orderId}`,
-      methods,
+      methods: embeddedMethods.length > 0 ? embeddedMethods : ["creditcard"],
       language: "ar",
     });
     setPhase("ready");

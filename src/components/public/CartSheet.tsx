@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   CheckCircle2,
+  CreditCard,
   Loader2,
   MapPin,
   Minus,
@@ -28,6 +30,7 @@ import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
 import {
   DeliveryFields,
   MISSING_LOCATION_MSG,
+  type CheckoutPaymentMethod,
 } from "@/components/public/DeliveryFields";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -42,13 +45,17 @@ import type { OrderOut, PaymentMethod } from "@/types/api.generated";
  *
  * قاعدة الخادم: كل الأصناف يجب أن تنتمي لنفس facility_id (مخزن السلة يطبّقها).
  * مدخلات الطلب مطابقة الآن لCheckoutSheet عبر مكون DeliveryFields المشترك
- * (موقع lat/lng + عنوان ≤ 500 + ملاحظات ≤ 500 + دفع نقدي — wallet يرفضه
- * الخادم 422) والتسعير من useCartPricing (مصدر الحقيقة الوحيد):
+ * (موقع lat/lng + عنوان ≤ 500 + ملاحظات ≤ 500 + الدفع حسب السوق:
+ * كاش/إلكتروني سعودياً وكاش/محفظة يمنياً) والتسعير من useCartPricing (مصدر الحقيقة الوحيد):
  * المجموع الأصلي − خصم العضوية (من /me) + أجرة التوصيل الديناميكية حسب
  * المسافة (تُقدَّر من الخادم عند توفر الموقع المحفوظ) = الإجمالي —
  * والإجمالي النهائي يؤكده الخادم عند إنشاء الطلب.
  *
  * يُفتح من زر السلة في MainHeader (CartButton) ومن StickyMiniCart.
+ *
+ * عقد «الدفع أولاً» للسوق السعودي (إصلاح ملاحظة المالك): المسار الإلكتروني
+ * ينشئ الطلب صامتاً كمرساة دفع وينقل فوراً لشاشة الدفع الآمنة
+ * /orders/{id}/pay — لا إشعار «تم استلام طلبك» قبل إتمام الدفع إطلاقاً.
  */
 interface CartSheetProps {
   open: boolean;
@@ -56,6 +63,7 @@ interface CartSheetProps {
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
+  const router = useRouter();
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
@@ -80,7 +88,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
   const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cash");
   const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -118,6 +126,11 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
       return;
     }
     setErrorMsg(null);
+    /* عقد «الدفع أولاً» للسوق السعودي (مطابق لCheckoutSheet وصفحة /cart):
+       "electronic" تُرسل للخادم "cash" كمرساة دفع حصراً — والانتقال فوراً
+       لشاشة الدفع الآمنة بلا أي إعلان استلام قبل الدفع. */
+    const isElectronicFlow = paymentMethod === "electronic";
+    const serverPaymentMethod: PaymentMethod = isElectronicFlow ? "cash" : paymentMethod;
     createOrder.mutate(
       {
         facility_id: facilityId,
@@ -128,12 +141,22 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
         delivery_lat: lat,
         delivery_lng: lng,
         delivery_address: address.trim() || null,
-        payment_method: paymentMethod,
-        payment_wallet_id: paymentMethod === "wallet" ? paymentWalletId : null,
+        payment_method: serverPaymentMethod,
+        payment_wallet_id:
+          serverPaymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
         onSuccess: (data) => {
+          /* المسار الإلكتروني السعودي — الدفع أولاً: إفراغ السلة وإغلاق
+             الشيت وانتقال فوري لشاشة الدفع بلا إشعار استلام ولا نجاح. */
+          if (isElectronicFlow) {
+            haptic("light");
+            clearCart();
+            onOpenChange(false);
+            router.push(`/orders/${data.id}/pay`);
+            return;
+          }
           haptic("success");
           setSuccessOrder(data);
           clearCart();
@@ -241,8 +264,9 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               onNotesChange={setNotes}
               paymentMethod={paymentMethod}
               onPaymentMethodChange={(m) => {
-                /* "electronic" غير متاح في تدفق السلة (سوق يمني افتراضياً) */
-                setPaymentMethod(m === "electronic" ? "cash" : m);
+                /* السوق السعودي يرى "electronic" ويُعامَل بعقد «الدفع أولاً»
+                   في handleSubmit — لا تحويل صامت إلى كاش بعد اليوم */
+                setPaymentMethod(m);
                 if (m !== "wallet") setPaymentWalletId(null);
               }}
               paymentWalletId={paymentWalletId}
@@ -341,11 +365,27 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
               >
                 {createOrder.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                ) : paymentMethod === "electronic" ? (
+                  <CreditCard className="h-5 w-5" aria-hidden="true" />
                 ) : (
                   <ShoppingBag className="h-5 w-5" aria-hidden="true" />
                 )}
-                {createOrder.isPending ? "جارٍ إرسال الطلب..." : "تأكيد الطلب"}
+                {createOrder.isPending
+                  ? paymentMethod === "electronic"
+                    ? "جارٍ تجهيز شاشة الدفع..."
+                    : "جارٍ إرسال الطلب..."
+                  : paymentMethod === "electronic"
+                    ? "الدفع الإلكتروني وإتمام الطلب"
+                    : "تأكيد الطلب"}
               </Button>
+              {paymentMethod === "electronic" && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="text-center text-[11px] font-bold text-accent-ink"
+                >
+                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                </p>
+              )}
             </div>
           </div>
         )}

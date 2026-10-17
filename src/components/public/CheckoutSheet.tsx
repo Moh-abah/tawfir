@@ -132,75 +132,15 @@ function QuantityStepper({
   );
 }
 
-function SuccessView({
-  order,
-  market,
-  electronic,
-  onClose,
-}: {
-  order: OrderOut;
-  /** سوق العميل — يحدد الخطوة التالية بعد النجاح. */
-  market: CheckoutMarket;
-  /** هل اختار العميل «دفع إلكتروني» عند تأكيد الطلب؟ */
-  electronic: boolean;
-  onClose: () => void;
-}) {
+/**
+ * شاشة نجاح «تم استلام طلبك» — للكاش (السوقين) وللمحفظة (اليمن) حصراً.
+ * المسار الإلكتروني السعودي لا يصل هنا أبداً — عقد «الدفع أولاً»:
+ * انتقال مباشر لشاشة الدفع بعد التأكيد، و«تم استلام طلبك» يظهر
+ * بعد إتمام الدفع والتحقق الحتمي حصراً (/payment/return).
+ */
+function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void }) {
   /* السوق اليمني: طلب محفظة → شاشة الدفع لرفع إشعار التحويل (كما هو) */
   const isWalletOrder = order.payment_method === "wallet";
-  /* السوق السعودي + خيار إلكتروني: خطوة أخيرة — الدفع عبر مويسر.
-     عقدًا: الطلب أُنشئ payment_method="cash" — الدفع الإلكتروني
-     اختياري يُتمّ الآن أو لاحقاً من صفحة الطلب. */
-  const showElectronicNext = market === "saudi" && electronic;
-
-  if (showElectronicNext) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
-        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
-          <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
-        </span>
-        <div className="space-y-1">
-          <h3 className="text-xl font-extrabold text-foreground">تم استلام طلبك</h3>
-          <p className="text-sm text-muted-foreground">
-            رقم الطلب:{" "}
-            <span dir="ltr" className="font-bold tabular-nums text-foreground">
-              #{order.id}
-            </span>
-          </p>
-        </div>
-        <div className="w-full max-w-xs rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-right">
-          <p className="flex items-center gap-1.5 text-sm font-extrabold text-accent-ink">
-            <CreditCard className="h-4 w-4 shrink-0" aria-hidden="true" />
-            خطوة أخيرة — الدفع الإلكتروني
-          </p>
-          <p className="mt-1 text-xs leading-relaxed text-accent-ink/90">
-            ادفع الآن بأمان عبر مويسر (بطاقة أو Apple Pay) — بيانات بطاقتك لا
-            تلمس خوادمنا. يمكنك أيضاً الدفع كاش عند الاستلام.
-          </p>
-        </div>
-        <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
-          <Button
-            asChild
-            size="lg"
-            className="min-h-[48px] w-full rounded-full"
-            onClick={onClose}
-          >
-            <Link href={`/orders/${order.id}/pay`}>
-              <CreditCard className="h-4 w-4" aria-hidden="true" />
-              ادفع الآن
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            className="min-h-[44px] w-full rounded-full"
-            onClick={onClose}
-          >
-            كاش عند الاستلام — لاحقاً
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
@@ -507,8 +447,6 @@ export function CheckoutSheet({
   const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
-  /* هل نية الطلب الأخيرة كانت «دفع إلكتروني»؟ — لبطاقة الخطوة الأخيرة */
-  const [successElectronic, setSuccessElectronic] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   /* بوابة السوق — useLocaleMe مفعّل دائمًا داخل الشيت.
@@ -594,7 +532,6 @@ export function CheckoutSheet({
       setPaymentWalletId(null);
       setDeliveryMode("delivery");
       setSuccessOrder(null);
-      setSuccessElectronic(false);
       setErrorMsg(null);
     }, 250);
     return () => clearTimeout(t);
@@ -616,10 +553,15 @@ export function CheckoutSheet({
       return;
     }
     setErrorMsg(null);
-    /* عقد السوقين: "electronic" قيمة واجهة حصراً — الطلب يُرسل دائماً
-       payment_method="cash" في المسار الإلكتروني، والدفع الفعلي يحدث
-       لاحقاً عبر مويسر من /orders/{id}/pay (لا "electronic" للخادم). */
-    const serverPaymentMethod = paymentMethod === "electronic" ? "cash" : paymentMethod;
+    /* عقد «الدفع أولاً» للسوق السعودي (إصلاح ملاحظة المالك):
+       "electronic" قيمة واجهة حصراً — الطلب يُرسل للخادم payment_method="cash"
+       كـمرساة دفع حصراً (البوابة تتحقق من الدفعة مقابل طلب قائم)، لكن **بلا
+       أي إعلان استلام**: لا إشعار «تم استلام طلبك» ولا شاشة نجاح قبل الدفع.
+       بعد الإنشاء الصامت انتقال فوري لشاشة الدفع الآمنة /orders/{id}/pay
+       (نموذج مويسر الساندبوكس) — و«تم استلام طلبك» يظهر حصراً بعد إتمام
+       الدفع والتحقق الحتمي (verify → paid) في /payment/return. */
+    const isElectronicFlow = paymentMethod === "electronic";
+    const serverPaymentMethod = isElectronicFlow ? "cash" : paymentMethod;
     createOrder.mutate(
       {
         facility_id: product.facility_id,
@@ -635,8 +577,16 @@ export function CheckoutSheet({
       },
       {
         onSuccess: (data) => {
+          /* المسار الإلكتروني السعودي — الدفع أولاً: انتقال فوري لشاشة
+             الدفع بلا إشعار استلام. إن تراجع العميل قبل الدفع يبقى
+             الطلب في «طلباتي» كاش مع بطاقة «ادفع الآن إلكترونيًا». */
+          if (isElectronicFlow) {
+            haptic("light");
+            handleClose();
+            router.push(`/orders/${data.id}/pay`);
+            return;
+          }
           setSuccessOrder(data);
-          setSuccessElectronic(paymentMethod === "electronic");
           /* الجولة 17 — اهتزاز نجاح مزدوج (إحساس Native عند تأكيد الطلب) */
           haptic("success");
           toast({ title: "تم استلام طلبك بنجاح" });
@@ -682,12 +632,7 @@ export function CheckoutSheet({
         </SheetHeader>
 
         {successOrder ? (
-          <SuccessView
-            order={successOrder}
-            market={market}
-            electronic={successElectronic}
-            onClose={handleClose}
-          />
+          <SuccessView order={successOrder} onClose={handleClose} />
         ) : (
           <div className="flex flex-1 flex-col overflow-y-auto no-mobile-scrollbar">
             {/* ملخص الوجبة */}
@@ -895,7 +840,9 @@ export function CheckoutSheet({
                 {createOrder.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    جارٍ التأكيد...
+                    {paymentMethod === "electronic"
+                      ? "جارٍ تجهيز شاشة الدفع..."
+                      : "جارٍ التأكيد..."}
                   </>
                 ) : outOfStock ? (
                   "غير متوفر حالياً"
@@ -907,7 +854,7 @@ export function CheckoutSheet({
                 ) : paymentMethod === "electronic" ? (
                   <>
                     <CreditCard className="h-4 w-4" aria-hidden="true" />
-                    تأكيد الطلب — الدفع بعد التأكيد
+                    الدفع الإلكتروني وإتمام الطلب
                   </>
                 ) : (
                   <>
@@ -916,6 +863,17 @@ export function CheckoutSheet({
                   </>
                 )}
               </Button>
+              {/* عقد «الدفع أولاً» — توقّع واضح قبل الضغط: الشاشة التالية
+                  هي شاشة الدفع حصراً، والاستلام يُعلن بعد إتمام الدفع */}
+              {paymentMethod === "electronic" && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] font-bold text-accent-ink"
+                >
+                  <ArrowLeft className="h-3 w-3" aria-hidden="true" />
+                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                </p>
+              )}
               {walletMissing && (
                 <p
                   role="note"

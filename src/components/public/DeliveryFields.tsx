@@ -22,7 +22,8 @@
  *     أثر للدفع الإلكتروني (السوق اليمني لا يرى بوابة دفع إطلاقاً).
  *   · سعودي: كاش + «دفع إلكتروني (بطاقة/Apple Pay)» — قيمة الاختيار
  *     "electronic" واجهة حصراً ولا تُرسل للخادم أبداً (الطلب يُنشأ
- *     cash والدفع الفعلي لاحقاً عبر مويسر من /orders/{id}/pay) —
+ *     صامتاً كمرساة دفع والدفع عبر مويسر فوراً من /orders/{id}/pay —
+ *     عقد «الدفع أولاً»: يُعلن استلام الطلب بعد إتمام الدفع حصراً) —
  *     وتُخفّى محفظة التاجر لعدم وجودها في السوق السعودي.
  */
 
@@ -58,7 +59,9 @@ export type DeliveryMode = "delivery" | "handover";
 /**
  * طريقة الدفع في نموذج الطلب.
  * "electronic" قيمة واجهة حصراً (السوق السعودي) — لا تُرسل للخادم إطلاقاً؛
- * العقد: الطلب يُنشأ payment_method="cash" والدفع الفعلي عبر مويسر لاحقاً.
+ * العقد «الدفع أولاً» (إصلاح ملاحظة المالك): التأكيد ينشئ الطلب صامتاً
+ * (cash كمرساة دفع) وينقل فوراً لشاشة الدفع الآمنة /orders/{id}/pay —
+ * ولا يُعلن «تم استلام طلبك» إلا بعد إتمام الدفع والتحقق الحتمي.
  */
 export type CheckoutPaymentMethod = PaymentMethod | "electronic";
 
@@ -377,7 +380,8 @@ export function DeliveryFields({
 
           {/* السوق السعودي: دفع إلكتروني (بطاقة/Apple Pay) —
               "electronic" قيمة واجهة حصراً ولا تُرسل للخادم أبداً؛
-              الطلب يُنشأ cash والدفع الفعلي عبر مويسر لاحقاً */}
+              عقد «الدفع أولاً»: التأكيد ينقل فوراً لشاشة الدفع الآمنة
+              ولا يُعلن استلام الطلب إلا بعد إتمام الدفع حصراً */}
           {isSaudiMarket && (
             <div className="flex items-center gap-3 rounded-lg border p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
               <RadioGroupItem
@@ -393,7 +397,7 @@ export function DeliveryFields({
                 <span className="flex min-w-0 flex-col">
                   <span>دفع إلكتروني (بطاقة/Apple Pay)</span>
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    تدفع الآن بأمان عبر مويسر بعد تأكيد الطلب
+                    تُفتح شاشة الدفع الآمنة لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
                   </span>
                 </span>
               </Label>

@@ -7,6 +7,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   CheckCircle2,
+  CreditCard,
   Loader2,
   MapPin,
   Minus,
@@ -24,6 +25,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import {
   DeliveryFields,
   MISSING_LOCATION_MSG,
+  type CheckoutPaymentMethod,
   type DeliveryMode,
 } from "@/components/public/DeliveryFields";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
@@ -76,7 +78,7 @@ export function CartPageContent() {
   const [lng, setLng] = useState<number | null>(null);
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("cash");
   const [paymentWalletId, setPaymentWalletId] = useState<number | null>(null);
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("delivery");
   const [successOrder, setSuccessOrder] = useState<OrderOut | null>(null);
@@ -116,6 +118,11 @@ export function CartPageContent() {
       return;
     }
     setErrorMsg(null);
+    /* عقد «الدفع أولاً» للسوق السعودي (مطابق لCheckoutSheet):
+       "electronic" قيمة واجهة حصراً — تُرسل للخادم "cash" كمرساة دفع حصراً،
+       والانتقال فوراً لشاشة الدفع الآمنة بلا أي إعلان استلام قبل الدفع. */
+    const isElectronicFlow = paymentMethod === "electronic";
+    const serverPaymentMethod: PaymentMethod = isElectronicFlow ? "cash" : paymentMethod;
     createOrder.mutate(
       {
         facility_id: facilityId,
@@ -126,13 +133,21 @@ export function CartPageContent() {
         delivery_lat: isHandover && lat == null ? null : lat,
         delivery_lng: isHandover && lng == null ? null : lng,
         delivery_address: address.trim() || null,
-        payment_method: paymentMethod,
+        payment_method: serverPaymentMethod,
         payment_wallet_id:
-          paymentMethod === "wallet" ? paymentWalletId : null,
+          serverPaymentMethod === "wallet" ? paymentWalletId : null,
         notes: notes.trim() || null,
       },
       {
         onSuccess: (data) => {
+          /* المسار الإلكتروني السعودي — الدفع أولاً: إفراغ السلة وانتقال
+             فوري لشاشة الدفع بلا إشعار استلام ولا شاشة نجاح. */
+          if (isElectronicFlow) {
+            haptic("light");
+            clearCart();
+            router.push(`/orders/${data.id}/pay`);
+            return;
+          }
           haptic("success");
           setSuccessOrder(data);
           clearCart();
@@ -154,7 +169,8 @@ export function CartPageContent() {
     );
   };
 
-  /* ─── شاشة النجاح بعد الطلب ─── */
+  /* ─── شاشة النجاح بعد الطلب — للكاش/المحفظة حصراً (المسار الإلكتروني
+      انتقل لشاشة الدفع قبل الوصول إلى هنا — عقد «الدفع أولاً») ─── */
   if (successOrder) {
     return <CartSuccessView order={successOrder} />;
   }
@@ -290,8 +306,9 @@ export function CartPageContent() {
                 onNotesChange={setNotes}
                 paymentMethod={paymentMethod}
                 onPaymentMethodChange={(m) => {
-                  /* "electronic" غير متاح في تدفق السلة (سوق يمني افتراضياً) */
-                  setPaymentMethod(m === "electronic" ? "cash" : m);
+                  /* السوق السعودي يرى "electronic" ويُعامَل بعقد «الدفع أولاً»
+                     في handleSubmit — لا تحويل صامت إلى كاش بعد اليوم */
+                  setPaymentMethod(m);
                   if (m !== "wallet") setPaymentWalletId(null);
                 }}
                 paymentWalletId={paymentWalletId}
@@ -431,6 +448,14 @@ export function CartPageContent() {
                   اختر محفظة المتجر لإتمام الدفع بالتحويل
                 </p>
               )}
+              {paymentMethod === "electronic" && !createOrder.isPending && (
+                <p
+                  role="note"
+                  className="text-center text-[11px] font-bold text-accent-ink"
+                >
+                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                </p>
+              )}
 
               {/* زر التأكيد — الديسكتوب (الموبايل له الشريط اللاصق أسفل) */}
               <Button
@@ -455,13 +480,21 @@ export function CartPageContent() {
                 {createOrder.isPending ? (
                   <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                 ) : (
-                  <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  paymentMethod === "electronic" ? (
+                    <CreditCard className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+                  )
                 )}
                 {createOrder.isPending
-                  ? "جارٍ إرسال الطلب..."
-                  : displayTotal != null
-                    ? `تأكيد الطلب — ${formatCurrency(displayTotal)}`
-                    : "تأكيد الطلب"}
+                  ? paymentMethod === "electronic"
+                    ? "جارٍ تجهيز شاشة الدفع..."
+                    : "جارٍ إرسال الطلب..."
+                  : paymentMethod === "electronic"
+                    ? "الدفع الإلكتروني وإتمام الطلب"
+                    : displayTotal != null
+                      ? `تأكيد الطلب — ${formatCurrency(displayTotal)}`
+                      : "تأكيد الطلب"}
               </Button>
 
               <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
@@ -495,10 +528,18 @@ export function CartPageContent() {
           <span className="flex items-center gap-2 text-sm font-extrabold">
             {createOrder.isPending ? (
               <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            ) : paymentMethod === "electronic" ? (
+              <CreditCard className="h-5 w-5" aria-hidden="true" />
             ) : (
               <ShoppingBag className="h-5 w-5" aria-hidden="true" />
             )}
-            {createOrder.isPending ? "جارٍ الإرسال..." : "تأكيد الطلب"}
+            {createOrder.isPending
+              ? paymentMethod === "electronic"
+                ? "جارٍ تجهيز شاشة الدفع..."
+                : "جارٍ الإرسال..."
+              : paymentMethod === "electronic"
+                ? "الدفع الإلكتروني وإتمام الطلب"
+                : "تأكيد الطلب"}
           </span>
           <span
             className="text-base font-extrabold tabular-nums"

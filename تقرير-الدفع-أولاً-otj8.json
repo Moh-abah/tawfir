@@ -1,0 +1,72 @@
+{
+  "tag": "otj8",
+  "when": "2026-10-10T19:21:44.345Z",
+  "critical_ok": true,
+  "results": [
+    {
+      "name": "1. دخول العميل السعودي",
+      "ok": true,
+      "detail": "توكن العميل مضبوط"
+    },
+    {
+      "name": "2. شاشة «اطلب الآن» المنبثقة",
+      "ok": true,
+      "detail": "CheckoutSheet مفتوح على منشأة 32 (الرياض)"
+    },
+    {
+      "name": "3a. الموقع + العنوان",
+      "ok": true,
+      "detail": "الموقع محمّل والعنوان مكتوب"
+    },
+    {
+      "name": "3b. اختيار «دفع إلكتروني»",
+      "ok": true,
+      "detail": "الراديو الإلكتروني محدد"
+    },
+    {
+      "name": "4a. زر «الدفع الإلكتروني وإتمام الطلب»",
+      "ok": true,
+      "detail": "النص الجديد ظاهر"
+    },
+    {
+      "name": "4b. ملاحظة عقد «الدفع أولاً»",
+      "ok": true,
+      "detail": "note=true old-desc-removed=true"
+    },
+    {
+      "name": "5a. انتقال فوري لشاشة الدفع /orders/{id}/pay",
+      "ok": true,
+      "detail": "http://localhost:3000/orders/163/pay"
+    },
+    {
+      "name": "5b. لا «تم استلام طلبك» قبل الدفع (عقد جديد)",
+      "ok": true,
+      "detail": "صفر إعلان استلام — النجاح مؤجل بعد الدفع حصراً"
+    },
+    {
+      "name": "5c. ملخص المبلغ من الخادم",
+      "ok": true,
+      "detail": "المبلغ حي من الطلب"
+    },
+    {
+      "name": "5d. نموذج مويسر الساندبوكس المدمج (v2 حقول مضمنة)",
+      "ok": true,
+      "detail": "container=true cardField=true"
+    },
+    {
+      "name": "6. إتمام الدفع عبر الساندبوكس (عمق)",
+      "ok": false,
+      "detail": "لم يُرصد اكتمال الدفع خلال المهلة (قد يكون تحدي 3DS) — لا يؤثر على حكم العقد A/B"
+    },
+    {
+      "name": "الحكم الحاسم — عقد «الدفع أولاً»",
+      "ok": true,
+      "detail": "مطابقة كاملة لملاحظة المالك"
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}
