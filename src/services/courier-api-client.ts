@@ -238,6 +238,8 @@ export interface CourierRegisterIn {
   phone: string;
   password: string;
   password_confirm: string;
+  /** سوق المندوب — 967 اليمن | 966 السعودية (العقد يقبل الاثنين) */
+  country_code?: string | null;
   vehicle_type?: string;
   vehicle_plate?: string | null;
   license_number?: string | null;

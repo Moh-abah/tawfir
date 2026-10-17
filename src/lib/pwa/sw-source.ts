@@ -885,10 +885,11 @@ async function handleRsc(event, request) {
   const cache = await caches.open(NAV_CACHE);
   const key = rscCacheKey(request);
   try {
-    /* إصلاح بطء التنقل (إصلاح الأداء): مهلة 3.5 ثوانٍ — على الشبكة الضعيفة
-       كان الانتظار بلا سقف رغم وجود نسخة مخبأة صالحة؛ الآن نسقط للكاش
-       بسرعة ونحدّث الكاش في الخلفية ليصير ظرفاً محدَّثاً. */
-    const response = await fetchWithTimeout(request, 3500);
+    /* إصلاح بطء التنقل: مهلة 8 ثوانٍ — كانت 3.5 ثوانٍ تُجهض تحميل RSC
+       على الشبكات المتوسطة رغم أن الإنترنت يعمل (شكوى المالك: شاشة
+       «أنت غير متصل» أثناء التنقل والاتصال سليم) — 8 ثوانٍ كافية
+       للشبكات البطيئة والخوادم الباردة، والسقوط للكاش يبقى احتياطاً. */
+    const response = await fetchWithTimeout(request, 8000);
     if (response && response.ok) {
       event.waitUntil(
         cache
@@ -905,6 +906,12 @@ async function handleRsc(event, request) {
       revalidateInBackground(event, request, key, cache);
       return cached;
     }
+    /* إصلاح الشاشة الكاذبة: محاولة أخيرة واحدة قبل الاستسلام —
+       الوميض العابر للشبكة كان يرمي المستخدم للخطأ فوراً */
+    try {
+      const retry = await fetchWithTimeout(request, 8000);
+      if (retry && retry.ok) return retry;
+    } catch (e) {}
     return offlineApiResponse(request);
   }
 }
@@ -943,9 +950,12 @@ async function handleNavigation(event, request) {
   /* صفحات الأدمن لا تُخزَّن إطلاقاً (سياسة صفر تخزين لبيانات الأدمن) */
   const isAdmin = url.pathname.startsWith("/admin");
   try {
-    /* إصلاح بطء التنقل: مهلة 3.5 ثوانٍ ثم سقوط للكاش — بدل انتظار
-       الشبكة البطيئة بلا سقف وكان المستخدم يرى شاشة معلّقة */
-    const response = await fetchWithTimeout(request, 3500);
+    /* إصلاح شاشة «أنت غير متصل» الكاذبة (شكوى المالك — الجولة الحالية):
+       كانت المهلة 3.5 ثوانٍ فقط — أي تحميل أبطأ منها (شبكة موبايل متوسطة/
+       خادم بارد) يُجهض ويُرمى المستخدم لصفحة /offline رغم أن الإنترنت يعمل.
+       الآن 10 ثوانٍ + محاولة ثانية + إعادة محاولة تلقائية بدل شاشة الخطأ
+       عند بقاء الاتصال فعلاً — التفاصيل أدناه. */
+    const response = await fetchWithTimeout(request, 10000);
     /* الجولة 12: في التطوير لا نخزّن HTML التنقلات إطلاقاً — الكاش القديم
        مع JS متجدد بعد كل إعادة ترجمة يسبب hydration mismatch قاتلاً.
        (الإنتاج آمن: HTML و chunks يُنشران معاً بنسخ مُوقّعة) */
@@ -982,9 +992,58 @@ async function handleNavigation(event, request) {
       } catch (e) {}
       return cached;
     }
+    /* ─── لا نسخة مخبأة: نفرّق بين الانقطاع الحقيقي والشبكة البطيئة ───
+       هذا هو جذر شكوى المالك: كانت أي فشل شبكة (حتى مع إنترنت عامل)
+       يرمي المستخدم لشاشة «أنت غير متصل» بزرين مزعجين. */
+    /* 1) محاولة أخيرة واحدة — الوميض العابر لا يستحق شاشة خطأ */
+    try {
+      const retry = await fetchWithTimeout(request, 8000);
+      if (retry && retry.ok) return retry;
+    } catch (e) {}
+    /* 2) المتصفح يرى الاتصال عاملاً → ليست مسألة انقطاع: صفحة انتظار
+       عربية تعيد المحاولة تلقائياً بدل شاشة خطأ تفاعلية */
+    if (self.navigator && self.navigator.onLine) {
+      return slowNetworkRetryPage(url.pathname);
+    }
+    /* 3) انقطاع حقيقي فقط → شاشة /offline المعروفة */
     const offlinePage = await caches.match(OFFLINE_URL);
     return offlinePage || Response.error();
   }
+}
+
+/* صفحة «الاتصال بطيء — نعيد المحاولة تلقائياً»: تظهر لحظياً عند بطء
+   الشبكة (لا انقطاع) وتعيد التحميل ذاتياً بعد 3 ثوانٍ أو فور عودة
+   حدث online — بلا أي ضغطة زر من المستخدم (علاج الشكوى المباشر). */
+function slowNetworkRetryPage(pathname) {
+  var safePath = String(pathname || "/").replace(/["<>]/g, "");
+  var html =
+    '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1">' +
+    '<meta http-equiv="refresh" content="3">' +
+    "<title>جارٍ إعادة المحاولة — توفير</title><style>" +
+    "*{box-sizing:border-box;margin:0;padding:0}" +
+    "body{font-family:system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;" +
+    "background:#0e7a5f;color:#fff;display:flex;min-height:100dvh;" +
+    "align-items:center;justify-content:center;padding:24px}" +
+    ".card{max-width:420px;width:100%;text-align:center}" +
+    ".spin{width:56px;height:56px;border-radius:50%;margin:0 auto 20px;" +
+    "border:4px solid rgba(255,255,255,.25);border-top-color:#fff;" +
+    "animation:t 1s linear infinite}@keyframes t{to{transform:rotate(360deg)}}" +
+    ".title{font-size:18px;font-weight:800;margin-bottom:8px}" +
+    ".desc{font-size:13px;color:rgba(255,255,255,.75);line-height:1.7}" +
+    '</style></head><body><div class="card">' +
+    '<div class="spin"></div>' +
+    '<div class="title">الاتصال بطيء قليلاً…</div>' +
+    '<div class="desc">إنترنتك يعمل لكن الاستجابة متأخرة — نعيد المحاولة تلقائياً خلال ثوانٍ.<br>لن تفقد شيئاً، صفحتك (' + safePath + ') في الطريق.</div>' +
+    "</div><script>window.addEventListener('online',function(){location.reload()})" +
+    "</script></body></html>";
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 async function trimCache(cacheName, maxEntries) {

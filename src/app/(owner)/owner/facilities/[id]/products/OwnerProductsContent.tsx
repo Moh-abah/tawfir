@@ -574,6 +574,69 @@ const prefersReduced = usePrefersReducedMotion();
 
   const hasActiveFilters = !!(debouncedSearch || categoryFilter || onlyAvailable);
 
+  /* ─── نموذج الإضافة/التعديل (إصلاح زر «إضافة أول منتج» الميت) ───
+     كان الـDialog/Sheet يُرسمان حصراً في مسار القائمة الممتلئة —
+     بينما مسارا الفراغ (0 منتجات / بلا نتائج) يرجعان JSX مبكراً
+     بلا نموذج، فكان النقر يغيّر formOpen ولا يجد شيئاً يعرضه.
+     الآن يُعرَّف مرة واحدة ويُركَّب في كل المسارات الثلاثة. */
+  const formDialog = (
+    <>
+      {/* Create/Edit Dialog (Desktop) */}
+      {!isMobile && (
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogContent className="rounded-2xl sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
+            </DialogHeader>
+            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
+            <DialogFooter className="flex-row-reverse gap-2">
+              <Button
+                className="rounded-full bg-primary text-white hover:bg-primary/90"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                onClick={handleSave}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {editingProduct ? "حفظ التعديلات" : "إضافة"}
+              </Button>
+              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
+                إلغاء
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Create/Edit Sheet (Mobile) */}
+      {isMobile && (
+        <Sheet open={formOpen} onOpenChange={setFormOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl">
+            <SheetHeader>
+              <SheetTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</SheetTitle>
+            </SheetHeader>
+            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
+            <SheetFooter className="flex-row-reverse gap-2">
+              <Button
+                className="rounded-full bg-primary text-white hover:bg-primary/90"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                onClick={handleSave}
+              >
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {editingProduct ? "حفظ التعديلات" : "إضافة"}
+              </Button>
+              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
+                إلغاء
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      )}
+    </>
+  );
+
   // ─── Empty (no products at all) ───
   if (!data || (data.items.length === 0 && !hasActiveFilters)) {
     return (
@@ -636,6 +699,8 @@ const prefersReduced = usePrefersReducedMotion();
             </Button>
           </motion.div>
         </motion.div>
+        {/* إصلاح الزر الميت: النموذج يُركَّب أيضاً في حالة الفراغ */}
+        {formDialog}
       </div>
     );
   }
@@ -721,6 +786,8 @@ const prefersReduced = usePrefersReducedMotion();
             مسح الفلاتر
           </Button>
         </motion.div>
+        {/* النموذج يُركَّب أيضاً في حالة «بلا نتائج فلترة» */}
+        {formDialog}
       </div>
     );
   }
@@ -1240,59 +1307,8 @@ const prefersReduced = usePrefersReducedMotion();
         </div>
       )}
 
-      {/* Create/Edit Dialog (Desktop) */}
-      {!isMobile && (
-        <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogContent className="rounded-2xl sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</DialogTitle>
-            </DialogHeader>
-            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
-            <DialogFooter className="flex-row-reverse gap-2">
-              <Button
-                className="rounded-full bg-primary text-white hover:bg-primary/90"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                onClick={handleSave}
-              >
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                {editingProduct ? "حفظ التعديلات" : "إضافة"}
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
-                إلغاء
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Create/Edit Sheet (Mobile) */}
-      {isMobile && (
-        <Sheet open={formOpen} onOpenChange={setFormOpen}>
-          <SheetContent side="bottom" className="rounded-t-2xl">
-            <SheetHeader>
-              <SheetTitle>{editingProduct ? "تعديل المنتج" : "إضافة منتج جديد"}</SheetTitle>
-            </SheetHeader>
-            <ProductFormFields form={form} setForm={setForm} errors={formErrors} onClearFields={() => setForm(EMPTY_FORM)} facilityId={facilityId} />
-            <SheetFooter className="flex-row-reverse gap-2">
-              <Button
-                className="rounded-full bg-primary text-white hover:bg-primary/90"
-                disabled={createMutation.isPending || updateMutation.isPending}
-                onClick={handleSave}
-              >
-                {(createMutation.isPending || updateMutation.isPending) && (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                )}
-                {editingProduct ? "حفظ التعديلات" : "إضافة"}
-              </Button>
-              <Button variant="outline" className="rounded-full" onClick={() => setFormOpen(false)}>
-                إلغاء
-              </Button>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
-      )}
+      {/* Create/Edit Dialog + Sheet — مُعرَّفة أعلاه في formDialog وتُركَّب في كل المسارات (إصلاح الزر الميت) */}
+      {formDialog}
 
       {/* Image Lightbox */}
       <Dialog open={!!selectedImage} onOpenChange={(open) => { if (!open) { setSelectedImage(null); setSelectedImageName(null); } }}>

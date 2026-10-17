@@ -21,7 +21,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useMarkRead, useMarkAllRead } from "@/hooks/useMarkRead";
-import { getNotificationMeta, formatRelativeTime, getNotificationHref, getNotificationDateGroup, NOTIFICATION_DATE_GROUP_LABELS } from "@/lib/notifications-meta";
+import { getNotificationMeta, formatRelativeTime, getNotificationHref, getNotificationDateGroup, inferRoleFromPath, NOTIFICATION_DATE_GROUP_LABELS } from "@/lib/notifications-meta";
+import { usePathname } from "next/navigation";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
 import type { NotificationOut } from "@/types/api.generated";
@@ -48,7 +49,17 @@ interface NotificationBellProps {
 export function NotificationBell({ variant = "header", className }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const isMobile = useIsMobile();
+  /* إصلاح الـ404: هدف «عرض الكل» يعتمد على البوابة — بوابة المالك
+     ليس لديها /notifications على دومينها (كانت 404 مؤكدة حياً). */
+  const isOwnerPortal = pathname?.startsWith("/owner") ?? false;
+  const isAdminPortal = pathname?.startsWith("/admin") ?? false;
+  const viewAllHref = isOwnerPortal
+    ? "/owner/notifications"
+    : isAdminPortal || pathname?.startsWith("/courier")
+      ? null /* الأدمن/المندوب: بلا صفحة إشعارات مستقلة — نخفي الرابط بدل 404 */
+      : "/notifications";
   const { data: unreadData, isLoading: unreadLoading } = useUnreadCount();
   const { data: notifsData, isLoading: notifsLoading } = useNotifications(1, false);
   const markRead = useMarkRead();
@@ -77,7 +88,13 @@ export function NotificationBell({ variant = "header", className }: Notification
   const handleClick = (n: NotificationOut) => {
     if (!n.is_read) markRead.mutate(n.id);
     setOpen(false);
-    const href = getNotificationHref(n.notification_type, n.data ?? null);
+    /* إصلاح الـ404: الدور يُستنتج من مسار البوابة الحالية داخل
+       getNotificationHref — مالك/أدمن/مندوب يذهبون لبواباتهم. */
+    const href = getNotificationHref(
+      n.notification_type,
+      n.data ?? null,
+      inferRoleFromPath(),
+    );
     if (href) router.push(href);
   };
 
@@ -239,27 +256,28 @@ export function NotificationBell({ variant = "header", className }: Notification
     </div>
   );
 
-  /* ─── تذييل «عرض الكل» المشترك ─── */
-  const sheetFooter = (
-    <div
-      className={cn(
-        "border-t border-border/60 p-3",
-        isMobile &&
-          "pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
-      )}
-    >
-      <Button
-        type="button"
-        asChild
-        variant="outline"
-        size="sm"
-        className="w-full rounded-full min-h-[44px] font-bold"
-        onClick={() => setOpen(false)}
+  /* ─── تذييل «عرض الكل» المشترك (يُخفى في البوابات بلا صفحة إشعارات — إصلاح 404) ─── */
+  const sheetFooter =
+    viewAllHref ? (
+      <div
+        className={cn(
+          "border-t border-border/60 p-3",
+          isMobile &&
+            "pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))]"
+        )}
       >
-        <Link href="/notifications">عرض كل الإشعارات</Link>
-      </Button>
-    </div>
-  );
+        <Button
+          type="button"
+          asChild
+          variant="outline"
+          size="sm"
+          className="w-full rounded-full min-h-[44px] font-bold"
+          onClick={() => setOpen(false)}
+        >
+          <Link href={viewAllHref}>عرض كل الإشعارات</Link>
+        </Button>
+      </div>
+    ) : null;
 
   /* ─── الموبايل: Drawer سفلي نيتف ─── */
   if (isMobile) {

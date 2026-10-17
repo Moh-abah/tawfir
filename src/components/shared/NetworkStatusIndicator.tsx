@@ -36,8 +36,11 @@ export function NetworkStatusIndicator({
     if (typeof navigator === "undefined") return;
 
     const onOnline = () => {
-      /* عاد الاتصال → نقطة خضراء 3 ثوانٍ ثم اختفاء صامت */
-      setStatus("online");
+      /* إصلاح الوميض الزائف (شكوى المالك): النقطة الخضراء كانت تظهر عند
+         أي حدث online حتى أثناء اتصال عامل بلا انقطاع سابق. الآن تُعرض
+         فقط بعد انقطاع فعلي (الحالة كانت offline) — الصمت أثناء الاتصال
+         المستمر هو السلوك الصحيح. */
+      setStatus((cur) => (cur === "offline" ? "online" : cur));
       window.setTimeout(() => {
         setStatus((cur) => (cur === "online" ? "idle" : cur));
       }, 3000);

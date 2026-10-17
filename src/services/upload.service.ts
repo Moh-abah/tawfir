@@ -4,6 +4,10 @@ import { attemptRefresh } from "@/services/token-refresh";
 import type { UploadOut } from "@/types/api.generated";
 
 const API_URL = "/api/uploads";
+/** الرفع العام قبل تسجيل الدخول (B-1 في العقد) — مجلد facilities حصراً،
+ *  سقف 2MB، حد 10 طلبات/ساعة لكل IP — مؤكدة حية: 201 {url, folder, size_bytes}. */
+const PUBLIC_API_URL = "/api/uploads/public";
+const PUBLIC_MAX_BYTES = 2 * 1024 * 1024;
 
 function readCookieValue(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -76,9 +80,53 @@ function xhrUpload(
 }
 
 /**
+ * الرفع العام (بلا توكن) — طلب المالك: رفع صورة المتجر يعمل حتى قبل
+ * تسجيل الدخول (أثناء تسجيل تاجر جديد لا يملك توكناً بعد).
+ * الخادم يقبل facilities حصراً بسقف 2MB وفحص magic bytes وrate limit.
+ */
+function xhrUploadPublic(
+  file: File,
+  onProgress: (pct: number) => void
+): Promise<UploadOut> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", PUBLIC_API_URL);
+    xhr.responseType = "json";
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) {
+        onProgress(Math.max(1, Math.round((e.loaded / e.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      const data = xhr.response as { detail?: string } | null;
+      if (xhr.status >= 200 && xhr.status < 300 && data && typeof data === "object" && "url" in data) {
+        resolve(data as unknown as UploadOut);
+      } else {
+        reject(
+          new Error(
+            (data && typeof data === "object" && data.detail) ||
+              `فشل رفع الصورة (${xhr.status})`
+          )
+        );
+      }
+    };
+    xhr.onerror = () => reject(new Error("تعذّر الاتصال بالخادم. تأكد من اتصالك بالإنترنت."));
+    xhr.onabort = () => reject(new Error("أُلغي رفع الصورة"));
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "facilities");
+    xhr.send(fd);
+  });
+}
+
+/**
  * رفع صورة إلى الخادم — POST /api/v1/uploads (multipart: file + folder).
  * شريط تقدم فعلي عبر XHR (fetch لا يدعم تقدم الرفع).
  * عند 401: تجديد شفاف واحد ثم إعادة المحاولة — نفس منطق عملاء الـ API.
+ *
+ * إصلاح طلب المالك (رفع بدون تسجيل دخول):
+ *  - بلا توكن + مجلد facilities → الرفع العام /uploads/public مباشرة
+ *  - توكن موجود لكنه انتهى ورفض 401/403 + facilities → الرفع العام احتياطاً
  */
 export async function uploadImage(
   file: File,
@@ -86,10 +134,28 @@ export async function uploadImage(
   onProgress: (pct: number) => void
 ): Promise<UploadOut> {
   const { token, role } = getPortalToken();
+
+  /* مسار الرفع العام — لا حساب مطلوب (صورة المتجر أثناء التسجيل) */
+  if (!token && folder === "facilities") {
+    if (file.size > PUBLIC_MAX_BYTES) {
+      throw new Error(
+        "حجم الصورة يتجاوز 2MB المسموح للرفع قبل تسجيل الدخول — اختر صورة أصغر، وبعد تسجيلك يمكنك رفع حتى 5MB"
+      );
+    }
+    return xhrUploadPublic(file, onProgress);
+  }
+
   try {
     return await xhrUpload(file, folder, token, onProgress);
   } catch (err) {
     const is401 = err instanceof Error && err.message.includes("(401)");
+    const is403 = err instanceof Error && err.message.includes("(403)");
+    /* توكن منتهي/مرفوض + صورة متجر → الرفع العام بدل فشل المستخدم */
+    if ((is401 || is403) && folder === "facilities") {
+      if (file.size <= PUBLIC_MAX_BYTES) {
+        return xhrUploadPublic(file, onProgress);
+      }
+    }
     if (!is401 || !role) throw err;
     // انتهى الـ access أثناء الجلسة → جرّب التجديد ثم أعد المحاولة مرة واحدة
     const tokens = await attemptRefresh(role, () => readRefreshToken(role));

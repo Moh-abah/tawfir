@@ -21,7 +21,10 @@ import {
 } from "lucide-react";
 import type { NotificationType } from "@/types/api.generated";
 
-type HrefFn = (data: Record<string, unknown> | null) => string;
+type HrefFn = (data: Record<string, unknown> | null, role?: PortalRole) => string;
+
+/** بوابة المستخدم الناقر — تحدد الهدف الصحيح (إصلاح الـ404 بين الدومينات) */
+export type PortalRole = "customer" | "owner" | "admin" | "courier";
 
 export interface NotificationMeta {
   icon: LucideIcon;
@@ -33,50 +36,73 @@ export interface NotificationMeta {
   hrefFor?: HrefFn;
 }
 
+/** مسار طلبات المالك/الأدمن/المندوب حسب البيانات المتاحة (إصلاح الـ404):
+ *  كانت كل إشعارات الطلبات توجّه الجميع إلى /orders/{id} — وهو مسار بوابة
+ *  العميل على الدومين الرئيسي حصراً؛ المالك على facility. والأدمن على
+ *  دومينه يصطدمان بـ404. الآن كل دور يذهب إلى طلبات بوابته. */
+function ordersHrefFor(
+  d: Record<string, unknown> | null,
+  role: PortalRole,
+  /** مسار فرعي للعميل (مثل /payment) */
+  customerSuffix = "",
+): string {
+  const orderId = d?.order_id ?? "";
+  const facilityId = d?.facility_id ?? "";
+  if (role === "owner") {
+    return facilityId
+      ? `/owner/facilities/${facilityId}/orders`
+      : "/owner";
+  }
+  if (role === "admin") return "/admin/orders";
+  if (role === "courier") return "/courier/tasks";
+  return `/orders/${orderId}${customerSuffix}`;
+}
+
 const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
   order_new: {
     icon: Package,
     colorClass: "text-accent-ink",
     bgClass: "bg-accent/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   order_confirmed: {
     icon: CheckCircle,
     colorClass: "text-emerald-500",
     bgClass: "bg-emerald-500/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   order_preparing: {
     icon: ChefHat,
     colorClass: "text-teal-500",
     bgClass: "bg-teal-500/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   order_out_for_delivery: {
     icon: Truck,
     colorClass: "text-teal-500",
     bgClass: "bg-teal-500/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   order_delivered: {
     icon: PartyPopper,
     colorClass: "text-emerald-500",
     bgClass: "bg-emerald-500/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   order_cancelled: {
     icon: XCircle,
     colorClass: "text-destructive",
     bgClass: "bg-destructive/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   membership_new_request: {
     icon: Mail,
     colorClass: "text-teal-500",
     bgClass: "bg-teal-500/10",
-    /* إصلاح التوحيد: مستلم هذا النوع هو المشرف — يُوجَّه لصفحة طلبات
+    /* مستلم هذا النوع هو المشرف — يُوجَّه لصفحة طلبات
        العضوية في لوحة الإدارة (نفس سلوك الرابط العميق في SW). */
-    hrefFor: () => "/admin/membership-requests",
+    hrefFor: (_d, role = "customer") =>
+      role === "admin" ? "/admin/membership-requests" : "/account",
   },
   membership_received: {
     icon: Mail,
@@ -144,21 +170,21 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
     icon: Package,
     colorClass: "text-accent-ink",
     bgClass: "bg-accent/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
   /* للعميل: التاجر طلب الدفعة الناقصة — يفتح شاشة الدفع مباشرة */
   order_payment_remaining: {
     icon: Clock,
     colorClass: "text-accent-ink",
     bgClass: "bg-accent/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}/payment`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role, "/payment"),
   },
   /* للتاجر: رفع العميل إشعار المتبقي (اكتمال الدفعة الناقصة) */
   order_payment_completion: {
     icon: Package,
     colorClass: "text-accent-ink",
     bgClass: "bg-accent/10",
-    hrefFor: (d) => `/orders/${d?.order_id ?? ""}`,
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
 };
 
@@ -174,14 +200,26 @@ export function getNotificationMeta(type: string | undefined): NotificationMeta 
   return STATIC[type as NotificationType] ?? FALLBACK;
 }
 
-/** المسار عند نقر الإشعار (لـ /notifications page). */
+/** المسار عند نقر الإشعار — **واعٍ بالدور** (إصلاح الـ404 بين البوابات):
+ *  كل بوابة تعيش على دومينها (الرئيسي/facility./admin.) — مسارات العميل
+ *  غير موجودة على دومينات البوابات الأخرى، فكان أي إشعار طلبات ينقره
+ *  مالك/أدمن يصطدم بـ404. role يُستنتج من المسار إن لم يُمرَّر. */
 export function getNotificationHref(
   type: string | undefined,
-  data: Record<string, unknown> | null
+  data: Record<string, unknown> | null,
+  role?: PortalRole
 ): string | null {
+  const resolvedRole: PortalRole =
+    role ?? inferRoleFromPath();
   const meta = getNotificationMeta(type);
-  if (!meta.hrefFor) return null;
-  const href = meta.hrefFor(data ?? null);
+  if (!meta.hrefFor) {
+    /* أنواع المندوب (task_*) ليست في الجدول — المندوب يذهب لمهامه */
+    if (resolvedRole === "courier" && type?.startsWith("task_")) {
+      return "/courier/tasks";
+    }
+    return null;
+  }
+  const href = meta.hrefFor(data ?? null, resolvedRole);
   // لا نُرجع مساراً برقم غير صالح (مثل /orders/)
   if (href.endsWith("/") || href.includes("undefined")) {
     // للحالات membership_* و facility_* و owner_* نُرجع المسار الثابت فقط
@@ -189,6 +227,16 @@ export function getNotificationHref(
     return null;
   }
   return href;
+}
+
+/** استنتاج البوابة من مسار الصفحة الحالي (SSR-آمن: الافتراضي عميل) */
+export function inferRoleFromPath(): PortalRole {
+  if (typeof window === "undefined") return "customer";
+  const p = window.location.pathname;
+  if (p.startsWith("/admin")) return "admin";
+  if (p.startsWith("/owner")) return "owner";
+  if (p.startsWith("/courier")) return "courier";
+  return "customer";
 }
 
 /** الوقت النسبي بالعربية: «منذ دقيقة» / «منذ ساعة» / «منذ يومين». */

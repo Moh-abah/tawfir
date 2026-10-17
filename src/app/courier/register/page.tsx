@@ -32,7 +32,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,6 +47,7 @@ import {
   IdCard,
   Loader2,
   MapPin,
+  Phone,
   UserRound,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -63,7 +63,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { AuthShell } from "@/components/shared/AuthShell";
 import { PasswordInput } from "@/components/shared/PasswordInput";
-import { PhoneInput } from "@/components/shared/PhoneInput";
 import { YemenPlateField } from "@/components/shared/YemenPlateField";
 import { WaitMode } from "@/components/courier/WaitMode";
 import {
@@ -82,7 +81,24 @@ import {
   normalizeYemeniPhone,
   toEnglishDigits,
   validateYemeniPhone,
+  formatYemeniPhoneDisplay,
 } from "@/lib/yemen";
+import {
+  formatSaudiPhoneDisplay,
+  normalizeSaudiPhone,
+  toSaudiLocalNumber,
+  validateSaudiPhone,
+} from "@/lib/saudi";
+import {
+  detectMarketFromPhone,
+  effectiveMarket,
+  useMarketStore,
+  type MarketKey,
+} from "@/store/market.store";
+import {
+  useAllMarketRegions,
+  type CountryCode,
+} from "@/components/market/market-lookups";
 import { haptic } from "@/lib/haptic";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -100,14 +116,10 @@ const schema = z
       .min(2, "الاسم العلني الذي يظهر للمتاجر (حرفان على الأقل)")
       .max(120),
     email: z.string().email("بريد إلكتروني غير صالح").max(190),
-    /* الجوال اليمني: يقبل المسافات/+967/0967/الأرقام الهندية —
-       الرسالة العربية الديناميكية من validateYemeniPhone */
-    phone: z.string().superRefine((value, ctx) => {
-      const errorMessage = validateYemeniPhone(value);
-      if (errorMessage) {
-        ctx.addIssue({ code: "custom", message: errorMessage });
-      }
-    }),
+    /* الجوال: تحقق السوق ديناميكي في submitBasic حسب شريحة السوق المختارة
+       (5… سعودي / 7… يمني) — zod هنا للحد الأدنى فقط.
+       إصلاح شكوى المالك: كان النموذج مقفولاً يمنياً يرفض الرقم السعودي. */
+    phone: z.string().min(3, "أدخل رقم الجوال"),
     password: z.string().min(6, "كلمة المرور 6 أحرف على الأقل").max(128),
     password_confirm: z.string().min(6, "أعد كتابة كلمة المرور"),
     vehicle_type: z.enum(["motorcycle", "electric_bike", "other"]),
@@ -115,16 +127,19 @@ const schema = z
        اكتمال الأجزاء الثلاثة فقط (دائماً ≥ 8 أحرف — 4 حد أدنى آمن) */
     vehicle_plate: z
       .string()
-      .min(4, "بيانات اللوحة كاملة إلزامية — المحافظة والرقم والحرف")
+      .min(4, "بيانات اللوحة إلزامية (الأقل 4 خانات)")
       .max(40),
-    /* فلسفة جديدة: رقم البطاقة الشخصية اليمنية إلزامي (نفس حقل
-       license_number في الـAPI — بلا أي تغيير في العقد) */
+    /* رقم الهوية/الإقامة السعودية أو البطاقة اليمنية — أرقام فقط
+       (نفس حقل license_number في الـAPI — بلا أي تغيير في العقد) */
     license_number: z
       .string()
       .min(5, "رقم البطاقة الشخصية مطلوب")
       .max(20, "رقم البطاقة 20 رقماً كحد أقصى")
       .regex(/^\d+$/, "أرقام فقط"),
-    region_id: z.number().int().positive(),
+    region_id: z
+      .number({ message: "اختر منطقة عملك من القائمة" })
+      .int("اختر منطقة عملك من القائمة")
+      .positive("اختر منطقة عملك من القائمة"),
     preferred_shifts: z.string().max(60).optional(),
   })
   .refine((v) => v.password === v.password_confirm, {
@@ -144,7 +159,7 @@ const DEFAULT_VALUES: FormValues = {
   vehicle_type: "motorcycle",
   vehicle_plate: "",
   license_number: "",
-  region_id: 1,
+  region_id: 0,
   preferred_shifts: "",
 };
 
@@ -290,20 +305,26 @@ export default function CourierRegisterPage() {
   const docUpload = useCourierDocUpload();
   const recheck = useCourierRecheck();
 
-  /* المناطق — GET /regions (عام بلا توكن) */
-  const regionsQuery = useQuery({
-    queryKey: ["courier:regions"],
-    queryFn: async () => {
-      const res = await fetch("/api/regions", {
-        headers: { Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error("تعذّر تحميل المناطق");
-      const data = await res.json();
-      return Array.isArray(data) ? data : (data.items ?? []);
-    },
-    staleTime: 10 * 60 * 1000,
-    retry: 1,
-  });
+  /* ─── سوق التسجيل (إصلاح الرفض السعودي) ───
+     الافتراضي «السعودية» (تركيز الإطلاق الحالي) ثم يتبنى سوق الجلسة
+     من مخزن السوق بعد إعادة الإحياء، وينقلب صامتاً من بادئة الجوال
+     (5… سعودي / 7… يمني) — نفس نمط تسجيل المالك. */
+  const [market, setMarket] = useState<MarketKey>("saudi");
+  const marketCountry: CountryCode = market === "saudi" ? "966" : "967";
+  useEffect(() => {
+    void Promise.resolve(useMarketStore.persist.rehydrate())
+      .then(() => setMarket(effectiveMarket(useMarketStore.getState().market)))
+      .catch(() => undefined);
+  }, []);
+
+  /* قائمتا المناطق بفلتر country_code الصريح (القاعدة البرونزية) —
+     تُصفّى محلياً بسوق التسجيل: بلا سباق جلب ولا مناطق سوق آخر */
+  const {
+    regions: marketRegions,
+    isLoading: regionsLoading,
+  } = useAllMarketRegions();
+  const regions =
+    marketCountry === "966" ? marketRegions.saudi : marketRegions.yemen;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -385,18 +406,35 @@ export default function CourierRegisterPage() {
   const submitBasic = handleSubmit((values) => {
     setDupPhone(false);
     setLoginRejected(false);
+    /* تحقق الجوال حسب سوق التسجيل (نمط تسجيل المالك):
+       سعودي 9 خانات تبدأ بـ 5 / يمني 9 خانات تبدأ بـ 7 */
+    const phoneErr =
+      market === "saudi"
+        ? validateSaudiPhone(values.phone)
+        : validateYemeniPhone(values.phone);
+    if (phoneErr) {
+      form.setError("phone", { message: phoneErr });
+      setStep(1);
+      return;
+    }
     registerMutation.mutate(
       {
         document_full_name: values.document_full_name,
         public_name: values.public_name,
         email: values.email,
-        phone: normalizeYemeniPhone(values.phone),
+        /* يمني "777123456" / سعودي "0501234567" — يطابق اتفاقية تسجيل المالك */
+        phone:
+          market === "saudi"
+            ? toSaudiLocalNumber(values.phone) || values.phone
+            : normalizeYemeniPhone(values.phone) || values.phone,
         password: values.password,
         password_confirm: values.password_confirm,
         vehicle_type: values.vehicle_type,
         vehicle_plate: values.vehicle_plate,
         license_number: values.license_number,
-        region_id: values.region_id,
+        region_id: values.region_id || null,
+        /* سوق المندوب — العقد يقبل (967|966) — إصلاح الرفض السعودي */
+        country_code: marketCountry,
         preferred_shifts: values.preferred_shifts || null,
       },
       {
@@ -704,18 +742,84 @@ export default function CourierRegisterPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-phone">رقم الجوال</Label>
+                  {/* شرائح السوق — الافتراضي من مخزن السوق (تركيز الإطلاق:
+                      السعودية)، والبادئة تقلب السوق صامتة (نمط تسجيل المالك) */}
+                  <div
+                    role="radiogroup"
+                    aria-label="سوق التسجيل"
+                    className="flex gap-2"
+                  >
+                    {([
+                      { key: "saudi" as MarketKey, label: "🇸🇦 السعودية (+966)" },
+                      { key: "yemen" as MarketKey, label: "🇾🇪 اليمن (+967)" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        role="radio"
+                        aria-checked={market === opt.key}
+                        onClick={() => {
+                          haptic("tick");
+                          if (market === opt.key) return;
+                          setMarket(opt.key);
+                          /* المنطقة تنتمي لسوق آخر → تصفيرها لتختار من قائمة سوقها */
+                          form.setValue("region_id", 0, { shouldValidate: false });
+                          form.clearErrors("region_id");
+                        }}
+                        className={cn(
+                          "flex min-h-[44px] flex-1 items-center justify-center rounded-xl border px-3 text-[13px] font-bold native-tap",
+                          market === opt.key
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/70 bg-background text-muted-foreground hover:border-primary/40",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                   <Controller
                     control={control}
                     name="phone"
                     render={({ field }) => (
-                      <PhoneInput
-                        id="reg-phone"
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        onBlur={field.onBlur}
-                        className="h-12"
-                        aria-invalid={Boolean(formState.errors.phone)}
-                      />
+                      <div className="relative">
+                        <Phone
+                          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                          aria-hidden="true"
+                        />
+                        <Input
+                          id="reg-phone"
+                          type="tel"
+                          inputMode="tel"
+                          dir="ltr"
+                          value={
+                            market === "saudi"
+                              ? formatSaudiPhoneDisplay(field.value)
+                              : formatYemeniPhoneDisplay(field.value)
+                          }
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            const normalized =
+                              market === "saudi"
+                                ? normalizeSaudiPhone(raw)
+                                : normalizeYemeniPhone(raw);
+                            field.onChange(normalized);
+                            /* اكتشاف صامت: 5… سعودي / 7… يمني — قلب السوق
+                               وتصفير المنطقة عند الانقلاب (نمط تسجيل المالك) */
+                            const detected = detectMarketFromPhone(normalized);
+                            if (detected && detected !== market) {
+                              setMarket(detected);
+                              form.setValue("region_id", 0, { shouldValidate: false });
+                              form.clearErrors("region_id");
+                            }
+                          }}
+                          onBlur={field.onBlur}
+                          disabled={Boolean(accountId)}
+                          autoComplete="tel"
+                          placeholder={market === "saudi" ? "5XX XXX XXX" : "777 123 456"}
+                          className="h-12 rounded-xl pl-9 pr-3 text-base tabular-nums tracking-wide"
+                          aria-invalid={Boolean(formState.errors.phone)}
+                        />
+                      </div>
                     )}
                   />
                   {formState.errors.phone && (
@@ -723,6 +827,11 @@ export default function CourierRegisterPage() {
                       {formState.errors.phone.message}
                     </p>
                   )}
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {market === "saudi"
+                      ? "رقم سعودي 9 خانات يبدأ بـ 5 — يقبل +966 أو 05 (مثال: 501234567)"
+                      : "رقم يمني 9 خانات يبدأ بـ 7 — يقبل +967 أو 09 (مثال: 777123456)"}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password">كلمة المرور</Label>
@@ -796,14 +905,26 @@ export default function CourierRegisterPage() {
                   <input type="hidden" {...register("vehicle_type")} />
                 </div>
 
-                {/* لوحة المركبة اليمنية — الأجزاء الثلاثة إلزامية */}
+                {/* لوحة المركبة — سعودية (نص حر) أو يمنية (الأجزاء الثلاثة) */}
                 <div className="space-y-2">
                   <Label
-                    htmlFor="reg-plate-digits"
+                    htmlFor={market === "saudi" ? "reg-plate-free" : "reg-plate-digits"}
                     className="leading-relaxed break-words"
                   >
-                    لوحة المركبة (البيانات الكاملة إلزامية)
+                    {market === "saudi"
+                      ? "لوحة المركبة (رقم اللوحة كما في الاستمارة)"
+                      : "لوحة المركبة (البيانات الكاملة إلزامية)"}
                   </Label>
+                  {market === "saudi" ? (
+                    <Input
+                      id="reg-plate-free"
+                      placeholder="مثال: أ ب ج 1234 أو ABC 1234"
+                      autoComplete="off"
+                      className="h-12 rounded-xl"
+                      aria-invalid={Boolean(formState.errors.vehicle_plate)}
+                      {...register("vehicle_plate")}
+                    />
+                  ) : (
                   <Controller
                     control={control}
                     name="vehicle_plate"
@@ -815,6 +936,7 @@ export default function CourierRegisterPage() {
                       />
                     )}
                   />
+                  )}
                   {formState.errors.vehicle_plate && (
                     <p role="alert" className="break-words text-xs text-destructive">
                       {formState.errors.vehicle_plate.message}
@@ -822,12 +944,14 @@ export default function CourierRegisterPage() {
                   )}
                 </div>
 
-                {/* فلسفة جديدة: رقم البطاقة الشخصية (نفس license_number) */}
+                {/* رقم الهوية/الإقامة السعودية أو البطاقة اليمنية (license_number) */}
                 <div className="space-y-2">
-                  <Label htmlFor="reg-idcard">رقم البطاقة الشخصية</Label>
+                  <Label htmlFor="reg-idcard">
+                    {market === "saudi" ? "رقم الهوية / الإقامة" : "رقم البطاقة الشخصية"}
+                  </Label>
                   <Input
                     id="reg-idcard"
-                    placeholder="مثال: 01234567"
+                    placeholder={market === "saudi" ? "مثال: 1098765432 (10 أرقام)" : "مثال: 01234567"}
                     inputMode="numeric"
                     dir="ltr"
                     autoComplete="off"
@@ -861,26 +985,27 @@ export default function CourierRegisterPage() {
                     id="reg-idcard-hint"
                     className="break-words text-[11px] leading-relaxed text-muted-foreground"
                   >
-                    رقم البطاقة الشخصية اليمنية كما هي — سيتطابق مع صورة
-                    الهوية المرفوعة
+                    {market === "saudi"
+                      ? "رقم الهوية السعودية أو الإقامة كما في الوثيقة — سيتطابق مع صورة الهوية المرفوعة"
+                      : "رقم البطاقة الشخصية اليمنية كما هي — سيتطابق مع صورة الهوية المرفوعة"}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label>منطقة العمل الأساسية</Label>
-                  {regionsQuery.isLoading ? (
+                  {regionsLoading ? (
                     <div className="flex h-12 items-center justify-center rounded-xl bg-muted text-sm text-muted-foreground">
                       جارٍ تحميل المناطق…
                     </div>
-                  ) : regionsQuery.isError ? (
+                  ) : regions.length === 0 ? (
                     <WaitMode
                       compact
-                      reason="تعذّر تحميل المناطق — تحقق من اتصالك"
-                      onRetry={() => void regionsQuery.refetch()}
+                      reason="تعذّر تحميل مناطق السوق — تحقق من اتصالك"
+                      onRetry={() => router.refresh()}
                     />
                   ) : (
                     <Select
-                      value={String(regionId)}
+                      value={regionId ? String(regionId) : ""}
                       onValueChange={(v) =>
                         setValue("region_id", Number(v), {
                           shouldValidate: true,
@@ -890,25 +1015,29 @@ export default function CourierRegisterPage() {
                       <SelectTrigger
                         className="h-12 rounded-xl native-tap"
                         dir="rtl"
+                        aria-invalid={Boolean(formState.errors.region_id)}
                       >
                         <SelectValue placeholder="اختر منطقتك" />
                       </SelectTrigger>
                       <SelectContent dir="rtl" className="max-h-72">
-                        {(regionsQuery.data as { id: number; name: string }[]).map(
-                          (r) => (
-                            <SelectItem key={r.id} value={String(r.id)}>
-                              <span className="flex items-center gap-1.5">
-                                <MapPin
-                                  className="h-3.5 w-3.5"
-                                  aria-hidden="true"
-                                />
-                                {r.name}
-                              </span>
-                            </SelectItem>
-                          ),
-                        )}
+                        {regions.map((r) => (
+                          <SelectItem key={r.id} value={String(r.id)}>
+                            <span className="flex items-center gap-1.5">
+                              <MapPin
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              />
+                              {r.name}
+                            </span>
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                  )}
+                  {formState.errors.region_id && (
+                    <p role="alert" className="text-xs text-destructive">
+                      اختر منطقة عملك من قائمة {market === "saudi" ? "المدن السعودية" : "المحافظات اليمنية"}
+                    </p>
                   )}
                 </div>
 

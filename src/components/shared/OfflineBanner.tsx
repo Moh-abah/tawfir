@@ -35,11 +35,17 @@ export function OfflineBanner() {
       : pathname.startsWith("/owner") || pathname.startsWith("/admin");
 
   const goOnline = useCallback(() => {
+    /* إصلاح التوست المتكرر (شكوى المالك): كان أي حدث online — حتى الزائف
+       أو المتكرر أثناء اتصال عامل — يعرض شريحة «تم استعادة الاتصال».
+       الآن لا تُعرض إلا بعد انقطاع فعلي سابق (الحالة كانت offline). */
     if (timerRef.current) clearTimeout(timerRef.current);
-    setBannerState("restored");
-    timerRef.current = setTimeout(() => {
-      setBannerState("online");
-    }, 3000);
+    setBannerState((cur) => {
+      if (cur !== "offline") return cur;
+      timerRef.current = setTimeout(() => {
+        setBannerState("online");
+      }, 3000);
+      return "restored";
+    });
   }, []);
 
   const goOffline = useCallback(() => {

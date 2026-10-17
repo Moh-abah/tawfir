@@ -36,6 +36,7 @@ import {
   ClipboardPaste,
   Crosshair,
   ExternalLink,
+  Link2,
   Loader2,
   MapPin,
   RotateCcw,
@@ -88,6 +89,47 @@ const DRAFT_TTL_MS = 30 * 60 * 1000;
 /** أول إحداثيين عشريين في نص (لصق من الخرائط): "15.3694, 44.1910" */
 const COORDS_RE = /-?\d{1,2}\.\d+\s*,\s*-?\d{1,3}\.\d+/;
 
+/**
+ * استخراج الإحداثيات من رابط خرائط قوقل (طلب المالك: لصق الرابط يستخرج
+ * الموقع كاملاً) — تغطي كل الصيغ الشائعة:
+ *   1) !3dLAT!4dLNG — روابط place/المشاركة
+ *   2) @LAT,LNG — روابط /maps/@ (الأكثر شيوعاً)
+ *   3) ?q=/query=/destination=/center=/ll=  (بفواصل عادية أو %2C)
+ *   4) نص إحداثيات خام "15.3694, 44.1910" (السلوك القديم)
+ */
+function extractCoordsFromMapLink(
+  text: string,
+): { lat: number; lng: number } | null {
+  const t = text.trim();
+  if (!t) return null;
+  const m34 = t.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+  if (m34) {
+    const lat = Number.parseFloat(m34[1]);
+    const lng = Number.parseFloat(m34[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  const mAt = t.match(/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/);
+  if (mAt) {
+    const lat = Number.parseFloat(mAt[1]);
+    const lng = Number.parseFloat(mAt[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  const mQ = t.match(
+    /[?&](?:q|query|destination|center|ll|mlat|mlng)=(-?\d{1,2}\.\d+)(?:%2C|,|\s)+(-?\d{1,3}\.\d+)/i,
+  );
+  if (mQ) {
+    const lat = Number.parseFloat(mQ[1]);
+    const lng = Number.parseFloat(mQ[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+  }
+  return extractCoords(t);
+}
+
+/** هل النص يشبه رابط خرائط (مطلوب لحل المختصرة maps.app.goo.gl) */
+function looksLikeMapUrl(text: string): boolean {
+  return /^https?:\/\//i.test(text.trim());
+}
+
 /** رابط Google الثابت — للرسم الخادمي (بلا navigator) */
 function googleViewFallback(lat: number, lng: number, label?: string): string {
   const query = label ? `${encodeURIComponent(label)}` : `${lat},${lng}`;
@@ -131,6 +173,9 @@ export function StoreLocationPicker({
   const [latInput, setLatInput] = useState("");
   const [lngInput, setLngInput] = useState("");
   const [coordError, setCoordError] = useState<string | null>(null);
+  /* رابط خرائط قوقل (طلب المالك): لصق الرابط → استخراج الموقع كاملاً */
+  const [linkInput, setLinkInput] = useState("");
+  const [linkBusy, setLinkBusy] = useState(false);
 
   /* التقاط الحافظة عند العودة من الخريطة (APK) */
   const captureArmedRef = useRef(false);
@@ -334,7 +379,79 @@ export function StoreLocationPicker({
     });
   };
 
-  /** قراءة الحافظة واستخراج الإحداثيات (يدوياً أو تلقائياً بعد العودة) */
+  /** تطبيق إحداثيات مستخرجة: تحقق ثم تعبئة الحقول مع توست نجاح */
+  const applyParsedCoords = (parsed: { lat: number; lng: number }): boolean => {
+    const err = validateCoords(parsed.lat, parsed.lng);
+    if (err) {
+      setCoordError(err);
+      toast({ title: "إحداثيات غير صالحة", description: err, variant: "destructive" });
+      return false;
+    }
+    setCoordError(null);
+    setLatInput(String(parsed.lat));
+    setLngInput(String(parsed.lng));
+    haptic("tick");
+    toast({
+      title: "تم استخراج موقع متجرك",
+      description: "راجعه ثم اضغط «تأكيد الموقع»",
+    });
+    return true;
+  };
+
+  /** حل رابط مختصر (maps.app.goo.gl) خادمياً عبر مسار الفرونت */
+  const resolveShortLink = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch("/api/utils/resolve-map-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { finalUrl?: string };
+      return data.finalUrl ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  /** استخراج الموقع من حقل الرابط (يتابع الروابط المختصرة تلقائياً) */
+  const extractFromLink = async () => {
+    if (disabled || linkBusy) return;
+    const text = linkInput.trim();
+    if (!text) {
+      setCoordError("الصق رابط موقعك من خرائط قوقل أولاً");
+      return;
+    }
+    setLinkBusy(true);
+    try {
+      let candidate = text;
+      let parsed = extractCoordsFromMapLink(candidate);
+      if (!parsed && looksLikeMapUrl(candidate)) {
+        const finalUrl = await resolveShortLink(candidate);
+        if (finalUrl) {
+          candidate = finalUrl;
+          parsed = extractCoordsFromMapLink(candidate);
+        }
+      }
+      if (!parsed) {
+        setCoordError(
+          "لم أجد موقعاً في الرابط — تأكد أن الرابط من خرائط قوقل ويشير إلى متجرك",
+        );
+        toast({
+          title: "لم أجد الإحداثيات في الرابط",
+          description:
+            "افتح الرابط في خرائط قوقل ثم شاركه مجدداً (شارك ← نسخ الرابط) وحاول مرة أخرى",
+          variant: "destructive",
+        });
+        return;
+      }
+      applyParsedCoords(parsed);
+    } finally {
+      setLinkBusy(false);
+    }
+  };
+
+  /** قراءة الحافظة واستخراج الإحداثيات/الرابط (يدوياً أو تلقائياً بعد العودة) */
   const pasteFromClipboard = async (auto: boolean) => {
     if (disabled) return;
     let text: string | null = null;
@@ -352,32 +469,26 @@ export function StoreLocationPicker({
       });
       return;
     }
-    const parsed = extractCoords(text);
+    const parsed = extractCoordsFromMapLink(text);
     if (!parsed) {
+      /* الرابط المختصر بلا إحداثيات → حله خادمياً ثم حاول مرة أخرى */
+      if (looksLikeMapUrl(text)) {
+        const finalUrl = await resolveShortLink(text);
+        const reparsed = finalUrl ? extractCoordsFromMapLink(finalUrl) : null;
+        if (reparsed && applyParsedCoords(reparsed)) return;
+      }
       setCoordError(
-        "لم أجد إحداثيات في الحافظة — انسخ الإحداثيات من الخريطة بصيغة مثل 15.3694, 44.1910",
+        "لم أجد إحداثيات في الحافظة — الصق رابط الموقع من خرائط قوقل أو الإحداثيات بصيغة 15.3694, 44.1910",
       );
       toast({
-        title: "لا توجد إحداثيات في الحافظة",
-        description: "اضغط مطولاً على موقع متجرك في الخريطة ثم اختر نسخ الإحداثيات",
+        title: "لم أجد إحداثيات في الحافظة",
+        description:
+          "في خرائط قوقل: شارك ← نسخ الرابط، أو اضغط مطولاً على الموقع وانسخ الإحداثيات",
         variant: "destructive",
       });
       return;
     }
-    const err = validateCoords(parsed.lat, parsed.lng);
-    if (err) {
-      setCoordError(err);
-      toast({ title: "إحداثيات غير صالحة", description: err, variant: "destructive" });
-      return;
-    }
-    setCoordError(null);
-    setLatInput(String(parsed.lat));
-    setLngInput(String(parsed.lng));
-    haptic("tick");
-    toast({
-      title: "تم لصق إحداثيات متجرك",
-      description: "راجعها ثم اضغط «تأكيد الموقع»",
-    });
+    applyParsedCoords(parsed);
   };
 
   const confirmCoords = () => {
@@ -663,6 +774,63 @@ export function StoreLocationPicker({
                 افتح الخريطة والتقط الموقع
               </Button>
             )}
+          </div>
+
+          {/* ─── لصق رابط خرائط قوقل مباشرة (طلب المالك) ───
+              افتح خرائط قوقل ← ابحث عن متجرك ← شارك ← نسخ الرابط —
+              ثم الصقه هنا ونستخرج الموقع كاملاً (يتابع الروابط
+              المختصرة maps.app.goo.gl تلقائياً خادمياً) */}
+          <div className="space-y-2 rounded-xl border border-primary/25 bg-primary/[0.04] p-3">
+            <Label
+              htmlFor={`${idPrefix}-maplink`}
+              className="flex items-center gap-1.5 text-xs font-bold text-foreground"
+            >
+              <Link2 className="h-4 w-4 text-primary" aria-hidden="true" />
+              أو الصق رابط موقعك من خرائط قوقل
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                id={`${idPrefix}-maplink`}
+                value={linkInput}
+                onChange={(e) => {
+                  setLinkInput(e.target.value);
+                  setCoordError(null);
+                }}
+                disabled={disabled || linkBusy}
+                type="url"
+                dir="ltr"
+                inputMode="url"
+                autoComplete="off"
+                placeholder="https://maps.app.goo.gl/…"
+                className="h-11 min-w-0 flex-1 rounded-xl text-[13px]"
+                aria-describedby={coordError ? `${idPrefix}-coord-error` : undefined}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void extractFromLink();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void extractFromLink()}
+                disabled={disabled || linkBusy || !linkInput.trim()}
+                className="h-11 shrink-0 gap-1.5 rounded-xl px-4 font-bold native-tap"
+                aria-label="استخراج الموقع من الرابط"
+              >
+                {linkBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Crosshair className="h-4 w-4" aria-hidden="true" />
+                )}
+                استخراج
+              </Button>
+            </div>
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              خرائط قوقل ← ابحث عن متجرك ← <span className="font-bold">شارك</span> ←
+              نسخ الرابط — والصقه هنا وسنستخرج الموقع تلقائياً
+            </p>
           </div>
 
           {/* إدخال الإحداثيات الدقيق */}
