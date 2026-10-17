@@ -50,6 +50,7 @@ import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl, formatCurrency } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import type {
   Facility,
   SpecialOfferOut,
@@ -58,15 +59,17 @@ import type {
 /* ─── تبويبات البحث ─────────────────────────────────── */
 type SearchTab = "all" | "products" | "facilities" | "offers";
 
-const TABS: { key: SearchTab; label: string; icon: typeof Search }[] = [
-  { key: "all", label: "الكل", icon: Search },
-  { key: "products", label: "وجبات", icon: UtensilsCrossed },
-  { key: "facilities", label: "متاجر", icon: Store },
-  { key: "offers", label: "عروض", icon: Flame },
+/* مفاتيح القاموس — العرض عبر t() ليعمل بلغتين */
+const TABS: { key: SearchTab; labelKey: string; icon: typeof Search }[] = [
+  { key: "all", labelKey: "catalog.search.tabAll", icon: Search },
+  { key: "products", labelKey: "catalog.search.tabMeals", icon: UtensilsCrossed },
+  { key: "facilities", labelKey: "catalog.search.tabStores", icon: Store },
+  { key: "offers", labelKey: "catalog.search.tabOffers", icon: Flame },
 ];
 
 /* ─── صف متجر مدمج (نتيجة بحث) ─────────────────────── */
 function FacilityResultRow({ facility }: { facility: Facility }) {
+  const { t } = useLang();
   const TypeIcon = TYPE_ICON[facility.type] ?? Store;
   return (
     <Link
@@ -94,7 +97,9 @@ function FacilityResultRow({ facility }: { facility: Facility }) {
         </p>
         <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
           <TypeIcon className="h-3 w-3" aria-hidden="true" />
-          {TYPE_LABEL[facility.type] ?? "متجر"}
+          {TYPE_LABEL[facility.type]
+            ? t(`catalog.type.${facility.type}`)
+            : t("catalog.search.defaultType")}
           {facility.address != null && facility.address.trim() !== "" && (
             <span className="truncate">· {facility.address}</span>
           )}
@@ -102,7 +107,7 @@ function FacilityResultRow({ facility }: { facility: Facility }) {
       </div>
       {facility.discount_rate != null && facility.discount_rate > 0 && (
         <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-extrabold text-accent-foreground">
-          خصم {facility.discount_rate}%
+          {t("catalog.facilities.discount", { rate: facility.discount_rate })}
         </span>
       )}
       <ChevronLeft
@@ -127,6 +132,7 @@ function ResultSection({
   onShowAll?: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useLang();
   return (
     <section className="space-y-2.5" aria-label={title}>
       <div className="flex items-center justify-between gap-2">
@@ -135,7 +141,7 @@ function ResultSection({
           {title}
           <span
             className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-muted-foreground"
-            aria-label={`${count} نتيجة`}
+            aria-label={t("catalog.search.resultsAria", { count })}
           >
             {count}
           </span>
@@ -149,7 +155,7 @@ function ResultSection({
             }}
             className="native-tap inline-flex min-h-[36px] items-center gap-0.5 rounded-full px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
           >
-            عرض الكل
+            {t("common.viewAll")}
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         )}
@@ -161,6 +167,7 @@ function ResultSection({
 
 /* ─── الشاشة الرئيسية للبحث الموحّد ─────────────────── */
 export function SearchContent() {
+  const { t } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -357,12 +364,12 @@ export function SearchContent() {
 
   return (
     <>
-      <ScreenHeader title="البحث" fallbackHref="/" />
+      <ScreenHeader title={t("catalog.search.title")} fallbackHref="/" />
 
       <div className="mx-auto w-full max-w-7xl px-4 pb-24 pt-4 sm:px-6 sm:pt-6">
         {/* الجولة 21 — Breadcrumbs للـSEO */}
         <Breadcrumbs
-          items={[{ label: "البحث" }]}
+          items={[{ label: t("catalog.search.title") }]}
           className="mb-3"
         />
         {/* حقل البحث — كبير وثابت أعلى الشاشة */}
@@ -376,8 +383,8 @@ export function SearchContent() {
               type="search"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="ابحث عن وجبة أو متجر أو عرض..."
-              aria-label="البحث في توفير"
+              placeholder={t("catalog.search.placeholder")}
+              aria-label={t("catalog.search.aria")}
               className="min-h-[52px] rounded-2xl pr-12 text-base font-medium shadow-soft"
               inputMode="search"
               autoFocus
@@ -389,7 +396,7 @@ export function SearchContent() {
                   haptic("tick");
                   setSearchInput("");
                 }}
-                aria-label="مسح البحث"
+                aria-label={t("catalog.search.clearAria")}
                 className="native-tap absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <X className="h-4 w-4" aria-hidden="true" />
@@ -406,7 +413,7 @@ export function SearchContent() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
                 role="tablist"
-                aria-label="نوع نتائج البحث"
+                aria-label={t("catalog.search.tabsAria")}
                 className="mt-2.5 flex gap-1.5 overflow-x-auto no-mobile-scrollbar"
               >
                 {TABS.map((tab) => {
@@ -430,7 +437,7 @@ export function SearchContent() {
                       )}
                     >
                       <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                      {tab.label}
+                      {t(tab.labelKey)}
                       <span
                         className={cn(
                           "rounded-full px-1.5 text-[10px] tabular-nums",
@@ -451,7 +458,7 @@ export function SearchContent() {
                     haptic("tick");
                     setFiltersOpen(true);
                   }}
-                  aria-label="تصفية النتائج وترتيبها"
+                  aria-label={t("catalog.search.filtersAria")}
                   className={cn(
                     "native-tap inline-flex min-h-[40px] shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-all duration-150",
                     activeFilterCount > 0
@@ -460,7 +467,7 @@ export function SearchContent() {
                   )}
                 >
                   <ListFilter className="h-3.5 w-3.5" aria-hidden="true" />
-                  فلترة
+                  {t("catalog.search.filters")}
                   {activeFilterCount > 0 && (
                     <span className="rounded-full bg-primary px-1.5 text-[10px] font-extrabold tabular-nums text-primary-foreground">
                       {activeFilterCount}
@@ -476,11 +483,11 @@ export function SearchContent() {
         {!isSearching ? (
           <div className="space-y-6 pt-2">
             {recentSearches.length > 0 && (
-              <section aria-label="بحثك الأخير">
+              <section aria-label={t("catalog.search.recentTitle")}>
                 <div className="mb-2.5 flex items-center justify-between">
                   <h2 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                     <History className="h-4 w-4 text-primary" aria-hidden="true" />
-                    بحثك الأخير
+                    {t("catalog.search.recentTitle")}
                   </h2>
                   <button
                     type="button"
@@ -490,7 +497,7 @@ export function SearchContent() {
                     }}
                     className="native-tap inline-flex min-h-[36px] items-center rounded-full px-2.5 text-xs font-bold text-muted-foreground transition-colors hover:text-destructive"
                   >
-                    مسح الكل
+                    {t("catalog.search.clearAll")}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -512,7 +519,7 @@ export function SearchContent() {
                           haptic("tick");
                           removeRecentSearch(term);
                         }}
-                        aria-label={`إزالة ${term} من البحث الأخير`}
+                        aria-label={t("catalog.search.removeAria", { term })}
                         className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
                       >
                         <X className="h-2.5 w-2.5" aria-hidden="true" />
@@ -530,11 +537,10 @@ export function SearchContent() {
               </span>
               <div className="space-y-1">
                 <p className="text-base font-extrabold text-foreground">
-                  ابحث في كل شيء
+                  {t("catalog.search.hintTitle")}
                 </p>
                 <p className="max-w-[300px] text-xs leading-relaxed text-muted-foreground">
-                  وجباتك المفضلة، المطاعم والكافتيريات القريبة، وعروض توفير
-                  الحصرية — كلها من حقل بحث واحد.
+                  {t("catalog.search.hintDesc")}
                 </p>
               </div>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-muted-foreground/70">
@@ -551,15 +557,15 @@ export function SearchContent() {
             {productsQuery.error && activeTab !== "facilities" && activeTab !== "offers" && (
               <EmptyState
                 icon={SearchX}
-                title="تعذّر إكمال البحث"
-                description="حدث خطأ أثناء جلب النتائج. تحقّق من اتصالك وحاول مرة أخرى."
+                title={t("catalog.search.errorTitle")}
+                description={t("catalog.search.errorDesc")}
                 action={
                   <button
                     type="button"
                     onClick={() => productsQuery.refetch()}
                     className="native-tap inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
                   >
-                    إعادة المحاولة
+                    {t("common.retry")}
                   </button>
                 }
               />
@@ -570,7 +576,7 @@ export function SearchContent() {
               <div className="space-y-7">
                 {/* الوجبات (أقصى 6) */}
                 <ResultSection
-                  title="وجبات"
+                  title={t("catalog.search.tabMeals")}
                   count={visibleProducts.length}
                   icon={UtensilsCrossed}
                   onShowAll={() => setActiveTab("products")}
@@ -586,7 +592,7 @@ export function SearchContent() {
                     </div>
                   ) : visibleProducts.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-                      لا توجد وجبات تطابق «{trimmedSearch}» بفلاتر الحالية
+                      {t("catalog.search.noMealsMatch", { query: trimmedSearch })}
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
@@ -599,7 +605,7 @@ export function SearchContent() {
 
                 {/* المتاجر (أقصى 3) */}
                 <ResultSection
-                  title="متاجر"
+                  title={t("catalog.search.tabStores")}
                   count={visibleFacilities.length}
                   icon={Store}
                   onShowAll={() => setActiveTab("facilities")}
@@ -612,7 +618,7 @@ export function SearchContent() {
                     </div>
                   ) : visibleFacilities.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-                      لا توجد متاجر تطابق «{trimmedSearch}» بفلاتر الحالية
+                      {t("catalog.search.noStoresMatch", { query: trimmedSearch })}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -625,7 +631,7 @@ export function SearchContent() {
 
                 {/* العروض الخاصة (أقصى 4) */}
                 <ResultSection
-                  title="عروض خاصة"
+                  title={t("catalog.search.sectionOffers")}
                   count={matchedOffers.length}
                   icon={Flame}
                   onShowAll={() => setActiveTab("offers")}
@@ -641,7 +647,7 @@ export function SearchContent() {
                     </div>
                   ) : matchedOffers.length === 0 ? (
                     <p className="rounded-xl bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-                      لا توجد عروض خاصة تطابق «{trimmedSearch}» حالياً
+                      {t("catalog.search.noOffersMatch", { query: trimmedSearch })}
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
@@ -664,19 +670,19 @@ export function SearchContent() {
                   <div className="space-y-6">
                     <EmptyState
                       icon={SearchX}
-                      title={`لا نتائج لـ «${trimmedSearch}»`}
-                      description="جرّب كلمة أقصر أو تهجئة مختلفة — أو اكتشف المتاح الآن بالأسفل."
+                      title={t("catalog.search.noResultsTitle", { query: trimmedSearch })}
+                      description={t("catalog.search.noResultsDesc")}
                     />
 
                     {/* رقائق اقتراح — كلمات مشتقة من وجبات حقيقية متاحة */}
                     {suggestionTerms.length > 0 && (
-                      <section aria-label="اقتراحات بحث">
+                      <section aria-label={t("catalog.search.suggestAria")}>
                         <h3 className="mb-2.5 flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                           <Sparkles
                             className="h-4 w-4 text-primary"
                             aria-hidden="true"
                           />
-                          جرّب البحث عن
+                          {t("catalog.search.suggestTitle")}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                           {suggestionTerms.map((term) => (
@@ -698,13 +704,13 @@ export function SearchContent() {
 
                     {/* بحثك الأخير — إعادة الوصول السريع */}
                     {recentSearches.length > 0 && (
-                      <section aria-label="بحثك الأخير">
+                      <section aria-label={t("catalog.search.recentTitle")}>
                         <h3 className="mb-2.5 flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                           <History
                             className="h-4 w-4 text-primary"
                             aria-hidden="true"
                           />
-                          بحثك الأخير
+                          {t("catalog.search.recentTitle")}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                           {recentSearches.slice(0, 5).map((term) => (
@@ -742,20 +748,20 @@ export function SearchContent() {
                         ))}
                       </div>
                     ) : discoveryProducts.length > 0 ? (
-                      <section aria-label="وجبات متاحة الآن">
+                      <section aria-label={t("catalog.search.availableNowAria")}>
                         <div className="mb-2.5 flex items-center justify-between">
                           <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                             <UtensilsCrossed
                               className="h-4 w-4 text-primary"
                               aria-hidden="true"
                             />
-                            متاح الآن — قد يعجبك
+                            {t("catalog.search.availableNowTitle")}
                           </h3>
                           <Link
                             href="/"
                             className="native-tap inline-flex min-h-[36px] items-center gap-0.5 rounded-full px-2 text-xs font-bold text-primary transition-colors hover:bg-primary/10"
                           >
-                            الرئيسية
+                            {t("nav.home")}
                             <ChevronLeft
                               className="h-3.5 w-3.5"
                               aria-hidden="true"
@@ -824,8 +830,8 @@ export function SearchContent() {
                 ) : visibleProducts.length === 0 ? (
                   <EmptyState
                     icon={UtensilsCrossed}
-                    title="لا توجد وجبات مطابقة"
-                    description={`لا توجد وجبات تطابق «${trimmedSearch}» بفلاتر البحث الحالية. جرّب كلمة أخرى أو خفّف الفلاتر.`}
+                    title={t("catalog.search.noMealsTitle")}
+                    description={t("catalog.search.noMealsDesc", { query: trimmedSearch })}
                     action={
                       activeFilterCount > 0 ? (
                         <button
@@ -833,7 +839,7 @@ export function SearchContent() {
                           onClick={() => setFilters(DEFAULT_SEARCH_FILTERS)}
                           className="native-tap inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                         >
-                          إزالة الفلاتر
+                          {t("catalog.search.removeFilters")}
                         </button>
                       ) : undefined
                     }
@@ -860,14 +866,14 @@ export function SearchContent() {
                 ) : visibleFacilities.length === 0 ? (
                   <EmptyState
                     icon={Store}
-                    title="لا توجد متاجر مطابقة"
-                    description={`لا توجد متاجر تطابق «${trimmedSearch}» في منطقتك الحالية.`}
+                    title={t("catalog.search.noStoresTitle")}
+                    description={t("catalog.search.noStoresDesc", { query: trimmedSearch })}
                     action={
                       <Link
                         href="/facilities"
                         className="native-tap inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                       >
-                        كل المتاجر
+                        {t("catalog.search.allStores")}
                       </Link>
                     }
                   />
@@ -896,14 +902,14 @@ export function SearchContent() {
                 ) : matchedOffers.length === 0 ? (
                   <EmptyState
                     icon={Flame}
-                    title="لا توجد عروض مطابقة"
-                    description={`لا توجد عروض خاصة تطابق «${trimmedSearch}» حالياً — عُد لاحقاً لعروض جديدة.`}
+                    title={t("catalog.search.noOffersTitle")}
+                    description={t("catalog.search.noOffersDesc", { query: trimmedSearch })}
                     action={
                       <Link
                         href="/offers"
                         className="native-tap inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                       >
-                        كل العروض
+                        {t("catalog.search.allOffers")}
                       </Link>
                     }
                   />

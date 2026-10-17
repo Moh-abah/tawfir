@@ -24,7 +24,6 @@ import { ScreenHeader } from "@/components/shared/ScreenHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
   DeliveryFields,
-  MISSING_LOCATION_MSG,
   type CheckoutPaymentMethod,
   type DeliveryMode,
 } from "@/components/public/DeliveryFields";
@@ -33,6 +32,7 @@ import { useCartStore } from "@/store/cart.store";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
@@ -51,6 +51,7 @@ import type { OrderOut, PaymentMethod } from "@/types/api.generated";
  */
 
 export function CartPageContent() {
+  const { t } = useLang();
   const router = useRouter();
   const {
     items,
@@ -106,15 +107,15 @@ export function CartPageContent() {
     }
     /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي (في التوصيل) */
     if (!isHandover && (lat == null || lng == null)) {
-      setErrorMsg(MISSING_LOCATION_MSG);
+      setErrorMsg(t("cart.missingLocation"));
       return;
     }
     if (!isHandover && address.trim().length === 0) {
-      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      setErrorMsg(t("cart.writeAddress"));
       return;
     }
     if (walletMissing) {
-      setErrorMsg("اختر محفظة الدفع أولاً — من قائمة محافظ المتجر");
+      setErrorMsg(t("cart.pickWallet"));
       return;
     }
     setErrorMsg(null);
@@ -152,18 +153,21 @@ export function CartPageContent() {
           setSuccessOrder(data);
           clearCart();
           toast({
-            title: `تم استلام طلبك بنجاح #${data.id}`,
-            description: `${items.length} أصناف من ${facilityName}`,
+            title: t("cart.toastReceived", { id: data.id }),
+            description: t("cart.itemsFromMany", {
+              count: items.length,
+              facility: facilityName ?? "",
+            }),
           });
         },
         onError: (err) => {
           const e = err as { message?: string; status?: number };
           haptic("light");
           if (e.status === 0 || /اتصال|شبكة|internet/i.test(e.message ?? "")) {
-            setErrorMsg("يتطلب هذا الإجراء اتصالاً بالإنترنت.");
+            setErrorMsg(t("cart.requiresInternet"));
             return;
           }
-          setErrorMsg(e.message?.trim() || "تعذّر إتمام الطلب. حاول مرة أخرى.");
+          setErrorMsg(e.message?.trim() || t("cart.orderFailed"));
         },
       },
     );
@@ -179,12 +183,12 @@ export function CartPageContent() {
   if (items.length === 0) {
     return (
       <>
-        <ScreenHeader title="سلة الطلبات" fallbackHref="/" />
+        <ScreenHeader title={t("cart.title")} fallbackHref="/" />
         <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
           <EmptyState
             icon={ShoppingCart}
-            title="سلتك فارغة"
-            description="أضف وجباتك المفضلة من المتاجر بالضغط على أيقونة السلة في كل وجبة، ثم أكمل الطلب دفعة واحدة من هنا."
+            title={t("cart.emptyTitle")}
+            description={t("cart.emptyPageDesc")}
             action={
               <div className="flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
                 <Link
@@ -192,14 +196,14 @@ export function CartPageContent() {
                   className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   <Store className="h-4 w-4" aria-hidden="true" />
-                  تصفّح المتاجر
+                  {t("cart.browseStores")}
                 </Link>
                 <Link
                   href="/offers"
                   className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
                 >
                   <Sparkles className="h-4 w-4 text-accent-ink" aria-hidden="true" />
-                  العروض الخاصة
+                  {t("cart.specialOffers")}
                 </Link>
               </div>
             }
@@ -212,7 +216,7 @@ export function CartPageContent() {
   /* ─── صفحة السلة الممتلئة ─── */
   return (
     <>
-      <ScreenHeader title="سلة الطلبات" fallbackHref="/" />
+      <ScreenHeader title={t("cart.title")} fallbackHref="/" />
       <div className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-6 sm:py-6">
         {/* رأس المتجر */}
         <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-border/50 bg-card p-3.5 shadow-soft sm:p-4">
@@ -225,7 +229,9 @@ export function CartPageContent() {
                 {facilityName}
               </p>
               <p className="text-[11px] text-muted-foreground">
-                {totalCount} {totalCount === 1 ? "صنف" : "أصناف"} في السلة
+                {totalCount === 1
+                  ? t("cart.itemsInCartOne", { count: totalCount })
+                  : t("cart.itemsInCartMany", { count: totalCount })}
               </p>
             </div>
           </div>
@@ -236,7 +242,7 @@ export function CartPageContent() {
                 className="native-tap hidden min-h-[40px] items-center gap-1 rounded-full border border-border/60 px-3 text-xs font-bold text-foreground transition-colors hover:bg-muted sm:inline-flex"
               >
                 <Store className="h-3.5 w-3.5" aria-hidden="true" />
-                زيارة المتجر
+                {t("cart.visitStore")}
               </Link>
             )}
             <button
@@ -244,13 +250,13 @@ export function CartPageContent() {
               onClick={() => {
                 haptic("tick");
                 clearCart();
-                toast({ title: "تم إفراغ السلة" });
+                toast({ title: t("cart.clearedToast") });
               }}
               className="native-tap inline-flex min-h-[40px] items-center gap-1 rounded-full px-3 text-xs font-bold text-muted-foreground transition-colors hover:text-destructive"
-              aria-label="إفراغ السلة كاملة"
+              aria-label={t("cart.clearAllAria")}
             >
               <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-              إفراغ
+              {t("cart.clear")}
             </button>
           </div>
         </div>
@@ -286,7 +292,7 @@ export function CartPageContent() {
             <section className="space-y-4 rounded-2xl border border-border/50 bg-card p-4 shadow-soft sm:p-5">
               <h2 className="flex items-center gap-2 text-sm font-extrabold text-foreground">
                 <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-                بيانات الطلب
+                {t("cart.orderDetails")}
               </h2>
 
               {/* موقع التوصيل + طريقة الدفع + ملاحظات — نفس حقول CheckoutSheet (2-c) */}
@@ -330,12 +336,12 @@ export function CartPageContent() {
                     aria-hidden="true"
                   />
                   <p>
-                    سجّل الدخول لإتمام الطلب — ستبقى أصناف سلتك محفوظة كما هي.
+                    {t("cart.loginNote")}
                     <Link
                       href="/login?next=/cart"
                       className="mr-1 font-bold text-primary underline underline-offset-2"
                     >
-                      تسجيل الدخول
+                      {t("common.signIn")}
                     </Link>
                   </p>
                 </div>
@@ -360,14 +366,15 @@ export function CartPageContent() {
           <aside className="lg:sticky lg:top-20 lg:self-start">
             <div className="space-y-3 rounded-2xl border border-border/50 bg-card p-4 shadow-soft sm:p-5">
               <h2 className="text-sm font-extrabold text-foreground">
-                ملخص الفاتورة
+                {t("cart.invoiceSummary")}
               </h2>
 
-              <div className="space-y-2 text-sm" dir="rtl">
+              <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
-                    المجموع الأصلي ({totalCount}{" "}
-                    {totalCount === 1 ? "صنف" : "أصناف"})
+                    {totalCount === 1
+                      ? t("cart.originalTotalOne", { count: totalCount })
+                      : t("cart.originalTotalMany", { count: totalCount })}
                   </span>
                   <span
                     className="font-bold tabular-nums text-foreground"
@@ -381,15 +388,15 @@ export function CartPageContent() {
                     عند تأكيد الطلب، والإجمالي النهائي من رد الطلب نفسه. */}
                 {isMember && (
                   <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
-                    خصم المنشأة (إن فعّلها التاجر) يُطبَّق تلقائياً عند تأكيد الطلب
+                    {t("cart.facilityDiscountNote")}
                   </p>
                 )}
 
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">أجرة التوصيل</span>
+                  <span className="text-muted-foreground">{t("cart.deliveryFee")}</span>
                   {isHandover ? (
                     <span className="text-xs font-bold text-muted-foreground">
-                      استلام من المتجر — بلا أجرة
+                      {t("cart.handoverNoFee")}
                     </span>
                   ) : deliveryFee != null ? (
                     <span
@@ -400,7 +407,7 @@ export function CartPageContent() {
                     </span>
                   ) : (
                     <span className="text-xs font-bold text-muted-foreground">
-                      تُحسب حسب المسافة عند التأكيد
+                      {t("cart.feeByDistance")}
                     </span>
                   )}
                 </div>
@@ -409,7 +416,7 @@ export function CartPageContent() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-base font-extrabold text-foreground">
-                    الإجمالي
+                    {t("cart.total")}
                   </span>
                   {displayTotal != null ? (
                     <span
@@ -419,11 +426,8 @@ export function CartPageContent() {
                       {formatCurrency(displayTotal)}
                     </span>
                   ) : (
-                    <span
-                      className="text-base font-extrabold tabular-nums text-primary"
-                      dir="rtl"
-                    >
-                      {formatCurrency(subtotal)} + الأجرة
+                    <span className="text-base font-extrabold tabular-nums text-primary">
+                      {t("cart.plusFee", { subtotal: formatCurrency(subtotal) })}
                     </span>
                   )}
                 </div>
@@ -436,8 +440,8 @@ export function CartPageContent() {
                   className="text-center text-[11px] font-bold text-muted-foreground"
                 >
                   {lat == null || lng == null
-                    ? MISSING_LOCATION_MSG
-                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                    ? t("cart.missingLocation")
+                    : t("cart.writeAddressShort")}
                 </p>
               )}
               {walletMissing && !createOrder.isPending && (
@@ -445,7 +449,7 @@ export function CartPageContent() {
                   role="note"
                   className="text-center text-[11px] font-bold text-accent-ink"
                 >
-                  اختر محفظة المتجر لإتمام الدفع بالتحويل
+                  {t("cart.pickWalletNote")}
                 </p>
               )}
               {paymentMethod === "electronic" && !createOrder.isPending && (
@@ -453,7 +457,7 @@ export function CartPageContent() {
                   role="note"
                   className="text-center text-[11px] font-bold text-accent-ink"
                 >
-                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                  {t("cart.electronicNote")}
                 </p>
               )}
 
@@ -488,18 +492,17 @@ export function CartPageContent() {
                 )}
                 {createOrder.isPending
                   ? paymentMethod === "electronic"
-                    ? "جارٍ تجهيز شاشة الدفع..."
-                    : "جارٍ إرسال الطلب..."
+                    ? t("cart.preparingPay")
+                    : t("cart.sending")
                   : paymentMethod === "electronic"
-                    ? "الدفع الإلكتروني وإتمام الطلب"
+                    ? t("cart.payElectronic")
                     : displayTotal != null
-                      ? `تأكيد الطلب — ${formatCurrency(displayTotal)}`
-                      : "تأكيد الطلب"}
+                      ? t("cart.confirmWithTotal", { total: formatCurrency(displayTotal) })
+                      : t("cart.confirmOrder")}
               </Button>
 
               <p className="text-center text-[10px] leading-relaxed text-muted-foreground">
-                بالضغط على «تأكيد الطلب» أنت توافق على شروط الاستخدام وسياسة
-                الخصوصية.
+                {t("cart.termsNote")}
               </p>
             </div>
           </aside>
@@ -535,20 +538,19 @@ export function CartPageContent() {
             )}
             {createOrder.isPending
               ? paymentMethod === "electronic"
-                ? "جارٍ تجهيز شاشة الدفع..."
-                : "جارٍ الإرسال..."
+                ? t("cart.preparingPay")
+                : t("cart.sendingShort")
               : paymentMethod === "electronic"
-                ? "الدفع الإلكتروني وإتمام الطلب"
-                : "تأكيد الطلب"}
+                ? t("cart.payElectronic")
+                : t("cart.confirmOrder")}
           </span>
           <span
             className="text-base font-extrabold tabular-nums"
-            dir={displayTotal != null ? "ltr" : "rtl"}
             aria-hidden="true"
           >
             {displayTotal != null
               ? formatCurrency(displayTotal)
-              : `${formatCurrency(subtotal)} + الأجرة`}
+              : t("cart.plusFee", { subtotal: formatCurrency(subtotal) })}
           </span>
         </button>
       </div>
@@ -568,6 +570,7 @@ function CartPageLine({
   onUpdate: (qty: number) => void;
   onRemove: () => void;
 }) {
+  const { t } = useLang();
   const max = item.available_quantity == null ? 99 : item.available_quantity;
   const prefersReduced = useReducedMotion();
 
@@ -621,13 +624,13 @@ function CartPageLine({
                   {formatCurrency(item.unit)}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  / للوحدة
+                  {t("cart.perUnit")}
                 </span>
               </div>
             </div>
             {/* مجموع السطر */}
             <div className="shrink-0 text-left" dir="ltr">
-              <p className="text-[10px] text-muted-foreground">المجموع</p>
+              <p className="text-[10px] text-muted-foreground">{t("cart.lineTotal")}</p>
               <p className="text-sm font-extrabold tabular-nums text-primary sm:text-base">
                 {formatCurrency(item.lineTotal)}
               </p>
@@ -643,7 +646,7 @@ function CartPageLine({
                 size="icon"
                 className="h-9 w-9 rounded-full"
                 onClick={() => onUpdate(Math.max(0, item.quantity - 1))}
-                aria-label="إنقاص الكمية"
+                aria-label={t("cart.decreaseQty")}
               >
                 <Minus className="h-4 w-4" aria-hidden="true" />
               </Button>
@@ -660,7 +663,7 @@ function CartPageLine({
                 className="h-9 w-9 rounded-full"
                 onClick={() => onUpdate(Math.min(max, item.quantity + 1))}
                 disabled={item.quantity >= max}
-                aria-label="زيادة الكمية"
+                aria-label={t("cart.increaseQty")}
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
               </Button>
@@ -669,7 +672,7 @@ function CartPageLine({
               type="button"
               onClick={onRemove}
               className="native-tap inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-destructive"
-              aria-label={`حذف ${item.name} من السلة`}
+              aria-label={t("cart.removeItem", { name: item.name })}
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -682,6 +685,7 @@ function CartPageLine({
 
 /* ─── اقتراح العضوية الذكي — لغير الأعضاء ─── */
 function MembershipUpsell() {
+  const { t } = useLang();
   return (
     <Link
       href="/membership/subscribe"
@@ -693,15 +697,15 @@ function MembershipUpsell() {
         </span>
         <div className="min-w-0">
           <p className="text-sm font-extrabold text-foreground">
-            اشترك بالعضوية ووفّر أكثر
+            {t("cart.membershipUpsell")}
           </p>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            خصومات حصرية على كل وجباتك من المتاجر المشتركة.
+            {t("cart.membershipUpsellDesc")}
           </p>
         </div>
       </div>
       <span className="inline-flex shrink-0 items-center rounded-full bg-accent px-3.5 py-2 text-xs font-extrabold text-accent-foreground shadow-sm transition-transform group-hover:scale-105">
-        اشترك
+        {t("cart.subscribe")}
       </span>
     </Link>
   );
@@ -709,12 +713,13 @@ function MembershipUpsell() {
 
 /* ─── شاشة النجاح ─── */
 function CartSuccessView({ order }: { order: OrderOut }) {
+  const { t } = useLang();
   const prefersReduced = useReducedMotion();
   /* طلب محفظة → شاشة الدفع لإتمام التحويل ورفع الإشعار */
   const isWalletOrder = order.payment_method === "wallet";
   return (
     <>
-      <ScreenHeader title="سلة الطلبات" fallbackHref="/" />
+      <ScreenHeader title={t("cart.title")} fallbackHref="/" />
       <div className="mx-auto flex min-h-[60dvh] max-w-md flex-col items-center justify-center gap-5 px-4 py-10 text-center">
         <span className="relative flex h-24 w-24 items-center justify-center rounded-full bg-success/15">
           {!prefersReduced && (
@@ -742,10 +747,10 @@ function CartSuccessView({ order }: { order: OrderOut }) {
           transition={{ delay: prefersReduced ? 0 : 0.15, duration: 0.3 }}
         >
           <h2 className="text-2xl font-extrabold text-foreground">
-            تم استلام طلبك
+            {t("cart.orderReceived")}
           </h2>
           <p className="text-sm text-muted-foreground">
-            رقم الطلب:{" "}
+            {t("common.orderNumber")}{" "}
             <span dir="ltr" className="font-bold tabular-nums text-foreground">
               #{order.id}
             </span>
@@ -758,13 +763,13 @@ function CartSuccessView({ order }: { order: OrderOut }) {
           transition={{ delay: prefersReduced ? 0 : 0.3, duration: 0.3 }}
         >
           {isWalletOrder
-            ? "أكمل الدفع الآن: حوّل المبلغ إلى محفظة المتجر وارفع صورة إشعار التحويل."
-            : "تابع حالة طلبك لحظياً — سنُحدّثها عند تأكيد المتجر وتحضير الطلب ووصوله إليك."}
+            ? t("cart.completeWalletNow")
+            : t("cart.successBodyLive")}
         </motion.p>
         <div className="flex w-full max-w-xs flex-col gap-2">
           {isWalletOrder && (
             <Button asChild size="lg" className="min-h-[48px] rounded-full">
-              <Link href={`/orders/${order.id}/payment`}>الذهاب لشاشة الدفع</Link>
+              <Link href={`/orders/${order.id}/payment`}>{t("cart.goToPayment")}</Link>
             </Button>
           )}
           <Button
@@ -773,7 +778,7 @@ function CartSuccessView({ order }: { order: OrderOut }) {
             variant={isWalletOrder ? "outline" : "default"}
             className="min-h-[48px] rounded-full"
           >
-            <Link href={`/orders/${order.id}`}>تتبّع الطلب</Link>
+            <Link href={`/orders/${order.id}`}>{t("cart.trackOrder")}</Link>
           </Button>
           <Button
             asChild
@@ -781,7 +786,7 @@ function CartSuccessView({ order }: { order: OrderOut }) {
             size="lg"
             className="min-h-[44px] rounded-full"
           >
-            <Link href="/">العودة للرئيسية</Link>
+            <Link href="/">{t("cart.backHome")}</Link>
           </Button>
         </div>
       </div>

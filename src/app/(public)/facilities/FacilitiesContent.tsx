@@ -15,25 +15,26 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { useFacilities } from "@/hooks/useFacilities";
 import { useRegionStore } from "@/store/region.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
-import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
+import { TYPE_ICON } from "@/lib/constants";
 import { resolveImageUrl } from "@/lib/format";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useLang } from "@/lib/i18n";
 import type { FacilityType, Facility } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
-const TYPE_CONFIG: { key: FacilityType | "all"; label: string; icon: typeof UtensilsCrossed }[] = [
-  { key: "all", label: "الكل", icon: Landmark },
-  { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
-  { key: "cafe", label: "كافتيريات", icon: Coffee },
+const TYPE_CONFIG: { key: FacilityType | "all"; icon: typeof UtensilsCrossed }[] = [
+  { key: "all", icon: Landmark },
+  { key: "restaurant", icon: UtensilsCrossed },
+  { key: "cafe", icon: Coffee },
 ];
 
 type SortKey = "default" | "newest" | "alpha";
 
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: "default", label: "الافتراضي" },
-  { key: "newest", label: "الأحدث" },
-  { key: "alpha", label: "الأبجدي" },
+const SORT_OPTIONS: { key: SortKey }[] = [
+  { key: "default" },
+  { key: "newest" },
+  { key: "alpha" },
 ];
 
 const TYPE_BADGE_CLASS: Record<FacilityType, string> = {
@@ -55,6 +56,7 @@ function FacilityCard({
   /** الجولة 15 — تحميل فوري للصورة (LCP) لأول كارت */
   priority?: boolean;
 }) {
+  const { t } = useLang();
   const Icon = TYPE_ICON[facility.type];
   return (
     <Link href={`/facilities/${facility.id}`} className="block">
@@ -80,7 +82,7 @@ function FacilityCard({
             {typeof productCount === "number" && productCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-card/90 backdrop-blur-sm border border-border/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                 <Package className="h-3 w-3" />
-                {productCount} منتج
+                {t("catalog.facilities.productCount", { count: productCount })}
               </span>
             )}
           </div>
@@ -92,12 +94,12 @@ function FacilityCard({
               {facility.discount_rate != null && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                   <BadgePercent className="h-3 w-3" aria-hidden="true" />
-                  خصم {facility.discount_rate}%
+                  {t("catalog.facilities.discount", { rate: facility.discount_rate })}
                 </span>
               )}
             </div>
             <span className={cn("shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium", TYPE_BADGE_CLASS[facility.type])}>
-              {TYPE_LABEL[facility.type]}
+              {t(`catalog.type.${facility.type}`)}
             </span>
           </div>
           {facility.address ? (
@@ -121,7 +123,7 @@ function FacilityCard({
         <div className="flex items-center justify-between border-t px-4 py-2.5 sm:px-5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Icon className="h-3.5 w-3.5" />
-            <span>{TYPE_LABEL[facility.type]}</span>
+            <span>{t(`catalog.type.${facility.type}`)}</span>
             {facility.working_hours && (
               <>
                 <span className="mx-1 text-border">|</span>
@@ -132,7 +134,7 @@ function FacilityCard({
           </div>
           <span className="inline-flex items-center gap-1 text-xs text-secondary font-medium">
             <Eye className="h-3 w-3" />
-            عرض المنتجات
+            {t("catalog.facilities.viewProducts")}
           </span>
         </div>
       </motion.div>
@@ -144,15 +146,16 @@ function FacilityCard({
 /*  Empty search result illustration                                   */
 /* ------------------------------------------------------------------ */
 function EmptySearchIllustration() {
+  const { t } = useLang();
   return (
     <div className="flex flex-col items-center gap-4 py-16 text-center">
       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted">
         <SearchX className="h-10 w-10 text-muted-foreground/50" />
       </div>
       <div>
-        <h3 className="text-lg font-bold text-foreground">لا توجد نتائج</h3>
+        <h3 className="text-lg font-bold text-foreground">{t("catalog.facilities.noResultsTitle")}</h3>
         <p className="mt-1 text-sm text-muted-foreground max-w-xs">
-          جرّب تغيير كلمة البحث أو اختر فلترًا مختلفًا للعثور على ما تبحث عنه
+          {t("catalog.facilities.noResultsDesc")}
         </p>
       </div>
     </div>
@@ -209,6 +212,7 @@ function useRecentSearches() {
 /*  FacilitiesGrid                                                     */
 /* ------------------------------------------------------------------ */
 function FacilitiesGrid() {
+  const { t } = useLang();
   const { data, isLoading, error, refetch } = useFacilities();
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const [typeFilter, setTypeFilter] = useState<FacilityType | "all">("all");
@@ -292,15 +296,15 @@ function FacilitiesGrid() {
   }
 
   if (error) {
-    return <ErrorState title="تعذّر تحميل المتاجر" message="حدث خطأ أثناء جلب المتاجر" onRetry={() => refetch()} />;
+    return <ErrorState title={t("catalog.facilities.errorTitle")} message={t("catalog.facilities.errorDesc")} onRetry={() => refetch()} />;
   }
 
   if (!selectedRegionId) {
-    return <EmptyState icon={Landmark} title="اختر منطقة لعرض المتاجر" description="حدد منطقتك من القائمة أعلى الصفحة" />;
+    return <EmptyState icon={Landmark} title={t("catalog.facilities.selectRegionTitle")} description={t("catalog.facilities.selectRegionDesc")} />;
   }
 
   if (allFacilities.length === 0) {
-    return <EmptyState icon={Landmark} title="لا توجد متاجر في هذه المنطقة" description="ترقّب المزيد من المتاجر قريبًا" />;
+    return <EmptyState icon={Landmark} title={t("catalog.facilities.emptyTitle")} description={t("catalog.facilities.emptyDesc")} />;
   }
 
   const staggerVariants = prefersReduced
@@ -384,7 +388,7 @@ function FacilitiesGrid() {
               )}
             >
               <cfg.icon className="h-4 w-4" />
-              {cfg.label}
+              {t(cfg.key === "all" ? "catalog.facilities.filterAll" : `catalog.type.${cfg.key}`)}
             </button>
           ))}
         </div>
@@ -401,7 +405,13 @@ function FacilitiesGrid() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
-              {opt.label}
+              {t(
+                opt.key === "default"
+                  ? "catalog.facilities.sortDefault"
+                  : opt.key === "newest"
+                    ? "catalog.facilities.sortNewest"
+                    : "catalog.facilities.sortAlpha"
+              )}
             </button>
           ))}
         </div>
@@ -441,9 +451,10 @@ function FacilitiesGrid() {
 }
 
 export default function FacilitiesContent() {
+  const { t } = useLang();
   return (
     <>
-      <ScreenHeader title="المتاجر" fallbackHref="/" />
+      <ScreenHeader title={t("catalog.facilities.title")} fallbackHref="/" />
       <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6">
         <FacilitiesGrid />
       </div>

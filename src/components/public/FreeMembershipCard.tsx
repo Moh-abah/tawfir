@@ -31,6 +31,7 @@ import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import type { FreeMembershipSubscribeOut } from "@/types/api.generated";
 import type { CustomerApiError } from "@/services/customer-api-client";
 import { formatMembershipNumber, formatExpiry } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 
 /**
  * FreeMembershipCard — الجولة 20 + v3.2.1 (الفصل السوقي).
@@ -54,6 +55,7 @@ export function FreeMembershipCard({
 } = {}) {
   const router = useRouter();
   const { toast } = useToast();
+  const { t, lang } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const [result, setResult] = useState<FreeMembershipSubscribeOut | null>(null);
 
@@ -64,22 +66,22 @@ export function FreeMembershipCard({
       onSuccess: (data) => {
         setResult(data);
         toast({
-          title: "تم منح العضوية المجانية",
-          description: data.detail || "احصل على عضويتك المجانية بنجاح",
+          title: t("profile.free.toastGranted"),
+          description: data.detail || t("profile.free.toastGrantedDesc"),
         });
       },
       onError: (err: CustomerApiError) => {
         if (err.status === 0 || /اتصال|إنترنت|network/i.test(err.message)) {
           toast({
-            title: "يتطلب هذا الإجراء اتصالاً بالإنترنت",
-            description: "تحقق من اتصالك ثم أعد المحاولة",
+            title: t("profile.free.toastNetwork"),
+            description: t("common.retryLater"),
             variant: "destructive",
           });
           return;
         }
         if (err.status === 409) {
           toast({
-            title: "لديك عضوية بالفعل",
+            title: t("profile.free.toastAlready"),
             description: err.message,
           });
           // من المفترض أن الصفحة الأم أعادت توجيه العميل لـ AlreadyMember،
@@ -89,8 +91,8 @@ export function FreeMembershipCard({
         toast({
           title:
             err.status === 403
-              ? "العضوية المجانية غير مفعّلة"
-              : "تعذّر منح العضوية",
+              ? t("profile.free.toastDisabled")
+              : t("profile.free.toastError"),
           description: err.message,
           variant: "destructive",
         });
@@ -125,11 +127,11 @@ export function FreeMembershipCard({
             />
           </span>
           <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
-            🎁 تم منحك عضوية توفير المجانية!
+            {t("profile.free.successTitle")}
           </h2>
           <p className="max-w-md text-sm text-muted-foreground">
             {result.detail ||
-              "احصل على خصومات حصرية في كل المتاجر المشتركة — بلا رسوم."}
+              t("profile.free.successDesc")}
           </p>
         </div>
 
@@ -149,26 +151,26 @@ export function FreeMembershipCard({
                 "radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--logo-gold) 35%, transparent), transparent 60%)",
             }}
           />
-          <div className="relative z-10 flex h-full flex-col gap-5" dir="rtl">
+          <div className="relative z-10 flex h-full flex-col gap-5" dir={lang === "en" ? "ltr" : "rtl"}>
             <div className="flex items-start justify-between gap-3">
               <TawfirLogo onDark className="h-11 w-auto" />
               <span
                 className="rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-soft"
                 style={{ background: "var(--logo-gold)" }}
               >
-                خصومات حصرية
+                {t("profile.free.badge")}
               </span>
             </div>
             <div className="space-y-1.5 text-left">
               <p className="flex items-center gap-1.5 text-sm font-bold text-white/90">
                 <CreditCard className="h-4 w-4" aria-hidden="true" />
-                بطاقة الخصومات الذكية
+                {t("profile.card.title")}
               </p>
               <p
                 className="text-xl font-black tracking-[0.12em] tabular-nums text-white sm:text-2xl"
                 dir="ltr"
                 data-selectable="true"
-                title="رقم عضويتك"
+                title={t("profile.card.copyHint")}
               >
                 {formatMembershipNumber(result.membership_number)}
               </p>
@@ -176,22 +178,22 @@ export function FreeMembershipCard({
             <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-4">
               <div className="space-y-1 text-left">
                 <p className="text-[10px] font-medium text-white/60">
-                  نوع العضوية
+                  {t("profile.card.type")}
                 </p>
                 <p className="mt-0.5 text-sm font-bold text-white">
-                  عضوية سنوية مجانية
+                  {t("profile.free.cardTypeValue")}
                 </p>
                 <p
                   className="text-[10px] font-bold"
                   style={{ color: "var(--logo-gold-light)" }}
                 >
-                  وفّر أكثر.. عِش أجمل
+                  {t("profile.card.tagline")}
                 </p>
               </div>
               <div className="text-left" dir="ltr">
                 <p className="flex items-center gap-1 text-[10px] font-medium text-white/60">
                   <CalendarDays className="h-3 w-3" aria-hidden="true" />
-                  تاريخ الانتهاء
+                  {t("profile.card.expiry")}
                 </p>
                 <p className="mt-0.5 text-sm font-bold tabular-nums text-white">
                   {formatExpiry(result.expires_at)}
@@ -208,7 +210,7 @@ export function FreeMembershipCard({
             className="min-h-[44px] gap-2 rounded-full"
           >
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            حسابي
+            {t("auth.success.accountCta")}
           </Button>
           <Button
             asChild
@@ -216,7 +218,7 @@ export function FreeMembershipCard({
             className="min-h-[44px] gap-2 rounded-full"
           >
             <Link href="/">
-              تصفّح الوجبات
+              {t("auth.success.browseCta")}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </Button>
@@ -238,10 +240,10 @@ export function FreeMembershipCard({
     >
       <header className="text-center">
         <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
-          عضوية توفير المجانية 🎁
+          {t("profile.free.header")}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          احصل على بطاقة الخصومات الذكية مجاناً — بلا دفع ولا رفع إيصال
+          {t("profile.free.headerDesc")}
           {discountLabel ? ` — ${discountLabel}` : ""}
         </p>
       </header>
@@ -266,19 +268,19 @@ export function FreeMembershipCard({
               style={{ background: "var(--logo-gold)" }}
             >
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              خصومات حصرية في كل المتاجر
+              {t("profile.free.badge")}
             </span>
             <span
               className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-extrabold text-white shadow-soft"
               style={{ background: "var(--logo-emerald)" }}
             >
               <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-              موافقة فورية بلا انتظار
+              {t("profile.free.badgeInstant")}
             </span>
           </div>
           <p className="max-w-md text-sm leading-relaxed text-foreground/85 dark:text-white/85">
             {instructions ||
-              "فريق توفير يمنحك العضوية السنوية مجاناً خلال هذه الفترة — لا حاجة لتحويل بنكي ولا رفع إيصال. فقط اضغط الزر وستظهر بطاقتك فوراً."}
+              t("profile.free.instructionsFallback")}
           </p>
         </div>
       </div>
@@ -296,18 +298,18 @@ export function FreeMembershipCard({
             >
               <Gift className="h-4 w-4" aria-hidden="true" />
             </span>
-            ماذا تحصل عليه؟
+            {t("profile.free.benefitsTitle")}
           </CardTitle>
-          <CardDescription>مزايا العضوية المجانية كاملة كالعضوية المدفوعة</CardDescription>
+          <CardDescription>{t("profile.free.benefitsDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="space-y-3 text-sm">
             {[
-              "بطاقة عضوية رقمية بنفس صيغة العضوية المدفوعة (16 خانة)",
-              "خصومات حصرية على كل طلباتك من المتاجر المشتركة في توفير",
-              "عروض حصرية ومزايا مميزة لمدة سنة كاملة",
-              "لا حاجة لتحويل بنكي ولا رفع إيصال — كلها فورية",
-            ].map((benefit, i) => (
+              "profile.free.b1",
+              "profile.free.b2",
+              "profile.free.b3",
+              "profile.free.b4",
+            ].map((benefitKey, i) => (
               <li
                 key={i}
                 className="flex items-start gap-3 text-foreground"
@@ -322,7 +324,7 @@ export function FreeMembershipCard({
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
-                <span className="leading-relaxed">{benefit}</span>
+                <span className="leading-relaxed">{t(benefitKey)}</span>
               </li>
             ))}
           </ul>
@@ -343,20 +345,20 @@ export function FreeMembershipCard({
         {mutation.isPending ? (
           <>
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            جارٍ منح العضوية...
+            {t("profile.free.ctaBusy")}
           </>
         ) : (
           <>
             <Crown className="h-5 w-5" aria-hidden="true" />
             {discountLabel
-              ? `تفعيل فوري مجاني — ${discountLabel}`
-              : "تفعيل فوري مجاني"}
+              ? t("profile.free.ctaDiscount", { label: discountLabel })
+              : t("profile.free.cta")}
           </>
         )}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        عند الضغط سيتم إنشاء بطاقة عضويتك فوراً وستظهر هنا وفي حسابك.
+        {t("profile.free.footerNote")}
       </p>
     </motion.div>
   );

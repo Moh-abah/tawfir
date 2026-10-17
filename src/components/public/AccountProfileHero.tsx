@@ -16,6 +16,7 @@ import { useSavingsSummary } from "@/hooks/useSavings";
 import { useFavoritesStore } from "@/store/favorites.store";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { formatCurrency } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { MeOut } from "@/types/api.generated";
 
@@ -36,10 +37,10 @@ import type { MeOut } from "@/types/api.generated";
  */
 
 /* ─── تحية الوقت ─────────────────────────────────── */
-function getGreeting(): string {
+function getGreeting(t: (key: string) => string): string {
   const h = new Date().getHours();
-  if (h < 12) return "صباح الخير";
-  return "مساء الخير";
+  if (h < 12) return t("profile.hero.greetingMorning");
+  return t("profile.hero.greetingEvening");
 }
 
 /* ─── بلاطة إحصائية واحدة (رابط) ────────────────── */
@@ -139,6 +140,7 @@ export function AccountProfileHero({
   /** أزرار اختيارية أعلى البطاقة (تسجيل الخروج…) */
   actions?: ReactNode;
 }) {
+  const { t, lang } = useLang();
   const prefersReduced = usePrefersReducedMotion();
 
   /* إحصائيات حيّة — كلها من مصادر موجودة (بلا API جديد) */
@@ -159,9 +161,10 @@ export function AccountProfileHero({
     return clean ? clean.charAt(0).toUpperCase() : "؟";
   }, [me.full_name]);
 
+  /* أرقام بلغة الواجهة (ar-EG عربياً / en-US إنجليزياً) */
   const numFmt = useMemo(
-    () => new Intl.NumberFormat("ar-EG"),
-    [],
+    () => new Intl.NumberFormat(lang === "en" ? "en-US" : "ar-EG"),
+    [lang],
   );
 
   return (
@@ -173,7 +176,7 @@ export function AccountProfileHero({
         background:
           "linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, transparent), color-mix(in srgb, var(--logo-gold) 5%, transparent) 55%, transparent)",
       }}
-      aria-label="ملفك الشخصي"
+      aria-label={t("profile.hero.a11y")}
     >
       {/* زخرفة زاوية خافتة */}
       <div
@@ -210,7 +213,7 @@ export function AccountProfileHero({
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-bold text-muted-foreground" suppressHydrationWarning>
-            {getGreeting()} 👋
+            {getGreeting(t)} 👋
           </p>
           <h2 className="truncate text-xl font-extrabold text-foreground sm:text-2xl">
             {me.full_name}
@@ -225,11 +228,11 @@ export function AccountProfileHero({
                 }}
               >
                 <BadgeCheck className="h-3 w-3" aria-hidden="true" />
-                عضوية توفير النشطة
+                {t("profile.hero.badgeMember")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-0.5 text-[10px] font-bold text-muted-foreground">
-                بدون عضوية — الخصم غير مفعّل
+                {t("profile.hero.badgeNoMember")}
               </span>
             )}
           </div>
@@ -255,7 +258,7 @@ export function AccountProfileHero({
         <StatTile
           href="/orders"
           icon={ShoppingBag}
-          label="طلباتي"
+          label={t("nav.orders")}
           value={ordersCount != null ? numFmt.format(ordersCount) : "—"}
           tone="primary"
           delay={0.05}
@@ -265,7 +268,7 @@ export function AccountProfileHero({
           <StatTile
             href="/savings"
             icon={TrendingUp}
-            label="وفّرت"
+            label={t("profile.hero.saved")}
             value={
               totalSavings != null ? formatCurrency(totalSavings) : "—"
             }
@@ -277,7 +280,7 @@ export function AccountProfileHero({
         <StatTile
           href="/favorites"
           icon={Heart}
-          label="المفضلة"
+          label={t("nav.favorites")}
           value={numFmt.format(favoritesCount)}
           tone="rose"
           delay={0.19}

@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 import type { ProductWithFacilityOut } from "@/types/api.generated";
 
 interface AddToCartButtonProps {
@@ -39,6 +40,7 @@ interface AddToCartButtonProps {
  * - مُصمّم ليُستعمل مع preventDefault + stopPropagation على بطاقة المنتج
  */
 export function AddToCartButton({ product, className }: AddToCartButtonProps) {
+  const { t } = useLang();
   const items = useCartStore((s) => s.items);
   const facilityId = useCartStore((s) => s.facilityId);
   const addItem = useCartStore((s) => s.addItem);
@@ -64,8 +66,8 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
     if (!hydrated) return;
     if (!accessToken) {
       toast({
-        title: "سجّل الدخول أولاً",
-        description: "أضف للسلة وأكمل الطلب بعد تسجيل الدخول.",
+        title: t("catalog.auth.loginTitle"),
+        description: t("catalog.cart.loginDesc"),
       });
       router.push("/login");
       return;
@@ -75,8 +77,8 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
       !product.is_available || product.available_quantity === 0;
     if (outOfStock) {
       toast({
-        title: "غير متوفر",
-        description: "هذه الوجبة نفدت من المخزون حالياً.",
+        title: t("catalog.cart.unavailableTitle"),
+        description: t("catalog.cart.unavailableDesc"),
         variant: "destructive",
       });
       return;
@@ -142,11 +144,16 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
         disabled={disabled}
         aria-label={
           isInCart
-            ? `${product.name} في السلة (${inCartQty})`
-            : `أضف ${product.name} للسلة`
+            ? t("catalog.cart.inCartAria", {
+                name: product.name,
+                count: inCartQty,
+              })
+            : t("catalog.cart.addAria", { name: product.name })
         }
         title={
-          isInCart ? `في السلة: ${inCartQty}` : "أضف للسلة"
+          isInCart
+            ? t("catalog.cart.inCartTitle", { count: inCartQty })
+            : t("catalog.cart.title")
         }
         className={cn(
           "native-tap inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
@@ -178,12 +185,14 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
 
       {/* حوار تعارض المتجر */}
       <AlertDialog open={conflictOpen} onOpenChange={setConflictOpen}>
-        <AlertDialogContent dir="rtl">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>السلة فيها أصناف من متجر آخر</AlertDialogTitle>
+            <AlertDialogTitle>{t("catalog.cart.replaceTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              لا يمكن إضافة وجبات من متجرين في طلب واحد. هل تريد إفراغ السلة
-              وإضافة «{product.name}» من «{product.facility.name}»؟
+              {t("catalog.cart.replaceDesc", {
+                name: product.name,
+                facility: product.facility.name,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
@@ -194,10 +203,10 @@ export function AddToCartButton({ product, className }: AddToCartButtonProps) {
                 handleConfirmReplace();
               }}
             >
-              نعم، استبدل السلة
+              {t("catalog.cart.replaceConfirm")}
             </AlertDialogAction>
             <AlertDialogCancel className="min-h-[44px] flex-1 rounded-full">
-              إلغاء
+              {t("common.cancel")}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

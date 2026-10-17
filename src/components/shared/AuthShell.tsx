@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
+import { useLang } from "@/lib/i18n";
 
 /**
  * قشرة شاشات الدخول الثلاث (دخول/تسجيل/استعادة) — جلد هوية توفير:
@@ -27,6 +28,7 @@ export function AuthShell({
   wide?: boolean;
 }) {
   const router = useRouter();
+  const { t } = useLang();
 
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -67,7 +69,7 @@ export function AuthShell({
         <button
           type="button"
           onClick={handleBack}
-          aria-label="رجوع"
+          aria-label={t("common.back")}
           className="native-tap flex h-11 w-11 items-center justify-center rounded-full border border-border/60 bg-card/80 text-foreground shadow-soft backdrop-blur-md transition-colors hover:bg-card"
         >
           <ChevronRight className="h-5 w-5" aria-hidden="true" />

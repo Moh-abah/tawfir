@@ -53,7 +53,6 @@ import {
   WalletPickerList,
 } from "@/components/wallets/WalletPickerList";
 import { useFacilityWallets } from "@/hooks/useWallets";
-import { MISSING_LOCATION_MSG } from "@/components/public/DeliveryFields";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -81,8 +80,8 @@ import {
 } from "@/components/finance/finance-ui";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 import {
-  ORDER_STATUS_LABEL,
   ORDER_TRACKING_FLOW,
   ORDER_STATUS_TONE,
 } from "@/lib/constants";
@@ -105,25 +104,20 @@ const STEP_ICON: Record<OrderStatus, LucideIcon> = {
   cancelled: XCircle,
 };
 
-const PAYMENT_LABEL: Record<PaymentMethod, string> = {
-  cash: "نقداً عند الاستلام",
-  wallet: "محفظة / تحويل يدوي",
+/* الترجمة عبر i18n — القيم المرسلة للخادم لا تُلمس (عرض حصراً) */
+const PAYMENT_STATUS_KEYS: Record<string, string> = {
+  pending: "orders.receiptStatus.pending",
+  approved: "orders.receiptStatus.approved",
+  rejected: "orders.receiptStatus.rejected",
+  partial_requested: "orders.receiptStatus.partial_requested",
 };
 
-/** تسميات حالة إيصالة الدفع (جولة المحافظ). */
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  pending: "بانتظار المراجعة",
-  approved: "تم تأكيد الدفع",
-  rejected: "مرفوض",
-  partial_requested: "بانتظار تكملة الدفعة",
-};
-
-/* ─── الجولة 10 — الوقت المتوقع لكل حالة نشطة (تلميح لطيف) ── */
-const ACTIVE_ETA_HINT: Partial<Record<OrderStatus, string>> = {
-  pending: "بانتظار تأكيد المتجر — عادةً خلال دقائق قليلة",
-  confirmed: "تم التأكيد! سيبدأ التحضير قريباً",
-  preparing: "وجبتك قيد التحضير الآن 🍳 — المعتاد 15-30 دقيقة",
-  out_for_delivery: "طلبك في الطريق إليك 🛵 — عادةً خلال 15-25 دقيقة",
+/* ─── الجولة 10 — الوقت المتوقع لكل حالة نشطة (مفاتيح i18n) ── */
+const ACTIVE_ETA_KEY: Partial<Record<OrderStatus, string>> = {
+  pending: "orders.eta.pending",
+  confirmed: "orders.eta.confirmed",
+  preparing: "orders.eta.preparing",
+  out_for_delivery: "orders.eta.out_for_delivery",
 };
 
 /* ─── الجولة 26 — الحالات النشطة (تُظهر شارة الوقت المنقضي الحيّة) ── */
@@ -149,6 +143,7 @@ function ReOrderSection({
   order: OrderOut;
   autoOpen?: boolean;
 }) {
+  const { t } = useLang();
   const createOrder = useCreateOrder();
   const router = useRouter();
   /* جولة تدقيق الفصل: السوق السعودي بلا محفظة تاجر — قائمة إعادة الطلب
@@ -168,7 +163,7 @@ function ReOrderSection({
     autoOpen
       ? order.items.map((i) => ({
           product_id: i.product_id,
-          product_name: i.product_name ?? "صنف",
+          product_name: i.product_name ?? t("orders.itemFallback"),
           quantity: i.quantity,
           unit_price: i.unit_price,
         }))
@@ -202,7 +197,7 @@ function ReOrderSection({
     setLines(
       order.items.map((i) => ({
         product_id: i.product_id,
-        product_name: i.product_name ?? "صنف",
+        product_name: i.product_name ?? t("orders.itemFallback"),
         quantity: i.quantity,
         unit_price: i.unit_price,
       }))
@@ -243,23 +238,23 @@ function ReOrderSection({
     if (lines.length === 0) return;
     if (lat == null || lng == null) {
       toast({
-        title: MISSING_LOCATION_MSG,
+        title: t("cart.missingLocation"),
         variant: "destructive",
       });
       return;
     }
     if (address.trim().length === 0) {
       toast({
-        title: "اكتب عنوانك النصي المختصر",
-        description: "يساعد المندوب عند وصوله لبابك",
+        title: t("orders.writeAddressTitle"),
+        description: t("orders.addressHelp"),
         variant: "destructive",
       });
       return;
     }
     if (shownMethod === "wallet" && paymentWalletId == null) {
       toast({
-        title: "اختر محفظة الدفع أولاً",
-        description: "من قائمة محافظ المتجر",
+        title: t("orders.pickWalletTitle"),
+        description: t("orders.pickWalletDesc"),
         variant: "destructive",
       });
       return;
@@ -283,11 +278,11 @@ function ReOrderSection({
         onSuccess: (newOrder) => {
           haptic("success");
           toast({
-            title: `تم استلام طلبك الجديد #${newOrder.id}`,
+            title: t("orders.reorderSuccess", { id: newOrder.id }),
             description:
               newOrder.payment_method === "wallet"
-                ? "أكمل الدفع من شاشة الدفع — حوّل وارفع إشعار التحويل"
-                : "نفس وجبات طلبك السابق — تابع حالته الآن",
+                ? t("orders.reorderWalletDesc")
+                : t("orders.reorderCashDesc"),
           });
           setOpen(false);
           /* طلب محفظة → شاشة الدفع مباشرة؛ غيره → تفاصيل الطلب */
@@ -300,10 +295,9 @@ function ReOrderSection({
         onError: (err) => {
           const e = err as { message?: string; status?: number };
           toast({
-            title: "تعذّر إعادة الطلب",
+            title: t("orders.reorderFailed"),
             description:
-              e.message?.trim() ||
-              "قد يكون أحد الأصناف غير متوفر الآن — جرّب الطلب يدوياً.",
+              e.message?.trim() || t("orders.reorderFailedDesc"),
             variant: "destructive",
           });
         },
@@ -312,7 +306,7 @@ function ReOrderSection({
   };
 
   return (
-    <section aria-label="إعادة الطلب">
+    <section aria-label={t("orders.reorderTitle")}>
       <Button
         type="button"
         onClick={openSheet}
@@ -325,7 +319,7 @@ function ReOrderSection({
         ) : (
           <RotateCcw className="h-5 w-5" aria-hidden="true" />
         )}
-        {createOrder.isPending ? "جارٍ إرسال الطلب..." : "أعد الطلب نفسه"}
+        {createOrder.isPending ? t("cart.sending") : t("orders.reorderSame")}
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -337,10 +331,12 @@ function ReOrderSection({
           <SheetHeader className="border-b p-4 text-right">
             <SheetTitle className="flex items-center gap-2 text-right text-lg font-extrabold">
               <RotateCcw className="h-5 w-5 text-primary" aria-hidden="true" />
-              إعادة الطلب
+              {t("orders.reorderTitle")}
             </SheetTitle>
             <SheetDescription className="text-right">
-              من {order.facility_name ?? "المتجر"} — عدّل الكميات والعنوان ثم أكّد
+              {t("orders.reorderDesc", {
+                facility: order.facility_name ?? t("orders.store"),
+              })}
             </SheetDescription>
           </SheetHeader>
 
@@ -348,7 +344,7 @@ function ReOrderSection({
             {/* الأصناف مع درجات الكمية */}
             <div className="space-y-2">
               <Label className="text-xs font-bold">
-                الأصناف ({lines.length})
+                {t("orders.itemsCount", { count: lines.length })}
               </Label>
               <ul className="divide-y divide-border/40 rounded-xl border border-border/50">
                 {lines.map((line) => (
@@ -375,7 +371,7 @@ function ReOrderSection({
                         className="h-8 w-8 rounded-full"
                         onClick={() => updateQty(line.product_id, -1)}
                         disabled={line.quantity <= 1}
-                        aria-label={`إنقاص كمية ${line.product_name}`}
+                        aria-label={t("orders.decQtyAria", { name: line.product_name })}
                       >
                         <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                       </Button>
@@ -391,7 +387,7 @@ function ReOrderSection({
                         size="icon"
                         className="h-8 w-8 rounded-full"
                         onClick={() => updateQty(line.product_id, 1)}
-                        aria-label={`زيادة كمية ${line.product_name}`}
+                        aria-label={t("orders.incQtyAria", { name: line.product_name })}
                       >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                       </Button>
@@ -400,7 +396,7 @@ function ReOrderSection({
                       type="button"
                       onClick={() => removeLine(line.product_id)}
                       className="native-tap inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:text-destructive"
-                      aria-label={`إزالة ${line.product_name}`}
+                      aria-label={t("orders.removeAria", { name: line.product_name })}
                     >
                       <XCircle className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -408,7 +404,7 @@ function ReOrderSection({
                 ))}
                 {lines.length === 0 && (
                   <li className="p-4 text-center text-xs text-muted-foreground">
-                    أزلت كل الأصناف — أضف أصنافاً من المتجر لإعادة الطلب.
+                    {t("orders.allRemoved")}
                   </li>
                 )}
               </ul>
@@ -418,7 +414,7 @@ function ReOrderSection({
                 السابق — حدّثه إن تحركت) — §6-3 إلزامي */}
             <div className="space-y-2">
               <Label className="text-xs font-bold">
-                موقع التوصيل
+                {t("cart.deliveryLocation")}
                 <span className="text-destructive" aria-hidden="true">
                   *
                 </span>
@@ -440,15 +436,15 @@ function ReOrderSection({
                 className="text-[10px] leading-relaxed text-muted-foreground"
               >
                 {lat != null
-                  ? "من طلبك السابق — حدّثه بـ«تحديث» إن تغيّر مكان استلامك"
-                  : "حمّل موقعك لتصل شحنتك إلى بابك"}
+                  ? t("orders.fromPrevOrder")
+                  : t("orders.loadLocation")}
               </p>
             </div>
 
             {/* عنوان التوصيل — معبّأ مسبقاً من الطلب القديم */}
             <div className="space-y-2">
               <Label htmlFor="reorder-address" className="text-xs font-bold">
-                عنوان التوصيل
+                {t("orders.addressLabel")}
                 <span className="text-destructive" aria-hidden="true">
                   *
                 </span>
@@ -457,7 +453,7 @@ function ReOrderSection({
                 id="reorder-address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="الحي / الشارع / معلّم مميّز..."
+                placeholder={t("orders.addressPlaceholder")}
                 className="min-h-[64px] resize-none"
                 rows={2}
                 aria-required="true"
@@ -467,20 +463,20 @@ function ReOrderSection({
             {/* ملاحظات — معبّأة مسبقاً */}
             <div className="space-y-2">
               <Label htmlFor="reorder-notes" className="text-xs font-bold">
-                ملاحظات (اختياري)
+                {t("cart.notes")}
               </Label>
               <Input
                 id="reorder-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="مثال: بلا صلصة حارة..."
+                placeholder={t("orders.notesPlaceholder")}
                 className="min-h-[44px]"
               />
             </div>
 
             {/* طريقة الدفع — محدّدة مسبقاً من الطلب القديم */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold">طريقة الدفع</Label>
+              <Label className="text-xs font-bold">{t("cart.paymentMethod")}</Label>
               <RadioGroup
                 value={shownMethod}
                 onValueChange={(v) => {
@@ -491,11 +487,11 @@ function ReOrderSection({
                 className="grid grid-cols-2 gap-2"
               >
                 {[
-                  { value: "cash", label: "نقداً عند الاستلام", icon: Banknote },
+                  { value: "cash", label: t("orders.payMethod.cash"), icon: Banknote },
                   /* السعودية بلا محفظة تاجر (تدقيق الفصل) */
                   ...(isSaudi
                     ? []
-                    : [{ value: "wallet", label: "محفظة / تحويل يدوي", icon: Wallet }]),
+                    : [{ value: "wallet", label: t("orders.payMethod.wallet"), icon: Wallet }]),
                 ].map(({ value, label, icon: Icon }) => (
                   <label
                     key={value}
@@ -518,7 +514,7 @@ function ReOrderSection({
             {paymentMethod === "wallet" && (
               <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
                 <p className="mb-2 text-xs font-bold text-foreground">
-                  اختر محفظة المتجر التي ستحوّل إليها
+                  {t("cart.chooseWallet")}
                 </p>
                 <WalletPickerList
                   facilityId={order.facility_id}
@@ -531,9 +527,9 @@ function ReOrderSection({
 
           {/* ملخص تقديري + تأكيد */}
           <div className="space-y-3 border-t border-border/50 bg-card/50 p-4">
-            <div className="space-y-1.5 text-sm" dir="rtl">
+            <div className="space-y-1.5 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">المجموع الفرعي</span>
+                <span className="text-muted-foreground">{t("cart.subtotalPlain")}</span>
                 <span
                   className="font-bold tabular-nums text-foreground"
                   dir="ltr"
@@ -542,7 +538,7 @@ function ReOrderSection({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">رسوم التوصيل</span>
+                <span className="text-muted-foreground">{t("cart.deliveryFeeLabel")}</span>
                 <span
                   className="font-bold tabular-nums text-foreground"
                   dir="ltr"
@@ -553,7 +549,7 @@ function ReOrderSection({
               <div className="my-1.5 h-px bg-border/40" />
               <div className="flex items-center justify-between">
                 <span className="text-base font-extrabold text-foreground">
-                  الإجمالي التقديري
+                  {t("orders.estimatedTotal")}
                 </span>
                 <span
                   className="text-lg font-extrabold tabular-nums text-primary"
@@ -563,8 +559,7 @@ function ReOrderSection({
                 </span>
               </div>
               <p className="text-[10px] leading-relaxed text-muted-foreground">
-                تُعاد حساب الأسعار النهائية حسب توفّر الأصناف وخصم عضويتك
-                الحالي عند التأكيد.
+                {t("orders.repriceNote")}
               </p>
             </div>
             <Button
@@ -588,9 +583,7 @@ function ReOrderSection({
               ) : (
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
               )}
-              {createOrder.isPending
-                ? "جارٍ إرسال الطلب..."
-                : "تأكيد إعادة الطلب"}
+              {createOrder.isPending ? t("cart.sending") : t("orders.confirmReorder")}
             </Button>
           </div>
         </SheetContent>
@@ -601,6 +594,7 @@ function ReOrderSection({
 
 /* ─── الجولة 14 — احتفال التوصيل ────────────────────── */
 function DeliveredCelebration({ order }: { order: OrderOut }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
 
   /* مدة التوصيل الفعلية من بيانات الخادم: created_at → updated_at */
@@ -617,7 +611,7 @@ function DeliveredCelebration({ order }: { order: OrderOut }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="relative overflow-hidden rounded-2xl border-2 border-success/30 bg-gradient-to-b from-success/15 via-success/5 to-transparent p-5 text-center shadow-soft"
-      aria-label="تم التوصيل بنجاح"
+      aria-label={t("orders.deliveredAria")}
     >
       {/* شرارات زخرفية — تُخفى مع تقليل الحركة */}
       {!prefersReduced && (
@@ -664,17 +658,20 @@ function DeliveredCelebration({ order }: { order: OrderOut }) {
       </span>
 
       <h3 className="mt-3 text-lg font-extrabold text-foreground">
-        وصل طلبك بنجاح، بالعافية!
+        {t("orders.deliveredTitle")}
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        من {order.facility_name ?? "المتجر"} — الإجمالي{" "}
+        {t("orders.fromStore", { facility: order.facility_name ?? t("orders.store") })}{" "}
+        — {t("cart.total")}{" "}
         <span dir="ltr" className="font-bold tabular-nums text-foreground">
           {formatCurrency(order.total)}
         </span>
         {durationMin != null && (
           <>
-            {" "}· استغرق التوصيل{" "}
-            <span className="font-bold text-foreground">{durationMin} دقيقة</span>
+            {" "}· {t("orders.tookPrefix")}{" "}
+            <span className="font-bold text-foreground">
+              {t("orders.deliveryMinutes", { minutes: durationMin })}
+            </span>
           </>
         )}
       </p>
@@ -685,9 +682,9 @@ function DeliveredCelebration({ order }: { order: OrderOut }) {
           asChild
           className="min-h-[44px] w-full gap-2 rounded-full font-extrabold sm:w-auto sm:px-8"
         >
-          <a href="#reorder" aria-label="اطلب مرة أخرى">
+          <a href="#reorder" aria-label={t("orders.orderAgain")}>
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            اطلب مرة أخرى
+            {t("orders.orderAgain")}
           </a>
         </Button>
         <Button
@@ -695,9 +692,9 @@ function DeliveredCelebration({ order }: { order: OrderOut }) {
           variant="outline"
           className="min-h-[44px] w-full gap-2 rounded-full font-bold sm:w-auto sm:px-8"
         >
-          <Link href={`/orders/${order.id}/receipt`} aria-label="عرض إيصال الطلب">
+          <Link href={`/orders/${order.id}/receipt`} aria-label={t("orders.receiptAria")}>
             <Receipt className="h-4 w-4" aria-hidden="true" />
-            الإيصال
+            {t("orders.receipt")}
           </Link>
         </Button>
       </div>
@@ -707,6 +704,7 @@ function DeliveredCelebration({ order }: { order: OrderOut }) {
 
 /* ─── شريط التتبّع (الحالة العادية) ──────────────────── */
 function TrackingFlow({ currentStatus }: { currentStatus: OrderStatus }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const currentIndex = ORDER_TRACKING_FLOW.indexOf(currentStatus);
   /* الحالة بعد المكتملة (delivered) — كل الخطوات ممتلئة */
@@ -715,7 +713,7 @@ function TrackingFlow({ currentStatus }: { currentStatus: OrderStatus }) {
   return (
     <ol
       className="relative flex items-start justify-between"
-      aria-label="تتبّع حالة الطلب"
+      aria-label={t("orders.trackAria")}
     >
       {/* الخط الأفقي خلف النقاط */}
       <div
@@ -775,7 +773,7 @@ function TrackingFlow({ currentStatus }: { currentStatus: OrderStatus }) {
                   : "text-muted-foreground"
               )}
             >
-              {ORDER_STATUS_LABEL[step]}
+              {t(`orders.status.${step}`)}
             </span>
           </li>
         );
@@ -786,6 +784,7 @@ function TrackingFlow({ currentStatus }: { currentStatus: OrderStatus }) {
 
 /* ─── حالة الإلغاء (مسار منفصل) ─────────────────────── */
 function CancelledNotice() {
+  const { t } = useLang();
   return (
     <div
       className="flex flex-col items-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/5 p-5 text-center"
@@ -798,10 +797,10 @@ function CancelledNotice() {
         )}
       >
         <XCircle className="h-4 w-4" aria-hidden="true" />
-        {ORDER_STATUS_LABEL.cancelled}
+        {t("orders.status.cancelled")}
       </span>
       <p className="text-xs text-muted-foreground">
-        تم إلغاء هذا الطلب ولن يُنفَّذ. لأي استفسار تواصل مع المتجر.
+        {t("orders.cancelledNote")}
       </p>
     </div>
   );
@@ -809,12 +808,13 @@ function CancelledNotice() {
 
 /* ─── صفّ صنف ──────────────────────────────────────── */
 function OrderItemRow({ item }: { item: OrderItemOut }) {
+  const { t } = useLang();
   return (
     <li className="flex items-start gap-3 rounded-xl border border-border/40 bg-card/50 p-3 sm:p-4">
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm font-bold text-foreground line-clamp-2">
-            {item.product_name ?? "صنف"}
+            {item.product_name ?? t("orders.itemFallback")}
           </p>
           {item.discount_applied && (
             <span
@@ -824,21 +824,21 @@ function OrderItemRow({ item }: { item: OrderItemOut }) {
                 color: "var(--logo-white)",
               }}
             >
-              خصم مطبّق
+              {t("orders.discountApplied")}
             </span>
           )}
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span>
-            الكمية: <span className="font-bold text-foreground">{item.quantity}</span>
+            {t("orders.qtyLabel")} <span className="font-bold text-foreground">{item.quantity}</span>
           </span>
           <span className="tabular-nums">
-            سعر الوحدة: {formatCurrency(item.unit_price)}
+            {t("orders.unitPriceLabel")} {formatCurrency(item.unit_price)}
           </span>
         </div>
       </div>
       <div className="shrink-0 text-left" dir="ltr">
-        <p className="text-[10px] text-muted-foreground">المجموع</p>
+        <p className="text-[10px] text-muted-foreground">{t("cart.lineTotal")}</p>
         <p className="text-sm font-extrabold text-foreground tabular-nums">
           {formatCurrency(item.subtotal)}
         </p>
@@ -903,6 +903,7 @@ function OrderDetailSkeleton() {
 /* ─── العرض الكامل لطلب ──────────────────────────────── */
 /* ─── جولة المحافظ — بطاقة حالة الدفع بالمحفظة ───────────── */
 function WalletPaymentCard({ order }: { order: OrderOut }) {
+  const { t } = useLang();
   const status = order.payment_status ?? null;
   const receipt = order.payment_receipt ?? null;
   const approved = status === "approved";
@@ -921,12 +922,12 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
   return (
     <section
       className={cn("rounded-2xl border-2 p-5", tone)}
-      aria-label="حالة الدفع بالمحفظة"
+      aria-label={t("orders.walletStatusAria")}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base font-extrabold text-foreground">
           <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
-          الدفع بالمحفظة
+          {t("orders.walletPayment")}
         </h2>
         {status ? (
           <span
@@ -939,18 +940,18 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
                   : "border-accent/40 text-accent-ink"
             )}
           >
-            {PAYMENT_STATUS_LABEL[status] ?? status}
+            {PAYMENT_STATUS_KEYS[status] ? t(PAYMENT_STATUS_KEYS[status]) : status}
           </span>
         ) : (
           <span className="rounded-full border border-accent/40 bg-background/60 px-2.5 py-1 text-xs font-extrabold text-accent-ink">
-            بانتظار تحويلك
+            {t("orders.awaitingTransfer")}
           </span>
         )}
       </div>
 
       {order.payment_wallet_label && (
         <p className="mt-2 text-xs text-muted-foreground">
-          المحفظة:{" "}
+          {t("orders.walletLabel")}{" "}
           <span className="font-bold text-foreground" dir="ltr">
             {order.payment_wallet_label}
           </span>
@@ -959,16 +960,15 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
 
       {status === "partial_requested" && (
         <p className="mt-2 rounded-lg bg-background/70 px-3 py-2 text-xs font-bold leading-relaxed text-accent-ink">
-          💰 مطلوب تكملة الدفعة — المتبقي:{" "}
-          <span dir="ltr" className="tabular-nums">
-            {formatCurrency(receipt?.remaining_amount ?? 0)}
-          </span>
+          {t("orders.partialNeeded", {
+            amount: formatCurrency(receipt?.remaining_amount ?? 0),
+          })}
         </p>
       )}
 
       {status === "rejected" && receipt?.rejection_reason && (
         <p className="mt-2 text-xs font-bold text-destructive">
-          سبب الرفض: {receipt.rejection_reason}
+          {t("orders.rejectionReason", { reason: receipt.rejection_reason })}
         </p>
       )}
 
@@ -976,8 +976,8 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {(order as OrderOut & { payment_is_completion?: boolean | null })
             .payment_is_completion || receipt?.is_completion
-            ? "تم استلام إشعار المتبقي — بانتظار مراجعة التاجر."
-            : "إشعار التحويل في مراجعة المتجر — سيؤكد الطلب بعد التحقق."}
+            ? t("orders.completionUnderReview")
+            : t("orders.receiptUnderReview")}
         </p>
       )}
 
@@ -986,18 +986,19 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
           <Link href={`/orders/${order.id}/payment`}>
             <CreditCard className="h-4 w-4" aria-hidden="true" />
             {status === null
-              ? `إتمام الدفع — ${formatCurrency(order.total)}`
+              ? t("orders.completePayment", { total: formatCurrency(order.total) })
               : status === "partial_requested"
-                ? "تحويل المتبقي ورفع الإشعار"
-                : "عرض شاشة الدفع"}
+                ? t("orders.transferRemaining")
+                : t("orders.viewPayScreen")}
           </Link>
         </Button>
       )}
 
       {approved && (
         <p className="mt-2 text-xs text-success">
-          تم استلام تحويلك ({formatCurrency(receipt?.amount ?? order.total)}) —
-          شكراً لك 🙏
+          {t("orders.transferReceived", {
+            amount: formatCurrency(receipt?.amount ?? order.total),
+          })}
         </p>
       )}
     </section>
@@ -1009,6 +1010,7 @@ function WalletPaymentCard({ order }: { order: OrderOut }) {
  * اختياري للعميل. دفعة paid → شارة «مدفوعة» وإخفاء زر الدفع.
  * السوق اليمني لا يرى هذا القسم إطلاقاً (برونزية السوقين). */
 function OrderElectronicPaymentSection({ orderId }: { orderId: number }) {
+  const { t } = useLang();
   const paymentsQuery = useFinanceOrderPayments(orderId);
   const hasPaid =
     paymentsQuery.data?.some((p) => p.status === "paid") ?? false;
@@ -1016,12 +1018,12 @@ function OrderElectronicPaymentSection({ orderId }: { orderId: number }) {
   return (
     <section
       className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
-      aria-label="الدفع الإلكتروني"
+      aria-label={t("payment.electronic")}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-base font-bold text-foreground">
           <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
-          الدفع
+          {t("orders.paymentHeading")}
         </h2>
         {paymentsQuery.isPending ? (
           <Skeleton className="h-6 w-24 rounded-full" />
@@ -1033,21 +1035,19 @@ function OrderElectronicPaymentSection({ orderId }: { orderId: number }) {
             onClick={() => paymentsQuery.refetch()}
             className="min-h-[44px] text-xs font-bold text-destructive"
           >
-            تعذّر جلب حالة الدفع — أعد المحاولة
+            {t("orders.payStatusFailed")}
           </button>
         ) : null}
       </div>
 
       {hasPaid ? (
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          تم تأكيد دفعتك عبر بوابة الدفع — لا حاجة لأي دفع إضافي، ويمكنك
-          متابعة الطلب كالمعتاد.
+          {t("orders.paidConfirmed")}
         </p>
       ) : (
         <>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            ادفع قيمة الطلب الآن بأمان عبر مويسر (بطاقة أو Apple Pay) —
-            الدفع الإلكتروني اختياري حتى لو اخترت الكاش عند الاستلام.
+            {t("orders.payNowHint")}
           </p>
           <Button
             asChild
@@ -1056,7 +1056,7 @@ function OrderElectronicPaymentSection({ orderId }: { orderId: number }) {
           >
             <Link href={`/orders/${orderId}/pay`}>
               <CreditCard className="h-4 w-4" aria-hidden="true" />
-              ادفع الآن إلكترونيًا
+              {t("orders.payNowElectronic")}
             </Link>
           </Button>
         </>
@@ -1072,6 +1072,7 @@ function OrderView({
   order: OrderOut;
   reorderRequested?: boolean;
 }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const cancelMutation = useCancelOrder(order.id);
@@ -1098,7 +1099,7 @@ function OrderView({
       {/* رأس الصفحة */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs text-muted-foreground">طلب رقم</p>
+          <p className="text-xs text-muted-foreground">{t("orders.orderNo")}</p>
           <h2 className="text-2xl font-extrabold text-foreground tabular-nums sm:text-3xl">
             #{order.id}
           </h2>
@@ -1107,7 +1108,7 @@ function OrderView({
             <div className="mt-2">
               <LiveElapsedBadge
                 since={order.created_at}
-                suffix="على طلبك"
+                suffix={t("orders.elapsedSuffix")}
                 className="bg-primary/10 text-primary"
               />
             </div>
@@ -1119,7 +1120,7 @@ function OrderView({
             asChild
             variant="ghost"
             size="icon"
-            aria-label="عرض إيصال الطلب"
+            aria-label={t("orders.receiptAria")}
             className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
           >
             <Link href={`/orders/${order.id}/receipt`}>
@@ -1132,7 +1133,7 @@ function OrderView({
               ORDER_STATUS_TONE[order.status],
             )}
           >
-            {ORDER_STATUS_LABEL[order.status]}
+            {t(`orders.status.${order.status}`)}
           </span>
         </div>
       </div>
@@ -1145,7 +1146,7 @@ function OrderView({
       {/* شريط التتبّع */}
       <section
         className="relative overflow-hidden rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
-        aria-label="تتبّع حالة الطلب"
+        aria-label={t("orders.trackAria")}
       >
         {/* الجولة 9 (المهمة 9.3) — وميض لطيف عند تغيّر الحالة (1s).
             يُعاد تشغيل الأنيميشن عبر key={status} — إحساس «حي».
@@ -1177,13 +1178,13 @@ function OrderView({
         )}
 
         {/* الجولة 10 — تلميح الوقت المتوقع للطلبات النشطة (تحت شريط التتبّع) */}
-        {!isCancelled && ACTIVE_ETA_HINT[order.status] && (
+        {!isCancelled && ACTIVE_ETA_KEY[order.status] && (
           <p
             className="mt-4 flex items-center justify-center gap-1.5 rounded-full bg-muted/60 px-3 py-2 text-center text-xs font-medium text-muted-foreground"
             role="status"
           >
             <Timer className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {ACTIVE_ETA_HINT[order.status]}
+            {t(ACTIVE_ETA_KEY[order.status] as string)}
           </p>
         )}
 
@@ -1202,7 +1203,7 @@ function OrderView({
               ) : (
                 <Ban className="h-4 w-4" aria-hidden="true" />
               )}
-              {cancelMutation.isPending ? "جارٍ الإلغاء..." : "إلغاء الطلب"}
+              {cancelMutation.isPending ? t("orders.cancelling") : t("orders.cancelOrder")}
             </Button>
           </div>
         )}
@@ -1219,12 +1220,14 @@ function OrderView({
 
       {/* حوار تأكيد الإلغاء */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent dir="rtl">
+        <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد من إلغاء طلبك؟</AlertDialogTitle>
+            <AlertDialogTitle>{t("orders.cancelTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              سيُلغى الطلب #{order.id} من {order.facility_name ?? "المتجر"} وتُسترجع
-              الكميات للمخزون. لا يمكن التراجع عن هذا الإجراء.
+              {t("orders.cancelDesc", {
+                id: order.id,
+                facility: order.facility_name ?? t("orders.store"),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
@@ -1236,10 +1239,10 @@ function OrderView({
                 })
               }
             >
-              نعم، إلغاء الطلب
+              {t("orders.cancelYes")}
             </AlertDialogAction>
             <AlertDialogCancel className="min-h-[44px] flex-1 rounded-full">
-              إبقاء الطلب
+              {t("orders.cancelNo")}
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1248,11 +1251,11 @@ function OrderView({
       {/* الأصناف */}
       <section
         className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
-        aria-label="أصناف الطلب"
+        aria-label={t("orders.itemsAria")}
       >
         <h2 className="mb-4 flex items-center gap-2 text-base font-bold text-foreground">
           <Soup className="h-5 w-5 text-secondary" aria-hidden="true" />
-          أصناف الطلب ({order.items.length})
+          {t("orders.itemsHeading", { count: order.items.length })}
         </h2>
         <ul className="space-y-2.5">
           {order.items.map((item) => (
@@ -1261,9 +1264,9 @@ function OrderView({
         </ul>
         <Separator className="my-4" />
         {/* ملخص الفاتورة — المبالغ الوطنية بعملة السوق من الخادم (برونزية-5) */}
-        <div className="space-y-2 text-sm" dir="rtl">
+        <div className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">المجموع الفرعي</span>
+            <span className="text-muted-foreground">{t("cart.subtotalPlain")}</span>
             <MoneyText
               amount={order.subtotal}
               currency={orderCurrency}
@@ -1271,7 +1274,7 @@ function OrderView({
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">رسوم التوصيل</span>
+            <span className="text-muted-foreground">{t("cart.deliveryFeeLabel")}</span>
             <MoneyText
               amount={order.delivery_fee}
               currency={orderCurrency}
@@ -1283,32 +1286,32 @@ function OrderView({
             order.billed_km != null ||
             order.per_km_price != null) && (
             <p className="text-[11px] leading-relaxed text-muted-foreground">
-              شفافية الأجرة:{" "}
+              {t("orders.feeTransparency")}{" "}
               {order.distance_km != null && (
                 <span dir="ltr" className="tabular-nums">
-                  {order.distance_km} كم
+                  {t("orders.kmWithVal", { km: order.distance_km })}
                 </span>
               )}
               {order.billed_km != null && (
                 <span dir="ltr" className="tabular-nums">
-                  {" "}— تُحتسب {order.billed_km} كم
+                  {" "}{t("orders.billedAs", { km: order.billed_km })}
                 </span>
               )}
               {order.per_km_price != null && (
                 <span dir="ltr" className="tabular-nums">
-                  {" "}× {order.per_km_price}/كم
+                  {" "}{t("orders.perKmSuffix", { price: order.per_km_price })}
                 </span>
               )}
             </p>
           )}
           {order.address_imprecise ? (
             <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-              عنوان غير محدد بدقة
+              {t("cart.impreciseAddress")}
             </span>
           ) : null}
           <Separator className="my-1" />
           <div className="flex items-center justify-between">
-            <span className="font-bold text-foreground">الإجمالي</span>
+            <span className="font-bold text-foreground">{t("cart.total")}</span>
             <MoneyText
               amount={order.total}
               currency={orderCurrency}
@@ -1322,44 +1325,44 @@ function OrderView({
       {/* معلومات الطلب */}
       <section
         className="rounded-2xl border border-border/60 bg-card p-5 shadow-soft"
-        aria-label="معلومات التوصيل والدفع"
+        aria-label={t("orders.infoAria")}
       >
         <h2 className="mb-2 flex items-center gap-2 text-base font-bold text-foreground">
           <Receipt className="h-5 w-5 text-secondary" aria-hidden="true" />
-          معلومات الطلب
+          {t("orders.infoHeading")}
         </h2>
         <div className="divide-y divide-border/40">
           <InfoRow
             icon={Store}
-            label="المتجر"
-            value={order.facility_name ?? "متجر"}
+            label={t("orders.store")}
+            value={order.facility_name ?? t("orders.storeFallback")}
           />
           {order.delivery_address && (
             <InfoRow
               icon={MapPin}
-              label="عنوان التوصيل"
+              label={t("orders.addressLabel")}
               value={order.delivery_address}
             />
           )}
           <InfoRow
             icon={Truck}
-            label="رسوم التوصيل"
+            label={t("cart.deliveryFeeLabel")}
             value={formatMoney(order.delivery_fee, orderCurrency)}
           />
           <InfoRow
             icon={CreditCard}
-            label="طريقة الدفع"
-            value={PAYMENT_LABEL[order.payment_method]}
+            label={t("cart.paymentMethod")}
+            value={t(`orders.payMethod.${order.payment_method}`)}
           />
           <InfoRow
             icon={Clock}
-            label="تاريخ الطلب"
+            label={t("orders.dateLabel")}
             value={formatDate(order.created_at)}
           />
           {order.notes && (
             <InfoRow
               icon={StickyNote}
-              label="ملاحظات"
+              label={t("orders.notesLabel")}
               value={order.notes}
             />
           )}
@@ -1386,6 +1389,7 @@ export default function OrderDetailContent({
 }: {
   orderId: string;
 }) {
+  const { t } = useLang();
   const { accessToken, hydrated } = useCustomerAuth();
   const numericId = useMemo(() => {
     const n = Number(orderId);
@@ -1396,7 +1400,7 @@ export default function OrderDetailContent({
   if (!hydrated) {
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <OrderDetailSkeleton />
         </div>
@@ -1408,18 +1412,18 @@ export default function OrderDetailContent({
   if (!accessToken) {
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <EmptyState
             icon={Package}
-            title="سجّل الدخول لعرض تفاصيل الطلب"
-            description="لا يمكن عرض تفاصيل الطلب دون تسجيل الدخول."
+            title={t("orders.loginDetailTitle")}
+            description={t("orders.loginDetailDesc")}
             action={
               <Link
                 href={`/login?next=/orders/${orderId}`}
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                تسجيل الدخول
+                {t("common.signIn")}
               </Link>
             }
           />
@@ -1432,11 +1436,11 @@ export default function OrderDetailContent({
   if (numericId === null) {
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <ErrorState
-            title="معرّف الطلب غير صالح"
-            message="تعذّر تحديد الطلب المطلوب."
+            title={t("orders.invalidId")}
+            message={t("orders.cantDetermine")}
           />
         </div>
       </>
@@ -1451,6 +1455,7 @@ export default function OrderDetailContent({
 }
 
 function OrderDetailInner({ id }: { id: number }) {
+  const { t } = useLang();
   const { data, isLoading, isError, error, refetch } = useOrderDetail(id);
 
   /* الجولة 27 — طلب فتح «أعد الطلب» تلقائياً عند القدوم من قائمة
@@ -1492,7 +1497,7 @@ function OrderDetailInner({ id }: { id: number }) {
   if (isLoading) {
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <OrderDetailSkeleton />
         </div>
@@ -1504,13 +1509,13 @@ function OrderDetailInner({ id }: { id: number }) {
     const msg =
       error instanceof Error
         ? error.message
-        : "تعذّر تحميل تفاصيل الطلب. تحقق من اتصالك بالإنترنت.";
+        : t("orders.detailLoadFailed");
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <ErrorState
-            title="تعذّر تحميل الطلب"
+            title={t("orders.loadFailedTitle")}
             message={msg}
             onRetry={() => refetch()}
           />
@@ -1522,18 +1527,18 @@ function OrderDetailInner({ id }: { id: number }) {
   if (!data) {
     return (
       <>
-        <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
+        <ScreenHeader title={t("orders.detailTitle")} fallbackHref="/orders" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <EmptyState
             icon={Package}
-            title="الطلب غير موجود"
-            description="ربما حُذف هذا الطلب أو لا تملك صلاحية الوصول إليه."
+            title={t("orders.notFound")}
+            description={t("orders.notFoundDesc")}
             action={
               <Link
                 href="/orders"
                 className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                العودة لطلباتي
+                {t("orders.backToOrders")}
               </Link>
             }
           />
@@ -1545,7 +1550,7 @@ function OrderDetailInner({ id }: { id: number }) {
   return (
     <>
       <ScreenHeader title="تفاصيل الطلب" fallbackHref="/orders" />
-      <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
+      <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6">
         <OrderView order={data} reorderRequested={reorderRequested} />
 
         {/* ذيل سفلي — زر تصفّح الوجبات */}
@@ -1554,7 +1559,7 @@ function OrderDetailInner({ id }: { id: number }) {
             href="/"
             className="inline-flex min-h-[44px] items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
           >
-            تصفّح الوجبات
+            {t("cart.browseMeals")}
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>

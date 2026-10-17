@@ -28,7 +28,6 @@ import { Label } from "@/components/ui/label";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import {
   DeliveryFields,
-  MISSING_LOCATION_MSG,
   type CheckoutMarket,
   type CheckoutPaymentMethod,
   type DeliveryMode,
@@ -41,6 +40,7 @@ import { isSaudiCountry, currencyFromCountry } from "@/services/locale.service";
 import { MoneyText } from "@/components/finance/finance-ui";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
@@ -96,6 +96,7 @@ function QuantityStepper({
   disabled: boolean;
   onChange: (next: number) => void;
 }) {
+  const { t } = useLang();
   const dec = () => onChange(Math.max(1, quantity - 1));
   const inc = () => onChange(Math.min(max, quantity + 1));
   return (
@@ -107,7 +108,7 @@ function QuantityStepper({
         className="h-11 w-11 rounded-full"
         onClick={dec}
         disabled={disabled || quantity <= 1}
-        aria-label="إنقاص الكمية"
+        aria-label={t("cart.decreaseQty")}
       >
         <Minus className="h-4 w-4" aria-hidden="true" />
       </Button>
@@ -124,7 +125,7 @@ function QuantityStepper({
         className="h-11 w-11 rounded-full"
         onClick={inc}
         disabled={disabled || quantity >= max}
-        aria-label="زيادة الكمية"
+        aria-label={t("cart.increaseQty")}
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
       </Button>
@@ -139,6 +140,7 @@ function QuantityStepper({
  * بعد إتمام الدفع والتحقق الحتمي حصراً (/payment/return).
  */
 function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void }) {
+  const { t } = useLang();
   /* السوق اليمني: طلب محفظة → شاشة الدفع لرفع إشعار التحويل (كما هو) */
   const isWalletOrder = order.payment_method === "wallet";
 
@@ -148,9 +150,9 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
         <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
       </span>
       <div className="space-y-1">
-        <h3 className="text-xl font-extrabold text-foreground">تم استلام طلبك</h3>
+        <h3 className="text-xl font-extrabold text-foreground">{t("cart.orderReceived")}</h3>
         <p className="text-sm text-muted-foreground">
-          رقم الطلب:{" "}
+          {t("common.orderNumber")}{" "}
           <span dir="ltr" className="font-bold tabular-nums text-foreground">
             #{order.id}
           </span>
@@ -161,11 +163,10 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
           <div className="w-full max-w-xs rounded-xl border border-accent/40 bg-accent/10 p-3.5 text-right">
             <p className="flex items-center gap-1.5 text-sm font-extrabold text-accent-ink">
               <Wallet className="h-4 w-4 shrink-0" aria-hidden="true" />
-              خطوة أخيرة — إتمام الدفع
+              {t("cart.walletLastStep")}
             </p>
             <p className="mt-1 text-xs leading-relaxed text-accent-ink/90">
-              حوّل المبلغ المطلوب ({formatCurrency(order.total)}) إلى محفظة
-              المتجر من شاشة الدفع، ثم ارفع صورة إشعار التحويل.
+              {t("cart.walletTransfer", { amount: formatCurrency(order.total) })}
             </p>
           </div>
           <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
@@ -177,7 +178,7 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
             >
               <Link href={`/orders/${order.id}/payment`}>
                 <Wallet className="h-4 w-4" aria-hidden="true" />
-                الذهاب لشاشة الدفع
+                {t("cart.goToPayment")}
               </Link>
             </Button>
             <Button
@@ -186,14 +187,14 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
               className="min-h-[44px] w-full rounded-full"
               onClick={onClose}
             >
-              لاحقاً — من صفحة طلباتي
+              {t("cart.later")}
             </Button>
           </div>
         </>
       ) : (
         <>
           <p className="max-w-xs text-xs leading-relaxed text-muted-foreground">
-            ستظهر حالة طلبك في صفحة طلباتي. تابع الاستلام لإتمام الطلب عند وصوله.
+            {t("cart.cashSuccessBody")}
           </p>
           <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
             <Button
@@ -204,7 +205,7 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
             >
               <Link href="/orders">
                 <ListOrdered className="h-4 w-4" aria-hidden="true" />
-                طلباتي
+                {t("nav.orders")}
               </Link>
             </Button>
             <Button
@@ -213,7 +214,7 @@ function SuccessView({ order, onClose }: { order: OrderOut; onClose: () => void 
               className="min-h-[44px] w-full rounded-full"
               onClick={onClose}
             >
-              تصفّح المزيد
+              {t("cart.browseMore")}
             </Button>
           </div>
         </>
@@ -240,21 +241,22 @@ function DeliveryFeeRow({
   hasLocation: boolean;
   currency: string;
 }) {
+  const { t } = useLang();
   const fee = estimate.data?.fee;
   const hasFee = typeof fee === "number";
 
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">رسوم التوصيل</span>
+        <span className="text-muted-foreground">{t("cart.deliveryFeeLabel")}</span>
         {!hasLocation ? (
           <span className="text-xs font-bold text-muted-foreground">
-            تُحسب حسب المسافة بعد تحديد موقعك
+            {t("cart.feeAfterLocation")}
           </span>
         ) : estimate.isLoading && !estimate.data ? (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-            جارٍ حساب الأجرة…
+            {t("cart.calculatingFee")}
           </span>
         ) : hasFee ? (
           <MoneyText
@@ -263,7 +265,7 @@ function DeliveryFeeRow({
             className="font-bold text-foreground"
           />
         ) : (
-          <span className="text-xs text-muted-foreground">تُحسب عند تأكيد الطلب</span>
+          <span className="text-xs text-muted-foreground">{t("cart.feeAtConfirm")}</span>
         )}
       </div>
 
@@ -275,7 +277,7 @@ function DeliveryFeeRow({
       )}
       {estimate.data?.imprecise_address && (
         <span className="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-          عنوان غير محدد بدقة
+          {t("cart.impreciseAddress")}
         </span>
       )}
       {estimate.data?.note && (
@@ -295,10 +297,11 @@ function TotalRow({
   total: number;
   currency: string;
 }) {
+  const { t } = useLang();
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between border-t pt-2 text-base font-extrabold">
-        <span className="text-foreground">الإجمالي</span>
+        <span className="text-foreground">{t("cart.total")}</span>
         <MoneyText
           amount={total}
           currency={currency}
@@ -307,7 +310,7 @@ function TotalRow({
         />
       </div>
       <p className="text-[11px] text-muted-foreground">
-        الإجمالي النهائي يؤكده الخادم عند إنشاء الطلب
+        {t("cart.serverConfirmed")}
       </p>
     </div>
   );
@@ -352,6 +355,7 @@ function SpecialOfferPriceBreakdown({
   facilityRate: number;
   currency: string;
 }) {
+  const { t } = useLang();
   const baseTotal = base * quantity;
   const offerDiscountTotal = offerDiscountPerUnit * quantity;
   const facilityDiscountTotal = facilityDiscountPerUnit * quantity;
@@ -362,18 +366,18 @@ function SpecialOfferPriceBreakdown({
       <div className="flex items-center justify-between rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
         <span className="inline-flex items-center gap-1 font-extrabold">
           <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-          عرض خاص — خصم {offerRate}%
+          {t("cart.specialOffer", { rate: offerRate })}
         </span>
         {isMember && (
           <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-bold text-success">
-            + خصم عضوية {facilityRate}%
+            {t("cart.membershipDiscountExtra", { rate: facilityRate })}
           </span>
         )}
       </div>
 
       {/* السعر الأصلي */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">السعر الأصلي</span>
+        <span className="text-muted-foreground">{t("cart.originalPrice")}</span>
         <MoneyText
           amount={baseTotal}
           currency={currency}
@@ -383,7 +387,7 @@ function SpecialOfferPriceBreakdown({
 
       {/* خصم العرض الخاص */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">خصم العرض الخاص</span>
+        <span className="text-muted-foreground">{t("cart.offerDiscount")}</span>
         <MoneyText
           amount={-offerDiscountTotal}
           currency={currency}
@@ -394,7 +398,7 @@ function SpecialOfferPriceBreakdown({
       {/* خصم العضوية — للعضو فقط */}
       {isMember && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">خصم العضوية</span>
+          <span className="text-muted-foreground">{t("cart.membershipDiscount")}</span>
           <MoneyText
             amount={-facilityDiscountTotal}
             currency={currency}
@@ -405,7 +409,7 @@ function SpecialOfferPriceBreakdown({
 
       {/* الإجمالي الفرعي */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">الإجمالي الفرعي</span>
+        <span className="text-muted-foreground">{t("cart.subtotal")}</span>
         <MoneyText
           amount={subtotal}
           currency={currency}
@@ -433,6 +437,7 @@ export function CheckoutSheet({
   open,
   onOpenChange,
 }: CheckoutSheetProps) {
+  const { t } = useLang();
   const router = useRouter();
   const me = useMe();
   const createOrder = useCreateOrder();
@@ -541,15 +546,15 @@ export function CheckoutSheet({
     if (outOfStock) return;
     /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
     if (locationMissing) {
-      setErrorMsg(MISSING_LOCATION_MSG);
+      setErrorMsg(t("cart.missingLocation"));
       return;
     }
     if (addressMissing) {
-      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      setErrorMsg(t("cart.writeAddress"));
       return;
     }
     if (walletMissing) {
-      setErrorMsg("اختر محفظة الدفع أولاً — من قائمة محافظ المتجر");
+      setErrorMsg(t("cart.pickWallet"));
       return;
     }
     setErrorMsg(null);
@@ -589,16 +594,16 @@ export function CheckoutSheet({
           setSuccessOrder(data);
           /* الجولة 17 — اهتزاز نجاح مزدوج (إحساس Native عند تأكيد الطلب) */
           haptic("success");
-          toast({ title: "تم استلام طلبك بنجاح" });
+          toast({ title: t("cart.toastReceivedShort") });
         },
         onError: (err) => {
           const e = err as { message?: string; status?: number };
           if (e.status === 0 || /اتصال|شبكة|internet/i.test(e.message ?? "")) {
-            setErrorMsg("يتطلب هذا الإجراء اتصالاً بالإنترنت.");
+            setErrorMsg(t("cart.requiresInternet"));
             return;
           }
           setErrorMsg(
-            e.message?.trim() || "تعذّر إتمام الطلب. حاول مرة أخرى."
+            e.message?.trim() || t("cart.orderFailed")
           );
         },
       }
@@ -624,10 +629,10 @@ export function CheckoutSheet({
         )}
         <SheetHeader className="border-b p-4 text-right">
           <SheetTitle className="text-right text-lg font-extrabold">
-            اطلب الآن
+            {t("cart.orderNow")}
           </SheetTitle>
           <SheetDescription className="text-right">
-            أكمل بياناتك لتأكيد الطلب
+            {t("cart.completeDetails")}
           </SheetDescription>
         </SheetHeader>
 
@@ -636,7 +641,7 @@ export function CheckoutSheet({
         ) : (
           <div className="flex flex-1 flex-col overflow-y-auto no-mobile-scrollbar">
             {/* ملخص الوجبة */}
-            <section className="flex gap-3 border-b p-4" aria-label="ملخص الوجبة">
+            <section className="flex gap-3 border-b p-4" aria-label={t("cart.mealSummary")}>
               <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
                 {product.image_url ? (
                   <ImageWithSkeleton
@@ -666,24 +671,24 @@ export function CheckoutSheet({
                 )}
                 {outOfStock ? (
                   <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">
-                    نفد
+                    {t("cart.soldOut")}
                   </span>
                 ) : product.available_quantity === null ? (
                   <span className="inline-flex items-center rounded-full bg-success/10 px-2 py-0.5 text-xs font-bold text-success">
-                    متوفر
+                    {t("cart.available")}
                   </span>
                 ) : (
                   <span className="inline-flex items-center rounded-full bg-secondary/10 px-2 py-0.5 text-xs font-bold text-secondary">
-                    الكمية: {product.available_quantity}
+                    {t("cart.qtyAvailable", { count: product.available_quantity ?? 0 })}
                   </span>
                 )}
               </div>
             </section>
 
             {/* اختيار الكمية */}
-            <section className="space-y-2 border-b p-4" aria-label="اختيار الكمية">
+            <section className="space-y-2 border-b p-4" aria-label={t("cart.qtySection")}>
               <Label htmlFor="qty-stepper" className="text-sm font-bold">
-                الكمية
+                {t("cart.quantity")}
               </Label>
               <div id="qty-stepper">
                 <QuantityStepper
@@ -696,7 +701,7 @@ export function CheckoutSheet({
             </section>
 
             {/* حساب السعر — كل المبالغ بعملة السوق الحية (برونزية-3/5) */}
-            <section className="space-y-3 border-b p-4" aria-label="حساب السعر">
+            <section className="space-y-3 border-b p-4" aria-label={t("cart.pricingSection")}>
               {specialOffer ? (
                 <SpecialOfferPriceBreakdown
                   base={soBase}
@@ -715,7 +720,7 @@ export function CheckoutSheet({
               ) : (
                 <>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">سعر الوحدة</span>
+                    <span className="text-muted-foreground">{t("cart.unitPrice")}</span>
                     {/* v3.2.1 — سعر الخادم الرسمي بلا أي خصم وهمي محلي */}
                     <MoneyText
                       amount={unitPrice}
@@ -728,7 +733,7 @@ export function CheckoutSheet({
                     /* v3.2.1 — لا حساب خصم في العميل: الخادم يطبق خصم المنشأة
                        (إن فعّلها التاجر) عند تأكيد الطلب ويعيد الإجمالي النهائي. */
                     <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
-                      خصم المنشأة (إن فعّلها التاجر) يُطبَّق من الخادم عند تأكيد الطلب — والإجمالي النهائي من رد الطلب
+                      {t("cart.facilityDiscountNoteServer")}
                     </p>
                   ) : (
                     <button
@@ -738,14 +743,14 @@ export function CheckoutSheet({
                     >
                       <span className="inline-flex items-center gap-1.5">
                         <Sparkles className="h-3.5 w-3.5 text-accent-ink" aria-hidden="true" />
-                        اشترك في عضوية توفير لخصم حصري
+                        {t("cart.upsellText")}
                       </span>
-                      <span className="font-bold text-accent-ink">اشترك</span>
+                      <span className="font-bold text-accent-ink">{t("cart.subscribe")}</span>
                     </button>
                   )}
 
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">الإجمالي الفرعي</span>
+                    <span className="text-muted-foreground">{t("cart.subtotal")}</span>
                     <MoneyText
                       amount={subtotal}
                       currency={currency}
@@ -815,8 +820,8 @@ export function CheckoutSheet({
                   className="mb-2 text-center text-[11px] font-bold text-muted-foreground"
                 >
                   {locationMissing
-                    ? MISSING_LOCATION_MSG
-                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                    ? t("cart.missingLocation")
+                    : t("cart.writeAddressShort")}
                 </p>
               )}
               <Button
@@ -841,25 +846,25 @@ export function CheckoutSheet({
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                     {paymentMethod === "electronic"
-                      ? "جارٍ تجهيز شاشة الدفع..."
-                      : "جارٍ التأكيد..."}
+                      ? t("cart.preparingPay")
+                      : t("cart.confirming")}
                   </>
                 ) : outOfStock ? (
-                  "غير متوفر حالياً"
+                  t("cart.unavailableNow")
                 ) : paymentMethod === "wallet" ? (
                   <>
                     <Wallet className="h-4 w-4" aria-hidden="true" />
-                    تأكيد الطلب والدفع بالمحفظة
+                    {t("cart.confirmWallet")}
                   </>
                 ) : paymentMethod === "electronic" ? (
                   <>
                     <CreditCard className="h-4 w-4" aria-hidden="true" />
-                    الدفع الإلكتروني وإتمام الطلب
+                    {t("cart.payElectronic")}
                   </>
                 ) : (
                   <>
                     <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-                    تأكيد الطلب
+                    {t("cart.confirmOrder")}
                   </>
                 )}
               </Button>
@@ -871,7 +876,7 @@ export function CheckoutSheet({
                   className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] font-bold text-accent-ink"
                 >
                   <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                  {t("cart.electronicNote")}
                 </p>
               )}
               {walletMissing && (
@@ -880,7 +885,7 @@ export function CheckoutSheet({
                   className="mt-2 flex items-center justify-center gap-1 text-center text-[11px] font-bold text-accent-ink"
                 >
                   <ArrowLeft className="h-3 w-3" aria-hidden="true" />
-                  اختر محفظة المتجر لإتمام الدفع بالتحويل
+                  {t("cart.pickWalletNote")}
                 </p>
               )}
             </div>

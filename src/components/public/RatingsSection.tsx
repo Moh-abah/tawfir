@@ -14,6 +14,7 @@ import { toast, useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 import type { RatingItem } from "@/services/rating.service";
 
 /**
@@ -33,6 +34,7 @@ interface RatingsSectionProps {
 }
 
 export function RatingsSection({ type, id, name }: RatingsSectionProps) {
+  const { t } = useLang();
   const { data, isLoading } = useRatings(type, id);
   const { accessToken, hydrated } = useCustomerAuth();
   const [showForm, setShowForm] = useState(false);
@@ -43,11 +45,11 @@ export function RatingsSection({ type, id, name }: RatingsSectionProps) {
   const total = data?.total ?? 0;
 
   return (
-    <section className="mt-8" aria-label={`تقييمات ${name}`}>
+    <section className="mt-8" aria-label={t("catalog.ratings.aria", { name })}>
       <div className="mb-5 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
           <Star className="h-5 w-5 text-accent" aria-hidden="true" />
-          التقييمات
+          {t("catalog.ratings.title")}
           {total > 0 && (
             <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent-ink">
               {total}
@@ -63,22 +65,22 @@ export function RatingsSection({ type, id, name }: RatingsSectionProps) {
             <p className="text-3xl font-black text-foreground">{average.toFixed(1)}</p>
             <Stars average={average} size="md" showNumber={false} className="mt-1" />
             <p className="mt-1 text-[10px] text-muted-foreground">
-              {total} تقييم
+              {t("catalog.ratings.count", { count: total })}
             </p>
           </div>
           <div className="h-16 w-px bg-border/40" />
           <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
               {average >= 4.5
-                ? "تقييم ممتاز! 🌟"
+                ? t("catalog.ratings.excellent")
                 : average >= 3.5
-                  ? "تقييم جيد جداً"
+                  ? t("catalog.ratings.veryGood")
                   : average >= 2.5
-                    ? "تقييم جيد"
-                    : "تقييم متوسط"}
+                    ? t("catalog.ratings.good")
+                    : t("catalog.ratings.average")}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              شارك تجربتك وساعد الآخرين في الاختيار
+              {t("catalog.ratings.shareCta")}
             </p>
           </div>
         </div>
@@ -92,7 +94,7 @@ export function RatingsSection({ type, id, name }: RatingsSectionProps) {
           onClick={() => setShowForm((v) => !v)}
         >
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
-          {showForm ? "إلغاء" : "أضف تقييمك"}
+          {showForm ? t("common.cancel") : t("catalog.ratings.add")}
         </Button>
       )}
 
@@ -118,8 +120,8 @@ export function RatingsSection({ type, id, name }: RatingsSectionProps) {
       ) : total === 0 ? (
         <EmptyState
           icon={Star}
-          title="لا توجد تقييمات بعد"
-          description="كن أول من يقيّم هذا المنتج ومساعدة الآخرين في الاختيار"
+          title={t("catalog.ratings.emptyTitle")}
+          description={t("catalog.ratings.emptyDesc")}
         />
       ) : (
         <div className="space-y-3">
@@ -141,6 +143,7 @@ function RatingCard({
   delay: number;
   prefersReduced: boolean;
 }) {
+  const { lang } = useLang();
   return (
     <motion.div
       initial={prefersReduced ? {} : { opacity: 0, y: 8 }}
@@ -160,7 +163,9 @@ function RatingCard({
             </p>
             <p className="text-[10px] text-muted-foreground">
               {rating.created_at
-                ? new Date(rating.created_at).toLocaleDateString("ar-YE")
+                ? new Date(rating.created_at).toLocaleDateString(
+                    lang === "en" ? "en-US" : "ar-YE"
+                  )
                 : ""}
             </p>
           </div>
@@ -185,6 +190,7 @@ function RatingForm({
   id: number;
   onSubmitted: () => void;
 }) {
+  const { t } = useLang();
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -193,7 +199,7 @@ function RatingForm({
 
   const handleSubmit = async () => {
     if (stars === 0) {
-      toast({ title: "اختر عدد النجوم", variant: "destructive" });
+      toast({ title: t("catalog.ratings.pickStars"), variant: "destructive" });
       return;
     }
     setSubmitting(true);
@@ -203,12 +209,12 @@ function RatingForm({
         comment: comment.trim() || null,
         [type === "product" ? "product_id" : "facility_id"]: id,
       });
-      toast({ title: "شكراً لتقييمك! ⭐" });
+      toast({ title: t("catalog.ratings.thanks") });
       qc.invalidateQueries({ queryKey: ["ratings", type, id] });
       qc.invalidateQueries({ queryKey: ["rating-aggregate", type, id] });
       onSubmitted();
     } catch {
-      toast({ title: "تعذّر إرسال التقييم", variant: "destructive" });
+      toast({ title: t("catalog.ratings.fail"), variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +222,7 @@ function RatingForm({
 
   return (
     <div className="mb-5 rounded-2xl border border-border/40 bg-card p-4">
-      <p className="mb-2 text-sm font-bold text-foreground">تقييمك</p>
+      <p className="mb-2 text-sm font-bold text-foreground">{t("catalog.ratings.yourRating")}</p>
       {/* نجوم قابلة للنقر */}
       <div className="mb-3 flex gap-1">
         {[1, 2, 3, 4, 5].map((s) => (
@@ -224,7 +230,7 @@ function RatingForm({
             key={s}
             type="button"
             onClick={() => setStars(s)}
-            aria-label={`${s} نجوم`}
+            aria-label={t("catalog.ratings.starsAria", { count: s })}
             className="native-tap p-1 transition-transform hover:scale-110 active:scale-95"
           >
             <Star
@@ -242,7 +248,7 @@ function RatingForm({
       <Textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="اكتب تعليقك (اختياري)..."
+        placeholder={t("catalog.ratings.commentPlaceholder")}
         maxLength={500}
         className="mb-3 min-h-[80px] resize-none"
       />
@@ -254,7 +260,7 @@ function RatingForm({
         {submitting ? (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         ) : (
-          "إرسال التقييم"
+          t("catalog.ratings.submit")
         )}
       </Button>
     </div>

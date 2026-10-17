@@ -5,6 +5,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { isNativePlatform } from "@/lib/capacitor";
+import { useLang } from "@/lib/i18n";
 
 const STORAGE_KEY = "tawfir_cookie_consent";
 
@@ -28,6 +29,7 @@ function useCookieConsent() {
 export function CookieConsent() {
   const hasConsented = useCookieConsent();
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
 
   const handleAccept = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, "accepted");
@@ -63,7 +65,7 @@ export function CookieConsent() {
         >
           <div className="glass-card mx-auto max-w-2xl rounded-xl border p-4">
             <p className="text-sm text-foreground leading-relaxed">
-              نستخدم ملفات تعريف الارتباط لتحسين تجربتك. بالاستمرار في التصفح فإنك توافق على سياسة الخصوصية.
+              {t("profile.cookies.text")}
             </p>
             <div className="mt-3 flex items-center gap-2 justify-end">
               <Button
@@ -72,14 +74,14 @@ export function CookieConsent() {
                 onClick={handleReject}
                 className="rounded-full min-h-[44px] px-5"
               >
-                رفض
+                {t("profile.cookies.reject")}
               </Button>
               <Button
                 size="sm"
                 onClick={handleAccept}
                 className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 min-h-[44px] px-5"
               >
-                موافق
+                {t("profile.cookies.accept")}
               </Button>
             </div>
           </div>

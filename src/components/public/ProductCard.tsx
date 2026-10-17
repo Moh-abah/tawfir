@@ -17,6 +17,7 @@ import { useRatingAggregate } from "@/hooks/useRatings";
 import { Stars } from "@/components/shared/Stars";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import { haptic } from "@/lib/haptic";
 import type { ProductWithFacilityOut } from "@/types/api.generated";
 import {
@@ -45,23 +46,24 @@ function AvailabilityBadge({
 }: {
   product: ProductWithFacilityOut;
 }) {
+  const { t } = useLang();
   if (!product.is_available || product.available_quantity === 0) {
     return (
       <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
-        نفد
+        {t("catalog.product.soldOut")}
       </span>
     );
   }
   if (product.available_quantity === null) {
     return (
       <span className="rounded-full bg-success px-1.5 py-0.5 text-[9px] font-bold text-white">
-        متوفر
+        {t("catalog.product.available")}
       </span>
     );
   }
   return (
     <span className="rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
-      الكمية: {product.available_quantity}
+      {t("catalog.product.qty", { count: product.available_quantity ?? 0 })}
     </span>
   );
 }
@@ -75,6 +77,7 @@ function AvailabilityBadge({
  *  - السعر: العضو (primary) + الأصلي مشطوب
  */
 export function ProductCard({ product, className, priority = false, staggerIndex }: ProductCardProps) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   /* الجولة 17 — معاينة سريعة للصورة من الشبكة بلا مغادرة القائمة */
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -97,8 +100,8 @@ export function ProductCard({ product, className, priority = false, staggerIndex
     if (!hydrated) return;
     if (!accessToken) {
       toast({
-        title: "سجّل الدخول أولاً",
-        description: "يجب تسجيل الدخول لإتمام الطلب.",
+        title: t("catalog.auth.loginTitle"),
+        description: t("catalog.auth.loginDesc"),
       });
       router.push("/login");
       return;
@@ -134,7 +137,7 @@ export function ProductCard({ product, className, priority = false, staggerIndex
           <Link
             href={`/products/${product.id}`}
             className="group/img absolute inset-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={`تفاصيل ${product.name}`}
+            aria-label={t("catalog.product.detailsAria", { name: product.name })}
           >
             {product.image_url ? (
               <ImageWithSkeleton
@@ -163,7 +166,9 @@ export function ProductCard({ product, className, priority = false, staggerIndex
               {product.distance_km != null && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-black/70 px-1.5 py-0.5 text-[9px] font-bold text-white">
                   <MapPin className="h-2.5 w-2.5" aria-hidden="true" />
-                  {Math.round(product.distance_km * 10) / 10} كم
+                  {t("catalog.product.km", {
+                    km: Math.round(product.distance_km * 10) / 10,
+                  })}
                 </span>
               )}
             </div>
@@ -171,10 +176,10 @@ export function ProductCard({ product, className, priority = false, staggerIndex
             {isMember && (
               <span
                 className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-full bg-accent/95 px-1.5 py-0.5 text-[9px] font-extrabold text-accent-foreground shadow-soft"
-                aria-label="عضو توفير"
+                aria-label={t("catalog.product.memberBadgeAria")}
               >
                 <Crown className="h-2.5 w-2.5" aria-hidden="true" />
-                عضو
+                {t("catalog.product.memberBadge")}
               </span>
             )}
             {/* الجولة 16 — شريط مائل «نفدت الكمية» فوق الصورة عند النفاد:
@@ -184,7 +189,7 @@ export function ProductCard({ product, className, priority = false, staggerIndex
                 className="absolute bottom-2 right-0 rounded-l-full bg-destructive/95 py-1 pr-2.5 pl-3 text-[10px] font-extrabold text-white shadow-soft"
                 aria-hidden="true"
               >
-                نفدت الكمية
+                {t("catalog.product.outRibbon")}
               </span>
             )}
           </Link>
@@ -199,7 +204,7 @@ export function ProductCard({ product, className, priority = false, staggerIndex
                 haptic("tick");
                 setLightboxOpen(true);
               }}
-              aria-label={`تكبير صورة ${product.name}`}
+              aria-label={t("catalog.product.zoomAria", { name: product.name })}
               className="native-tap absolute bottom-2 left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
             >
               <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
@@ -257,7 +262,11 @@ export function ProductCard({ product, className, priority = false, staggerIndex
                 size="icon"
                 onClick={handleOrder}
                 disabled={outOfStock}
-                aria-label={outOfStock ? `نفد ${product.name}` : `اطلب ${product.name}`}
+                aria-label={
+                  outOfStock
+                    ? t("catalog.product.soldOutAria", { name: product.name })
+                    : t("catalog.product.orderAria", { name: product.name })
+                }
                 className="h-11 w-11 shrink-0 rounded-full"
               >
                 <ShoppingBag className="h-4 w-4" aria-hidden="true" />

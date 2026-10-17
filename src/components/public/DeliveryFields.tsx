@@ -39,6 +39,7 @@ import { useLocaleMe } from "@/hooks/useFinance";
 import { isSaudiCountry } from "@/services/locale.service";
 import { formatCurrency } from "@/lib/format";
 import type { PaymentMethod } from "@/types/api.generated";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -138,6 +139,7 @@ export function DeliveryFields({
   showAddressRequired = true,
   market,
 }: DeliveryFieldsProps) {
+  const { t } = useLang();
   /* السوق المستنبط: البروب الصريح أولاً (CheckoutSheet) — وإلا استنباط
      ذاتي من locale/me بنفس منطق CheckoutSheet (فشل/تأخر → يمني للتوافق).
      جولة تدقيق الفصل: السلة (Sheet + Page) لم تكن تمرر السوق فكان العميل
@@ -170,8 +172,8 @@ export function DeliveryFields({
     <>
       {/* طريقة الاستلام — التوصيل افتراضي والتسليم اليدوي خيار ثانٍ */}
       {onDeliveryModeChange && (
-        <section className={wrapClass} aria-label="طريقة الاستلام">
-          <Label className="text-sm font-bold">طريقة الاستلام</Label>
+        <section className={wrapClass} aria-label={t("cart.receiveMethod")}>
+          <Label className="text-sm font-bold">{t("cart.receiveMethod")}</Label>
           <RadioGroup
             value={deliveryMode}
             onValueChange={(v) => onDeliveryModeChange(v as DeliveryMode)}
@@ -189,10 +191,10 @@ export function DeliveryFields({
               <span className="flex min-w-0 flex-col">
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  توصيل
+                  {t("cart.delivery")}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground">
-                  الافتراضي — المندوب يوصل إليك
+                  {t("cart.deliveryDefault")}
                 </span>
               </span>
             </label>
@@ -208,10 +210,10 @@ export function DeliveryFields({
               <span className="flex min-w-0 flex-col">
                 <span className="flex items-center gap-1.5">
                   <Store className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  تسليم يدوي
+                  {t("cart.handover")}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground">
-                  استلام من المتجر
+                  {t("cart.handoverHint")}
                 </span>
               </span>
             </label>
@@ -222,30 +224,30 @@ export function DeliveryFields({
       {/* موقع التوصيل — زر تحميل الموقع (إلزامية الإحداثيات §6-3) */}
       <section
         className={cn(wrapClass, isHandover && "opacity-60")}
-        aria-label="موقع التوصيل"
+        aria-label={t("cart.deliveryLocation")}
       >
         <div className="flex items-center justify-between">
           <Label className="flex items-center gap-1 text-sm font-bold">
-            موقع التوصيل
+            {t("cart.deliveryLocation")}
             {!isHandover && (
               <span
                 className="text-destructive"
                 aria-hidden="true"
-                title="إلزامي"
+                title={t("common.required")}
               >
                 *
               </span>
             )}
             {isHandover && (
               <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
-                غير مطلوب — استلام من المتجر
+                {t("cart.notRequiredHandover")}
               </span>
             )}
           </Label>
           {hasLocation && !isHandover && (
             <span className="flex items-center gap-1 text-[11px] font-bold text-primary">
               <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-              موقعك محمّل
+              {t("cart.locationLoaded")}
             </span>
           )}
         </div>
@@ -272,26 +274,23 @@ export function DeliveryFields({
           >
             {!hasLocation ? (
               <p className="text-center text-[11px] font-medium text-muted-foreground">
-                حمّل موقعك لعرض تقدير أجرة التوصيل
+                {t("cart.loadLocationForEstimate")}
               </p>
             ) : estimate.isLoading && !estimate.data ? (
               <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                جارٍ حساب الأجرة من مسافة موقعك…
+                {t("cart.calculatingFeeDistance")}
               </p>
             ) : estimate.isError ? (
               <p className="text-center text-[11px] text-muted-foreground">
-                تعذّر حساب الأجرة الآن — ستُحسب بدقة عند تأكيد الطلب
+                {t("cart.feeEstimateFailed")}
               </p>
             ) : estimate.data ? (
               <div className="space-y-0.5 text-center">
                 <p className="text-sm font-black text-primary">
-                  أجرة التوصيل التقديرية: {formatCurrency(estimate.data.fee)}
+                  {t("cart.estimatedFee", { fee: formatCurrency(estimate.data.fee) })}
                 </p>
-                <p
-                  className="text-[11px] font-medium text-muted-foreground"
-                  dir="rtl"
-                >
+                <p className="text-[11px] font-medium text-muted-foreground">
                   {estimate.data.breakdown}
                 </p>
                 {estimate.data.note && (
@@ -301,12 +300,14 @@ export function DeliveryFields({
                 )}
                 {estimate.data.exceeds_cap && (
                   <p className="text-[11px] font-bold text-destructive">
-                    {estimate.data.distance_display} — خارج نطاق التوصيل
-                    (الحد الأقصى {estimate.data.max_km_applied} كم)
+                    {t("cart.outOfRange", {
+                      distance: estimate.data.distance_display ?? "",
+                      max: estimate.data.max_km_applied ?? "",
+                    })}
                   </p>
                 )}
                 <p className="text-[10px] text-muted-foreground">
-                  تقدير استرشادي — الحساب النهائي عند تأكيد الطلب
+                  {t("cart.estimateDisclaimer")}
                 </p>
               </div>
             ) : null}
@@ -320,19 +321,19 @@ export function DeliveryFields({
             addressMissing ? "font-bold text-foreground" : "text-muted-foreground",
           )}
         >
-          العنوان التفصيلي
+          {t("cart.fullAddress")}
           {!isHandover && (
             <span className="text-destructive" aria-hidden="true">
               *
             </span>
           )}
           {isHandover && (
-            <span className="text-[10px]">(اختياري في الاستلام من المتجر)</span>
+            <span className="text-[10px]">{t("cart.addressOptionalHandover")}</span>
           )}
         </Label>
         <Textarea
           id={addressId}
-          placeholder="الحي، الشارع، أقرب نقطة دالة..."
+          placeholder={t("cart.addressPlaceholder")}
           value={address}
           onChange={(e) => onAddressChange(e.target.value)}
           maxLength={DELIVERY_TEXT_MAX}
@@ -347,7 +348,7 @@ export function DeliveryFields({
         />
         {addressMissing && (
           <p role="note" className="text-[11px] text-destructive">
-            العنوان النصي مختصراً إلزامي — يساعد المندوب عند وصوله لبابك
+            {t("cart.addressRequiredNote")}
           </p>
         )}
         <p className="text-left text-[11px] text-muted-foreground" dir="ltr">
@@ -358,9 +359,9 @@ export function DeliveryFields({
       {/* طريقة الدفع */}
       <section
         className={cn(wrapClass, variant === "plain" && "pt-4")}
-        aria-label="طريقة الدفع"
+        aria-label={t("cart.paymentMethod")}
       >
-        <Label className="text-sm font-bold">طريقة الدفع</Label>
+        <Label className="text-sm font-bold">{t("cart.paymentMethod")}</Label>
         <RadioGroup
           value={paymentMethod}
           onValueChange={(v) => onPaymentMethodChange(v as CheckoutPaymentMethod)}
@@ -374,7 +375,7 @@ export function DeliveryFields({
               className="flex flex-1 cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
             >
               <Banknote className="h-5 w-5 text-foreground" aria-hidden="true" />
-              الدفع عند الاستلام (كاش)
+              {t("cart.payCash")}
             </Label>
           </div>
 
@@ -395,9 +396,9 @@ export function DeliveryFields({
               >
                 <CreditCard className="h-5 w-5 text-primary" aria-hidden="true" />
                 <span className="flex min-w-0 flex-col">
-                  <span>دفع إلكتروني (بطاقة/Apple Pay)</span>
+                  <span>{t("cart.payElectronicLabel")}</span>
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    تُفتح شاشة الدفع الآمنة لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                    {t("cart.electronicOptionHint")}
                   </span>
                 </span>
               </Label>
@@ -419,9 +420,9 @@ export function DeliveryFields({
               >
                 <Wallet className="h-5 w-5 text-primary" aria-hidden="true" />
                 <span className="flex min-w-0 flex-col">
-                  <span>محفظة / تحويل يدوي</span>
+                  <span>{t("cart.payWallet")}</span>
                   <span className="text-[10px] font-medium text-muted-foreground">
-                    حوّل من محفظتك وارفع صورة الإشعار
+                    {t("cart.walletHint")}
                   </span>
                 </span>
               </Label>
@@ -433,7 +434,7 @@ export function DeliveryFields({
         {paymentMethod === "wallet" && (
           <div className="rounded-xl border border-primary/20 bg-primary/[0.03] p-3">
             <p className="mb-2 text-xs font-bold text-foreground">
-              اختر محفظة المتجر التي ستحوّل إليها
+              {t("cart.chooseWallet")}
             </p>
             <WalletPickerList
               facilityId={facilityId}
@@ -447,13 +448,13 @@ export function DeliveryFields({
       </section>
 
       {/* ملاحظات */}
-      <section className={wrapClass} aria-label="ملاحظات الطلب">
+      <section className={wrapClass} aria-label={t("cart.notesSection")}>
         <Label htmlFor={notesId} className="text-xs text-muted-foreground">
-          ملاحظات (اختياري)
+          {t("cart.notes")}
         </Label>
         <Textarea
           id={notesId}
-          placeholder="مثلاً: بلا فلفل حار..."
+          placeholder={t("cart.notesPlaceholder")}
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           maxLength={DELIVERY_TEXT_MAX}

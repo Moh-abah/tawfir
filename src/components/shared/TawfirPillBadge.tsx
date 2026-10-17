@@ -1,12 +1,14 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 
 /**
  * كبسولة توفير الترويجية — زمردية بنص أبيض.
  * تحمل التاغلاين المعتمد: «وفّر أكثر.. عِش أجمل»
  */
 export function TawfirPillBadge({ className }: { className?: string }) {
+  const { t } = useLang();
   return (
     <span
       className={cn(
@@ -15,7 +17,7 @@ export function TawfirPillBadge({ className }: { className?: string }) {
         className
       )}
     >
-      وفّر أكثر.. عِش أجمل
+      {t("profile.card.tagline")}
     </span>
   );
 }

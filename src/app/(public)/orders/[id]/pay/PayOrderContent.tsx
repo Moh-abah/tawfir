@@ -54,6 +54,7 @@ import {
   setApplePaySheetContext,
   useSafariSheetParams,
 } from "@/lib/payment-bridge";
+import { useLang } from "@/lib/i18n";
 
 export default function PayOrderContent({ orderId }: { orderId: string }) {
   /* معرّف الطلب داخل Suspense احتياطاً (نمط الصفحات الداخلية في التطبيق).
@@ -75,6 +76,7 @@ function PayEntry({ orderId }: { orderId: string }) {
 }
 
 function PayRoute({ orderId }: { orderId: string }) {
+  const { t } = useLang();
   const router = useRouter();
   const { accessToken, hydrated } = useCustomerAuth();
 
@@ -94,13 +96,13 @@ function PayRoute({ orderId }: { orderId: string }) {
   if (!hydrated || !accessToken) {
     return (
       <>
-        <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
+        <ScreenHeader title={t("payment.electronic")} fallbackHref="/orders" />
         <div className="mx-auto max-w-2xl space-y-4 px-4 py-8 sm:px-6">
           <Skeleton className="h-28 w-full rounded-2xl" />
           <Skeleton className="h-48 w-full rounded-2xl" />
           {!hydrated ? null : (
             <p className="text-center text-sm text-muted-foreground">
-              جارٍ تحويلك لتسجيل الدخول…
+              {t("payment.redirectingLogin")}
             </p>
           )}
         </div>
@@ -111,10 +113,10 @@ function PayRoute({ orderId }: { orderId: string }) {
   if (numericId === null) {
     return (
       <>
-        <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
+        <ScreenHeader title={t("payment.electronic")} fallbackHref="/orders" />
         <ErrorState
-          title="معرّف الطلب غير صالح"
-          message="تعذّر تحديد الطلب المطلوب."
+          title={t("orders.invalidId")}
+          message={t("orders.cantDetermine")}
         />
       </>
     );
@@ -124,6 +126,7 @@ function PayRoute({ orderId }: { orderId: string }) {
 }
 
 function PayInner({ orderId }: { orderId: number }) {
+  const { t } = useLang();
   const orderQuery = useOrderDetail(orderId);
   const paymentsQuery = useFinanceOrderPayments(orderId);
   const locale = useLocaleMe(true);
@@ -153,8 +156,8 @@ function PayInner({ orderId }: { orderId: number }) {
     return (
       <Shell>
         <ErrorState
-          title="تعذّر تحديد سوقك"
-          message={locale.error?.message || "تحقق من اتصالك ثم أعد المحاولة."}
+          title={t("payment.marketUnknown")}
+          message={locale.error?.message || t("common.retryLater")}
           onRetry={() => locale.refetch()}
         />
       </Shell>
@@ -165,13 +168,13 @@ function PayInner({ orderId }: { orderId: number }) {
       <Shell>
         <GateCard
           icon={<Banknote className="h-8 w-8 text-primary" aria-hidden="true" />}
-          title="الدفع الإلكتروني متاح للسوق السعودي فقط"
-          body="طلبك في سوق يعتمد الدفع نقداً عند الاستلام (كاش) — أو التحويل عبر محفظة المتجر من شاشة الدفع الخاصة بالطلب."
+          title={t("payment.saudiOnly")}
+          body={t("payment.saudiOnlyBody")}
         >
           <Button asChild className="min-h-[44px] gap-2 rounded-full">
             <Link href={`/orders/${orderId}`}>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              العودة إلى الطلب
+              {t("payment.backToOrder")}
             </Link>
           </Button>
         </GateCard>
@@ -192,11 +195,11 @@ function PayInner({ orderId }: { orderId: number }) {
       <Shell>
         <GateCard
           icon={<CheckCircle2 className="h-10 w-10 text-success" aria-hidden="true" />}
-          title="مدفوع سابقًا"
-          body="هذا الطلب مدفوع بالكامل — لا حاجة لأي دفع إضافي. يمكنك متابعة حالة الطلب من صفحة الطلب."
+          title={t("payment.alreadyPaid")}
+          body={t("payment.alreadyPaidBody")}
         >
           <Button asChild className="min-h-[44px] gap-2 rounded-full">
-            <Link href={`/orders/${orderId}`}>متابعة الطلب</Link>
+            <Link href={`/orders/${orderId}`}>{t("payment.continueOrder")}</Link>
           </Button>
         </GateCard>
       </Shell>
@@ -215,10 +218,10 @@ function PayInner({ orderId }: { orderId: number }) {
     return (
       <Shell>
         <ErrorState
-          title="تعذّر تحميل الطلب"
+          title={t("payment.orderLoadFailed")}
           message={
             orderQuery.error?.message ||
-            "تحقق من اتصالك بالإنترنت ثم أعد المحاولة."
+            t("payment.checkConnection")
           }
           onRetry={() => orderQuery.refetch()}
         />
@@ -242,10 +245,10 @@ function PayInner({ orderId }: { orderId: number }) {
     return (
       <Shell>
         <ErrorState
-          title="تعذّر تحميل إعدادات الدفع"
+          title={t("payment.configFailed")}
           message={
             configQuery.error?.message ||
-            "تحقق من اتصالك بالإنترنت ثم أعد المحاولة."
+            t("payment.checkConnection")
           }
           onRetry={() => configQuery.refetch()}
         />
@@ -261,13 +264,13 @@ function PayInner({ orderId }: { orderId: number }) {
       <Shell>
         <GateCard
           icon={<Banknote className="h-8 w-8 text-primary" aria-hidden="true" />}
-          title="الدفع الإلكتروني غير متاح في سوقك"
-          body="سوقك يسدد عبر إشعارات التحويل — ادفع نقداً عند الاستلام أو ارفع إشعار التحويل من شاشة الدفع الخاصة بالطلب."
+          title={t("payment.notInMarket")}
+          body={t("payment.notInMarketBody")}
         >
           <Button asChild className="min-h-[44px] gap-2 rounded-full">
             <Link href={`/orders/${orderId}`}>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              العودة إلى الطلب
+              {t("payment.backToOrder")}
             </Link>
           </Button>
         </GateCard>
@@ -301,7 +304,7 @@ function PayInner({ orderId }: { orderId: number }) {
       void orderQuery.refetch();
     } else {
       setSheetState("idle");
-      setSheetError(res.error ?? "تعذّر فتح نافذة الدفع الآمنة — أعد المحاولة");
+      setSheetError(res.error ?? t("payment.sheetError"));
     }
   };
 
@@ -310,13 +313,13 @@ function PayInner({ orderId }: { orderId: number }) {
       <Shell>
         <GateCard
           icon={<Wrench className="h-8 w-8 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
-          title="الدفع الإلكتروني تحت الصيانة"
-          body="بوابة الدفع الإلكتروني غير متاحة حالياً من إدارة المنصة. الدفع عند الاستلام (كاش) متاح دائماً — والمتابعة إلى طلبك لا تتأثر."
+          title={t("payment.maintenance")}
+          body={t("payment.maintenanceBody")}
         >
           <Button asChild variant="outline" className="min-h-[44px] gap-2 rounded-full">
             <Link href={`/orders/${orderId}`}>
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              العودة إلى الطلب
+              {t("payment.backToOrder")}
             </Link>
           </Button>
         </GateCard>
@@ -331,10 +334,10 @@ function PayInner({ orderId }: { orderId: number }) {
         {/* ملخص المبلغ — بيانات حية من الخادم حصراً */}
         <section
           className="rounded-2xl border border-primary/25 bg-primary/5 p-5"
-          aria-label="ملخص المبلغ المطلوب"
+          aria-label={t("payment.amountAria")}
         >
           <p className="text-sm font-bold text-muted-foreground">
-            المبلغ المطلوب لطلب رقم{" "}
+            {t("payment.amountForOrder")}{" "}
             <span dir="ltr" className="tabular-nums text-foreground">
               #{order.id}
             </span>
@@ -344,11 +347,11 @@ function PayInner({ orderId }: { orderId: number }) {
           </div>
           <div className="mt-3 space-y-1 text-xs text-muted-foreground">
             <div className="flex items-center justify-between">
-              <span>المجموع الفرعي</span>
+              <span>{t("cart.subtotalPlain")}</span>
               <MoneyText amount={order.subtotal} currency={orderCurrency} />
             </div>
             <div className="flex items-center justify-between">
-              <span>رسوم التوصيل</span>
+              <span>{t("cart.deliveryFeeLabel")}</span>
               <MoneyText amount={order.delivery_fee} currency={orderCurrency} />
             </div>
           </div>
@@ -356,25 +359,25 @@ function PayInner({ orderId }: { orderId: number }) {
             typeof order.billed_km === "number" &&
             typeof order.per_km_price === "number" && (
               <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-                شفافية الأجرة:{" "}
+                {t("orders.feeTransparency")}{" "}
                 <span dir="ltr" className="tabular-nums">
-                  {order.distance_km} كم
+                  {t("orders.kmWithVal", { km: order.distance_km })}
                 </span>{" "}
-                — تُحتسب{" "}
+                {t("orders.billedPrefix")}{" "}
                 <span dir="ltr" className="tabular-nums">
-                  {order.billed_km} كم × {order.per_km_price}
+                  {t("orders.billedPerKm", { km: order.billed_km, price: order.per_km_price })}
                 </span>
               </p>
             )}
           {order.address_imprecise ? (
             <span className="mt-2 inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-              عنوان غير محدد بدقة
+              {t("cart.impreciseAddress")}
             </span>
           ) : null}
         </section>
 
         {/* نموذج مويسر المدمج — بيانات البطاقة لا تمر عبر خوادمنا */}
-        <section aria-label="نموذج الدفع الآمن">
+        <section aria-label={t("payment.secureFormAria")}>
           {applePayReady ? (
             <div className="mb-4 space-y-2">
               <button
@@ -382,7 +385,7 @@ function PayInner({ orderId }: { orderId: number }) {
                 onClick={() => void handleApplePay()}
                 disabled={sheetState !== "idle"}
                 className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-black px-4 text-xl font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-60"
-                aria-label="الدفع عبر Apple Pay — يفتح نافذة دفع آمنة داخل التطبيق"
+                aria-label={t("payment.applePayAria")}
               >
                 {sheetState === "opening" ? (
                   <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
@@ -394,7 +397,7 @@ function PayInner({ orderId }: { orderId: number }) {
               </button>
               <p className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
                 <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                يفتح داخل التطبيق — تعود فورًا بضغطة «تم»
+                {t("payment.applePayHint")}
               </p>
               {sheetError ? (
                 <p role="alert" className="text-center text-xs font-bold text-destructive">
@@ -412,15 +415,14 @@ function PayInner({ orderId }: { orderId: number }) {
           />
           <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden="true" />
-            بيانات بطاقتك لا تلمس خوادمنا — تُعالج داخل بوابة مويسر المشفّرة،
-            ونحن نتحقق من الدفعة تلقائياً بعد إتمامها.
+            {t("payment.securityNote")}
           </p>
         </section>
 
         <Button asChild variant="outline" className="min-h-[44px] w-full gap-2 rounded-full">
           <Link href={`/orders/${orderId}`}>
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            رجوع إلى الطلب
+            {t("payment.backToOrderLink")}
           </Link>
         </Button>
       </div>
@@ -431,10 +433,11 @@ function PayInner({ orderId }: { orderId: number }) {
 /* ─── عناصر عرض مشتركة ──────────────────────────────────── */
 
 function Shell({ children }: { children: React.ReactNode }) {
+  const { t } = useLang();
   return (
     <>
-      <ScreenHeader title="الدفع الإلكتروني" fallbackHref="/orders" />
-      <div className="mx-auto max-w-2xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
+      <ScreenHeader title={t("payment.electronic")} fallbackHref="/orders" />
+      <div className="mx-auto max-w-2xl px-4 py-8 pb-24 sm:px-6">
         {children}
       </div>
     </>
@@ -442,13 +445,14 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function PaySkeleton() {
+  const { t } = useLang();
   return (
     <div className="space-y-4">
       <Skeleton className="h-28 w-full rounded-2xl" />
       <Skeleton className="h-56 w-full rounded-2xl" />
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        جارٍ تحضير شاشة الدفع…
+        {t("payment.preparing")}
       </div>
     </div>
   );
@@ -490,6 +494,7 @@ function GateCard({
  * • SSR/الترطيب: المعاملات تُقرأ بعد الجبل فقط (بلا اختلاف ترطيب).
  */
 function SafariSheetPay() {
+  const { t } = useLang();
   /* null = خادم/لم تُرطَّب أو ليس وضع ورقة — حالة محايدة مطابقة للخادم */
   const params = useSafariSheetParams();
 
@@ -504,12 +509,11 @@ function SafariSheetPay() {
   return (
     <div
       className="mx-auto min-h-screen w-full max-w-md bg-background px-4 pb-10 pt-8"
-      dir="rtl"
     >
       <header className="mb-5 flex items-center justify-center gap-2">
         <ShieldCheck className="h-5 w-5 text-success" aria-hidden="true" />
         <h1 className="text-base font-extrabold text-foreground">
-          توفير — دفع آمن عبر مويسر
+          {t("payment.safariTitle")}
         </h1>
       </header>
 
@@ -519,20 +523,19 @@ function SafariSheetPay() {
             role="alert"
             className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-center text-sm leading-relaxed text-destructive"
           >
-            رابط الدفع غير مكتمل — أغلق هذه النافذة واضغط زر Apple Pay من
-            شاشة الدفع داخل التطبيق من جديد.
+            {t("payment.safariIncomplete")}
           </div>
         ) : (
           <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            جارٍ تجهيز نموذج الدفع…
+            {t("payment.safariPreparing")}
           </div>
         )
       ) : (
         <>
           <div className="mb-4 rounded-2xl border border-primary/25 bg-primary/5 p-4 text-center">
             <p className="text-xs font-bold text-muted-foreground">
-              المبلغ المطلوب لطلب رقم{" "}
+              {t("payment.amountForOrder")}{" "}
               <span dir="ltr" className="tabular-nums">
                 #{params.orderId}
               </span>
@@ -554,8 +557,7 @@ function SafariSheetPay() {
           />
           <p className="mt-4 flex items-start justify-center gap-2 text-[11px] leading-relaxed text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" aria-hidden="true" />
-            بعد إتمام الدفع أغلق هذه النافذة بـ«تم» — ستظهر حالة الطلب
-            محدّثة داخل التطبيق فورًا.
+            {t("payment.safariDoneNote")}
           </p>
         </>
       )}

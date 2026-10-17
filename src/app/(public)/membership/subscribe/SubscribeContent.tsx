@@ -48,6 +48,7 @@ import { MEMBERSHIP_AMOUNT } from "@/lib/site-config";
 import { FreeMembershipCard } from "@/components/public/FreeMembershipCard";
 import type { CustomerApiError } from "@/services/customer-api-client";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 
 /* ─── حدّ حجم الصورة ───────────────────────────────── */
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2 MB
@@ -66,6 +67,7 @@ function CopyField({
   copyValue?: string;
 }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -73,16 +75,16 @@ function CopyField({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast({ title: "تم النسخ", description: text });
+      toast({ title: t("profile.sub.copyDone"), description: text });
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast({
-        title: "تعذّر النسخ",
-        description: "انسخ القيمة يدوياً من الحقل",
+        title: t("profile.sub.copyFail"),
+        description: t("profile.sub.copyFailDesc"),
         variant: "destructive",
       });
     }
-  }, [copyValue, value, toast]);
+  }, [copyValue, value, toast, t]);
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3 sm:p-4">
@@ -108,14 +110,14 @@ function CopyField({
         size="sm"
         onClick={handleCopy}
         className="min-h-[40px] shrink-0 gap-1.5 rounded-full"
-        aria-label={`نسخ ${label}`}
+        aria-label={t("profile.sub.copyA11y", { label })}
       >
         {copied ? (
           <Check className="h-3.5 w-3.5 text-success" aria-hidden="true" />
         ) : (
           <Copy className="h-3.5 w-3.5" aria-hidden="true" />
         )}
-        {copied ? "نُسخ" : "نسخ"}
+        {copied ? t("profile.sub.copied") : t("profile.sub.copy")}
       </Button>
     </div>
   );
@@ -134,6 +136,7 @@ function ReceiptDropzone({
   error: string | null;
 }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
@@ -152,23 +155,23 @@ function ReceiptDropzone({
     (f: File) => {
       if (!ALLOWED_TYPES.includes(f.type)) {
         toast({
-          title: "صيغة غير مدعومة",
-          description: "ارفع صورة بصيغة PNG أو JPG فقط",
+          title: t("profile.sub.errType"),
+          description: t("profile.sub.errTypeDesc"),
           variant: "destructive",
         });
         return;
       }
       if (f.size > MAX_IMAGE_SIZE) {
         toast({
-          title: "حجم كبير جداً",
-          description: "الحد الأقصى 2 ميجابايت",
+          title: t("profile.sub.errSize"),
+          description: t("profile.sub.errSizeDesc"),
           variant: "destructive",
         });
         return;
       }
       onPick(f);
     },
-    [onPick, toast]
+    [onPick, toast, t]
   );
 
   const handleDrop = useCallback(
@@ -222,7 +225,7 @@ function ReceiptDropzone({
             {/* معاينة ملف محلي قبل الإرسال — لا حاجة لـ next/image */}
             <img
               src={preview}
-              alt="معاينة صورة التحويل"
+              alt={t("profile.sub.previewA11y")}
               className="h-full w-full object-cover"
             />
           </div>
@@ -234,10 +237,10 @@ function ReceiptDropzone({
 
         <div className="space-y-1">
           <p className="text-sm font-bold text-foreground">
-            {file ? file.name : "اسحب صورة التحويل هنا أو اضغط للرفع"}
+            {file ? file.name : t("profile.sub.dropTitle")}
           </p>
           <p className="text-[11px] text-muted-foreground">
-            PNG أو JPG · الحد الأقصى 2 ميجابايت
+            {t("profile.sub.dropHint")}
           </p>
         </div>
       </Label>
@@ -250,7 +253,7 @@ function ReceiptDropzone({
           className="inline-flex min-h-[40px] items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive"
         >
           <X className="h-3.5 w-3.5" aria-hidden="true" />
-          إزالة الصورة
+          {t("profile.sub.removeImage")}
         </button>
       )}
 
@@ -278,6 +281,7 @@ function SuccessScreen({
   onBrowse: () => void;
 }) {
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, scale: 0.96 }, animate: { opacity: 1, scale: 1 } };
@@ -294,23 +298,23 @@ function SuccessScreen({
         </span>
       </div>
       <h2 className="mb-2 text-2xl font-extrabold text-foreground">
-        تم استلام طلبك!
+        {t("profile.sub.successTitle")}
       </h2>
       <p className="mb-8 text-sm text-muted-foreground leading-relaxed">
         {detail ||
-          "سيراجع فريقنا صورة التحويل خلال 24-48 ساعة، وستُفعَّل عضويتك فور الموافقة."}
+          t("profile.sub.successDesc")}
       </p>
       <div className="flex flex-col gap-3">
         <Button onClick={onAccount} className="min-h-[44px] w-full gap-2 rounded-full">
           <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-          حسابي
+          {t("auth.success.accountCta")}
         </Button>
         <Button
           onClick={onBrowse}
           variant="outline"
           className="min-h-[44px] w-full gap-2 rounded-full"
         >
-          تصفّح الوجبات
+          {t("auth.success.browseCta")}
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
@@ -321,6 +325,7 @@ function SuccessScreen({
 /* ─── بطاقة عضوية نشطة (الحالة 1) ─────────────────── */
 function AlreadyMember() {
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } };
@@ -336,10 +341,10 @@ function AlreadyMember() {
           <CheckCircle2 className="h-9 w-9 text-success" aria-hidden="true" />
         </span>
         <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
-          أنت عضو بالفعل!
+          {t("profile.sub.memberTitle")}
         </h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          عضويتك في توفير مفعّلة. استمتع بخصومات حصرية على كل طلباتك القادمة.
+          {t("profile.sub.memberDesc")}
         </p>
       </div>
 
@@ -349,7 +354,7 @@ function AlreadyMember() {
         <Button asChild className="min-h-[44px] gap-2 rounded-full">
           <Link href="/account">
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            حسابي
+            {t("auth.success.accountCta")}
           </Link>
         </Button>
         <Button
@@ -358,7 +363,7 @@ function AlreadyMember() {
           className="min-h-[44px] gap-2 rounded-full"
         >
           <Link href="/">
-            تصفّح الوجبات
+            {t("auth.success.browseCta")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
@@ -394,6 +399,7 @@ function SubscribeForm({
 }) {
   const { toast } = useToast();
   const router = useRouter();
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -414,7 +420,7 @@ function SubscribeForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setFileError("يجب رفع صورة التحويل لإتمام الطلب");
+      setFileError(t("profile.sub.errFile"));
       return;
     }
     subscribeMutation.mutate(
@@ -426,9 +432,9 @@ function SubscribeForm({
       },
       {
         onSuccess: (data) => {
-          setSuccessDetail(data.detail || "تم استلام طلب العضوية بنجاح");
+          setSuccessDetail(data.detail || t("profile.sub.receivedFallback"));
           toast({
-            title: "تم إرسال الطلب",
+            title: t("profile.sub.toastSent"),
             description: data.detail,
           });
         },
@@ -436,15 +442,15 @@ function SubscribeForm({
           /* خطأ شبكة: 0 أو fetch failed */
           if (err.status === 0 || /اتصال|إنترنت|network/i.test(err.message)) {
             toast({
-              title: "يتطلب هذا الإجراء اتصالاً بالإنترنت",
-              description: "تحقق من اتصالك ثم أعد المحاولة",
+              title: t("profile.free.toastNetwork"),
+              description: t("common.retryLater"),
               variant: "destructive",
             });
             return;
           }
           /* 422: رسالة الخادم العربية تُعرض كما هي */
           toast({
-            title: err.status === 422 ? "بيانات غير صالحة" : "تعذّر إرسال الطلب",
+            title: err.status === 422 ? t("profile.sub.toastInvalid") : t("profile.sub.toastError"),
             description: err.message,
             variant: "destructive",
           });
@@ -476,10 +482,10 @@ function SubscribeForm({
       {/* رأس الصفحة */}
       <header className="text-center">
         <h2 className="text-2xl font-extrabold text-foreground sm:text-3xl">
-          اشترك في عضوية توفير
+          {t("profile.sub.header")}
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          مبلغ سنوي ثابت {formatCurrency(amount)} · خصومات حصرية على كل الوجبات
+          {t("profile.sub.headerDesc", { amount: formatCurrency(amount) })}
         </p>
       </header>
 
@@ -495,10 +501,10 @@ function SubscribeForm({
             }}
           >
             <Sparkles className="h-3 w-3" aria-hidden="true" />
-            خصومات حصرية
+            {t("profile.free.badge")}
           </span>
           <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold text-foreground">
-            موافقة يدوية خلال 24-48 ساعة
+            {t("profile.sub.badgeManual")}
           </span>
         </div>
       </div>
@@ -510,27 +516,27 @@ function SubscribeForm({
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
               1
             </span>
-            حوّل مبلغ الاشتراك
+            {t("profile.sub.step1Title")}
           </CardTitle>
           <CardDescription>
-            حوّل المبلغ إلى المحفظة التالية ثم ارفع صورة التحويل
+            {t("profile.sub.step1Desc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <CopyField
             icon={Wallet}
-            label="المبلغ المطلوب"
+            label={t("profile.sub.fieldAmount")}
             value={formatCurrency(amount)}
           />
           <CopyField
             icon={User}
-            label="اسم صاحب الحساب"
+            label={t("profile.sub.fieldAccountName")}
             value={transferAccountName}
           />
-          <CopyField icon={Wallet} label="المحفظة" value={walletName} />
+          <CopyField icon={Wallet} label={t("profile.sub.fieldWallet")} value={walletName} />
           <CopyField
             icon={Hash}
-            label="رقم الحساب"
+            label={t("profile.sub.fieldAccountNumber")}
             value={transferAccountNumber}
           />
 
@@ -580,10 +586,10 @@ function SubscribeForm({
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
               2
             </span>
-            ارفع صورة التحويل
+            {t("profile.sub.step2Title")}
           </CardTitle>
           <CardDescription>
-            لقطة شاشة أو صورة واضحة لإيصال التحويل
+            {t("profile.sub.step2Desc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -606,18 +612,18 @@ function SubscribeForm({
         {subscribeMutation.isPending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            جارٍ إرسال الطلب...
+            {t("profile.sub.sending")}
           </>
         ) : (
           <>
             <Send className="h-4 w-4" aria-hidden="true" />
-            أرسل طلب الاشتراك
+            {t("profile.sub.sendCta")}
           </>
         )}
       </Button>
 
       <p className="text-center text-xs text-muted-foreground">
-        ستُراجع صورتك خلال 24-48 ساعة. عند الموافقة ستظهر بطاقة عضويتك في حسابك.
+        {t("profile.sub.footerNote")}
       </p>
     </motion.div>
   );
@@ -625,27 +631,28 @@ function SubscribeForm({
 
 /* ─── شاشة تسجيل الدخول المطلوب ────────────────────── */
 function LoginRequired() {
+  const { t } = useLang();
   return (
     <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
       <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
         <ShieldCheck className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
       </span>
       <h2 className="text-2xl font-extrabold text-foreground">
-        سجّل الدخول أولاً
+        {t("profile.sub.loginRequired")}
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        يجب تسجيل الدخول للاشتراك في عضوية توفير.
+        {t("profile.sub.loginRequiredDesc")}
       </p>
       <div className="mt-6 flex flex-col gap-3">
         <Button asChild className="min-h-[44px] rounded-full">
-          <Link href="/login?next=/membership/subscribe">تسجيل الدخول</Link>
+          <Link href="/login?next=/membership/subscribe">{t("auth.login.cta")}</Link>
         </Button>
         <Button
           asChild
           variant="outline"
           className="min-h-[44px] rounded-full"
         >
-          <Link href="/register">إنشاء حساب</Link>
+          <Link href="/register">{t("profile.registerCta")}</Link>
         </Button>
       </div>
     </div>
@@ -657,6 +664,7 @@ export default function SubscribeContent() {
   const { accessToken, hydrated } = useCustomerAuth();
   const me = useMe();
   const info = useMembershipInfo();
+  const { t } = useLang();
 
   /* عند ظهور بطاقة العضوية في /me: نحذف أي طلب معلّق محلي */
   useEffect(() => {
@@ -669,7 +677,7 @@ export default function SubscribeContent() {
   if (!hydrated) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <SubscribeSkeleton />
       </>
     );
@@ -679,7 +687,7 @@ export default function SubscribeContent() {
   if (!accessToken) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <LoginRequired />
       </>
     );
@@ -689,7 +697,7 @@ export default function SubscribeContent() {
   if (me.isLoading) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <SubscribeSkeleton />
       </>
     );
@@ -698,14 +706,14 @@ export default function SubscribeContent() {
   if (me.isError || !me.data) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
           <ErrorState
-            title="تعذّر تحميل بياناتك"
+            title={t("profile.sub.errMe")}
             message={
               me.error instanceof Error
                 ? me.error.message
-                : "تعذّر التحقق من حالة عضويتك. تحقق من اتصالك بالإنترنت."
+                : t("profile.sub.errMeDesc")
             }
             onRetry={() => me.refetch()}
           />
@@ -719,7 +727,7 @@ export default function SubscribeContent() {
   if (membership && membership.is_active) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <AlreadyMember />
       </>
     );
@@ -729,7 +737,7 @@ export default function SubscribeContent() {
   if (info.isLoading) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <SubscribeSkeleton />
       </>
     );
@@ -738,14 +746,14 @@ export default function SubscribeContent() {
   if (info.isError || !info.data) {
     return (
       <>
-        <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+        <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
         <div className="mx-auto w-full max-w-2xl px-4 py-8 sm:px-6">
           <ErrorState
-            title="تعذّر تحميل بيانات التحويل"
+            title={t("profile.sub.errInfo")}
             message={
               info.error instanceof Error
                 ? info.error.message
-                : "تعذّر جلب معلومات الاشتراك. تحقق من اتصالك بالإنترنت."
+                : t("profile.sub.errInfoDesc")
             }
             onRetry={() => info.refetch()}
           />
@@ -756,7 +764,7 @@ export default function SubscribeContent() {
 
   return (
     <>
-      <ScreenHeader title="اشترك في العضوية" fallbackHref="/account" />
+      <ScreenHeader title={t("profile.subscribeScreenTitle")} fallbackHref="/account" />
       {/* v3.2.1 — الفصل السوقي للعضوية يُقرأ من رد الخادم نفسه (info.market):
           السوق السعودي (966 + مبلغ 0) → عضوية مجانية بتفعيل فوري، ومسار الإيصال
           مخفي هناك إطلاقاً. السوق اليمني (967) → مساره القائم كما هو:

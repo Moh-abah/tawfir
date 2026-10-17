@@ -29,13 +29,13 @@ import { useCartStore } from "@/store/cart.store";
 import { useCartPricing, type PricedCartItem } from "@/hooks/useCartPricing";
 import {
   DeliveryFields,
-  MISSING_LOCATION_MSG,
   type CheckoutPaymentMethod,
 } from "@/components/public/DeliveryFields";
 import { useCreateOrder } from "@/hooks/useCreateOrder";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
 import type { OrderOut, PaymentMethod } from "@/types/api.generated";
@@ -63,6 +63,7 @@ interface CartSheetProps {
 }
 
 export function CartSheet({ open, onOpenChange }: CartSheetProps) {
+  const { t } = useLang();
   const router = useRouter();
   const updateQuantity = useCartStore((s) => s.updateQuantity);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -118,11 +119,11 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
     if (items.length === 0 || !facilityId) return;
     /* §6-3 — بوابة الإرسال: لا طلب بلا موقع محمّل وعنوان نصي */
     if (lat == null || lng == null) {
-      setErrorMsg(MISSING_LOCATION_MSG);
+      setErrorMsg(t("cart.missingLocation"));
       return;
     }
     if (address.trim().length === 0) {
-      setErrorMsg("اكتب عنوانك النصي المختصر — يساعد المندوب عند وصوله لبابك");
+      setErrorMsg(t("cart.writeAddress"));
       return;
     }
     setErrorMsg(null);
@@ -161,19 +162,22 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           setSuccessOrder(data);
           clearCart();
           toast({
-            title: `تم استلام طلبك بنجاح #${data.id}`,
-            description: `${totalCount} أصناف من ${facilityName}`,
+            title: t("cart.toastReceived", { id: data.id }),
+            description: t("cart.itemsFromMany", {
+              count: totalCount,
+              facility: facilityName ?? "",
+            }),
           });
         },
         onError: (err) => {
           const e = err as { message?: string; status?: number };
           haptic("light");
           if (e.status === 0 || /اتصال|شبكة|internet/i.test(e.message ?? "")) {
-            setErrorMsg("يتطلب هذا الإجراء اتصالاً بالإنترنت.");
+            setErrorMsg(t("cart.requiresInternet"));
             return;
           }
           setErrorMsg(
-            e.message?.trim() || "تعذّر إتمام الطلب. حاول مرة أخرى."
+            e.message?.trim() || t("cart.orderFailed")
           );
         },
       }
@@ -198,7 +202,7 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
           <SheetTitle className="flex items-center justify-between gap-2 text-right text-lg font-extrabold">
             <span className="inline-flex items-center gap-2">
               <ShoppingCart className="h-5 w-5 text-primary" aria-hidden="true" />
-              سلة الطلبات
+              {t("cart.title")}
             </span>
             {items.length > 0 && (
               <button
@@ -208,17 +212,19 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   clearCart();
                 }}
                 className="native-tap inline-flex min-h-[44px] items-center gap-1 rounded-full px-2 text-xs font-bold text-muted-foreground hover:text-destructive"
-                aria-label="إفراغ السلة"
+                aria-label={t("cart.clearAria")}
               >
                 <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                إفراغ
+                {t("cart.clear")}
               </button>
             )}
           </SheetTitle>
           <SheetDescription className="text-right">
             {items.length > 0
-              ? `${totalCount} ${totalCount === 1 ? "صنف" : "أصناف"} من ${facilityName}`
-              : "سلتك فارغة حالياً"}
+              ? totalCount === 1
+                ? t("cart.itemsFromOne", { count: totalCount, facility: facilityName ?? "" })
+                : t("cart.itemsFromMany", { count: totalCount, facility: facilityName ?? "" })
+              : t("cart.emptyShort")}
           </SheetDescription>
         </SheetHeader>
 
@@ -293,10 +299,12 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
 
             {/* ملخص الفاتورة + تأكيد — نفس منطق useCartPricing في صفحة /cart */}
             <div className="border-t border-border/50 bg-card/50 p-4 space-y-3">
-              <div className="space-y-1.5 text-sm" dir="rtl">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
-                    المجموع الأصلي ({totalCount} {totalCount === 1 ? "صنف" : "أصناف"})
+                    {totalCount === 1
+                      ? t("cart.originalTotalOne", { count: totalCount })
+                      : t("cart.originalTotalMany", { count: totalCount })}
                   </span>
                   <span className="font-bold tabular-nums text-foreground" dir="ltr">
                     {formatCurrency(baseSubtotal)}
@@ -306,24 +314,24 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                     عند تأكيد الطلب، والإجمالي النهائي من رد الطلب نفسه. */}
                 {isMember && (
                   <p className="rounded-lg bg-success/10 px-3 py-2 text-xs text-success">
-                    خصم المنشأة (إن فعّلها التاجر) يُطبَّق تلقائياً عند تأكيد الطلب
+                    {t("cart.facilityDiscountNote")}
                   </p>
                 )}
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">أجرة التوصيل</span>
+                  <span className="text-muted-foreground">{t("cart.deliveryFee")}</span>
                   {deliveryFee != null ? (
                     <span className="font-bold tabular-nums text-foreground" dir="ltr">
                       {formatCurrency(deliveryFee)}
                     </span>
                   ) : (
                     <span className="text-xs font-bold text-muted-foreground">
-                      تُحسب حسب المسافة عند التأكيد
+                      {t("cart.feeByDistance")}
                     </span>
                   )}
                 </div>
                 <div className="my-1.5 h-px bg-border/40" />
                 <div className="flex items-center justify-between">
-                  <span className="text-base font-extrabold text-foreground">الإجمالي</span>
+                  <span className="text-base font-extrabold text-foreground">{t("cart.total")}</span>
                   {total != null ? (
                     <span
                       className="text-lg font-extrabold tabular-nums text-primary"
@@ -334,9 +342,8 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   ) : (
                     <span
                       className="text-base font-extrabold tabular-nums text-primary"
-                      dir="rtl"
                     >
-                      {formatCurrency(subtotal)} + الأجرة
+                      {t("cart.plusFee", { subtotal: formatCurrency(subtotal) })}
                     </span>
                   )}
                 </div>
@@ -348,8 +355,8 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                   className="text-center text-[11px] font-bold text-muted-foreground"
                 >
                   {lat == null || lng == null
-                    ? MISSING_LOCATION_MSG
-                    : "اكتب عنوانك النصي المختصر لإتمام الطلب"}
+                    ? t("cart.missingLocation")
+                    : t("cart.writeAddressShort")}
                 </p>
               )}
               <Button
@@ -372,18 +379,18 @@ export function CartSheet({ open, onOpenChange }: CartSheetProps) {
                 )}
                 {createOrder.isPending
                   ? paymentMethod === "electronic"
-                    ? "جارٍ تجهيز شاشة الدفع..."
-                    : "جارٍ إرسال الطلب..."
+                    ? t("cart.preparingPay")
+                    : t("cart.sending")
                   : paymentMethod === "electronic"
-                    ? "الدفع الإلكتروني وإتمام الطلب"
-                    : "تأكيد الطلب"}
+                    ? t("cart.payElectronic")
+                    : t("cart.confirmOrder")}
               </Button>
               {paymentMethod === "electronic" && !createOrder.isPending && (
                 <p
                   role="note"
                   className="text-center text-[11px] font-bold text-accent-ink"
                 >
-                  تُفتح شاشة الدفع الآمنة (مويسر) لإدخال بيانات بطاقتك — يُستلم طلبك بعد إتمام الدفع
+                  {t("cart.electronicNote")}
                 </p>
               )}
             </div>
@@ -406,6 +413,7 @@ function CartLine({
   onUpdate: (qty: number) => void;
   onRemove: () => void;
 }) {
+  const { t } = useLang();
   const max = item.available_quantity == null ? 99 : item.available_quantity;
   return (
     <li className="flex gap-3 py-3">
@@ -455,7 +463,7 @@ function CartLine({
               size="icon"
               className="h-8 w-8 rounded-full"
               onClick={() => onUpdate(Math.max(0, item.quantity - 1))}
-              aria-label="إنقاص الكمية"
+              aria-label={t("cart.decreaseQty")}
             >
               <Minus className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
@@ -472,7 +480,7 @@ function CartLine({
               className="h-8 w-8 rounded-full"
               onClick={() => onUpdate(Math.min(max, item.quantity + 1))}
               disabled={item.quantity >= max}
-              aria-label="زيادة الكمية"
+              aria-label={t("cart.increaseQty")}
             >
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             </Button>
@@ -481,7 +489,7 @@ function CartLine({
             type="button"
             onClick={onRemove}
             className="native-tap inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground/60 hover:text-destructive"
-            aria-label={`حذف ${item.name} من السلة`}
+            aria-label={t("cart.removeItem", { name: item.name })}
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
@@ -490,7 +498,7 @@ function CartLine({
 
       {/* مجموع الصنف */}
       <div className="shrink-0 text-left" dir="ltr">
-        <p className="text-[10px] text-muted-foreground">المجموع</p>
+        <p className="text-[10px] text-muted-foreground">{t("cart.lineTotal")}</p>
         <p className="text-sm font-extrabold tabular-nums text-foreground">
           {formatCurrency(item.lineTotal)}
         </p>
@@ -501,6 +509,7 @@ function CartLine({
 
 /* ─── حالة فارغة ──────────────────────────────────── */
 function EmptyCartView({ onClose }: { onClose: () => void }) {
+  const { t } = useLang();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
       <div
@@ -510,10 +519,9 @@ function EmptyCartView({ onClose }: { onClose: () => void }) {
         <ShoppingCart className="h-10 w-10 text-muted-foreground/50" />
       </div>
       <div className="space-y-1">
-        <p className="text-base font-extrabold text-foreground">سلتك فارغة</p>
+        <p className="text-base font-extrabold text-foreground">{t("cart.emptyTitle")}</p>
         <p className="max-w-[260px] text-xs leading-relaxed text-muted-foreground">
-          أضف وجباتك المفضلة من المتاجر بالضغط على أيقونة السلة في كل وجبة،
-          ثم أكمل الطلب دفعة واحدة.
+          {t("cart.emptyDesc")}
         </p>
       </div>
       <Button
@@ -523,7 +531,7 @@ function EmptyCartView({ onClose }: { onClose: () => void }) {
       >
         <Link href="/">
           <MapPin className="h-4 w-4" aria-hidden="true" />
-          تصفّح الوجبات
+          {t("cart.browseMeals")}
         </Link>
       </Button>
     </div>
@@ -532,6 +540,7 @@ function EmptyCartView({ onClose }: { onClose: () => void }) {
 
 /* ─── شاشة نجاح الطلب — الجولة 12: أنيميشن spring احتفالي ─── */
 function CartSuccessView({ order }: { order: OrderOut }) {
+  const { t } = useLang();
   const prefersReduced = useReducedMotion();
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 overflow-y-auto no-mobile-scrollbar p-6 text-center">
@@ -561,9 +570,9 @@ function CartSuccessView({ order }: { order: OrderOut }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: prefersReduced ? 0 : 0.15, duration: 0.3 }}
       >
-        <h3 className="text-xl font-extrabold text-foreground">تم استلام طلبك</h3>
+        <h3 className="text-xl font-extrabold text-foreground">{t("cart.orderReceived")}</h3>
         <p className="text-sm text-muted-foreground">
-          رقم الطلب:{" "}
+          {t("common.orderNumber")}{" "}
           <span dir="ltr" className="font-bold tabular-nums text-foreground">
             #{order.id}
           </span>
@@ -575,11 +584,10 @@ function CartSuccessView({ order }: { order: OrderOut }) {
         animate={{ opacity: 1 }}
         transition={{ delay: prefersReduced ? 0 : 0.3, duration: 0.3 }}
       >
-        تابع حالة طلبك في صفحة طلباتي. سنُحدّث الحالة لحظياً عند تأكيد المتجر
-        وتحضير الطلب ووصوله إليك.
+        {t("cart.successBody")}
       </motion.p>
       <Button asChild size="lg" className="min-h-[44px] w-full max-w-xs rounded-full">
-        <Link href={`/orders/${order.id}`}>تتبّع الطلب</Link>
+        <Link href={`/orders/${order.id}`}>{t("cart.trackOrder")}</Link>
       </Button>
     </div>
   );

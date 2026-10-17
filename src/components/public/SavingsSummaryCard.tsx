@@ -4,6 +4,7 @@ import { TrendingUp, Gift, Calendar, Wallet, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSavingsSummary } from "@/hooks/useSavings";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,9 +25,9 @@ interface SavingsSummaryCardProps {
   className?: string;
 }
 
-function formatYER(amount: number): string {
-  // تنسيق ريال يمني: 12,345 ر.ي
-  return new Intl.NumberFormat("ar-YE", {
+/** تنسيق الأرقام بلغة الواجهة (ar-EG عربياً / en-US إنجليزياً) — الرمز النقدي يبقى من الخادم */
+function formatAmount(amount: number, lang: "ar" | "en"): string {
+  return new Intl.NumberFormat(lang === "en" ? "en-US" : "ar-EG", {
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -37,6 +38,7 @@ export function SavingsSummaryCard({
 }: SavingsSummaryCardProps) {
   const { data, isLoading } = useSavingsSummary();
   const prefersReduced = usePrefersReducedMotion();
+  const { t, lang } = useLang();
 
   if (isLoading) {
     return (
@@ -70,12 +72,12 @@ export function SavingsSummaryCard({
   // رسالة تحفيزية حسب التوفير
   const motivational =
     total_savings === 0
-      ? "ابدأ الطلب من المتاجر المشتركة لتوفّر بفضل العضوية"
+      ? t("profile.savings.m0")
       : total_savings > membership_amount && !is_free_membership
-        ? `وفّرت أكثر من قيمة اشتراكك بـ ${roi_percent}%! العضوية تستحق التجديد 🎉`
+        ? t("profile.savings.m1", { percent: roi_percent })
         : is_free_membership && total_savings > 0
-          ? "عضويتك المجانية توفّر لك — استمتع بالخصومات الحصرية!"
-          : "استمر في الطلب لزيادة توفيرك";
+          ? t("profile.savings.m2")
+          : t("profile.savings.m3");
 
   const containerAnim = prefersReduced
     ? {}
@@ -107,12 +109,12 @@ export function SavingsSummaryCard({
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/15">
               <Wallet className="h-4 w-4 text-primary" aria-hidden="true" />
             </span>
-            سجل التوفير
+            {t("profile.savings.cardTitle")}
           </h3>
           {orders_with_discount > 0 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent-ink">
               <Star className="h-3 w-3" aria-hidden="true" />
-              {orders_with_discount} طلب بخصم
+              {t("profile.savings.ordersWithDiscount", { count: orders_with_discount })}
             </span>
           )}
         </div>
@@ -120,11 +122,11 @@ export function SavingsSummaryCard({
         {/* المؤشر الرئيسي: إجمالي التوفير */}
         <div className="mb-5">
           <p className="mb-1 text-xs font-medium text-muted-foreground">
-            إجمالي ما وفّرته بفضل العضوية
+            {t("profile.savings.totalLabel")}
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-black text-primary sm:text-4xl">
-              {formatYER(total_savings)}
+              {formatAmount(total_savings, lang)}
             </span>
             <span className="text-sm font-bold text-muted-foreground">
               {currency}
@@ -138,30 +140,30 @@ export function SavingsSummaryCard({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatCard
                 icon={<Calendar className="h-3.5 w-3.5" />}
-                label="هذا الشهر"
-                value={`${formatYER(month_savings)} ${currency}`}
+                label={t("profile.savings.thisMonth")}
+                value={`${formatAmount(month_savings, lang)} ${currency}`}
                 accent="emerald"
               />
               <StatCard
                 icon={<Calendar className="h-3.5 w-3.5" />}
-                label="هذه السنة"
-                value={`${formatYER(year_savings)} ${currency}`}
+                label={t("profile.savings.thisYear")}
+                value={`${formatAmount(year_savings, lang)} ${currency}`}
                 accent="emerald"
               />
               <StatCard
                 icon={<Gift className="h-3.5 w-3.5" />}
-                label="قيمة العضوية"
+                label={t("profile.savings.membershipValue")}
                 value={
                   is_free_membership
-                    ? "مجانية"
-                    : `${formatYER(membership_amount)} ${currency}`
+                    ? t("profile.savings.free")
+                    : `${formatAmount(membership_amount, lang)} ${currency}`
                 }
                 accent={is_free_membership ? "gold" : "neutral"}
               />
               <StatCard
                 icon={<TrendingUp className="h-3.5 w-3.5" />}
-                label="صافي التوفير"
-                value={`${formatYER(net_savings)} ${currency}`}
+                label={t("profile.savings.net")}
+                value={`${formatAmount(net_savings, lang)} ${currency}`}
                 accent="gold"
                 highlight={net_savings > 0}
               />
@@ -172,7 +174,7 @@ export function SavingsSummaryCard({
               <div className="mt-4">
                 <div className="mb-1 flex items-center justify-between text-xs">
                   <span className="font-medium text-muted-foreground">
-                    عائد الاستثمار (ROI)
+                    {t("profile.savings.roi")}
                   </span>
                   <span className="font-bold text-primary">
                     {roi_percent}%

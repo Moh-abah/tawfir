@@ -27,13 +27,11 @@ import { useMyOrders } from "@/hooks/useMyOrders";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useDebounce } from "@/hooks/useDebounce";
-import {
-  ORDER_STATUS_LABEL,
-  ORDER_STATUS_TONE,
-} from "@/lib/constants";
+import { ORDER_STATUS_TONE } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
 import type { OrderListOut, OrderStatus } from "@/types/api.generated";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Wallet } from "lucide-react";
 
@@ -45,21 +43,22 @@ function WalletOrderBadges({
   status: string | null;
   walletLabel: string | null;
 }) {
+  const { t } = useLang();
   const statusInfo: Record<string, { label: string; className: string }> = {
     pending: {
-      label: "بانتظار المراجعة",
+      label: t("orders.badge.pending"),
       className: "bg-accent/15 text-accent-ink",
     },
     approved: {
-      label: "تم الدفع",
+      label: t("orders.badge.approved"),
       className: "bg-success/15 text-success",
     },
     rejected: {
-      label: "مرفوض",
+      label: t("orders.badge.rejected"),
       className: "bg-destructive/10 text-destructive",
     },
     partial_requested: {
-      label: "بانتظار التكملة",
+      label: t("orders.badge.partial"),
       className: "bg-accent/15 text-accent-ink",
     },
   };
@@ -68,7 +67,7 @@ function WalletOrderBadges({
     <div className="flex flex-col items-end gap-1">
       <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-extrabold text-primary">
         <Wallet className="h-3 w-3" aria-hidden="true" />
-        محفظة
+        {t("orders.walletBadge")}
       </span>
       {info && (
         <span
@@ -103,18 +102,19 @@ const LIVE_STATUSES: ReadonlySet<OrderStatus> = new Set([
   "out_for_delivery",
 ]);
 
-const FILTER_CHIPS: { key: FilterKey; label: string }[] = [
-  { key: "all", label: "الكل" },
-  { key: "pending", label: ORDER_STATUS_LABEL.pending },
-  { key: "confirmed", label: ORDER_STATUS_LABEL.confirmed },
-  { key: "preparing", label: ORDER_STATUS_LABEL.preparing },
-  { key: "out_for_delivery", label: ORDER_STATUS_LABEL.out_for_delivery },
-  { key: "delivered", label: ORDER_STATUS_LABEL.delivered },
-  { key: "cancelled", label: ORDER_STATUS_LABEL.cancelled },
+const FILTER_CHIPS: { key: FilterKey; labelKey: string }[] = [
+  { key: "all", labelKey: "orders.filterAll" },
+  { key: "pending", labelKey: "orders.status.pending" },
+  { key: "confirmed", labelKey: "orders.status.confirmed" },
+  { key: "preparing", labelKey: "orders.status.preparing" },
+  { key: "out_for_delivery", labelKey: "orders.status.out_for_delivery" },
+  { key: "delivered", labelKey: "orders.status.delivered" },
+  { key: "cancelled", labelKey: "orders.status.cancelled" },
 ];
 
 /* ─── بطاقة طلب واحد ──────────────────────────────── */
 function OrderCard({ order }: { order: OrderListOut }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const router = useRouter();
   const cardAnim = prefersReduced
@@ -134,7 +134,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
       <Link
         href={`/orders/${order.id}`}
         className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-2xl"
-        aria-label={`تفاصيل الطلب رقم ${order.id}`}
+        aria-label={t("orders.cardAria", { id: order.id })}
       >
         <motion.div
           whileHover={prefersReduced ? undefined : { y: -3 }}
@@ -151,7 +151,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
               }}
             >
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              طلب جديد!
+              {t("orders.newBadge")}
             </span>
           )}
 
@@ -163,7 +163,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
                   <Package className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">طلب رقم</p>
+                  <p className="text-xs text-muted-foreground">{t("orders.orderNo")}</p>
                   <p className="font-bold tabular-nums text-foreground">
                     #{order.id}
                   </p>
@@ -174,7 +174,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
                 <div className="flex items-center gap-1.5 text-sm text-foreground">
                   <UtensilsCrossed className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <span className="line-clamp-1 font-medium">
-                    {order.facility_name ?? "متجر"}
+                    {order.facility_name ?? t("orders.storeFallback")}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -201,7 +201,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
                   </span>
                 )}
-                {ORDER_STATUS_LABEL[order.status]}
+                {t(`orders.status.${order.status}`)}
               </span>
               {/* جولة المحافظ — شارة طلب محفظة + حالة الإيصالة */}
               {order.payment_method === "wallet" && (
@@ -211,7 +211,7 @@ function OrderCard({ order }: { order: OrderListOut }) {
                 />
               )}
               <div className="text-left" dir="ltr">
-                <p className="text-[10px] text-muted-foreground">الإجمالي</p>
+                <p className="text-[10px] text-muted-foreground">{t("cart.total")}</p>
                 <p className="text-sm font-extrabold text-foreground tabular-nums">
                   {formatCurrency(order.total)}
                 </p>
@@ -237,14 +237,14 @@ function OrderCard({ order }: { order: OrderListOut }) {
                   router.push(`/orders/${order.id}?reorder=1`);
                 }}
                 className="native-tap inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-4 text-xs font-extrabold text-primary transition-all hover:border-primary/45 hover:bg-primary/20 active:scale-95"
-                aria-label={`إعادة طلب رقم ${order.id} بنفس الأصناف`}
+                aria-label={t("orders.reorderAria", { id: order.id })}
               >
                 <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                أعد الطلب
+                {t("orders.reorder")}
               </button>
             )}
             <span className="inline-flex min-h-[44px] items-center gap-1 text-xs font-bold text-secondary">
-              عرض التفاصيل
+              {t("orders.viewDetails")}
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </span>
           </div>
@@ -289,6 +289,7 @@ function OrdersSkeleton() {
 
 /* ─── شبكة الطلبات ──────────────────────────────────── */
 function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
 
   const queryStatus = status === "all" ? undefined : status;
@@ -307,10 +308,10 @@ function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
     const msg =
       error instanceof Error
         ? error.message
-        : "تعذّر تحميل طلباتك. تحقق من اتصالك بالإنترنت.";
+        : t("orders.loadFailed");
     return (
       <ErrorState
-        title="تعذّر تحميل الطلبات"
+        title={t("orders.loadFailedTitle")}
         message={msg}
         onRetry={() => refetch()}
       />
@@ -323,22 +324,22 @@ function OrdersGrid({ status, search }: { status: FilterKey; search: string }) {
       return (
         <EmptyState
           icon={Search}
-          title="لا نتائج مطابقة"
-          description={`لا يوجد طلب برقم يحتوي "${search.trim()}" ضمن هذه القائمة.`}
+          title={t("orders.noResults")}
+          description={t("orders.noResultsDesc", { query: search.trim() })}
         />
       );
     }
     return (
       <EmptyState
         icon={ShoppingBag}
-        title="لا توجد طلبات بعد"
-        description="ابدأ أول طلب الآن وستجده هنا عند الحاجة."
+        title={t("orders.noneYet")}
+        description={t("orders.noneYetDesc")}
         action={
           <Link
             href="/"
             className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            تصفّح الوجبات
+            {t("cart.browseMeals")}
           </Link>
         }
       />
@@ -373,6 +374,7 @@ const ACTIVE_ORDER_STATUSES: ReadonlySet<OrderStatus> = new Set([
 ]);
 
 function ActiveOrderBanner() {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   /* طلبات «all» (الأحدث أولاً) — نلتقط أول طلب جارٍ */
   const { data } = useMyOrders(undefined, true, undefined);
@@ -395,7 +397,7 @@ function ActiveOrderBanner() {
       <Link
         href={`/orders/${activeOrder.id}`}
         className="native-tap-card group relative block overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent p-4 shadow-soft transition-shadow hover:shadow-soft-lg"
-        aria-label={`تتبّع طلبك الجاري رقم ${activeOrder.id}`}
+        aria-label={t("orders.trackActiveAria", { id: activeOrder.id })}
       >
         <div className="flex items-center gap-3">
           <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15">
@@ -418,14 +420,17 @@ function ActiveOrderBanner() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-70" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
               </span>
-              طلبك الجاري الآن
+              {t("orders.activeNow")}
             </p>
             <p className="mt-0.5 truncate text-sm font-extrabold text-foreground">
-              طلب #{activeOrder.id} — {activeOrder.facility_name ?? "المتجر"}
+              {t("orders.activeLine", {
+                id: activeOrder.id,
+                facility: activeOrder.facility_name ?? t("orders.store"),
+              })}
             </p>
             <p className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
-                {ORDER_STATUS_LABEL[activeOrder.status]}
+                {t(`orders.status.${activeOrder.status}`)}
                 {" · "}
                 <span dir="ltr" className="font-bold tabular-nums text-foreground">
                   {formatCurrency(activeOrder.total)}
@@ -435,12 +440,12 @@ function ActiveOrderBanner() {
               <LiveElapsedBadge
                 since={activeOrder.created_at}
                 className="bg-primary/10 text-primary"
-                suffix="على طلبك"
+                suffix={t("orders.elapsedSuffix")}
               />
             </p>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 py-2 text-xs font-extrabold text-primary-foreground shadow-soft transition-transform group-hover:scale-105">
-            تتبّع
+            {t("orders.track")}
             <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
           </span>
         </div>
@@ -451,6 +456,7 @@ function ActiveOrderBanner() {
 
 /* ─── المحتوى الكامل للصفحة ────────────────────────── */
 export default function OrdersContent() {
+  const { t } = useLang();
   const { accessToken, hydrated } = useCustomerAuth();
   const [filter, setFilter] = useState<FilterKey>("all");
   /* بحث برقم الطلب — debounce 350ms ثم يُرسل ?search= للخادم (لا فلترة محلية) */
@@ -481,25 +487,25 @@ export default function OrdersContent() {
   if (!accessToken) {
     return (
       <>
-        <ScreenHeader title="طلباتي" fallbackHref="/" />
+        <ScreenHeader title={t("nav.orders")} fallbackHref="/" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <EmptyState
             icon={ShoppingBag}
-            title="سجّل الدخول لعرض طلباتك"
-            description="عند تسجيل الدخول ستظهر هنا كل طلباتك السابقة وحالتها."
+            title={t("orders.loginTitle")}
+            description={t("orders.loginDesc")}
             action={
               <div className="flex flex-col gap-2">
                 <Link
                   href="/login?next=/orders"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  تسجيل الدخول
+                  {t("common.signIn")}
                 </Link>
                 <Link
                   href="/register"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
                 >
-                  إنشاء حساب
+                  {t("orders.createAccount")}
                 </Link>
               </div>
             }
@@ -511,12 +517,12 @@ export default function OrdersContent() {
 
   return (
     <>
-      <ScreenHeader title="طلباتي" fallbackHref="/">
+      <ScreenHeader title={t("nav.orders")} fallbackHref="/">
         <NotificationBell />
       </ScreenHeader>
-      <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6" dir="rtl">
+      <div className="mx-auto max-w-3xl px-4 py-8 pb-24 sm:px-6">
         <p className="mb-6 text-sm text-muted-foreground">
-          تابع حالة طلباتك الحالية والسابقة
+          {t("orders.subtitle")}
         </p>
 
       {/* الجولة 14 — شريط الطلب الجاري (أحدث طلب نشط بزاوية تتبّع) */}
@@ -533,8 +539,8 @@ export default function OrdersContent() {
           inputMode="numeric"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="ابحث برقم الطلب..."
-          aria-label="البحث برقم الطلب"
+          placeholder={t("orders.searchPlaceholder")}
+          aria-label={t("orders.searchAria")}
           className="min-h-[44px] rounded-full pr-9 pl-10"
         />
         {searchInput && (
@@ -542,7 +548,7 @@ export default function OrdersContent() {
             type="button"
             onClick={() => setSearchInput("")}
             className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="مسح البحث"
+            aria-label={t("orders.clearSearch")}
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -553,7 +559,7 @@ export default function OrdersContent() {
       <div
         className="scroll-area-thin mb-6 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1"
         role="tablist"
-        aria-label="فلترة الطلبات حسب الحالة"
+        aria-label={t("orders.filterAria")}
       >
         {FILTER_CHIPS.map((chip) => {
           const active = filter === chip.key;
@@ -571,7 +577,7 @@ export default function OrdersContent() {
                   : "bg-muted text-muted-foreground hover:bg-muted/80"
               )}
             >
-              {chip.label}
+              {t(chip.labelKey)}
             </button>
           );
         })}

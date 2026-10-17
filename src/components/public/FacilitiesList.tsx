@@ -13,15 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const GRID = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4";
-
-const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
-  restaurant: "مطعم",
-  cafe: "مقهى",
-  cafeteria: "كافتيريا",
-};
 
 const FACILITY_TYPE_BADGE_CLASS: Record<FacilityType, string> = {
   restaurant: "bg-cat-restaurant/15 text-cat-restaurant border-cat-restaurant/25 hover:bg-cat-restaurant/15",
@@ -30,6 +25,7 @@ const FACILITY_TYPE_BADGE_CLASS: Record<FacilityType, string> = {
 };
 
 export function FacilitiesList() {
+  const { t } = useLang();
   const { data, isLoading, error, refetch } = useFacilities();
 
   if (isLoading) {
@@ -47,10 +43,10 @@ export function FacilitiesList() {
       <Card className="border-dashed bg-muted/30">
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <p className="text-base font-medium text-foreground">
-            تعذّر تحميل المتاجر
+            {t("catalog.storesList.errorTitle")}
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
-            حدث خطأ أثناء جلب المطاعم والكافتيريات والمرافق. حاول مرة أخرى.
+            {t("catalog.storesList.errorDesc")}
           </p>
           <Button
             type="button"
@@ -58,7 +54,7 @@ export function FacilitiesList() {
             size="sm"
             onClick={() => refetch()}
           >
-            إعادة المحاولة
+            {t("common.retry")}
           </Button>
         </CardContent>
       </Card>
@@ -74,10 +70,10 @@ export function FacilitiesList() {
       <Card className="border-dashed bg-muted/30">
         <CardContent className="flex flex-col items-center gap-2 py-10 text-center">
           <p className="text-base font-medium text-foreground">
-            لا توجد متاجر في هذه المنطقة
+            {t("catalog.storesList.emptyTitle")}
           </p>
           <p className="text-sm text-muted-foreground max-w-md">
-            ترقّب المزيد من المطاعم والكافتيريات والمرافق قريبًا.
+            {t("catalog.storesList.emptyDesc")}
           </p>
         </CardContent>
       </Card>
@@ -103,7 +99,7 @@ export function FacilitiesList() {
                   FACILITY_TYPE_BADGE_CLASS[f.type]
                 )}
               >
-                {FACILITY_TYPE_LABEL[f.type]}
+                {t(`catalog.type.${f.type}`)}
               </Badge>
             </div>
           </CardHeader>

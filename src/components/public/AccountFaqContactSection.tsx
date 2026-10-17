@@ -15,6 +15,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useLang } from "@/lib/i18n";
 
 /**
  * قسم «الأسئلة الشائعة» + «تواصل معنا» — الجولة 9 (المهمة 1)
@@ -30,34 +31,13 @@ import {
 
 /* ─── الأسئلة الشائعة (محدّثة لنظام العضوية اليدوي) ──────────────────── */
 const FAQ_ITEMS = [
-  {
-    q: "ما هي منصة توفير؟",
-    a: "منصة توفير تتيح لك طلب وجباتك من المطاعم والكافتيريات المشتركة، مع إمكانية الاشتراك في عضوية سنوية تمنحك خصومات على كل طلباتك.",
-  },
-  {
-    q: "كيف أشترك في العضوية؟",
-    a: "بعد تسجيل حساب جديد، اضغط «اشترك في العضوية» من صفحة حسابك واتبع خطوات التحويل الموضّحة هناك (بيانات الحساب ومبلغ الاشتراك السنوي). سيُراجع المشرف طلبك خلال 24-48 ساعة.",
-  },
-  {
-    q: "كيف تُطبَّق خصومات العضوية؟",
-    a: "تمنحك العضوية خصومات على كل طلباتك من المتاجر المشتركة طوال فترتها السنوية — تُطبَّق تلقائياً عند الطلب إن كانت عضويتك مفعّلة. نسبة الخصم يحددها كل متجر.",
-  },
-  {
-    q: "هل يمكنني الطلب بدون عضوية؟",
-    a: "نعم، يمكنك تصفّح الوجبات والطلب بدون عضوية بسعر رسمي بلا خصم. للاستفادة من الخصومات الحصرية اشترك في عضوية توفير.",
-  },
-  {
-    q: "متى تُفعّل عضويتي؟",
-    a: "بعد رفع صورة التحويل، يراجع المشرف طلبك خلال 24-48 ساعة. تُفعّل العضوية فور الموافقة وتظهر بطاقتك في حسابك تلقائياً.",
-  },
-  {
-    q: "كيف تُحسب أجرة التوصيل؟",
-    a: "أجرة التوصيل تُحسب حسب المسافة بين المتجر وموقعك وتُعرض لك بوضوح قبل تأكيد الطلب.",
-  },
-  {
-    q: "كيف أتحكم في بياناتي؟",
-    a: "اضغط أيقونة المستخدم أعلى الشاشة لفتح حسابك وعدّل بياناتك (الاسم، الجوال) مباشرة. البريد الإلكتروني ثابت ولا يمكن تغييره.",
-  },
+  { q: "profile.faq.q1", a: "profile.faq.a1" },
+  { q: "profile.faq.q2", a: "profile.faq.a2" },
+  { q: "profile.faq.q3", a: "profile.faq.a3" },
+  { q: "profile.faq.q4", a: "profile.faq.a4" },
+  { q: "profile.faq.q5", a: "profile.faq.a5" },
+  { q: "profile.faq.q6", a: "profile.faq.a6" },
+  { q: "profile.faq.q7", a: "profile.faq.a7" },
 ] as const;
 
 /* ─── تواصل معنا — بيانات حقيقية حصراً ─────────────────────────────── */
@@ -65,23 +45,23 @@ const CONTACT_PHONE = "780090882";
 const CONTACT_PHONE_DISPLAY = "780 090 882";
 const CONTACT_WHATSAPP = "https://wa.me/967780090882";
 const CONTACT_EMAIL = "moohabhb68@gmail.com";
-const CONTACT_ADDRESS = "الجمهورية اليمنية — صنعاء";
 
 /**
  * قسم FAQ + Contact كاملاً — يُعرض في أسفل /account.
  */
 export function AccountFaqContactSection() {
+  const { t } = useLang();
   // للتحكم في أكورديون الـ FAQ (سؤال واحد مفتوح في كل مرة)
   const [openFaq, setOpenFaq] = useState<string | undefined>();
 
   return (
     <div className="space-y-8">
       {/* الأسئلة الشائعة */}
-      <section className="space-y-6" aria-label="الأسئلة الشائعة">
+      <section className="space-y-6" aria-label={t("profile.faq.title")}>
         <div className="flex items-center gap-2">
           <CircleHelp className="h-5 w-5 text-secondary" aria-hidden="true" />
           <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
-            الأسئلة الشائعة
+            {t("profile.faq.title")}
           </h2>
         </div>
         <div className="max-w-2xl">
@@ -99,10 +79,10 @@ export function AccountFaqContactSection() {
                 className="px-4 sm:px-6"
               >
                 <AccordionTrigger className="min-h-[44px] text-right text-sm font-bold text-foreground hover:no-underline sm:text-base">
-                  {item.q}
+                  {t(item.q)}
                 </AccordionTrigger>
                 <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
-                  {item.a}
+                  {t(item.a)}
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -111,11 +91,11 @@ export function AccountFaqContactSection() {
       </section>
 
       {/* تواصل معنا */}
-      <section className="space-y-6" aria-label="تواصل معنا">
+      <section className="space-y-6" aria-label={t("profile.contact.title")}>
         <div className="flex items-center gap-2">
           <Mail className="h-5 w-5 text-secondary" aria-hidden="true" />
           <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
-            تواصل معنا
+            {t("profile.contact.title")}
           </h2>
         </div>
 
@@ -125,7 +105,7 @@ export function AccountFaqContactSection() {
               <Phone className="h-5 w-5 text-secondary" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-foreground">الهاتف</p>
+              <p className="text-sm font-bold text-foreground">{t("profile.contact.phone")}</p>
               <a
                 href={`tel:${CONTACT_PHONE}`}
                 dir="ltr"
@@ -140,7 +120,7 @@ export function AccountFaqContactSection() {
               href={CONTACT_WHATSAPP}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="تواصل معنا عبر واتساب"
+              aria-label={t("profile.contact.whatsappA11y")}
               className="native-tap flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary/15 text-secondary transition-colors hover:bg-secondary hover:text-secondary-foreground"
             >
               <MessageCircle className="h-5 w-5" aria-hidden="true" />
@@ -156,7 +136,7 @@ export function AccountFaqContactSection() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground">
-                البريد الإلكتروني
+                {t("profile.field.email")}
               </p>
               <p
                 dir="ltr"
@@ -177,9 +157,9 @@ export function AccountFaqContactSection() {
               />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">العنوان</p>
+              <p className="text-sm font-bold text-foreground">{t("profile.contact.address")}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {CONTACT_ADDRESS}
+                {t("profile.contact.addressValue")}
               </p>
             </div>
           </div>
@@ -192,9 +172,9 @@ export function AccountFaqContactSection() {
               />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground">منطقة الخدمة</p>
+              <p className="text-sm font-bold text-foreground">{t("profile.contact.serviceArea")}</p>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                جميع مناطق الجمهورية اليمنية
+                {t("profile.contact.serviceAreaValue")}
               </p>
             </div>
           </div>

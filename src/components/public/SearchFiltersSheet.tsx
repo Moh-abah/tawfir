@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 
 /* ─── أنواع الفلاتر ─────────────────────────────────── */
 
@@ -46,45 +47,46 @@ export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
   availableOnly: true,
 };
 
+/* مفاتيح القاموس — العرض عبر t() ليعمل بلغتين */
 export const SORT_OPTIONS: {
   key: SortKey;
-  label: string;
+  labelKey: string;
   icon: typeof ListFilter;
 }[] = [
-  { key: "default", label: "الافتراضي", icon: ListFilter },
-  { key: "price_asc", label: "السعر: الأقل أولاً", icon: ArrowDownWideNarrow },
-  { key: "price_desc", label: "السعر: الأعلى أولاً", icon: ArrowDownWideNarrow },
-  { key: "name", label: "الاسم أ–ي", icon: UtensilsCrossed },
+  { key: "default", labelKey: "catalog.filters.sortDefault", icon: ListFilter },
+  { key: "price_asc", labelKey: "catalog.filters.sortPriceAsc", icon: ArrowDownWideNarrow },
+  { key: "price_desc", labelKey: "catalog.filters.sortPriceDesc", icon: ArrowDownWideNarrow },
+  { key: "name", labelKey: "catalog.filters.sortName", icon: UtensilsCrossed },
 ];
 
 export const PRICE_OPTIONS: {
   key: PriceRangeKey;
-  label: string;
+  labelKey: string;
 }[] = [
-  { key: "all", label: "كل الأسعار" },
-  { key: "lt500", label: "أقل من ٥٠٠" },
-  { key: "r500to1000", label: "٥٠٠ – ١٠٠٠" },
-  { key: "gt1000", label: "أكثر من ١٠٠٠" },
+  { key: "all", labelKey: "catalog.filters.priceAll" },
+  { key: "lt500", labelKey: "catalog.filters.priceLt500" },
+  { key: "r500to1000", labelKey: "catalog.filters.priceRange" },
+  { key: "gt1000", labelKey: "catalog.filters.priceGt1000" },
 ];
 
 /** خيارات التصنيف — ألوان هوية التصنيفات عبر توكنات --cat-* */
 export const CATEGORY_OPTIONS: {
   key: CategoryKey;
-  label: string;
+  labelKey: string;
   icon: typeof Store;
   /** أصناف Tailwind للرقاقة النشطة (ألوان التصنيف) */
   activeClass: string;
 }[] = [
-  { key: "all", label: "الكل", icon: Store, activeClass: "border-primary bg-primary text-primary-foreground" },
+  { key: "all", labelKey: "catalog.filters.catAll", icon: Store, activeClass: "border-primary bg-primary text-primary-foreground" },
   {
     key: "restaurant",
-    label: "مطاعم",
+    labelKey: "catalog.filters.catRestaurants",
     icon: UtensilsCrossed,
     activeClass: "border-cat-restaurant bg-cat-restaurant text-white",
   },
   {
     key: "cafe",
-    label: "كافتيريات",
+    labelKey: "catalog.filters.catCafeterias",
     icon: Store,
     activeClass: "border-cat-cafe bg-cat-cafe text-white",
   },
@@ -92,11 +94,11 @@ export const CATEGORY_OPTIONS: {
 
 export const DISTANCE_OPTIONS: {
   key: DistanceKey;
-  label: string;
+  labelKey: string;
 }[] = [
-  { key: "all", label: "كل المسافات" },
-  { key: "lt2", label: "ضمن ٢ كم" },
-  { key: "lt5", label: "ضمن ٥ كم" },
+  { key: "all", labelKey: "catalog.filters.distanceAll" },
+  { key: "lt2", labelKey: "catalog.filters.distanceLt2" },
+  { key: "lt5", labelKey: "catalog.filters.distanceLt5" },
 ];
 
 /** حدود نطاق السعر بالريال اليمني (تُطابق PRICE_OPTIONS) */
@@ -261,6 +263,7 @@ export function SearchFiltersSheet({
   onChange,
   resultCount,
 }: SearchFiltersSheetProps) {
+  const { t } = useLang();
   const activeCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   return (
@@ -283,7 +286,7 @@ export function SearchFiltersSheet({
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/15 to-accent/15">
               <ListFilter className="h-4.5 w-4.5 text-primary" aria-hidden="true" />
             </span>
-            تصفية النتائج
+            {t("catalog.filters.title")}
             {activeCount > 0 && (
               <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-extrabold tabular-nums text-primary-foreground">
                 {activeCount}
@@ -291,22 +294,22 @@ export function SearchFiltersSheet({
             )}
           </SheetTitle>
           <SheetDescription className="text-right text-xs text-muted-foreground">
-            اشمل النتائج أو رتّبها بما يناسبك — الفلاتر تُطبَّق فوراً
+            {t("catalog.filters.description")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="space-y-5 px-0">
           {/* ── الترتيب ── */}
-          <section aria-label="الترتيب" className="space-y-2">
+          <section aria-label={t("catalog.filters.sortTitle")} className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
               <ArrowDownWideNarrow className="h-4 w-4 text-primary" aria-hidden="true" />
-              الترتيب
+              {t("catalog.filters.sortTitle")}
             </h3>
-            <div role="radiogroup" aria-label="خيارات الترتيب" className="space-y-2">
+            <div role="radiogroup" aria-label={t("catalog.filters.sortAria")} className="space-y-2">
               {SORT_OPTIONS.map((opt) => (
                 <SortRow
                   key={opt.key}
-                  label={opt.label}
+                  label={t(opt.labelKey)}
                   icon={opt.icon}
                   selected={filters.sort === opt.key}
                   onSelect={() => onChange({ ...filters, sort: opt.key })}
@@ -316,10 +319,10 @@ export function SearchFiltersSheet({
           </section>
 
           {/* ── التصنيف ── */}
-          <section aria-label="التصنيف" className="space-y-2">
+          <section aria-label={t("catalog.filters.categoryTitle")} className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
               <Store className="h-4 w-4 text-primary" aria-hidden="true" />
-              التصنيف
+              {t("catalog.filters.categoryTitle")}
             </h3>
             <div className="flex flex-wrap gap-2">
               {CATEGORY_OPTIONS.map((opt) => {
@@ -342,7 +345,7 @@ export function SearchFiltersSheet({
                     )}
                   >
                     <Icon className="h-3.5 w-3.5" aria-hidden="true" />
-                    {opt.label}
+                    {t(opt.labelKey)}
                   </button>
                 );
               })}
@@ -350,16 +353,16 @@ export function SearchFiltersSheet({
           </section>
 
           {/* ── نطاق السعر ── */}
-          <section aria-label="نطاق السعر" className="space-y-2">
+          <section aria-label={t("catalog.filters.priceTitle")} className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
               <CircleDollarSign className="h-4 w-4 text-primary" aria-hidden="true" />
-              نطاق السعر
+              {t("catalog.filters.priceTitle")}
             </h3>
             <div className="flex flex-wrap gap-2">
               {PRICE_OPTIONS.map((opt) => (
                 <FilterChip
                   key={opt.key}
-                  label={opt.label}
+                  label={t(opt.labelKey)}
                   selected={filters.price === opt.key}
                   onSelect={() => onChange({ ...filters, price: opt.key })}
                 />
@@ -367,21 +370,21 @@ export function SearchFiltersSheet({
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               <BadgePercent className="ml-1 inline h-3 w-3" aria-hidden="true" />
-              الأسعار بالريال اليمني — النطاق يطبَّق على نتائج الوجبات
+              {t("catalog.filters.priceHint")}
             </p>
           </section>
 
           {/* ── المسافة ── */}
-          <section aria-label="المسافة" className="space-y-2">
+          <section aria-label={t("catalog.filters.distanceTitle")} className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
               <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-              المسافة
+              {t("catalog.filters.distanceTitle")}
             </h3>
             <div className="flex flex-wrap gap-2">
               {DISTANCE_OPTIONS.map((opt) => (
                 <FilterChip
                   key={opt.key}
-                  label={opt.label}
+                  label={t(opt.labelKey)}
                   selected={filters.distance === opt.key}
                   onSelect={() => onChange({ ...filters, distance: opt.key })}
                 />
@@ -389,15 +392,15 @@ export function SearchFiltersSheet({
             </div>
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               <MapPin className="ml-1 inline h-3 w-3" aria-hidden="true" />
-              تُطبَّق عند توفر بيانات الموقع للوجبات القريبة منك
+              {t("catalog.filters.distanceHint")}
             </p>
           </section>
 
           {/* ── التوفر ── */}
-          <section aria-label="التوفر" className="space-y-2">
+          <section aria-label={t("catalog.filters.availabilityTitle")} className="space-y-2">
             <h3 className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
               <UtensilsCrossed className="h-4 w-4 text-primary" aria-hidden="true" />
-              التوفر
+              {t("catalog.filters.availabilityTitle")}
             </h3>
             <label
               className={cn(
@@ -409,10 +412,10 @@ export function SearchFiltersSheet({
             >
               <span className="flex flex-col gap-0.5">
                 <span className="text-sm font-bold text-foreground">
-                  المتاح فقط
+                  {t("catalog.filters.availableOnly")}
                 </span>
                 <span className="text-[11px] text-muted-foreground">
-                  إخفاء الوجبات النافدة من النتائج
+                  {t("catalog.filters.availableOnlyDesc")}
                 </span>
               </span>
               <Switch
@@ -421,7 +424,7 @@ export function SearchFiltersSheet({
                   haptic("tick");
                   onChange({ ...filters, availableOnly: checked });
                 }}
-                aria-label="المتاح فقط"
+                aria-label={t("catalog.filters.availableOnly")}
               />
             </label>
           </section>
@@ -443,7 +446,7 @@ export function SearchFiltersSheet({
               )}
             >
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              إعادة تعيين
+              {t("catalog.filters.reset")}
             </button>
             <button
               type="button"
@@ -454,7 +457,9 @@ export function SearchFiltersSheet({
               className="native-tap inline-flex min-h-[48px] flex-[2] items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-extrabold text-primary-foreground shadow-soft transition-all hover:bg-primary/90 active:scale-[0.98]"
             >
               <Check className="h-4 w-4" aria-hidden="true" />
-              عرض {resultCount > 0 ? `${resultCount} نتيجة` : "النتائج"}
+              {resultCount > 0
+                ? t("catalog.filters.showResultsCount", { count: resultCount })
+                : t("catalog.filters.showResults")}
             </button>
           </div>
         </div>

@@ -24,6 +24,7 @@ import {
   ShoppingBag,
   Heart,
   TrendingUp,
+  Languages,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,12 +61,14 @@ import {
   type PendingMembership,
 } from "@/lib/membership-local";
 import { formatDate } from "@/lib/format";
+import { useLang, LanguageToggle } from "@/lib/i18n";
 import type { MeOut } from "@/types/api.generated";
 
 /* ------------------------------------------------------------------ */
 /*  زائر — بطاقة ترحيب مصغرة + زرا الدخول والتسجيل                     */
 /* ------------------------------------------------------------------ */
 function GuestAccount() {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -82,18 +85,17 @@ function GuestAccount() {
           <TawfirLogo className="h-14 w-auto" />
           <div className="space-y-2">
             <h2 className="text-2xl font-extrabold text-foreground">
-              أهلاً بك في توفير
+              {t("profile.guest.welcome")}
             </h2>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              سجّل الدخول لعرض بطاقتك وطلباتك، أو أنشئ حساباً جديداً
-              واشترك في عضوية توفير لتحصل على خصومات حصرية.
+              {t("profile.guest.desc")}
             </p>
           </div>
           <div className="flex w-full flex-col gap-3">
             <Button asChild className="min-h-[44px] gap-2 rounded-full">
               <Link href="/login">
                 <LogIn className="h-4 w-4" aria-hidden="true" />
-                تسجيل الدخول
+                {t("auth.login.cta")}
               </Link>
             </Button>
             <Button
@@ -103,7 +105,7 @@ function GuestAccount() {
             >
               <Link href="/register">
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
-                إنشاء حساب
+                {t("profile.registerCta")}
               </Link>
             </Button>
           </div>
@@ -140,20 +142,23 @@ function AccountSkeleton() {
 /* ------------------------------------------------------------------ */
 /*  نموذج تعديل البيانات (الاسم + الجوال — البريد ثابت)                */
 /* ------------------------------------------------------------------ */
-const profileSchema = z.object({
-  full_name: z.string().min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" }),
-  // الجوال اليمني: 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78
-  phone: z
-    .string()
-    .min(9, { message: "رقم الجوال يجب أن يكون 9 أرقام" })
-    .regex(/^(7[01378])\d{7}$/, {
-      message: "أدخل رقم جوال يمني صحيح (يبدأ بـ 70/71/73/77/78)",
-    }),
-});
-type ProfileValues = z.infer<typeof profileSchema>;
+/* رسائل التحقق عبر t (نصوص عرض فقط — قواعد التحقق نفسها حرفياً) */
+const makeProfileSchema = (t: (key: string) => string) =>
+  z.object({
+    full_name: z.string().min(2, { message: t("auth.err.nameMin") }),
+    // الجوال اليمني: 9 أرقام تبدأ بـ 70 أو 71 أو 73 أو 77 أو 78
+    phone: z
+      .string()
+      .min(9, { message: t("auth.err.phoneYemenMin") })
+      .regex(/^(7[01378])\d{7}$/, {
+        message: t("auth.err.phoneYemen"),
+      }),
+  });
+type ProfileValues = z.infer<ReturnType<typeof makeProfileSchema>>;
 
 function ProfileEditForm({ me }: { me: MeOut }) {
   const { toast } = useToast();
+  const { t } = useLang();
   const invalidateMe = useInvalidateMe();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -163,7 +168,7 @@ function ProfileEditForm({ me }: { me: MeOut }) {
     formState,
     watch,
   } = useForm<ProfileValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(makeProfileSchema(t)),
     defaultValues: {
       full_name: me.full_name,
       phone: me.phone,
@@ -179,14 +184,14 @@ function ProfileEditForm({ me }: { me: MeOut }) {
       setServerError(null);
       invalidateMe();
       toast({
-        title: "تم حفظ التعديلات",
-        description: "تم تحديث بياناتك بنجاح",
+        title: t("profile.saved.title"),
+        description: t("profile.saved.desc"),
       });
     },
     onError: (e: Error) => {
-      setServerError(e.message || "تعذّر حفظ التعديلات");
+      setServerError(e.message || t("profile.saveError"));
       toast({
-        title: "تعذّر حفظ التعديلات",
+        title: t("profile.saveError"),
         description: e.message,
         variant: "destructive",
       });
@@ -203,7 +208,7 @@ function ProfileEditForm({ me }: { me: MeOut }) {
       noValidate
     >
       <div className="space-y-2">
-        <Label htmlFor="full_name">الاسم الكامل</Label>
+        <Label htmlFor="full_name">{t("auth.field.fullName")}</Label>
         <Input
           id="full_name"
           autoComplete="name"
@@ -219,7 +224,7 @@ function ProfileEditForm({ me }: { me: MeOut }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">رقم الجوال</Label>
+        <Label htmlFor="phone">{t("auth.field.phone")}</Label>
         <Input
           id="phone"
           type="tel"
@@ -258,7 +263,7 @@ function ProfileEditForm({ me }: { me: MeOut }) {
         ) : (
           <Save className="h-4 w-4" aria-hidden="true" />
         )}
-        {updateMutation.isPending ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+        {updateMutation.isPending ? t("auth.reset.saving") : t("profile.saveCta")}
       </Button>
     </form>
   );
@@ -268,15 +273,16 @@ function ProfileEditForm({ me }: { me: MeOut }) {
 /*  بطاقة بياناتي (مشتركة بين كل الحالات المسجّلة)                   */
 /* ------------------------------------------------------------------ */
 function MyDataCard({ me }: { me: MeOut }) {
+  const { t } = useLang();
   return (
     <Card className="rounded-2xl border-border/60 shadow-soft">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg">
           <UserRound className="h-5 w-5 text-primary" aria-hidden="true" />
-          بياناتي
+          {t("profile.data.title")}
         </CardTitle>
         <CardDescription>
-          يمكنك تعديل الاسم ورقم الجوال — البريد الإلكتروني ثابت
+          {t("profile.data.desc")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -287,7 +293,7 @@ function MyDataCard({ me }: { me: MeOut }) {
               aria-hidden="true"
             />
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">الاسم الكامل</p>
+              <p className="text-xs text-muted-foreground">{t("auth.field.fullName")}</p>
               <p className="truncate text-sm font-bold text-foreground">
                 {me.full_name}
               </p>
@@ -296,7 +302,7 @@ function MyDataCard({ me }: { me: MeOut }) {
           <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
             <Mail className="h-5 w-5 shrink-0 text-secondary" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">البريد الإلكتروني</p>
+              <p className="text-xs text-muted-foreground">{t("profile.field.email")}</p>
               <p dir="ltr" className="truncate text-left text-sm font-bold text-foreground">
                 {me.email}
               </p>
@@ -305,7 +311,7 @@ function MyDataCard({ me }: { me: MeOut }) {
           <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
             <Phone className="h-5 w-5 shrink-0 text-accent-ink" aria-hidden="true" />
             <div className="min-w-0">
-              <p className="text-xs text-muted-foreground">رقم الجوال</p>
+              <p className="text-xs text-muted-foreground">{t("auth.field.phone")}</p>
               <p dir="ltr" className="truncate text-left text-sm font-bold text-foreground">
                 {me.phone}
               </p>
@@ -318,7 +324,7 @@ function MyDataCard({ me }: { me: MeOut }) {
         <div className="space-y-4">
           <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
             <ShieldCheck className="h-4 w-4 text-secondary" aria-hidden="true" />
-            تعديل البيانات
+            {t("profile.data.editTitle")}
           </h3>
           <ProfileEditForm key={`${me.id}-${me.full_name}-${me.phone}`} me={me} />
         </div>
@@ -331,6 +337,7 @@ function MyDataCard({ me }: { me: MeOut }) {
 /*  شارة «قيد المراجعة» الذهبية                                         */
 /* ------------------------------------------------------------------ */
 function PendingReviewBadge({ pending }: { pending: PendingMembership }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -359,7 +366,7 @@ function PendingReviewBadge({ pending }: { pending: PendingMembership }) {
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-bold text-foreground">
-              طلب العضوية قيد المراجعة
+              {t("profile.pending.title")}
             </h2>
             <span
               className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold"
@@ -369,16 +376,16 @@ function PendingReviewBadge({ pending }: { pending: PendingMembership }) {
               }}
             >
               <Hourglass className="h-3 w-3" aria-hidden="true" />
-              قيد المراجعة
+              {t("profile.pending.badge")}
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
             {pending.created_at
-              ? `تاريخ الطلب: ${formatDate(pending.created_at)}`
-              : "طلبك قيد المراجعة من قبل فريقنا"}
+              ? t("profile.pending.date", { date: formatDate(pending.created_at) })
+              : t("profile.pending.noDate")}
           </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            تُراجع طلبات العضوية يدوياً خلال 24-48 ساعة. عند الموافقة ستظهر بطاقة عضويتك هنا.
+            {t("profile.pending.desc")}
           </p>
         </div>
       </div>
@@ -391,7 +398,7 @@ function PendingReviewBadge({ pending }: { pending: PendingMembership }) {
         >
           <Link href="/membership/subscribe">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-            أعد الاشتراك
+            {t("profile.pending.resubscribe")}
           </Link>
         </Button>
       </div>
@@ -403,6 +410,7 @@ function PendingReviewBadge({ pending }: { pending: PendingMembership }) {
 /*  حالة 2: مسجّل بلا عضوية ولا طلب معلّق                             */
 /* ------------------------------------------------------------------ */
 function NoMembershipState({ me }: { me: MeOut }) {
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -437,24 +445,21 @@ function NoMembershipState({ me }: { me: MeOut }) {
           </span>
           <div className="space-y-1.5">
             <h2 className="text-xl font-extrabold text-foreground">
-              ليس لديك عضوية بعد
+              {t("profile.noMembership.title")}
             </h2>
             <p className="mx-auto max-w-md text-sm text-muted-foreground leading-relaxed">
-              اشترك في عضوية توفير السنوية واحصل على خصومات حصرية على كل طلباتك.
-              موافقة يدوية خلال 24-48 ساعة.
+              {t("profile.noMembership.desc")}
             </p>
           </div>
           {/* ملاحظة عبر الأجهزة: قد يكون الطلب قيد المراجعة أو مرفوضاً */}
           <p className="mx-auto max-w-md rounded-xl bg-muted/40 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
             <RefreshCw className="me-1 inline h-3 w-3" aria-hidden="true" />
-            إن أرسلت طلب اشتراك من جهاز آخر، فقد يكون قيد المراجعة أو لم
-            يُستوفَ بعد. لا يمكننا عرض سبب الرفض هنا — تواصل معنا أو أعد
-            الاشتراك من جديد.
+            {t("profile.noMembership.note")}
           </p>
           <Button asChild className="min-h-[44px] gap-2 rounded-full">
             <Link href="/membership/subscribe">
               <Crown className="h-4 w-4" aria-hidden="true" />
-              اشترك في عضوية توفير
+              {t("profile.subscribeCta")}
             </Link>
           </Button>
         </CardContent>
@@ -475,6 +480,9 @@ function NoMembershipState({ me }: { me: MeOut }) {
         {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
         <SoundSettingsCard />
 
+        {/* اللغة — جولة التدويل: تبديل عربي/إنجليزي */}
+        <LanguageSettingCard />
+
         {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
         <AccountFaqContactSection />
 
@@ -485,10 +493,43 @@ function NoMembershipState({ me }: { me: MeOut }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  بطاقة إعداد اللغة — جولة التدويل (i18n)                             */
+/* ------------------------------------------------------------------ */
+function LanguageSettingCard() {
+  const { t, lang } = useLang();
+
+  return (
+    <Card className="rounded-2xl border-border/60 shadow-soft">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Languages className="h-5 w-5 text-primary" aria-hidden="true" />
+          {t("profile.language.title")}
+        </CardTitle>
+        <CardDescription>{t("profile.language.desc")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/30 p-4">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {lang === "ar" ? t("profile.language.arabic") : t("profile.language.english")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t("profile.language.current")}
+            </p>
+          </div>
+          <LanguageToggle showLabel />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  حالة 5: مسجّل بعضوية موافق عليها                                  */
 /* ------------------------------------------------------------------ */
 function ActiveMemberState({ me }: { me: MeOut }) {
   const logout = useCustomerLogout();
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
@@ -513,7 +554,7 @@ function ActiveMemberState({ me }: { me: MeOut }) {
             className="min-h-[40px] gap-1.5 rounded-full border-border/60 bg-card/70 text-xs text-destructive shadow-sm backdrop-blur transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-            خروج
+            {t("profile.logout")}
           </Button>
         }
       />
@@ -530,7 +571,7 @@ function ActiveMemberState({ me }: { me: MeOut }) {
         >
           <Link href="/orders">
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-            طلباتي
+            {t("nav.orders")}
           </Link>
         </Button>
         <Button
@@ -540,7 +581,7 @@ function ActiveMemberState({ me }: { me: MeOut }) {
         >
           <Link href="/savings">
             <TrendingUp className="h-4 w-4 text-primary" aria-hidden="true" />
-            سجل التوفير
+            {t("profile.quickSavings")}
           </Link>
         </Button>
         <Button
@@ -550,7 +591,7 @@ function ActiveMemberState({ me }: { me: MeOut }) {
         >
           <Link href="/favorites">
             <Heart className="h-4 w-4 text-destructive" aria-hidden="true" />
-            مفضلتي
+            {t("profile.quickFavorites")}
           </Link>
         </Button>
       </div>
@@ -570,6 +611,9 @@ function ActiveMemberState({ me }: { me: MeOut }) {
         {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
         <SoundSettingsCard />
 
+        {/* اللغة — جولة التدويل: تبديل عربي/إنجليزي */}
+        <LanguageSettingCard />
+
         {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
         <AccountFaqContactSection />
 
@@ -586,6 +630,7 @@ export default function AccountPage() {
   const { accessToken, hydrated } = useCustomerAuth();
   const me = useMe();
   const hasMounted = useHasMounted();
+  const { t } = useLang();
 
   /* الاشتقاق المباشر من localStorage بعد التركيب — بلا setState داخل effect.
      عند ظهور العضوية في /me تُمحى تلقائياً من التخزين المحلي. */
@@ -603,7 +648,7 @@ export default function AccountPage() {
   if (!hydrated) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/" />
         <AccountSkeleton />
       </>
     );
@@ -613,7 +658,7 @@ export default function AccountPage() {
   if (!accessToken) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/" />
         <GuestAccount />
       </>
     );
@@ -622,7 +667,7 @@ export default function AccountPage() {
   if (me.isLoading) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/" />
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/" />
         <AccountSkeleton />
       </>
     );
@@ -631,20 +676,20 @@ export default function AccountPage() {
   if (me.isError || !me.data) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/">
           <NotificationBell />
         </ScreenHeader>
         <div className="mx-auto w-full max-w-md px-4 py-16 text-center">
           <p className="mb-4 text-sm text-muted-foreground">
             {me.error instanceof Error
               ? me.error.message
-              : "تعذّر تحميل بيانات الحساب"}
+              : t("profile.meError")}
           </p>
           <Button
             onClick={() => me.refetch()}
             className="min-h-[44px] rounded-full"
           >
-            إعادة المحاولة
+            {t("common.retry")}
           </Button>
         </div>
       </>
@@ -655,7 +700,7 @@ export default function AccountPage() {
   if (membership) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/">
           <NotificationBell />
         </ScreenHeader>
         <ActiveMemberState me={me.data} />
@@ -667,7 +712,7 @@ export default function AccountPage() {
   if (pendingRequest) {
     return (
       <>
-        <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+        <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/">
           <NotificationBell />
         </ScreenHeader>
         <motion.div
@@ -693,6 +738,9 @@ export default function AccountPage() {
           {/* الأصوات — نظام الإشعارات الصوتية (الجولة 8) */}
           <SoundSettingsCard />
 
+          {/* اللغة — جولة التدويل: تبديل عربي/إنجليزي */}
+          <LanguageSettingCard />
+
           {/* الأسئلة الشائعة + تواصل معنا — الجولة 9 (المهمة 1) */}
           <AccountFaqContactSection />
 
@@ -706,7 +754,7 @@ export default function AccountPage() {
   /* حالة 2 + 4: مسجّل بلا عضوية (ولا طلب معلّق — أو ربما مرفوض لا يمكن تمييزه) */
   return (
     <>
-      <ScreenHeader title="الملف الشخصي" fallbackHref="/">
+      <ScreenHeader title={t("profile.screenTitle")} fallbackHref="/">
         <NotificationBell />
       </ScreenHeader>
       <NoMembershipState me={me.data} />

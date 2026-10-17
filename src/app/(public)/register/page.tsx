@@ -49,71 +49,74 @@ import type {
 } from "@/types/api.generated";
 import type { ApiError } from "@/services/api-client";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 
 /* ─── Zod Schema ─────────────────────────────────── */
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-const registerSchema = z
-  .object({
-    full_name: z.string().min(2, { message: "الاسم يجب أن يكون حرفين على الأقل" }),
-    // البريد اختياري (الجولة 20) — لكن عند إدخاله يجب أن يكون صحيحاً.
-    email: z
-      .string()
-      .email({ message: "صيغة البريد الإلكتروني غير صحيحة" })
-      .optional()
-      .or(z.literal("")),
-    // v7 — التحقق الدقيق حسب بلد السوق المختار في superRefine أدناه.
-    phone: z.string().min(6, { message: "أدخل رقم الجوال" }),
-    password: z.string().min(8, { message: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }),
-    password_confirm: z.string().min(8, { message: "تأكيد كلمة المرور مطلوب" }),
-    // v5 — المناطق السعودية مبذورة (13 منطقة): المنطقة إلزامية للسوقين.
-    region_id: z.number().positive({ message: "يرجى اختيار منطقة" }).optional(),
-    // v7 — بلد السوق: يمني افتراضياً (توافق تاريخي) وسعودي خيار معلن.
-    country_code: z.enum(["967", "966"]),
-  })
-  .superRefine((d, ctx) => {
-    if (d.country_code === "966") {
-      if (!isValidSaudiPhone(d.phone)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["phone"],
-          message: "أدخل رقم جوال سعودي صحيح — يبدأ بـ 05 و10 خانات (مثال: 0501234567)",
-        });
+/* رسائل التحقق عبر t (نصوص عرض فقط — قواعد التحقق نفسها حرفياً) */
+const makeRegisterSchema = (t: (key: string) => string) =>
+  z
+    .object({
+      full_name: z.string().min(2, { message: t("auth.err.nameMin") }),
+      // البريد اختياري (الجولة 20) — لكن عند إدخاله يجب أن يكون صحيحاً.
+      email: z
+        .string()
+        .email({ message: t("auth.err.emailInvalid") })
+        .optional()
+        .or(z.literal("")),
+      // v7 — التحقق الدقيق حسب بلد السوق المختار في superRefine أدناه.
+      phone: z.string().min(6, { message: t("auth.err.phoneRequired") }),
+      password: z.string().min(8, { message: t("auth.err.passwordMin") }),
+      password_confirm: z.string().min(8, { message: t("auth.err.passwordConfirmRequired") }),
+      // v5 — المناطق السعودية مبذورة (13 منطقة): المنطقة إلزامية للسوقين.
+      region_id: z.number().positive({ message: t("auth.err.regionRequired") }).optional(),
+      // v7 — بلد السوق: يمني افتراضياً (توافق تاريخي) وسعودي خيار معلن.
+      country_code: z.enum(["967", "966"]),
+    })
+    .superRefine((d, ctx) => {
+      if (d.country_code === "966") {
+        if (!isValidSaudiPhone(d.phone)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["phone"],
+            message: t("auth.err.phoneSaudi"),
+          });
+        }
+        // v5 — المناطق السعودية مبذورة: المنطقة إلزامية للسعودي كذلك.
+        if (d.region_id == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["region_id"],
+            message: t("auth.err.regionSaudiRequired"),
+          });
+        }
+      } else {
+        const normalized = normalizeYemeniPhone(d.phone);
+        if (!/^(7[01378])\d{7}$/.test(normalized)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["phone"],
+            message: t("auth.err.phoneYemen"),
+          });
+        }
+        if (d.region_id == null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["region_id"],
+            message: t("auth.err.regionRequired"),
+          });
+        }
       }
-      // v5 — المناطق السعودية مبذورة: المنطقة إلزامية للسعودي كذلك.
-      if (d.region_id == null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["region_id"],
-          message: "يرجى اختيار منطقة سوقك (السعودية)",
-        });
-      }
-    } else {
-      const normalized = normalizeYemeniPhone(d.phone);
-      if (!/^(7[01378])\d{7}$/.test(normalized)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["phone"],
-          message: "أدخل رقم جوال يمني صحيح (يبدأ بـ 70/71/73/77/78)",
-        });
-      }
-      if (d.region_id == null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["region_id"],
-          message: "يرجى اختيار منطقة",
-        });
-      }
-    }
-  })
-  .refine((d) => d.password === d.password_confirm, {
-    message: "كلمتا المرور غير متطابقتين",
-    path: ["password_confirm"],
-  });
+    })
+    .refine((d) => d.password === d.password_confirm, {
+      message: t("auth.err.passwordMismatch"),
+      path: ["password_confirm"],
+    });
 
-type RegisterValues = z.infer<typeof registerSchema>;
+type RegisterValues = z.infer<ReturnType<typeof makeRegisterSchema>>;
 
 
 type StoredRegisterValues = Omit<RegisterValues, "email"> & {
@@ -122,9 +125,9 @@ type StoredRegisterValues = Omit<RegisterValues, "email"> & {
 
 /* ─── Step Indicator Data ─────────────────────────── */
 const STEPS = [
-  { num: 1, label: "البيانات الشخصية", icon: User },
-  { num: 2, label: "كلمة المرور", icon: Lock },
-  { num: 3, label: "تأكيد الحساب", icon: ShieldCheck },
+  { num: 1, label: "auth.step.personal", icon: User },
+  { num: 2, label: "auth.step.password", icon: Lock },
+  { num: 3, label: "auth.step.confirm", icon: ShieldCheck },
 ] as const;
 
 /* ─── Password Strength ───────────────────────────── */
@@ -139,12 +142,12 @@ function getPasswordStrength(password: string): {
   const hasSpecial = /[^a-zA-Z0-9]/.test(password);
 
   if (password.length >= 8 && hasLetters && hasNumbers && hasSpecial) {
-    return { level: "strong", label: "قوية", percent: 100 };
+    return { level: "strong", label: "auth.pw.strong", percent: 100 };
   }
   if (password.length >= 6 && hasLetters && hasNumbers) {
-    return { level: "medium", label: "متوسطة", percent: 60 };
+    return { level: "medium", label: "auth.pw.medium", percent: 60 };
   }
-  return { level: "weak", label: "ضعيفة", percent: 30 };
+  return { level: "weak", label: "auth.pw.weak", percent: 30 };
 }
 
 const STYLES: Record<string, { bar: string; text: string }> = {
@@ -155,6 +158,7 @@ const STYLES: Record<string, { bar: string; text: string }> = {
 
 function PasswordStrengthBar({ password }: { password: string }) {
   const reduced = useReducedMotion();
+  const { t } = useLang();
   const { level, label, percent } = getPasswordStrength(password);
   if (!password) return null;
   const style = STYLES[level];
@@ -169,7 +173,7 @@ function PasswordStrengthBar({ password }: { password: string }) {
           transition={reduced ? { duration: 0 } : { duration: 0.3, ease: "easeOut" }}
         />
       </div>
-      <p className={cn("text-xs", style.text)}>{label}</p>
+      <p className={cn("text-xs", style.text)}>{t(label)}</p>
     </div>
   );
 }
@@ -232,6 +236,7 @@ function SuccessScreen({
   freeGrantedByDetail?: boolean;
 }) {
   const reduced = useReducedMotion();
+  const { t } = useLang();
   const hasActiveMembership = !!membership && membership.is_active;
   const showFreeCard = hasActiveMembership || freeGrantedByDetail;
 
@@ -264,10 +269,10 @@ function SuccessScreen({
         )}
       </div>
       <h2 className="mb-2 text-2xl font-extrabold text-foreground">
-        {showFreeCard ? "تم إنشاء حسابك! 🎁" : "تم إنشاء حسابك!"}
+        {showFreeCard ? t("auth.success.titleGift") : t("auth.success.title")}
       </h2>
       <p className="mb-6 text-sm text-muted-foreground">
-        {data.detail || "أهلاً بك في منصة توفير"}
+        {data.detail || t("auth.success.fallbackDesc")}
       </p>
 
       {/* بطاقة العضوية الحقيقية إن وُجدت من /me */}
@@ -292,11 +297,11 @@ function SuccessScreen({
               aria-hidden="true"
             />
             <span className="text-base font-extrabold text-foreground">
-              حصلت على عضوية توفير المجانية
+              {t("auth.success.freeCardTitle")}
             </span>
           </div>
           <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
-            ستظهر بطاقة عضويتك مع رقم العضوية في صفحة حسابك بعد تسجيل الدخول.
+            {t("auth.success.freeCardDesc")}
           </p>
         </div>
       ) : (
@@ -314,19 +319,18 @@ function SuccessScreen({
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground shadow-soft">
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              خصومات حصرية للعضوية
+              {t("auth.success.badgeDiscount")}
             </span>
             <span className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
               <Sparkles className="h-3 w-3" aria-hidden="true" />
-              اشترك الآن
+              {t("auth.success.badgeSubscribe")}
             </span>
           </div>
           <h2 className="mb-1 text-lg font-extrabold text-foreground">
-            اشترك في عضوية توفير واستمتع بخصومات حصرية
+            {t("auth.success.subscribeTitle")}
           </h2>
           <p className="mx-auto max-w-xs text-xs leading-relaxed text-muted-foreground">
-            موافقة يدوية خلال 24-48 ساعة.
-            عند الموافقة تظهر بطاقة عضويتك في حسابك.
+            {t("auth.success.subscribeDesc")}
           </p>
         </div>
       )}
@@ -335,7 +339,7 @@ function SuccessScreen({
         <Button asChild size="lg" className="min-h-[44px] w-full gap-2 rounded-full">
           <Link href="/account">
             <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            حسابي
+            {t("auth.success.accountCta")}
           </Link>
         </Button>
         <Button
@@ -345,7 +349,7 @@ function SuccessScreen({
           className="min-h-[44px] w-full gap-2 rounded-full"
         >
           <Link href="/">
-            تصفّح الوجبات
+            {t("auth.success.browseCta")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
@@ -374,6 +378,7 @@ function InlineRequestingOtp({ message }: { message: string }) {
 /* ─── Creating Account Overlay — بعد OTP نجح وقبل /me ── */
 function CreatingAccountOverlay() {
   const reduced = useReducedMotion();
+  const { t } = useLang();
   return (
     <motion.div
       initial={reduced ? { opacity: 1 } : { opacity: 0 }}
@@ -394,10 +399,10 @@ function CreatingAccountOverlay() {
             <Loader2 className="h-8 w-8 animate-spin" aria-hidden="true" />
           </span>
           <h2 className="text-xl font-extrabold text-foreground">
-            جارٍ إنشاء حسابك...
+            {t("auth.creating.title")}
           </h2>
           <p className="max-w-xs text-sm text-muted-foreground">
-            تحقّقنا من رقمك — نُنشئ حسابك الآن ونجلب بطاقة عضويتك.
+            {t("auth.creating.desc")}
           </p>
         </CardContent>
       </Card>
@@ -433,6 +438,7 @@ function Field({
 /* ─── Step Indicator ─────────────────────────────── */
 function StepIndicator({ currentStep }: { currentStep: number }) {
   const reduced = useReducedMotion();
+  const { t } = useLang();
 
   return (
     <div className="mb-6">
@@ -470,7 +476,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
                       : "text-muted-foreground"
                   )}
                 >
-                  {step.label}
+                  {t(step.label)}
                 </span>
               </div>
 
@@ -504,10 +510,11 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 /* ─── Progress Bar ───────────────────────────────── */
 function FormProgressBar({ progress }: { progress: number }) {
   const reduced = useReducedMotion();
+  const { t } = useLang();
   return (
     <div className="mb-6">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">تقدم التسجيل</span>
+        <span className="text-xs text-muted-foreground">{t("auth.reg.progress")}</span>
         <span className="text-xs font-bold text-foreground">
           {Math.round(progress)}%
         </span>
@@ -526,13 +533,14 @@ function FormProgressBar({ progress }: { progress: number }) {
 
 /* ─── Decorative Side Panel ──────────────────────── */
 const BENEFITS = [
-  "خصومات حصرية على جميع المتاجر المشتركة",
-  "بطاقة عضوية رقمية بعد الموافقة اليدوية",
-  "عروض حصرية ومزايا مميزة",
+  "auth.reg.benefit1",
+  "auth.reg.benefit2",
+  "auth.reg.benefit3",
 ];
 
 function DecorativeSidePanel() {
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
   const anim = prefersReduced
     ? { initial: { opacity: 0 }, animate: { opacity: 1 } }
     : { initial: { opacity: 0, x: 30 }, animate: { opacity: 1, x: 0 } };
@@ -543,9 +551,9 @@ function DecorativeSidePanel() {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="hidden lg:flex flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/60 p-10 text-center shadow-soft backdrop-blur-md"
     >
-      <h2 className="mb-2 text-2xl font-extrabold text-foreground">انضم لعائلة توفير</h2>
+      <h2 className="mb-2 text-2xl font-extrabold text-foreground">{t("auth.reg.sideTitle")}</h2>
       <p className="mb-6 max-w-xs text-sm text-muted-foreground">
-        سجّل الآن واحصل على بطاقة خصم تنفعك في عشرات المتاجر
+        {t("auth.reg.sideDesc")}
       </p>
       <TawfirPillBadge className="mb-8 shadow-soft" />
       <ul className="space-y-4 text-right">
@@ -554,7 +562,7 @@ function DecorativeSidePanel() {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--logo-gold)]/20">
               <Check className="h-3.5 w-3.5 text-[color:var(--logo-gold-light)]" />
             </span>
-            {benefit}
+            {t(benefit)}
           </li>
         ))}
       </ul>
@@ -566,6 +574,7 @@ function DecorativeSidePanel() {
 export default function RegisterPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useLang();
 
   const [stage, setStage] = useState<RegisterStage>("form");
   const [successData, setSuccessData] = useState<RegisterOut | null>(null);
@@ -593,7 +602,7 @@ export default function RegisterPage() {
     clearErrors,
     formState: { errors },
   } = useForm<RegisterValues>({
-    resolver: zodResolver(registerSchema),
+    resolver: useMemo(() => zodResolver(makeRegisterSchema(t)), [t]),
     defaultValues: {
       full_name: "",
       email: "",
@@ -704,9 +713,9 @@ export default function RegisterPage() {
           setStage("otp");
         },
         onError: (err: ApiError) => {
-          setOtpRequestError(err.message || "تعذّر إرسال كود التحقق");
+          setOtpRequestError(err.message || t("auth.otp.sendError"));
           toast({
-            title: "تعذّر إرسال كود التحقق",
+            title: t("auth.otp.sendError"),
             description: err.message,
             variant: "destructive",
           });
@@ -826,7 +835,7 @@ export default function RegisterPage() {
         >
           <p className="flex items-center justify-center gap-1.5 text-sm font-medium text-muted-foreground">
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
-            تأكيد ملكية الرقم عبر واتساب
+            {t("auth.otp.whatsappTitle")}
           </p>
         </motion.div>
         <OtpVerifyForm
@@ -853,7 +862,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <p className="text-sm font-medium text-muted-foreground">
-          انضم إلى توفير — كل وجباتك.. بخصومات حصرية
+          {t("auth.reg.joinLine")}
         </p>
       </motion.div>
 
@@ -880,13 +889,13 @@ export default function RegisterPage() {
               >
                 <Field
                   id="full_name"
-                  label="الاسم الكامل"
+                  label={t("auth.field.fullName")}
                   error={errors.full_name?.message}
                 >
                   <Input
                     id="full_name"
                     autoComplete="name"
-                    placeholder="مثال: أحمد محمد"
+                    placeholder={t("auth.field.fullNamePh")}
                     disabled={isFormDisabled}
                     aria-invalid={!!errors.full_name}
                     {...register("full_name")}
@@ -897,7 +906,7 @@ export default function RegisterPage() {
 
                 <Field
                   id="email"
-                  label="البريد الإلكتروني (اختياري)"
+                  label={t("auth.field.email")}
                   error={errors.email?.message}
                 >
                   <Input
@@ -916,7 +925,7 @@ export default function RegisterPage() {
 
                 <Field
                   id="phone"
-                  label="رقم الجوال"
+                  label={t("auth.field.phone")}
                   error={errors.phone?.message}
                 >
                   <Input
@@ -932,8 +941,7 @@ export default function RegisterPage() {
                     {...register("phone")}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    يتعرّف النظام على سوقك تلقائياً من رقم جوالك وموقعك — عملتك
-                    وطرق الدفع والمتاجر تُحدَّد تلقائياً.
+                    {t("auth.field.phoneHint")}
                   </p>
                 </Field>
 
@@ -944,7 +952,7 @@ export default function RegisterPage() {
                     تحت قدمي المستخدم لو اكتُشف الموقع متأخراً. */}
                 <Field
                   id="region"
-                  label={countryCode === "966" ? "المنطقة (السعودية)" : "المنطقة"}
+                  label={countryCode === "966" ? t("auth.field.regionSaudi") : t("auth.field.region")}
                   error={errors.region_id?.message}
                 >
                   <RegionSelector
@@ -963,7 +971,7 @@ export default function RegisterPage() {
 
                 <Field
                   id="password"
-                  label="كلمة المرور"
+                  label={t("auth.password")}
                   error={errors.password?.message}
                 >
                   <PasswordInput
@@ -981,7 +989,7 @@ export default function RegisterPage() {
 
                 <Field
                   id="password_confirm"
-                  label="تأكيد كلمة المرور"
+                  label={t("auth.field.passwordConfirm")}
                   error={errors.password_confirm?.message}
                 >
                   <PasswordInput
@@ -1007,7 +1015,7 @@ export default function RegisterPage() {
                 )}
 
                 {isOtpRequesting && (
-                  <InlineRequestingOtp message="جارٍ إرسال كود التحقق إلى واتساب..." />
+                  <InlineRequestingOtp message={t("auth.otp.sending")} />
                 )}
 
                 <Button
@@ -1016,22 +1024,22 @@ export default function RegisterPage() {
                   disabled={isFormDisabled}
                 >
                   {isOtpRequesting
-                    ? "جارٍ إرسال الكود..."
+                    ? t("auth.reg.sendingCode")
                     : isRegisterPending
-                    ? "جارٍ التسجيل..."
-                    : "تسجيل العضوية"}
+                    ? t("auth.reg.registering")
+                    : t("auth.reg.cta")}
                 </Button>
               </form>
 
               <Separator className="my-5" />
 
               <p className="text-center text-sm text-muted-foreground">
-                لديك حساب بالفعل؟{" "}
+                {t("auth.reg.haveAccount")}{" "}
                 <Link
                   href="/login"
                   className="font-bold text-primary hover:underline"
                 >
-                  تسجيل الدخول
+                  {t("auth.login.cta")}
                 </Link>
               </p>
             </CardContent>
@@ -1045,7 +1053,7 @@ export default function RegisterPage() {
           className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground hover:underline hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          العودة للرئيسية
+          {t("auth.backHome")}
         </Link>
       </div>
     </AuthShell>

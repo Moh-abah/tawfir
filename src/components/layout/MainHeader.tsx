@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { RegionSelector } from "@/components/public/RegionSelector";
 import { CartButton } from "@/components/public/CartButton";
 import { TawfirLogo } from "@/components/shared/TawfirLogo";
+import { LanguageToggle, useLang } from "@/lib/i18n";
 import { NotificationBell } from "@/components/shared/NotificationBell";
 import { NetworkStatusIndicator } from "@/components/shared/NetworkStatusIndicator";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -39,6 +40,7 @@ export function MainHeader() {
   const { hasToken: hasCourierToken, hydrated: courierHydrated } =
     useCourierSession();
   const me = useMe();
+  const { t } = useLang();
   const isLoggedIn = hydrated && !!accessToken;
   /* جلسة مندوب نشطة على نفس الجهاز — زر الوصول للوحة الميدانية */
   const isCourier = courierHydrated && hasCourierToken;
@@ -83,8 +85,10 @@ export function MainHeader() {
           <RegionSelector />
         </div>
 
-        {/* حسابي / دخول + السلة + الإشعارات + الثيم */}
+        {/* حسابي / دخول + السلة + الإشعارات + اللغة + الثيم */}
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
+          {/* جولة التدويل — زر تبديل اللغة ع/EN */}
+          <LanguageToggle />
           {/* الجولة 12 — البحث الموحّد: أيقونة بحث توجّه لـ /search */}
           <Button
             asChild
@@ -92,7 +96,7 @@ export function MainHeader() {
             size="sm"
             className="native-tap h-11 min-w-11 rounded-full px-0"
           >
-            <Link href="/search" aria-label="البحث">
+            <Link href="/search" aria-label={t("nav.search")}>
               <Search className="h-5 w-5" aria-hidden="true" />
             </Link>
           </Button>
@@ -109,8 +113,8 @@ export function MainHeader() {
             >
               <Link
                 href="/courier/home"
-                aria-label="فتح لوحة المندوب"
-                title="لوحة المندوب"
+                aria-label={t("header.courierPanel")}
+                title={t("header.courierPanel")}
               >
                 <Bike className="h-5 w-5" aria-hidden="true" />
               </Link>
@@ -124,10 +128,10 @@ export function MainHeader() {
               size="sm"
               className="native-tap h-11 min-w-11 gap-1.5 rounded-full px-2.5 sm:px-3"
             >
-              <Link href="/account" aria-label="حسابي">
+              <Link href="/account" aria-label={t("nav.account")}>
                 <CircleUserRound className="h-5 w-5" aria-hidden="true" />
                 <span className="hidden max-w-[8rem] truncate text-xs font-bold sm:inline sm:text-sm">
-                  {fullName ?? "حسابي"}
+                  {fullName ?? t("nav.account")}
                 </span>
               </Link>
             </Button>
@@ -138,9 +142,9 @@ export function MainHeader() {
               size="sm"
               className="native-tap h-11 min-w-11 gap-1.5 rounded-full px-2.5 sm:px-3"
             >
-              <Link href="/login" aria-label="تسجيل الدخول">
+              <Link href="/login" aria-label={t("header.login")}>
                 <LogIn className="h-5 w-5" aria-hidden="true" />
-                <span className="text-xs font-bold sm:text-sm">دخول</span>
+                <span className="text-xs font-bold sm:text-sm">{t("header.login")}</span>
               </Link>
             </Button>
           )}

@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { SpecialOfferOut } from "@/types/api.generated";
 
@@ -22,6 +23,7 @@ interface SpecialOfferCardProps {
  * حجم مُصغّر (text-[9px]) فوق الصورة أسفلها — نمط Netflix (الجولة 4).
  */
 function CountdownTimer({ endsAt }: { endsAt: string | null }) {
+  const { t } = useLang();
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -65,7 +67,7 @@ function CountdownTimer({ endsAt }: { endsAt: string | null }) {
     return (
       <span className="inline-flex items-center gap-0.5 rounded-full bg-destructive px-1.5 py-0.5 text-[9px] font-bold text-white">
         <Clock className="h-2.5 w-2.5" aria-hidden="true" />
-        انتهى
+        {t("catalog.offer.ended")}
       </span>
     );
   }
@@ -104,6 +106,7 @@ export function SpecialOfferCard({
   className,
   priority = false,
 }: SpecialOfferCardProps) {
+  const { t } = useLang();
   const product = specialOffer.product;
   const facility = specialOffer.facility;
 
@@ -121,11 +124,11 @@ export function SpecialOfferCard({
       disabled={soldOut}
       aria-label={
         soldOut
-          ? `${specialOffer.title} — نفدت الكمية`
-          : `اطلب ${specialOffer.title} الآن بسعر العضو`
+          ? t("catalog.offer.soldOutAria", { title: specialOffer.title })
+          : t("catalog.offer.orderAria", { title: specialOffer.title })
       }
       className={cn(
-        "native-tap-card group relative w-full overflow-hidden rounded-xl border border-border/30 bg-card text-right shadow-sm transition-shadow duration-200 hover:shadow-md",
+        "native-tap-card group relative w-full overflow-hidden rounded-xl border border-border/30 bg-card text-start shadow-sm transition-shadow duration-200 hover:shadow-md",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         soldOut && "opacity-60",
         className
@@ -156,7 +159,7 @@ export function SpecialOfferCard({
         <span
           className="absolute left-2 top-2 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold text-accent-foreground shadow-sm"
         >
-          خصم {offerRate}%
+          {t("catalog.offer.discount", { rate: offerRate })}
         </span>
 
         {/* شارة Flame + الكمية — أعلى يمين */}
@@ -165,7 +168,7 @@ export function SpecialOfferCard({
             className="inline-flex animate-pulse items-center gap-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold text-primary-foreground shadow-sm"
           >
             <Flame className="h-2.5 w-2.5" aria-hidden="true" />
-            عرض خاص
+            {t("catalog.offer.badge")}
           </span>
           {remaining !== null && (
             <span
@@ -174,7 +177,7 @@ export function SpecialOfferCard({
                 remaining <= 5 ? "bg-destructive" : "bg-black/70"
               )}
             >
-              متبقي {remaining}
+              {t("catalog.offer.remaining", { count: remaining })}
             </span>
           )}
         </div>

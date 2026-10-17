@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
 
 /** نوع عقد كائن Moyasar العالمي — الحد الأدنى الذي نستعمله فقط. */
 declare global {
@@ -117,9 +118,9 @@ function loadMoyasarScript(): Promise<void> {
       }
     }
     moyasarScriptPromise = null;
-    throw new Error(
-      "تعذّر تحميل بوابة الدفع — تحقق من اتصالك بالإنترنت ثم أعد المحاولة"
-    );
+    /* نص الحالة يُترجم عند العرض (payment.gatewayLoadFailed) — المصادر
+       والمنطق لا يُلمسان (عقد مويسر 40-c) */
+    throw new Error("payment.gatewayLoadFailed");
   })();
 
   return moyasarScriptPromise;
@@ -161,6 +162,7 @@ function MoyasarFormInner({
   description,
   onRetry,
 }: MoyasarEmbeddedFormProps & { onRetry: () => void }) {
+  const { t, lang } = useLang();
   /* الحالة البدائية "loading" — كل التغييرات تحدث من ردود نداءات غير متزامنة */
   const [phase, setPhase] = useState<FormPhase>("loading");
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -174,7 +176,7 @@ function MoyasarFormInner({
 
     if (!window.Moyasar) {
       setPhase("error");
-      setErrorMsg("تعذّر تهيئة بوابة الدفع — أعد المحاولة");
+      setErrorMsg(t("payment.formInitFailed"));
       return;
     }
 
@@ -197,10 +199,11 @@ function MoyasarFormInner({
       callback_url:
         window.location.origin + `/payment/return?order=${orderId}`,
       methods: embeddedMethods.length > 0 ? embeddedMethods : ["creditcard"],
-      language: "ar",
+      /* لغة النموذج تتبع لغة التطبيق (ar/en) — العقد نفسه بلا تغيير */
+      language: lang === "en" ? "en" : "ar",
     });
     setPhase("ready");
-  }, [amountMajor, description, methods, orderId, publishableKey]);
+  }, [amountMajor, description, lang, methods, orderId, publishableKey]);
 
   useEffect(() => {
     let cancelled = false;
@@ -213,8 +216,8 @@ function MoyasarFormInner({
         if (cancelled) return;
         setErrorMsg(
           err instanceof Error
-            ? err.message
-            : "تعذّر تحميل بوابة الدفع — أعد المحاولة"
+            ? t(err.message)
+            : t("payment.gatewayRetry")
         );
         setPhase("error");
       });
@@ -237,7 +240,7 @@ function MoyasarFormInner({
       {phase === "loading" && (
         <p className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-          جارٍ تجهيز نموذج الدفع الآمن…
+          {t("payment.formPreparing")}
         </p>
       )}
 
@@ -249,7 +252,7 @@ function MoyasarFormInner({
           <div className="flex items-start gap-2 text-sm text-destructive">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span className="leading-relaxed">
-              {errorMsg || "تعذّر تحميل بوابة الدفع"}
+              {errorMsg || t("payment.gatewayFailed")}
             </span>
           </div>
           <Button
@@ -260,7 +263,7 @@ function MoyasarFormInner({
             className="min-h-[44px] gap-2 rounded-full"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
-            إعادة المحاولة
+            {t("common.retry")}
           </Button>
         </div>
       )}

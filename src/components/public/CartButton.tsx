@@ -8,6 +8,7 @@ import { useCartStore } from "@/store/cart.store";
 import { CartSheet } from "@/components/public/CartSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,6 +22,7 @@ import { cn } from "@/lib/utils";
  * prefers-reduced-motion.
  */
 export function CartButton() {
+  const { t } = useLang();
   const items = useCartStore((s) => s.items);
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const [open, setOpen] = useState(false);
@@ -54,7 +56,7 @@ export function CartButton() {
             router.push("/cart");
           }
         }}
-        aria-label={`السلة — ${totalCount} أصناف`}
+        aria-label={t("cart.cartBadgeAria", { count: totalCount })}
         className="native-tap relative inline-flex h-11 min-w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
       >
         <motion.span

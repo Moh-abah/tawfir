@@ -9,6 +9,7 @@ import { useCartPricing } from "@/hooks/useCartPricing";
 import { CartSheet } from "@/components/public/CartSheet";
 import { haptic } from "@/lib/haptic";
 import { formatCurrency } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
  * (يظهر مجدداً عند التوقف).
  */
 export function StickyMiniCart() {
+  const { t } = useLang();
   const facilityName = useCartStore((s) => s.facilityName);
   const prefersReduced = useReducedMotion();
   const [open, setOpen] = useState(false);
@@ -83,7 +85,7 @@ export function StickyMiniCart() {
             exit={prefersReduced ? { opacity: 0 } : { y: 80, opacity: 0 }}
             whileTap={prefersReduced ? undefined : { scale: 0.98 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            aria-label={`عرض السلة — ${totalCount} أصناف`}
+            aria-label={t("cart.viewCartAria", { count: totalCount })}
             className={cn(
               "fixed inset-x-3 z-40 md:hidden",
               // فوق MobileBottomNav (الذي يأخذ h-14 56px + safe-area)
@@ -100,15 +102,17 @@ export function StickyMiniCart() {
                 </span>
                 <div className="min-w-0 flex-1 text-right">
                   <p className="text-xs font-bold leading-tight">
-                    {facilityName ?? "سلتك"}
+                    {facilityName ?? t("cart.yourCart")}
                   </p>
                   <p className="text-[10px] leading-tight text-white/70">
-                    {totalCount} {totalCount === 1 ? "صنف" : "أصناف"} — أكمل الطلب
+                    {totalCount === 1
+                      ? t("cart.completeOrderOne", { count: totalCount })
+                      : t("cart.completeOrderMany", { count: totalCount })}
                   </p>
                 </div>
               </div>
               <div className="shrink-0 text-left" dir="ltr">
-                <p className="text-[9px] leading-none text-white/70">الإجمالي</p>
+                <p className="text-[9px] leading-none text-white/70">{t("cart.total")}</p>
                 {total != null ? (
                   <p className="text-base font-extrabold leading-tight tabular-nums">
                     {formatCurrency(total)}
@@ -117,7 +121,7 @@ export function StickyMiniCart() {
                   /* أجرة التوصيل لم تُحسب بعد (بلا موقع محفوظ) — شفافية بلا أرقام ميتة */
                   <p className="text-xs font-extrabold leading-tight tabular-nums">
                     {formatCurrency(subtotal)}
-                    <span className="text-[9px] font-bold text-white/70"> + الأجرة</span>
+                    <span className="text-[9px] font-bold text-white/70">{t("cart.plusFeeSuffix")}</span>
                   </p>
                 )}
               </div>

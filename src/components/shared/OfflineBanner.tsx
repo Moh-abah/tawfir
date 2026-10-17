@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { WifiOff, Wifi } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 type BannerState = "online" | "offline" | "restored";
@@ -26,6 +27,7 @@ export function OfflineBanner() {
   const [bannerState, setBannerState] = useState<BannerState>("online");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
 
   const isOwnerPortal =
     pathname === null
@@ -94,8 +96,8 @@ export function OfflineBanner() {
         <WifiOff className="h-4 w-4 shrink-0" aria-hidden="true" />
         <span>
           {isOwnerPortal
-            ? "تتطلب بوابة المتاجر اتصالاً بالإنترنت"
-            : "لا يتوفر اتصال بالإنترنت"}
+            ? t("profile.offline.ownerPortal")
+            : t("profile.offline.noConnection")}
         </span>
       </motion.div>
 
@@ -117,7 +119,7 @@ export function OfflineBanner() {
             )}
           >
             <Wifi className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>تم استعادة الاتصال</span>
+            <span>{t("profile.offline.restored")}</span>
           </motion.div>
         )}
       </AnimatePresence>

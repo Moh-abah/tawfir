@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   BadgePercent,
   Clock,
   Coffee,
@@ -49,7 +50,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useRegionStore } from "@/store/region.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { toast } from "@/hooks/use-toast";
-import { TYPE_LABEL, TYPE_ICON } from "@/lib/constants";
+import { TYPE_ICON } from "@/lib/constants";
+import { useLang } from "@/lib/i18n";
 import { resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
 import { isFacilityOpen } from "@/lib/facility-hours";
@@ -64,12 +66,11 @@ const RADIUS_OPTIONS = [3, 5, 10, 25] as const;
 
 const CATEGORIES: ReadonlyArray<{
   key: FacilityType;
-  label: string;
   icon: LucideIcon;
 }> = [
-  { key: "restaurant", label: "مطاعم", icon: UtensilsCrossed },
-  { key: "cafe", label: "مقاهي", icon: Coffee },
-  { key: "cafeteria", label: "كافتيريات", icon: Soup },
+  { key: "restaurant", icon: UtensilsCrossed },
+  { key: "cafe", icon: Coffee },
+  { key: "cafeteria", icon: Soup },
 ];
 
 const CATEGORY_CIRCLE: Record<
@@ -97,11 +98,12 @@ function CategoryCircles({
   active: FacilityType | null;
   onChange: (key: FacilityType | null) => void;
 }) {
+  const { t } = useLang();
   return (
     <div
       className="scroll-area-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
       role="group"
-      aria-label="تصفية العروض حسب الفئة"
+      aria-label={t("home.categories.aria")}
     >
       <button
         type="button"
@@ -117,7 +119,7 @@ function CategoryCircles({
               : "bg-muted text-muted-foreground"
           )}
         >
-          الكل
+          {t("home.categories.all")}
         </span>
         <span
           className={cn(
@@ -127,7 +129,7 @@ function CategoryCircles({
               : "font-medium text-foreground"
           )}
         >
-          الكل
+          {t("home.categories.all")}
         </span>
       </button>
       {CATEGORIES.map((category) => {
@@ -157,7 +159,7 @@ function CategoryCircles({
                 isActive ? "font-bold" : "font-medium"
               )}
             >
-              {category.label}
+              {t(`home.categories.${category.key}`)}
             </span>
           </button>
         );
@@ -170,10 +172,11 @@ function CategoryCircles({
 /*  قسم Hero/CTA — عنوان الوعد + MemberCard يعرض العضوية أو دعوة التسجيل */
 /* ------------------------------------------------------------------ */
 function HeroSection() {
+  const { t } = useLang();
   return (
     <section
       className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 sm:pt-10"
-      aria-label="بطاقة العضوية"
+      aria-label={t("home.hero.aria")}
     >
 
       <MemberCard />
@@ -185,6 +188,7 @@ function HeroSection() {
 /*  قسم العروض الحصرية + التصنيفات + البحث الأخير                       */
 /* ------------------------------------------------------------------ */
 function OffersSection() {
+  const { t, lang } = useLang();
   const [activeType, setActiveType] = useState<FacilityType | null>(null);
   /* الجولة 9 (المهمة 9.1): searchInput هو المصدر الوحيد للحقيقة للعرض،
    * debouncedSearch هو نسخة مؤجّلة فقط للاستعلام — لا تُكتب برمجياً على searchInput
@@ -214,13 +218,13 @@ function OffersSection() {
   const filteredCount = products.length;
 
   return (
-    <section id="offers" className="space-y-6" aria-label="أحدث الوجبات">
+    <section id="offers" className="space-y-6" aria-label={t("home.offers.aria")}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <SectionTitle
           eyebrow={<TawfirPillBadge />}
           icon={Sparkles}
-          title="عروض حصرية"
-          description="اكتشف أحدث الوجبات من مطاعمنا وكافتيرياتنا المشتركة"
+          title={t("home.offers.title")}
+          description={t("home.offers.description")}
         />
         {(activeType || trimmedSearch) && (
           <button
@@ -231,7 +235,7 @@ function OffersSection() {
             }}
             className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/60 px-4 text-xs font-bold text-muted-foreground transition-colors hover:text-foreground"
           >
-            إلغاء التصفية
+            {t("home.offers.clearFilters")}
           </button>
         )}
       </div>
@@ -243,8 +247,8 @@ function OffersSection() {
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="ابحث عن وجبة بالاسم..."
-          aria-label="البحث في الوجبات"
+          placeholder={t("home.search.placeholder")}
+          aria-label={t("home.search.aria")}
           className="min-h-[44px] rounded-full pr-10"
           inputMode="search"
         />
@@ -255,7 +259,7 @@ function OffersSection() {
         <div
           className="-mt-3 flex flex-wrap items-center gap-1.5"
           role="group"
-          aria-label="بحثك الأخير"
+          aria-label={t("home.recent.aria")}
         >
           <History className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" aria-hidden="true" />
           {recentSearches.map((term) => (
@@ -276,7 +280,7 @@ function OffersSection() {
                   haptic("tick");
                   removeRecentSearch(term);
                 }}
-                aria-label={`إزالة ${term} من البحث الأخير`}
+                aria-label={t("home.recent.removeAria", { term })}
                 className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:text-destructive"
               >
                 <X className="h-2.5 w-2.5" aria-hidden="true" />
@@ -290,8 +294,8 @@ function OffersSection() {
 
       {error ? (
         <ErrorState
-          title="تعذّر تحميل العروض"
-          message="حدث خطأ أثناء جلب الوجبات. حاول مرة أخرى."
+          title={t("home.offers.errorTitle")}
+          message={t("home.offers.errorMessage")}
           onRetry={() => refetch()}
         />
       ) : isLoading ? (
@@ -306,13 +310,26 @@ function OffersSection() {
       ) : filteredCount === 0 ? (
         <EmptyState
           icon={UtensilsCrossed}
-          title="لا توجد وجبات مطابقة"
+          title={t("home.empty.title")}
           description={
             trimmedSearch
-              ? `لا توجد وجبات تطابق «${trimmedSearch}»${activeType ? ` في ${TYPE_LABEL[activeType]}` : ""}. جرّب كلمة أخرى.`
+              ? activeType
+                ? t("home.empty.searchDescType", {
+                    query: trimmedSearch,
+                    type:
+                      lang === "en"
+                        ? t(`home.categories.${activeType}`)
+                        : t(`catalog.type.${activeType}`),
+                  })
+                : t("home.empty.searchDesc", { query: trimmedSearch })
               : activeType
-                ? `لا توجد ${TYPE_LABEL[activeType]} متاحة الآن. جرّب فئة أخرى أو عُد لاحقاً.`
-                : "ترقّب المزيد من الوجبات قريباً من مطاعمنا المشتركة."
+                ? t("home.empty.typeDesc", {
+                    type:
+                      lang === "en"
+                        ? t(`home.categories.${activeType}`)
+                        : t(`catalog.type.${activeType}`),
+                  })
+                : t("home.empty.defaultDesc")
           }
           action={
             <div className="flex flex-wrap items-center justify-center gap-2">
@@ -325,14 +342,14 @@ function OffersSection() {
                     setSearchInput("");
                   }}
                 >
-                  عرض كل الوجبات
+                  {t("home.empty.showAll")}
                 </Button>
               ) : null}
               {/* الجولة 12 — تحويل للبحث الموحّد (متاجر + عروض) عند تعذّر إيجاد وجبة */}
               {trimmedSearch.length >= 2 && (
                 <Button asChild className="rounded-full min-h-[44px]">
                   <Link href={`/search?q=${encodeURIComponent(trimmedSearch)}`}>
-                    ابحث في المتاجر والعروض
+                    {t("home.empty.searchStores")}
                   </Link>
                 </Button>
               )}
@@ -354,6 +371,7 @@ function OffersSection() {
 /*  قسم الأقرب إليك — زر جيو + شبكة بالمسافة                            */
 /* ------------------------------------------------------------------ */
 function NearbySection() {
+  const { t } = useLang();
   const [coords, setCoords] = useState<{
     lat: number;
     lng: number;
@@ -375,8 +393,8 @@ function NearbySection() {
   const handleLocate = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       toast({
-        title: "غير مدعوم",
-        description: "متصفحك لا يدعم تحديد الموقع.",
+        title: t("home.nearby.unsupportedTitle"),
+        description: t("home.nearby.unsupportedDesc"),
         variant: "destructive",
       });
       return;
@@ -387,21 +405,21 @@ function NearbySection() {
         setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setEnabled(true);
         setLocating(false);
-        toast({ title: "تم تحديد موقعك" });
+        toast({ title: t("home.nearby.locatedTitle") });
       },
       (err) => {
         setLocating(false);
         // err.PERMISSION_DENIED = 1, err.POSITION_UNAVAILABLE = 2, err.TIMEOUT = 3
         const friendly =
           err.code === err.PERMISSION_DENIED
-            ? "لم نتمكن من تحديد موقعك — يرجى السماح بالوصول إلى الموقع من إعدادات المتصفح."
+            ? t("home.nearby.deniedDesc")
             : err.code === err.POSITION_UNAVAILABLE
-              ? "الموقع غير متاح حالياً — تحقّق من اتصالك بالشبكة أو حاول لاحقاً."
+              ? t("home.nearby.unavailableDesc")
               : err.code === err.TIMEOUT
-                ? "انتهت مهلة تحديد الموقع — حاول مرة أخرى."
-                : "تعذّر تحديد موقعك. حاول مرة أخرى.";
+                ? t("home.nearby.timeoutDesc")
+                : t("home.nearby.failDesc");
         toast({
-          title: "تعذّر تحديد موقعك",
+          title: t("home.nearby.failTitle"),
           description: friendly,
           variant: "destructive",
         });
@@ -411,12 +429,12 @@ function NearbySection() {
   };
 
   return (
-    <section className="space-y-6" aria-label="الأقرب إليك">
+    <section className="space-y-6" aria-label={t("home.nearby.aria")}>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <SectionTitle
           icon={Navigation}
-          title="الأقرب إليك"
-          description="وجبات على بُعد بضعة كيلومترات من موقعك الحالي"
+          title={t("home.nearby.title")}
+          description={t("home.nearby.description")}
         />
         <Button
           type="button"
@@ -430,7 +448,7 @@ function NearbySection() {
           ) : (
             <Navigation className="h-4 w-4" aria-hidden="true" />
           )}
-          {enabled ? "إعادة تحديد الموقع" : "حدد موقعي"}
+          {enabled ? t("home.nearby.relocate") : t("home.nearby.locate")}
         </Button>
       </div>
 
@@ -439,7 +457,7 @@ function NearbySection() {
         <div
           className="flex items-center gap-2 overflow-x-auto pb-1"
           role="group"
-          aria-label="نطاق البحث بالكيلومتر"
+          aria-label={t("home.nearby.radiusAria")}
         >
           {RADIUS_OPTIONS.map((r) => (
             <button
@@ -454,7 +472,7 @@ function NearbySection() {
                   : "border border-border/60 bg-card text-muted-foreground hover:text-foreground"
               )}
             >
-              {r} كم
+              {t("home.nearby.km", { km: r })}
             </button>
           ))}
         </div>
@@ -467,13 +485,13 @@ function NearbySection() {
             aria-hidden="true"
           />
           <p className="mt-3 text-sm text-muted-foreground">
-            اضغط «حدد موقعي» لعرض الوجبات الأقرب إليك مرتبة بالمسافة.
+            {t("home.nearby.enableHint")}
           </p>
         </div>
       ) : error ? (
         <ErrorState
-          title="تعذّر تحميل الوجبات القريبة"
-          message="حدث خطأ أثناء جلب الوجبات من حولك. حاول مرة أخرى."
+          title={t("home.nearby.errorTitle")}
+          message={t("home.nearby.errorMessage")}
           onRetry={() => refetch()}
         />
       ) : isLoading ? (
@@ -488,8 +506,8 @@ function NearbySection() {
       ) : products.length === 0 ? (
         <EmptyState
           icon={MapPinned}
-          title="لا توجد وجبات قريبة"
-          description={`لا توجد وجبات متاحة في نطاق ${radiusKm} كم من موقعك حالياً — جرّب توسيع النطاق.`}
+          title={t("home.nearby.emptyTitle")}
+          description={t("home.nearby.emptyDesc", { km: radiusKm })}
         />
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5 xl:grid-cols-6">
@@ -506,6 +524,8 @@ function NearbySection() {
 /*  قسم المتاجر — كروت متاجر                                            */
 /* ------------------------------------------------------------------ */
 function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerIndex?: number }) {
+  const { t, lang } = useLang();
+  const ArrowNext = lang === "ar" ? ArrowLeft : ArrowRight;
   const PlaceholderIcon = TYPE_ICON[facility.type];
   /* شارة الخصم من نسب المتجر الحقيقية فقط (يحددها التاجر) —
      بلا متجر/بلا نسب → لا شارة (لا رقم افتراضي) */
@@ -533,8 +553,8 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
     e.stopPropagation();
     if (!canFavorite) {
       toast({
-        title: "سجّل الدخول للمفضلة",
-        description: "المفضلة تتيح لك استقبال إشعارات العروض الجديدة",
+        title: t("home.facility.favLoginTitle"),
+        description: t("home.facility.favLoginDesc"),
       });
       return;
     }
@@ -576,7 +596,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
         )}
         {maxDiscount > 0 && (
           <span className="absolute right-3 top-3 rounded-full bg-accent px-3 py-1.5 text-xs font-extrabold text-accent-foreground shadow-soft">
-            خصم حتى {maxDiscount}%
+            {t("home.facility.discountUntil", { rate: maxDiscount })}
           </span>
         )}
         {/* الجولة 21 — شارة "مفتوح الآن" الديناميكية (نمط نيتفليكس) */}
@@ -587,7 +607,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
                 ? "bg-primary text-primary-foreground"
                 : "bg-card/95 text-muted-foreground"
             }`}
-            aria-label={isOpen ? "مفتوح الآن" : "مغلق حالياً"}
+            aria-label={isOpen ? t("home.facility.openAria") : t("home.facility.closedAria")}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
@@ -595,7 +615,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
               }`}
               aria-hidden="true"
             />
-            {isOpen ? "مفتوح" : "مغلق"}
+            {isOpen ? t("home.facility.open") : t("home.facility.closed")}
           </span>
         )}
         {/* الجولة 21 — زر المفضلة (قلب) — يُرسل إشعارات العروض للمستخدمين المهتمين */}
@@ -603,7 +623,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
           type="button"
           onClick={handleFavorite}
           disabled={toggleFav.isPending}
-          aria-label={isFavorited ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+          aria-label={isFavorited ? t("home.facility.favRemove") : t("home.facility.favAdd")}
           aria-pressed={isFavorited}
           className="native-tap absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-full bg-card/90 shadow-soft backdrop-blur-sm transition-all hover:scale-110 active:scale-95"
         >
@@ -626,7 +646,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
             {facility.discount_rate != null && (
               <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
                 <BadgePercent className="h-3 w-3" aria-hidden="true" />
-                خصم {facility.discount_rate}%
+                {t("home.facility.discount", { rate: facility.discount_rate })}
               </span>
             )}
             {hasRating && (
@@ -640,7 +660,7 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
             )}
           </div>
           <span className="shrink-0 rounded-full bg-secondary/15 px-2.5 py-1 text-[11px] font-bold text-secondary">
-            {TYPE_LABEL[facility.type]}
+            {t(`catalog.type.${facility.type}`)}
           </span>
         </div>
         {facility.address && (
@@ -671,8 +691,8 @@ function FacilityCard({ facility, staggerIndex }: { facility: Facility; staggerI
           className="mt-auto min-h-[44px] w-full rounded-full"
         >
           <Link href={`/facilities/${facility.id}`}>
-            تصفّح المنتجات
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t("home.facility.browse")}
+            <ArrowNext className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
       </div>
@@ -697,6 +717,8 @@ function FacilityCardSkeleton() {
 }
 
 function FacilitiesSection() {
+  const { t, lang } = useLang();
+  const ArrowNext = lang === "ar" ? ArrowLeft : ArrowRight;
   const { data, isLoading, error, refetch } = useFacilities();
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const facilities = useMemo(
@@ -705,12 +727,12 @@ function FacilitiesSection() {
   );
 
   return (
-    <section className="space-y-6" aria-label="المتاجر">
+    <section className="space-y-6" aria-label={t("home.stores.aria")}>
       <div className="flex items-end justify-between gap-3">
         <SectionTitle
           icon={Landmark}
-          title="المتاجر المشتركة"
-          description="استعرض المطاعم والكافتيريات المشتركة في منطقتك"
+          title={t("home.stores.title")}
+          description={t("home.stores.description")}
         />
         <Button
           asChild
@@ -718,16 +740,16 @@ function FacilitiesSection() {
           className="min-h-[44px] shrink-0 gap-1 rounded-full text-secondary"
         >
           <Link href="/facilities">
-            عرض الكل
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            {t("common.viewAll")}
+            <ArrowNext className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
       </div>
 
       {error ? (
         <ErrorState
-          title="تعذّر تحميل المتاجر"
-          message="حدث خطأ أثناء جلب المتاجر. حاول مرة أخرى."
+          title={t("home.stores.errorTitle")}
+          message={t("home.stores.errorMessage")}
           onRetry={() => refetch()}
         />
       ) : isLoading ? (
@@ -742,14 +764,14 @@ function FacilitiesSection() {
       ) : !selectedRegionId ? (
         <EmptyState
           icon={Landmark}
-          title="اختر منطقتك لعرض المتاجر"
-          description="حدد منطقتك من القائمة في الأعلى لاستعراض المتاجر المشتركة قربك."
+          title={t("home.stores.selectRegionTitle")}
+          description={t("home.stores.selectRegionDesc")}
         />
       ) : facilities.length === 0 ? (
         <EmptyState
           icon={Landmark}
-          title="لا توجد متاجر في منطقتك بعد"
-          description="جرّب منطقة أخرى أو عُد لاحقاً — نضيف متاجر جديدة باستمرار."
+          title={t("home.stores.emptyTitle")}
+          description={t("home.stores.emptyDesc")}
           action={
             <Button
               variant="outline"
@@ -758,7 +780,7 @@ function FacilitiesSection() {
               onClick={() => refetch()}
             >
               <RefreshCw className="h-4 w-4" aria-hidden="true" />
-              إعادة المحاولة
+              {t("common.retry")}
             </Button>
           }
         />

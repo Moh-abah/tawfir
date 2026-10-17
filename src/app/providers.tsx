@@ -14,6 +14,7 @@ import { SessionRestore } from "@/components/shared/SessionRestore";
 import { BootSplash } from "@/components/shared/BootSplash";
 import { NativeZoomGuard } from "@/components/shared/NativeZoomGuard";
 import { SoundService } from "@/lib/sound-service";
+import { LangProvider } from "@/lib/i18n";
 
 /* ------------------------------------------------------------------ */
 /*  NProgress-style Top Loading Bar (CSS keyframes only, no state)      */
@@ -58,19 +59,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
-        <BootSplash />
-        <SessionRestore />
-        <NotificationsProvider>
-          <FcmRegistrar>
-            <RouteLoadingBar />
-            <OfflineBanner />
-            <ServiceWorkerRegistrar />
-            <NativeBridge />
-            <NativeZoomGuard />
-            {children}
-            <Toaster />
-          </FcmRegistrar>
-        </NotificationsProvider>
+        <LangProvider>
+          <BootSplash />
+          <SessionRestore />
+          <NotificationsProvider>
+            <FcmRegistrar>
+              <RouteLoadingBar />
+              <OfflineBanner />
+              <ServiceWorkerRegistrar />
+              <NativeBridge />
+              <NativeZoomGuard />
+              {children}
+              <Toaster />
+            </FcmRegistrar>
+          </NotificationsProvider>
+        </LangProvider>
       </QueryClientProvider>
     </ThemeProvider>
   );

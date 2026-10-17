@@ -28,15 +28,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+import { useLang } from "@/lib/i18n";
 
 /* ─── عناصر نصية مشتركة بين المرحلتين ────────────────────────────── */
 
-/** عناصر «ماذا سيحدث لحسابك» — تُعرض في مرحلة التأكيد الأولى. */
-const DELETION_CONSEQUENCES: string[] = [
-  "حذف بياناتك الشخصية (الاسم ورقم الجوال) نهائيًا من توفير.",
-  "إلغاء عضويتك وبطاقتك إن كانت فعّالة، ومحو مفضلتك وسلة التسوق.",
-  "لن تستطيع استعادة هذا الحساب — ستحتاج إنشاء حساب جديد للتسجيل مجددًا.",
-];
+/** عناصر «ماذا سيحدث لحسابك» — تُعرض في مرحلة التأكيد الأولى (مفاتيح القاموس). */
+const DELETION_CONSEQUENCES = [
+  "profile.delete.c1",
+  "profile.delete.c2",
+  "profile.delete.c3",
+] as const;
 
 /**
  * DeleteAccountCard — «منطقة الخطر» بصفحة حساب العميل.
@@ -53,6 +54,7 @@ const DELETION_CONSEQUENCES: string[] = [
  * مع توست خطأ عربي.
  */
 export function DeleteAccountCard() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   /* مرحلة التأكيد: 1 = شرح العواقب، 2 = التحذير الأخير قبل التنفيذ. */
   const [stage, setStage] = useState<1 | 2>(1);
@@ -80,7 +82,7 @@ export function DeleteAccountCard() {
   return (
     <Card
       className="rounded-2xl border-destructive/40 shadow-soft"
-      aria-label="منطقة الخطر — حذف الحساب"
+      aria-label={t("profile.delete.a11y")}
     >
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg text-destructive">
@@ -90,11 +92,10 @@ export function DeleteAccountCard() {
           >
             <TriangleAlert className="h-5 w-5" />
           </span>
-          منطقة الخطر
+          {t("profile.delete.title")}
         </CardTitle>
         <CardDescription className="leading-relaxed">
-          حذف حسابك نهائيًا إجراء لا يمكن التراجع عنه. إن كنت متأكدًا من
-          رغبتك في مغادرة توفير نهائيًا يمكنك بدء الإجراء من هنا.
+          {t("profile.delete.desc")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -105,11 +106,11 @@ export function DeleteAccountCard() {
               className="min-h-[44px] w-full gap-2 rounded-full sm:w-auto"
             >
               <Trash2 className="h-4 w-4" aria-hidden="true" />
-              حذف الحساب نهائيًا
+              {t("profile.delete.cta")}
             </Button>
           </AlertDialogTrigger>
 
-          <AlertDialogContent dir="rtl">
+          <AlertDialogContent>
             {stage === 1 ? (
               /* ── المرحلة 1: شرح العواقب كاملة ─────────────────── */
               <>
@@ -119,11 +120,10 @@ export function DeleteAccountCard() {
                       className="h-5 w-5 shrink-0 text-destructive"
                       aria-hidden="true"
                     />
-                    حذف الحساب نهائيًا؟
+                    {t("profile.delete.dialogTitle")}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    رحيلك يحزّننا! قبل اتخاذ القرار، إليك ما سيحدث لحسابك —
-                    هذا الإجراء لا يمكن التراجع عنه إطلاقًا.
+                    {t("profile.delete.dialogDesc")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
@@ -134,7 +134,7 @@ export function DeleteAccountCard() {
                         className="mt-0.5 h-4 w-4 shrink-0 text-destructive/80"
                         aria-hidden="true"
                       />
-                      <span>{item}</span>
+                      <span>{t(item)}</span>
                     </li>
                   ))}
                   <li className="flex items-start gap-2">
@@ -143,8 +143,7 @@ export function DeleteAccountCard() {
                       aria-hidden="true"
                     />
                     <span>
-                      طلباتك السابقة: ستُزال هويتك الشخصية منها حفظًا على
-                      السجلات التجارية للمتاجر — لن تُنسب إليك بعد الآن.
+                      {t("profile.delete.c4")}
                     </span>
                   </li>
                 </ul>
@@ -158,10 +157,10 @@ export function DeleteAccountCard() {
                       setStage(2);
                     }}
                   >
-                    متابعة
+                    {t("common.continue")}
                   </AlertDialogAction>
                   <AlertDialogCancel className="min-h-[44px] flex-1 rounded-full">
-                    إلغاء
+                    {t("common.cancel")}
                   </AlertDialogCancel>
                 </AlertDialogFooter>
               </>
@@ -171,12 +170,10 @@ export function DeleteAccountCard() {
                 <AlertDialogHeader>
                   <AlertDialogTitle className="flex items-center gap-2 text-destructive">
                     <ShieldAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
-                    تأكيد أخير — لا يمكن التراجع
+                    {t("profile.delete.finalTitle")}
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    عند الضغط على الزر أدناه سيُحذف حسابك فورًا وتُمسح
-                    بياناتك الشخصية نهائيًا، ولن يكون بإمكانك — أو أي أحد —
-                    استعادته بأي طريقة. هل أنت متأكد تمامًا؟
+                    {t("profile.delete.finalDesc")}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
 
@@ -192,12 +189,12 @@ export function DeleteAccountCard() {
                           className="h-4 w-4 animate-spin"
                           aria-hidden="true"
                         />
-                        جارٍ حذف الحساب...
+                        {t("profile.delete.deleting")}
                       </>
                     ) : (
                       <>
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        حذف حسابي نهائيًا
+                        {t("profile.delete.finalCta")}
                       </>
                     )}
                   </AlertDialogAction>
@@ -205,7 +202,7 @@ export function DeleteAccountCard() {
                     className="min-h-[44px] flex-1 rounded-full"
                     disabled={deleteAccount.isPending}
                   >
-                    تراجع
+                    {t("profile.delete.back")}
                   </AlertDialogCancel>
                 </AlertDialogFooter>
               </>

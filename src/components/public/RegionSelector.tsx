@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
@@ -75,6 +76,7 @@ export function RegionSelector({
 
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
   const setSelectedRegion = useRegionStore((s) => s.setSelectedRegion);
+  const { t } = useLang();
   const prefersReduced = usePrefersReducedMotion();
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -94,7 +96,7 @@ export function RegionSelector({
   if (error) {
     return (
       <div className="flex w-full items-center gap-2 sm:w-auto">
-        <span className="text-sm text-destructive">تعذّر تحميل المناطق</span>
+        <span className="text-sm text-destructive">{t("home.regions.error")}</span>
         <Button
           type="button"
           size="sm"
@@ -102,7 +104,7 @@ export function RegionSelector({
           onClick={() => refetch()}
           className="native-tap"
         >
-          إعادة المحاولة
+          {t("common.retry")}
         </Button>
       </div>
     );
@@ -112,7 +114,7 @@ export function RegionSelector({
   if (!isLoading && (!data || data.length === 0)) {
     return (
       <div className="flex w-full items-center gap-2 sm:w-auto">
-        <span className="text-sm text-muted-foreground">لا توجد مناطق</span>
+        <span className="text-sm text-muted-foreground">{t("home.regions.empty")}</span>
       </div>
     );
   }
@@ -124,7 +126,7 @@ export function RegionSelector({
         type="button"
         variant="ghost"
         onClick={() => setSheetOpen(true)}
-        aria-label="اختيار المنطقة"
+        aria-label={t("home.regions.selectAria")}
         aria-haspopup="dialog"
         disabled={disabled}
         className="native-tap h-9 max-w-full gap-1 rounded-full px-2.5 sm:hidden"
@@ -143,7 +145,7 @@ export function RegionSelector({
           aria-hidden="true"
         />
         <span className="max-w-[120px] truncate text-xs font-bold text-foreground">
-          {selectedRegion?.name ?? "اختر منطقتك"}
+          {selectedRegion?.name ?? t("home.regions.placeholder")}
         </span>
         <ChevronDown
           className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
@@ -180,9 +182,9 @@ export function RegionSelector({
         >
           <SelectTrigger
             className="hidden h-9 w-56 sm:flex"
-            aria-label="اختيار المنطقة"
+            aria-label={t("home.regions.selectAria")}
           >
-            <SelectValue placeholder="اختر منطقتك" />
+            <SelectValue placeholder={t("home.regions.placeholder")} />
           </SelectTrigger>
           <SelectContent>
             {data?.map((region) => (
@@ -201,16 +203,16 @@ export function RegionSelector({
           className="rounded-t-2xl pb-[max(env(safe-area-inset-bottom,0px),var(--cap-safe-bottom,0px))] max-h-[70dvh]"
         >
           <div className="bottom-sheet-grip mt-2" aria-hidden="true" />
-          <SheetHeader className="pb-2 text-right">
-            <SheetTitle className="flex items-center gap-2 text-base text-right">
+          <SheetHeader className="pb-2 text-start">
+            <SheetTitle className="flex items-center gap-2 text-base text-start">
               <MapPin className="h-4 w-4 text-primary" aria-hidden="true" />
-              اختر منطقتك
+              {t("home.regions.sheetTitle")}
             </SheetTitle>
           </SheetHeader>
           <div
             className="scroll-area-thin max-h-[52dvh] space-y-1 overflow-y-auto px-4 pb-4"
             role="listbox"
-            aria-label="قائمة المناطق"
+            aria-label={t("home.regions.listAria")}
           >
             {isLoading ? (
               data == null &&
@@ -229,7 +231,7 @@ export function RegionSelector({
                     disabled={disabled}
                     onClick={() => select(region.id)}
                     className={cn(
-                      "native-tap flex min-h-[48px] w-full items-center justify-between rounded-xl px-4 py-3 text-right text-sm font-bold transition-colors",
+                      "native-tap flex min-h-[48px] w-full items-center justify-between rounded-xl px-4 py-3 text-start text-sm font-bold transition-colors",
                       active
                         ? "bg-primary/10 text-primary"
                         : "text-foreground hover:bg-muted"

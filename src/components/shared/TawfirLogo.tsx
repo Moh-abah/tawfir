@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLang } from "@/lib/i18n";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { identityUrl } from "@/lib/site-config";
@@ -71,6 +72,8 @@ export function TawfirLogo({
   onDark = false,
   color,
 }: TawfirLogoProps) {
+  const { t } = useLang();
+  const tagline = t("profile.card.tagline");
   const s = SIZES[size];
   const src = SOURCES[variant];
   const filter = FILTERS[variant];
@@ -113,7 +116,7 @@ export function TawfirLogo({
         color: "var(--primary-foreground)",
       }}
     >
-      وفّر أكثر.. عِش أجمل
+      {tagline}
     </span>
   );
 

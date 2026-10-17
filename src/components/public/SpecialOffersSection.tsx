@@ -12,6 +12,7 @@ import {
   type CheckoutProduct,
 } from "@/components/public/CheckoutSheet";
 import { useSpecialOffers } from "@/hooks/useSpecialOffers";
+import { useLang } from "@/lib/i18n";
 import type { SpecialOfferOut } from "@/types/api.generated";
 
 /**
@@ -23,6 +24,7 @@ import type { SpecialOfferOut } from "@/types/api.generated";
  * - يدير عرضاً مُحدداً واحداً ويُمرّره إلى CheckoutSheet واحد مشترك.
  */
 export function SpecialOffersSection() {
+  const { t } = useLang();
   const { data, isLoading, error } = useSpecialOffers(1, 12);
 
   const [selectedOffer, setSelectedOffer] = useState<SpecialOfferOut | null>(
@@ -79,12 +81,12 @@ export function SpecialOffersSection() {
     : null;
 
   return (
-    <section className="space-y-6" aria-label="العروض الخاصة">
+    <section className="space-y-6" aria-label={t("home.specialOffers.aria")}>
       {/* العنوان — الجولة 16: SectionTitle موحّد بشريط لهجة متدرّج */}
       <SectionTitle
         icon={Flame}
-        title="عروض خاصة"
-        description="خصومات إضافية لأعضاء توفير"
+        title={t("home.specialOffers.title")}
+        description={t("home.specialOffers.description")}
       />
 
       {/* المحتوى — Netflix Grid */}

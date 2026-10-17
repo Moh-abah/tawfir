@@ -8,6 +8,7 @@ import { SavingsSummaryCard } from "@/components/public/SavingsSummaryCard";
 import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
+import { useLang } from "@/lib/i18n";
 
 /**
  * شاشة سجل التوفير — الجولة 21 (webDevReview #5).
@@ -21,11 +22,12 @@ import { useCustomerAuth } from "@/hooks/useCustomerAuth";
  */
 export default function SavingsPage() {
   const { accessToken, hydrated } = useCustomerAuth();
+  const { t } = useLang();
 
   if (!hydrated) {
     return (
       <>
-        <ScreenHeader title="سجل التوفير" fallbackHref="/" />
+        <ScreenHeader title={t("profile.savingsScreenTitle")} fallbackHref="/" />
         <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
           <div className="skeleton-branded h-64 w-full rounded-2xl" />
         </div>
@@ -36,12 +38,12 @@ export default function SavingsPage() {
   if (!accessToken) {
     return (
       <>
-        <ScreenHeader title="سجل التوفير" fallbackHref="/" />
+        <ScreenHeader title={t("profile.savingsScreenTitle")} fallbackHref="/" />
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
           <EmptyState
             icon={TrendingUp}
-            title="سجّل الدخول لرؤية سجل توفيرك"
-            description="عند تسجيل الدخول ستظهر هنا كل ما وفّرته بفضل عضويتك."
+            title={t("profile.savings.loginTitle")}
+            description={t("profile.savings.loginDesc")}
             action={
               <div className="flex flex-col gap-2">
                 <Link
@@ -49,14 +51,14 @@ export default function SavingsPage() {
                   className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   <LogIn className="h-4 w-4" aria-hidden="true" />
-                  تسجيل الدخول
+                  {t("auth.login.cta")}
                 </Link>
                 <Link
                   href="/register"
                   className="inline-flex min-h-[44px] items-center justify-center rounded-full border border-border bg-card px-6 text-sm font-bold text-foreground transition-colors hover:bg-muted"
                 >
                   <UserPlus className="h-4 w-4" aria-hidden="true" />
-                  إنشاء حساب
+                  {t("profile.registerCta")}
                 </Link>
               </div>
             }
@@ -68,10 +70,10 @@ export default function SavingsPage() {
 
   return (
     <>
-      <ScreenHeader title="سجل التوفير" fallbackHref="/" />
+      <ScreenHeader title={t("profile.savingsScreenTitle")} fallbackHref="/" />
       <div className="mx-auto max-w-3xl px-4 py-6 pb-24 sm:px-6">
         <Breadcrumbs
-          items={[{ label: "حسابي", href: "/account" }, { label: "سجل التوفير" }]}
+          items={[{ label: t("nav.account"), href: "/account" }, { label: t("profile.savingsScreenTitle") }]}
           className="mb-4"
         />
 
@@ -81,10 +83,10 @@ export default function SavingsPage() {
           </span>
           <div>
             <h1 className="text-xl font-extrabold text-foreground">
-              كم وفّرت بفضل عضويتك؟
+              {t("profile.savings.headline")}
             </h1>
             <p className="text-xs text-muted-foreground">
-              تتبع توفيرك من خصومات العضوية في كل المتاجر المشتركة
+              {t("profile.savings.subheadline")}
             </p>
           </div>
         </div>
@@ -95,13 +97,10 @@ export default function SavingsPage() {
         {/* شرح موجز */}
         <div className="mt-6 rounded-2xl border border-border/40 bg-card p-5">
           <h2 className="mb-2 text-sm font-bold text-foreground">
-            كيف تحسب التوفير؟
+            {t("profile.savings.howTitle")}
           </h2>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            نحسب الفرق بين السعر الأصلي والسعر الذي دفعته (بعد خصم العضوية)
-            لكل طلب من المتاجر المشتركة. صافي التوفير = إجمالي التوفير ناقص
-            قيمة الاشتراك (للعضوية المدفوعة). عائد الاستثمار (ROI) يوضح نسبة
-            الفائدة مقابل ما دفعته للاشتراك.
+            {t("profile.savings.howDesc")}
           </p>
         </div>
 
@@ -112,7 +111,7 @@ export default function SavingsPage() {
           size="lg"
         >
           <Link href="/facilities">
-            تصفّح المتاجر المشتركة لزيادة توفيرك
+            {t("profile.savings.cta")}
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>

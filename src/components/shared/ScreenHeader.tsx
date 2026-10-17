@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLang, tByAr } from "@/lib/i18n";
 
 /**
  * رأس الشاشة Native — الجولة 9 (المهمة 4)
@@ -43,6 +44,7 @@ export function ScreenHeader({
   className,
 }: ScreenHeaderProps) {
   const router = useRouter();
+  const { t } = useLang();
 
   const handleBack = () => {
     // إن وُجد تاريخ سابق، ارجع إليه؛ وإلا انتقل للمسار البديل
@@ -76,7 +78,7 @@ export function ScreenHeader({
             <button
               type="button"
               onClick={handleBack}
-              aria-label="رجوع"
+              aria-label={t("common.back")}
               className="native-tap flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
             >
               <ChevronRight className="h-6 w-6" aria-hidden="true" />
@@ -84,12 +86,13 @@ export function ScreenHeader({
           )}
         </div>
 
-        {/* العنوان المركزي — بالضبط في المنتصف */}
+        {/* العنوان المركزي — بالضبط في المنتصف. tByAr: عنوان قادم كنص
+            عربي من صفحة خادمية يُعرض باللغة النشطة إن وُجد في القاموس */}
         <h1
           className="truncate text-center text-lg font-bold text-foreground"
           title={title}
         >
-          {title}
+          {tByAr(title)}
         </h1>
 
         {/* أزرار العرض — أقصى اليمين (الطرف البصري الأيمن للـ RTL) */}

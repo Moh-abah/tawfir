@@ -40,6 +40,7 @@ import { useMe } from "@/hooks/useMe";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { toast } from "@/hooks/use-toast";
 import { formatCurrency, resolveImageUrl } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
 import { haptic } from "@/lib/haptic";
 import type {
@@ -75,33 +76,35 @@ function AvailabilityBadge({
   available: boolean;
   quantity: number | null;
 }) {
+  const { t } = useLang();
   if (!available || quantity === 0) {
     return (
       <span className="inline-flex items-center rounded-full bg-destructive/15 px-3 py-1 text-xs font-bold text-destructive">
-        نفد
+        {t("catalog.product.soldOut")}
       </span>
     );
   }
   if (quantity === null) {
     return (
       <span className="inline-flex items-center rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
-        متوفر
+        {t("catalog.product.available")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center rounded-full bg-secondary/15 px-3 py-1 text-xs font-bold text-secondary">
-      الكمية: {quantity}
+      {t("catalog.product.qty", { count: quantity })}
     </span>
   );
 }
 
 function FacilityInfoCard({ facility }: { facility: FacilitySummaryOut }) {
+  const { t } = useLang();
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2">
         <Building2 className="h-4 w-4 text-primary" aria-hidden="true" />
-        <h3 className="text-sm font-bold text-foreground">معلومات المطعم</h3>
+        <h3 className="text-sm font-bold text-foreground">{t("catalog.productDetails.infoTitle")}</h3>
       </div>
       <Link
         href={`/facilities/${facility.id}`}
@@ -144,6 +147,7 @@ function FacilityInfoCard({ facility }: { facility: FacilitySummaryOut }) {
  */
 function OfferCountdownTimer({ endsAt }: { endsAt: string | null }) {
   const [, setTick] = useState(0);
+  const { t } = useLang();
 
   useEffect(() => {
     if (!endsAt) return;
@@ -159,7 +163,7 @@ function OfferCountdownTimer({ endsAt }: { endsAt: string | null }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-bold text-destructive">
         <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-        انتهى العرض
+        {t("catalog.productDetails.offerEnded")}
       </span>
     );
   }
@@ -187,6 +191,7 @@ function SpecialOfferDetailCard({
   offer: SpecialOfferOut;
   isMember: boolean;
 }) {
+  const { t } = useLang();
   const memberPrice = offer.member_price;
   const nonMemberPrice = offer.non_member_price;
   const remaining = offer.quantity_remaining;
@@ -196,7 +201,7 @@ function SpecialOfferDetailCard({
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex animate-pulse items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-primary-foreground">
           <Flame className="h-3.5 w-3.5" aria-hidden="true" />
-          عرض خاص — خصم {offer.offer_discount_rate}%
+          {t("catalog.productDetails.offerBadge", { rate: offer.offer_discount_rate })}
         </span>
         <OfferCountdownTimer endsAt={offer.ends_at ?? ""} />
       </div>
@@ -217,7 +222,7 @@ function SpecialOfferDetailCard({
         {isMember && (
           <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-1 text-[11px] font-bold text-success">
             <Sparkles className="h-3 w-3" aria-hidden="true" />
-            + خصم عضوية {offer.facility_discount_rate}%
+            {t("catalog.productDetails.memberExtra", { rate: offer.facility_discount_rate })}
           </span>
         )}
       </div>
@@ -225,7 +230,7 @@ function SpecialOfferDetailCard({
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Package className="h-3.5 w-3.5" aria-hidden="true" />
-          {isMember ? "السعر للعضو" : "السعر بدون عضوية"}
+          {isMember ? t("catalog.productDetails.priceForMember") : t("catalog.productDetails.priceNonMember")}
         </span>
         {remaining != null && (
           <span
@@ -235,14 +240,14 @@ function SpecialOfferDetailCard({
             )}
           >
             <Package className="h-3.5 w-3.5" aria-hidden="true" />
-            الكمية المتبقية: {remaining}
+            {t("catalog.productDetails.remainingQty", { count: remaining })}
           </span>
         )}
       </div>
 
       {!isMember && (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          اشترك في عضوية توفير لتطبيق خصم إضافي على هذا العرض.
+          {t("catalog.productDetails.subscribeHint")}
         </p>
       )}
     </div>
@@ -250,6 +255,7 @@ function SpecialOfferDetailCard({
 }
 
 export default function ProductDetailContent() {
+  const { t } = useLang();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const productId = Number(params.id);
@@ -290,8 +296,8 @@ export default function ProductDetailContent() {
     if (!hydrated || !product) return;
     if (!accessToken) {
       toast({
-        title: "سجّل الدخول أولاً",
-        description: "يجب تسجيل الدخول لإتمام الطلب.",
+        title: t("catalog.auth.loginTitle"),
+        description: t("catalog.auth.loginDesc"),
       });
       router.push("/login");
       return;
@@ -338,8 +344,8 @@ export default function ProductDetailContent() {
         <ScreenHeader title="تفاصيل الوجبة" fallbackHref="/" />
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <ErrorState
-            title="تعذّر تحميل الوجبة"
-            message="حدث خطأ أثناء جلب تفاصيل الوجبة. حاول مرة أخرى."
+            title={t("catalog.productDetails.loadErrorTitle")}
+            message={t("catalog.productDetails.loadErrorDesc")}
             onRetry={() => refetch()}
           />
         </div>
@@ -354,11 +360,11 @@ export default function ProductDetailContent() {
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <EmptyState
             icon={UtensilsCrossed}
-            title="الوجبة غير موجودة"
-            description="لم نتمكن من العثور على هذه الوجبة. ربما حُذفت أو أن الرابط غير صحيح."
+            title={t("catalog.productDetails.notFoundTitle")}
+            description={t("catalog.productDetails.notFoundDesc")}
             action={
               <Button asChild variant="outline" className="rounded-full min-h-[44px]">
-                <Link href="/">العودة للرئيسية</Link>
+                <Link href="/">{t("catalog.productDetails.backHome")}</Link>
               </Button>
             }
           />
@@ -388,7 +394,7 @@ export default function ProductDetailContent() {
             disabled={!product.image_url}
             aria-label={
               product.image_url
-                ? `عرض صورة ${product.name} ملء الشاشة`
+                ? t("catalog.productDetails.zoomAria", { name: product.name })
                 : undefined
             }
             className="group/img absolute inset-0 flex w-full cursor-zoom-in items-center justify-center disabled:cursor-default"
@@ -411,7 +417,7 @@ export default function ProductDetailContent() {
                   aria-hidden="true"
                 >
                   <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
-                  تكبير
+                  {t("catalog.productDetails.zoomHint")}
                 </span>
               </>
             ) : (
@@ -449,7 +455,10 @@ export default function ProductDetailContent() {
                     typeof window !== "undefined"
                       ? `${window.location.origin}/products/${product.id}`
                       : `/products/${product.id}`;
-                  const shareText = `${product.name} — ${product.facility.name} | تطبيق توفير`;
+                  const shareText = t("catalog.productDetails.shareText", {
+                    name: product.name,
+                    facility: product.facility.name,
+                  });
                   if (navigator.share) {
                     try {
                       await navigator.share({ title: product.name, text: shareText, url: shareUrl });
@@ -459,13 +468,13 @@ export default function ProductDetailContent() {
                   } else {
                     try {
                       await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-                      toast({ title: "تم نسخ رابط الوجبة", description: "شاركه مع أصدقائك الآن" });
+                      toast({ title: t("catalog.productDetails.copiedTitle"), description: t("catalog.productDetails.copiedDesc") });
                     } catch {
-                      toast({ title: "تعذّر النسخ", variant: "destructive" });
+                      toast({ title: t("catalog.productDetails.copyFail"), variant: "destructive" });
                     }
                   }
                 }}
-                aria-label={`مشاركة ${product.name}`}
+                aria-label={t("catalog.productDetails.shareAria", { name: product.name })}
                 className="native-tap pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
               >
                 <Share2 className="h-5 w-5" aria-hidden="true" />
@@ -515,7 +524,7 @@ export default function ProductDetailContent() {
               {facilityRate > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-extrabold text-accent-foreground">
                   <Sparkles className="h-3 w-3" aria-hidden="true" />
-                  خصم {facilityRate}% للأعضاء
+                  {t("catalog.productDetails.memberDiscount", { rate: facilityRate })}
                 </span>
               )}
               <button
@@ -525,8 +534,8 @@ export default function ProductDetailContent() {
               >
                 <Sparkles className="h-3 w-3" aria-hidden="true" />
                 {facilityRate > 0
-                  ? `اشترك لخصم ${facilityRate}%`
-                  : "اشترك لخصم حصري"}
+                  ? t("catalog.productDetails.subscribeWithRate", { rate: facilityRate })
+                  : t("catalog.productDetails.subscribe")}
               </button>
             </div>
           )}
@@ -534,7 +543,7 @@ export default function ProductDetailContent() {
           {/* Description */}
           {product.description && (
             <div className="space-y-1.5">
-              <h2 className="text-sm font-bold text-foreground">الوصف</h2>
+              <h2 className="text-sm font-bold text-foreground">{t("catalog.productDetails.descriptionTitle")}</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {product.description}
               </p>
@@ -543,7 +552,7 @@ export default function ProductDetailContent() {
 
           {/* Category */}
           <div className="space-y-1.5">
-            <h2 className="text-sm font-bold text-foreground">التصنيف</h2>
+            <h2 className="text-sm font-bold text-foreground">{t("catalog.productDetails.categoryTitle")}</h2>
             <p className="text-sm text-muted-foreground">{product.category}</p>
           </div>
 
@@ -559,7 +568,7 @@ export default function ProductDetailContent() {
             )}
           >
             <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-            {outOfStock ? "غير متوفر حالياً" : "اطلب الآن"}
+            {outOfStock ? t("catalog.productDetails.unavailableNow") : t("catalog.facility.orderNow")}
           </Button>
 
           {/* Facility info */}
@@ -574,7 +583,7 @@ export default function ProductDetailContent() {
           className="inline-flex items-center gap-1.5 text-sm text-secondary transition-colors hover:text-primary min-h-[44px]"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          العودة إلى {product.facility.name}
+          {t("catalog.productDetails.backToFacility", { name: product.facility.name })}
         </Link>
       </div>
 

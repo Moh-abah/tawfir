@@ -7,6 +7,7 @@ import { History } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { ProductCard } from "@/components/public/ProductCard";
 import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
+import { useLang } from "@/lib/i18n";
 
 /**
  * قسم «شاهدت مؤخراً» — الجولة 13 (ميزة جديدة).
@@ -18,6 +19,7 @@ import { useRecentlyViewedStore } from "@/store/recently-viewed.store";
  *   FavoritesSection — مجموعة بيانات صغيرة).
  */
 export function RecentlyViewedSection() {
+  const { t } = useLang();
   const recentIds = useRecentlyViewedStore((s) => s.productIds);
   const hasRecent = recentIds.length > 1; /* الواحدة الأخيرة غالباً هي الحالية — نتجاهلها */
 
@@ -44,12 +46,12 @@ export function RecentlyViewedSection() {
   if (!hasRecent) return null;
 
   return (
-    <section className="space-y-4" aria-label="شاهدت مؤخراً">
+    <section className="space-y-4" aria-label={t("home.recentlyViewed.aria")}>
       <div className="flex items-end justify-between gap-3">
         <SectionTitle
           icon={History}
-          title="شاهدت مؤخراً"
-          description="استأنف من حيث توقفت — آخر الوجبات التي تصفّحتها"
+          title={t("home.recentlyViewed.title")}
+          description={t("home.recentlyViewed.description")}
         />
       </div>
 

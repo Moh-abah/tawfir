@@ -28,13 +28,17 @@ import { unlockCourierAudio } from "@/lib/courier-call-sound";
 import { haptic } from "@/lib/haptic";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 
-const schema = z.object({
-  identifier: z.string().min(1, "البريد الإلكتروني أو رقم الجوال مطلوب"),
-  password: z.string().min(1, "كلمة المرور مطلوبة"),
-});
-type FormValues = z.infer<typeof schema>;
+/* رسائل التحقق عبر t (نصوص عرض فقط — قواعد التحقق نفسها) */
+const makeSchema = (t: (key: string) => string) =>
+  z.object({
+    identifier: z.string().min(1, t("auth.identifier.required")),
+    password: z.string().min(1, t("auth.password.required")),
+  });
+type FormValues = z.infer<ReturnType<typeof makeSchema>>;
 
 /** تعقيم باراميتر next: مسار داخلي فقط، ليس /login نفسه ولا بوابات الأدمن/المالك */
 function sanitizeNext(raw: string | null): string {
@@ -60,6 +64,7 @@ type LoginRole = "customer" | "courier";
 function CustomerLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLang();
   const { accessToken, hydrated } = useCustomerAuth();
   const login = useCustomerLogin();
   const prefersReduced = usePrefersReducedMotion();
@@ -93,8 +98,8 @@ function CustomerLoginForm() {
   useEffect(() => {
     if (searchParams.get("expired") === "1") {
       toast({
-        title: "انتهت الجلسة",
-        description: "يرجى تسجيل الدخول من جديد",
+        title: t("auth.expired.title"),
+        description: t("auth.expired.desc"),
         variant: "destructive",
       });
       /* نظّف الباراميتر حتى لا يتكرر التوست عند إعادة التحميل */
@@ -126,8 +131,9 @@ function CustomerLoginForm() {
     }
   }, [justCourierLoggedIn, courierMe, router]);
 
+  const resolver = useMemo(() => zodResolver(makeSchema(t)), [t]);
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver,
     defaultValues: { identifier: "", password: "" },
   });
   const { register, handleSubmit, formState } = form;
@@ -145,7 +151,7 @@ function CustomerLoginForm() {
           setFormError(
             err instanceof Error
               ? err.message
-              : "تعذّر تسجيل الدخول كمندوب",
+              : t("auth.login.courierError"),
           );
         },
       });
@@ -160,7 +166,7 @@ function CustomerLoginForm() {
       },
       onError: (e: Error) => {
         /* رسالة الخادم العربية تُعرض هنا مباشرة (detail) */
-        setFormError(e.message || "تعذّر تسجيل الدخول");
+        setFormError(e.message || t("auth.login.error"));
       },
     });
   }
@@ -183,7 +189,7 @@ function CustomerLoginForm() {
       >
         <Card className="login-card-shimmer rounded-2xl border-border/60 bg-card/95 shadow-soft-lg backdrop-blur-sm">
           {/* ── مبدّل الدور: عميل / مندوب — تطبيق واحد للجميع ── */}
-          <div className="px-4 pt-4 sm:px-6 sm:pt-6" role="tablist" aria-label="نوع الحساب">
+          <div className="px-4 pt-4 sm:px-6 sm:pt-6" role="tablist" aria-label={t("auth.tab.a11y")}>
             <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border/60 bg-muted/60 p-1">
               <button
                 type="button"
@@ -202,7 +208,7 @@ function CustomerLoginForm() {
                 )}
               >
                 <CircleUserRound className="h-4.5 w-4.5" aria-hidden="true" />
-                دخول كعميل
+                {t("auth.tab.customer")}
               </button>
               <button
                 type="button"
@@ -221,19 +227,19 @@ function CustomerLoginForm() {
                 )}
               >
                 <Bike className="h-4.5 w-4.5" aria-hidden="true" />
-                مندوب توصيل
+                {t("auth.tab.courier")}
               </button>
             </div>
           </div>
 
           <CardHeader className="text-center">
             <CardTitle className="text-xl">
-              {role === "customer" ? "أهلاً بك من جديد" : "دخول مندوبي توفير"}
+              {role === "customer" ? t("auth.login.titleCustomer") : t("auth.login.titleCourier")}
             </CardTitle>
             <CardDescription>
               {role === "customer"
-                ? "أدخل بياناتك للوصول إلى بطاقتك وحسابك — وفّر أكثر.. عِش أجمل"
-                : "جاهز لاستقبال نداءات اليوم؟ لننطلق — نفس تطبيق توفير بصلاحيات المندوب"}
+                ? t("auth.login.descCustomer")
+                : t("auth.login.descCourier")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -241,8 +247,8 @@ function CustomerLoginForm() {
               <div className="space-y-2">
                 <Label htmlFor="identifier">
                   {role === "courier"
-                    ? "البريد الإلكتروني أو جوال المندوب"
-                    : "البريد الإلكتروني أو رقم الجوال"}
+                    ? t("auth.identifier.courier")
+                    : t("auth.identifier.customer")}
                 </Label>
                 <Input
                   id="identifier"
@@ -263,14 +269,14 @@ function CustomerLoginForm() {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">كلمة المرور</Label>
+                  <Label htmlFor="password">{t("auth.password")}</Label>
                   {role === "customer" && (
                     <button
                       type="button"
                       onClick={() => setForgotOpen(true)}
                       className="text-xs font-medium text-secondary transition-colors hover:text-secondary/80 hover:underline"
                     >
-                      نسيت كلمة المرور؟
+                      {t("auth.forgot")}
                     </button>
                   )}
                 </div>
@@ -321,20 +327,20 @@ function CustomerLoginForm() {
                   <LogIn className="h-4 w-4" aria-hidden="true" />
                 )}
                 {busy
-                  ? "جارٍ الدخول..."
+                  ? t("auth.login.busy")
                   : role === "courier"
-                    ? "دخول لوحة المندوب"
-                    : "تسجيل الدخول"}
+                    ? t("auth.login.courierCta")
+                    : t("auth.login.cta")}
               </Button>
 
               {/* إنشاء حساب مندوب جديد — من نفس شاشة الدخول */}
               {role === "courier" && (
                 <div className="rounded-2xl border border-primary/25 bg-primary/[0.05] p-4 text-center">
                   <p className="text-xs font-bold text-foreground">
-                    ليس لديك حساب مندوب؟
+                    {t("auth.courier.boxTitle")}
                   </p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                    انضم لفريق توصيل توفير وابدأ باستقبال النداءات اليوم
+                    {t("auth.courier.boxDesc")}
                   </p>
                   <Button
                     asChild
@@ -344,7 +350,7 @@ function CustomerLoginForm() {
                   >
                     <Link href="/courier/register">
                       <Bike className="h-4 w-4" aria-hidden="true" />
-                      إنشاء حساب مندوب توصيل
+                      {t("auth.courier.registerCta")}
                     </Link>
                   </Button>
                 </div>
@@ -358,21 +364,21 @@ function CustomerLoginForm() {
         {role === "customer" ? (
           <>
             <p className="text-sm text-muted-foreground">
-              ليس لديك حساب؟{" "}
+              {t("auth.noAccount")}{" "}
               <Link
                 href="/register"
                 className="font-bold text-[color:var(--logo-gold-light)] hover:underline"
               >
-                سجّل الآن
+                {t("auth.registerNow")}
               </Link>
             </p>
             <p className="text-[11px] text-muted-foreground/70">
-              تريد العمل معنا في التوصيل؟{" "}
+              {t("auth.workWithUs")}{" "}
               <Link
                 href="/courier/register"
                 className="font-bold text-primary hover:underline"
               >
-                أنشئ حساب مندوب توصيل
+                {t("auth.courierSignup")}
               </Link>
             </p>
           </>
@@ -383,7 +389,7 @@ function CustomerLoginForm() {
             className="inline-flex min-h-[44px] items-center gap-1 text-sm font-bold text-primary transition-colors hover:text-primary/80 native-tap"
           >
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            العودة لدخول العملاء
+            {t("auth.backToCustomer")}
           </button>
         )}
         <Link
@@ -391,7 +397,7 @@ function CustomerLoginForm() {
           className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground/80 transition-colors hover:text-foreground"
         >
           <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          العودة للرئيسية
+          {t("auth.backHome")}
         </Link>
       </div>
     </AuthShell>

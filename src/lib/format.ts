@@ -93,8 +93,12 @@ export function setActiveCurrency(currency: CurrencyCode | null): void {
   ACTIVE_CURRENCY = currency;
 }
 
-/** الرمز العربي لعملة — غير معروفة → الرمز اليمني (توافق تاريخي). */
+import { getActiveLang } from "@/lib/i18n";
+
+/** الرمز لعملة — عربي: ر.س/ر.ي · إنجليزي: SAR/YER (غير معروفة → اليمني). */
 export function currencySymbol(currency: string | null | undefined): string {
+  const isEn = getActiveLang() === "en";
+  if (isEn) return currency === "SAR" ? "SAR" : "YER";
   return currency === "SAR" ? "ر.س" : "ر.ي";
 }
 
@@ -110,7 +114,8 @@ export function formatMoney(
 ): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (Number.isNaN(num)) return "—";
-  const formatted = new Intl.NumberFormat("ar-EG", {
+  const isEn = getActiveLang() === "en";
+  const formatted = new Intl.NumberFormat(isEn ? "en-US" : "ar-EG", {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(num);
@@ -118,15 +123,18 @@ export function formatMoney(
   return `${formatted} ${currencySymbol(resolved)}`;
 }
 
-/** تاريخ ISO بالعربية. */
+/** تاريخ ISO — بالعربية افتراضياً وبالإنجليزية عند تفعيلها. */
 export function formatDate(iso: string): string {
-  return new Date(iso).toLocaleString("ar-EG", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return new Date(iso).toLocaleString(
+    getActiveLang() === "en" ? "en-US" : "ar-EG",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
 }
 
 /** تقسيم رقم العضوية (16 خانة) إلى مجموعات 4×4 */

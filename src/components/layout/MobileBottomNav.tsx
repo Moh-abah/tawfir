@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Flame, ReceiptText, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/lib/i18n";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { useMyOrders } from "@/hooks/useMyOrders";
 import { useCartStore } from "@/store/cart.store";
@@ -56,6 +57,7 @@ function TabBadge({
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { accessToken, hydrated } = useCustomerAuth();
+  const { t } = useLang();
   const isLoggedIn = hydrated && !!accessToken;
 
   /* عدد الطلبات النشطة — للشارة على تبويب «الطلبات» (مسجَّل فقط) */
@@ -69,10 +71,10 @@ export function MobileBottomNav() {
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const NAV_ITEMS = [
-    { href: "/", label: "الرئيسية", icon: Home, match: "exact" as const },
-    { href: "/facilities", label: "المتاجر", icon: Store, match: "prefix" as const },
-    { href: "/orders", label: "الطلبات", icon: ReceiptText, match: "prefix" as const },
-    { href: "/offers", label: "العروض", icon: Flame, match: "prefix" as const },
+    { href: "/", labelKey: "nav.home", icon: Home, match: "exact" as const },
+    { href: "/facilities", labelKey: "nav.facilities", icon: Store, match: "prefix" as const },
+    { href: "/orders", labelKey: "nav.ordersTab", icon: ReceiptText, match: "prefix" as const },
+    { href: "/offers", labelKey: "nav.offers", icon: Flame, match: "prefix" as const },
   ] as const;
 
   const isActive = (item: (typeof NAV_ITEMS)[number]): boolean => {
@@ -89,7 +91,7 @@ export function MobileBottomNav() {
         paddingBottom: "max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px))",
       }}
       role="navigation"
-      aria-label="التنقل الرئيسي"
+      aria-label={t("profile.nav.a11y")}
     >
       <div className="flex h-14 items-center justify-around px-2">
         {NAV_ITEMS.map((item) => {
@@ -99,7 +101,7 @@ export function MobileBottomNav() {
           const isHome = item.href === "/";
           return (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
               className="native-tap flex min-w-[64px] flex-col items-center gap-1 py-1"
@@ -118,10 +120,10 @@ export function MobileBottomNav() {
                   strokeWidth={active ? 2.5 : 2}
                   aria-hidden="true"
                 />
-                {isOrders && <TabBadge count={activeOrdersCount} label="الطلبات النشطة" />}
+                {isOrders && <TabBadge count={activeOrdersCount} label={t("profile.nav.activeOrdersA11y")} />}
                 {/* الجولة 12 — شارة السلة (primary tone) على تبويب الرئيسية */}
                 {isHome && (
-                  <TabBadge count={cartCount} label="سلة الطلبات" tone="primary" />
+                  <TabBadge count={cartCount} label={t("profile.nav.cartA11y")} tone="primary" />
                 )}
               </span>
               <span
@@ -132,7 +134,9 @@ export function MobileBottomNav() {
                     : "font-medium text-muted-foreground"
                 )}
               >
-                {item.label}
+                {
+                  t(item.labelKey)
+                }
               </span>
             </Link>
           );

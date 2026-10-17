@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChefHat } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChefHat } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 import { ProductCard } from "@/components/public/ProductCard";
+import { useLang } from "@/lib/i18n";
 
 /**
  * قسم «وجبات من نفس المتجر» — الجولة 15 (ميزة جديدة).
@@ -25,6 +26,8 @@ export function SimilarMealsSection({
   facilityName: string;
   currentProductId: number;
 }) {
+  const { t, lang } = useLang();
+  const ChevronNext = lang === "ar" ? ChevronLeft : ChevronRight;
   const { data, isLoading } = useProducts({
     facility_id: facilityId,
     page: 1,
@@ -42,7 +45,7 @@ export function SimilarMealsSection({
   if (similar.length === 0) return null;
 
   return (
-    <section className="mt-8 space-y-4" aria-label="وجبات من نفس المتجر">
+    <section className="mt-8 space-y-4" aria-label={t("catalog.similar.aria")}>
       <div className="flex items-end justify-between gap-3">
         <div className="space-y-1">
           <h2 className="flex items-center gap-2 text-lg font-extrabold text-foreground sm:text-xl">
@@ -50,18 +53,18 @@ export function SimilarMealsSection({
               className="h-5 w-5 text-primary sm:h-6 sm:w-6"
               aria-hidden="true"
             />
-            من نفس المتجر
+            {t("catalog.similar.title")}
           </h2>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            وجبات أخرى من {facilityName} قد تعجبك
+            {t("catalog.similar.description", { name: facilityName })}
           </p>
         </div>
         <Link
           href={`/facilities/${facilityId}`}
           className="inline-flex min-h-[44px] items-center gap-0.5 text-sm font-bold text-secondary transition-colors hover:text-primary"
         >
-          عرض قائمة المتجر
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          {t("catalog.similar.viewMenu")}
+          <ChevronNext className="h-4 w-4" aria-hidden="true" />
         </Link>
       </div>
 

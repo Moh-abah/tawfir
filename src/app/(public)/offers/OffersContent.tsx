@@ -19,6 +19,7 @@ import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useSpecialOffers } from "@/hooks/useSpecialOffers";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLang } from "@/lib/i18n";
 import type { SpecialOfferOut } from "@/types/api.generated";
 
 /**
@@ -84,6 +85,7 @@ function OffersEmptyCelebration() {
  *  - تبويب العروض في الشريط السفلي يوجّه إلى هذه الصفحة (/offers)
  */
 export function OffersContent() {
+  const { t } = useLang();
 
   /* إصلاح الأداء: 50 كارتاً بكل منها عدّاد setInterval/ثانية = عشرات
      إعادة الرسم كل ثانية على جهاز ضعيف. سقف معقول 24 كارتاً (عملياً
@@ -150,18 +152,17 @@ export function OffersContent() {
         <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-24 sm:px-6 sm:py-8">
           {/* الجولة 21 — Breadcrumbs للـSEO */}
           <Breadcrumbs
-            items={[{ label: "العروض الخاصة" }]}
+            items={[{ label: t("catalog.offers.title") }]}
             className="mb-4"
           />
           {/* العنوان — الجولة 10: h2 بدل h1 (الـ h1 الوحيد للصفحة في ScreenHeader — SEO) */}
           <div className="space-y-1">
             <h2 className="flex items-center gap-2 text-2xl font-extrabold text-foreground sm:text-3xl">
               <Flame className="h-6 w-6 text-primary" aria-hidden="true" />
-              عروض حصرية
+              {t("catalog.offers.heading")}
             </h2>
             <p className="text-sm text-muted-foreground">
-              خصومات إضافية لأعضاء توفير على وجباتك المفضلة — عُد للعروض
-              الجديدة كل يوم.
+              {t("catalog.offers.headingDesc")}
             </p>
           </div>
 
@@ -170,15 +171,15 @@ export function OffersContent() {
             {error ? (
               <EmptyState
                 icon={Flame}
-                title="تعذّر تحميل العروض"
-                description="حدث خطأ أثناء جلب العروض الخاصة. حاول مرة أخرى."
+                title={t("catalog.offers.errorTitle")}
+                description={t("catalog.offers.errorDesc")}
                 action={
                   <button
                     type="button"
                     onClick={() => refetch()}
                     className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
                   >
-                    إعادة المحاولة
+                    {t("common.retry")}
                   </button>
                 }
               />
@@ -196,19 +197,17 @@ export function OffersContent() {
                 <OffersEmptyCelebration />
                 <div className="space-y-1.5 text-center">
                   <p className="text-base font-extrabold text-foreground">
-                    لا توجد عروض حالياً
+                    {t("catalog.offers.emptyTitle")}
                   </p>
                   <p className="max-w-[280px] text-xs leading-relaxed text-muted-foreground">
-                    ترقّب عروضاً حصرية قريباً — نضيف عروضاً جديدة من مطاعمنا
-                    وكافتيرياتنا المشتركة باستمرار. فعّل الإشعارات لتصلك أولاً
-                    بأول 🔔
+                    {t("catalog.offers.emptyDesc")}
                   </p>
                 </div>
                 <Link
                   href="/"
                   className="native-tap mt-1 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground shadow-soft transition-colors hover:bg-primary/90"
                 >
-                  تصفّح الوجبات
+                  {t("catalog.offers.browseMeals")}
                 </Link>
               </div>
             ) : (

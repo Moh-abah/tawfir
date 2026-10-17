@@ -10,6 +10,7 @@ import { TawfirLogo } from "@/components/shared/TawfirLogo";
 import { useMe } from "@/hooks/useMe";
 import { identityUrl } from "@/lib/site-config";
 import { formatExpiry, formatMembershipNumber } from "@/lib/format";
+import { useLang } from "@/lib/i18n";
 import type { MyMembershipCard } from "@/types/api.generated";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,7 @@ function MemberCardConfetti() {
 }
 
 function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
+  const { t } = useLang();
   const expiry = formatExpiry(expiresAt);
   if (!expiry) return null;
   return (
@@ -99,7 +101,7 @@ function ExpiryBadge({ expiresAt }: { expiresAt: string }) {
           className="h-[max(9px,2.1cqi)] w-[max(9px,2.1cqi)]"
           aria-hidden="true"
         />
-        تاريخ الانتهاء
+        {t("profile.card.expiry")}
       </p>
       <p className="mt-[0.9cqi] text-[max(11px,2.4cqi)] font-bold tabular-nums text-white">
         {expiry}
@@ -114,6 +116,9 @@ interface MemberCardBodyProps {
 
 /** بطاقة العضوية للمسجّل — الرقم والنوع والانتهاء من بيانات حقيقية فقط */
 function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
+  const { t, lang } = useLang();
+  /* اتجاه بطاقة الرسمة حسب اللغة — الشارات تبقى يميناً في اللغتين
+     (الشعار مرسوم داخل الرسمة أعلى اليسار) */
   return (
     <CardArtFrame>
       {/* ظل نص خفيف يحمي تباين البيانات فوق خطوط الموجة الذهبية.
@@ -121,18 +126,18 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
           تتمدد البيانات مع الرسمة وتناسب أي عرض بلا فائض — مع حدود دنيا للقراءة. */}
       <div
         className="relative z-10 flex h-full flex-col gap-[2.2cqi] p-[4.2cqi] [text-shadow:0_1px_10px_rgba(0,0,0,0.6)]"
-        dir="rtl"
+        dir={lang === "en" ? "ltr" : "rtl"}
       >
         {/* الشارات فقط — شعار العلامة مرسوم داخل الرسمة أعلى اليسار */}
-        <div className="flex items-start justify-start gap-[1.5cqi]">
+        <div className={cn("flex items-start gap-[1.5cqi]", lang === "en" ? "justify-end" : "justify-start")}>
           {!membership.is_active && (
             <span className="rounded-full bg-destructive px-[max(10px,2.1cqi)] py-[max(4px,1.05cqi)] text-[max(10px,2.1cqi)] font-extrabold text-white shadow-soft">
-              منتهية
+              {t("profile.card.expiredBadge")}
             </span>
           )}
           {membership.discount_rate > 0 && (
             <span className="rounded-full bg-accent px-[max(10px,2.1cqi)] py-[max(4px,1.05cqi)] text-[max(10px,2.1cqi)] font-extrabold text-accent-foreground shadow-soft">
-              خصم {membership.discount_rate}%
+              {t("profile.card.discountBadge", { percent: membership.discount_rate })}
             </span>
           )}
         </div>
@@ -144,7 +149,7 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
               className="h-[max(12px,2.8cqi)] w-[max(12px,2.8cqi)]"
               aria-hidden="true"
             />
-            بطاقة الخصومات الذكية
+            {t("profile.card.title")}
           </p>
           {/* الجولة 9 (المهمة 9.2): رقم العضوية قابل للنسخ — استثناء من
               قاعدة منع التحديد العامة (انظر globals.css). */}
@@ -152,7 +157,7 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
             className="text-[max(14px,4.2cqi)] font-black tracking-[0.12em] tabular-nums text-white"
             dir="ltr"
             data-selectable="true"
-            title="اضغط مطولاً لنسخ رقم العضوية"
+            title={t("profile.card.copyHint")}
           >
             {formatMembershipNumber(membership.membership_number)}
           </p>
@@ -161,12 +166,12 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
         {/* النوع (يسار) + الانتهاء (يمين) + التاغلاين المعتمد */}
         <div className="mt-auto flex items-end justify-between border-t border-white/15 pt-[1.8cqi]">
           <div className="flex flex-col gap-[0.9cqi] text-left">
-            <p className="text-[max(9px,1.75cqi)] font-medium text-white/60">نوع العضوية</p>
+            <p className="text-[max(9px,1.75cqi)] font-medium text-white/60">{t("profile.card.type")}</p>
             <p className="text-[max(11px,2.4cqi)] font-bold text-white">
-              عضوية {membership.membership_type}
+              {t("profile.card.typeValue", { type: membership.membership_type })}
             </p>
             <p className="text-[max(9px,1.75cqi)] font-bold text-[color:var(--logo-gold-light)]">
-              وفّر أكثر.. عِش أجمل
+              {t("profile.card.tagline")}
             </p>
           </div>
           <ExpiryBadge expiresAt={membership.expires_at} />
@@ -181,9 +186,10 @@ function LoggedInMemberCard({ membership }: MemberCardBodyProps) {
  * «سجّل» القديم لأن المستخدم سجّل بالفعل).
  */
 function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
+  const { t } = useLang();
   const greeting = fullName
-    ? `أهلاً ${fullName} — اشترك في العضوية`
-    : "اشترك في عضوية توفير";
+    ? t("profile.card.noMemberGreeting", { name: fullName })
+    : t("profile.card.subscribeTitle");
   return (
     <div className="gradient-emerald relative overflow-hidden rounded-[20px] p-6 text-white shadow-soft-lg sm:p-8">
       <MemberCardConfetti />
@@ -198,7 +204,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
             {greeting}
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            خصومات حصرية للعضوية في كل المتاجر المشتركة
+            {t("profile.card.noMemberDesc")}
           </p>
         </div>
         <Button
@@ -208,7 +214,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
         >
           <Link href="/membership/subscribe">
             <Crown className="h-4 w-4" aria-hidden="true" />
-            اشترك في العضوية
+            {t("profile.card.subscribeCta")}
           </Link>
         </Button>
       </div>
@@ -218,6 +224,7 @@ function LoggedInNoMembershipCard({ fullName }: { fullName?: string }) {
 
 /** بطاقة الزائر — دعوة تسجيل بلا أي رقم أو تاريخ */
 function VisitorMemberCard({ className }: { className?: string }) {
+  const { t } = useLang();
   return (
     <div
       className={cn(
@@ -234,10 +241,10 @@ function VisitorMemberCard({ className }: { className?: string }) {
         <div className="space-y-3">
           <TawfirLogo variant="mark" size="sm" />
           <h1 className="text-2xl font-extrabold text-white sm:text-3xl">
-            بطاقة الخصومات الذكية
+            {t("profile.card.title")}
           </h1>
           <p className="text-sm font-medium text-white/80 sm:text-base">
-            وفّر أكثر.. عِش أجمل — خصومات حصرية للعضوية
+            {t("profile.card.visitorDesc")}
           </p>
         </div>
         <Button
@@ -247,7 +254,7 @@ function VisitorMemberCard({ className }: { className?: string }) {
         >
           <Link href="/register">
             <UserPlus className="h-4 w-4" aria-hidden="true" />
-            سجّل واحصل على بطاقتك
+            {t("profile.card.visitorCta")}
           </Link>
         </Button>
       </div>
@@ -259,13 +266,14 @@ function VisitorMemberCard({ className }: { className?: string }) {
  *  خانةً بخانة (نفس الحشوات والفجوات وارتفاعات الأسطر) حتى لا تتغير
  *  مساحة البطاقة عند وصول البيانات → صفر CLS عند الاستبدال. */
 function MemberCardSkeleton() {
+  const { t, lang } = useLang();
   return (
     <div
       className="gradient-emerald relative aspect-[1343/837] w-full overflow-hidden rounded-[20px] p-4 text-white shadow-soft-lg sm:p-6"
       aria-busy="true"
-      aria-label="جارٍ تحميل بطاقة العضوية"
+      aria-label={t("profile.card.skeletonA11y")}
     >
-      <div className="relative z-10 flex h-full flex-col gap-3 sm:gap-5" dir="rtl">
+      <div className="relative z-10 flex h-full flex-col gap-3 sm:gap-5" dir={lang === "en" ? "ltr" : "rtl"}>
         {/* شارة الخصم (يمين) — شعار البطاقة داخل الرسمة يسار */}
         <div className="flex items-start justify-start gap-3">
           <Skeleton className="h-[30px] w-[86px] rounded-full bg-white/15" />

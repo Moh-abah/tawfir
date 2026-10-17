@@ -7,6 +7,7 @@ import { Heart, Trash2 } from "lucide-react";
 import { productService } from "@/services/product.service";
 import { ProductCard } from "@/components/public/ProductCard";
 import { useFavoritesStore } from "@/store/favorites.store";
+import { useLang } from "@/lib/i18n";
 import { haptic } from "@/lib/haptic";
 
 /**
@@ -20,6 +21,7 @@ import { haptic } from "@/lib/haptic";
  *   الكارت الافتراضية (opacity-60 من ProductCard نفسها).
  */
 export function FavoritesSection() {
+  const { t } = useLang();
   const favoriteIds = useFavoritesStore((s) => s.favoriteIds);
   const clearFavorites = useFavoritesStore((s) => s.clearFavorites);
 
@@ -45,12 +47,12 @@ export function FavoritesSection() {
   if (!hasFavorites) return null;
 
   return (
-    <section className="space-y-4" aria-label="مفضلتي">
+    <section className="space-y-4" aria-label={t("home.favorites.aria")}>
       <div className="flex items-end justify-between gap-3">
         <SectionTitle
           icon={Heart}
-          title="مفضلتي"
-          description="وجباتك المفضلة — بلمسة واحدة"
+          title={t("home.favorites.title")}
+          description={t("home.favorites.description")}
         />
         <button
           type="button"
@@ -59,10 +61,10 @@ export function FavoritesSection() {
             haptic("tick");
           }}
           className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full border border-border/60 px-4 text-xs font-bold text-muted-foreground transition-colors hover:text-destructive"
-          aria-label="مسح كل المفضلات"
+          aria-label={t("home.favorites.clearAria")}
         >
           <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-          مسح الكل
+          {t("home.favorites.clear")}
         </button>
       </div>
 
@@ -71,7 +73,7 @@ export function FavoritesSection() {
         <div
           className="flex gap-2.5 overflow-hidden"
           aria-busy="true"
-          aria-label="جارٍ تحميل المفضلة"
+          aria-label={t("home.favorites.loadingAria")}
         >
           {Array.from({ length: Math.min(4, favoriteIds.length) }).map((_, i) => (
             <div
@@ -82,14 +84,13 @@ export function FavoritesSection() {
         </div>
       ) : favoriteProducts.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border/60 bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
-          المنتجات التي أضفتها للمفضلة لم تعد متاحة الآن — أضف وجبات جديدة من
-          العروض بالضغط على القلب ♥
+          {t("home.favorites.goneDesc")}
         </p>
       ) : (
         <div
           className="no-mobile-scrollbar -mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0"
           role="list"
-          aria-label="بطاقات المفضلة"
+          aria-label={t("home.favorites.cardsAria")}
         >
           {favoriteProducts.map((p) => (
             <div

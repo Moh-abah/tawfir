@@ -33,6 +33,7 @@ import { FinanceStatusBadge } from "@/components/finance/finance-ui";
 import { useFinanceOrderPayments, useVerifyEmbeddedPayment } from "@/hooks/useFinance";
 import { reuseIdempotencyKey } from "@/lib/idempotency";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 
 /** أقصى عدد لإعادات التحقق التلقائية لحالة «غير مدفوعة بعد». */
 const MAX_AUTO_RETRIES = 3;
@@ -45,13 +46,14 @@ function isNotPaidYetError(message: string | undefined): boolean {
 }
 
 export default function PaymentReturnContent() {
+  const { t } = useLang();
   /* useSearchParams يتطلب حدود Suspense عند التصيير الثابت (نمط Next الرسمي) */
   return (
     <Suspense
       fallback={
         <>
-          <ScreenHeader title="نتيجة الدفع" fallbackHref="/orders" />
-          <VerifySpinner label="جارٍ تجهيز نتيجة الدفع…" />
+          <ScreenHeader title={t("payment.returnTitle")} fallbackHref="/orders" />
+          <VerifySpinner label={t("payment.returnPreparing")} />
         </>
       }
     >
@@ -61,6 +63,7 @@ export default function PaymentReturnContent() {
 }
 
 function PaymentReturnInner() {
+  const { t } = useLang();
   const params = useSearchParams();
   const orderParam = params.get("order");
   /* Moyasar يُلحق معرّف الدفع عند العودة — نقبل payment_id ثم id (نفس المعرّف) */
@@ -77,12 +80,12 @@ function PaymentReturnInner() {
 
   return (
     <>
-      <ScreenHeader title="نتيجة الدفع" fallbackHref="/orders" />
-      <div className="mx-auto max-w-lg px-4 py-8 sm:px-6" dir="rtl">
+      <ScreenHeader title={t("payment.returnTitle")} fallbackHref="/orders" />
+      <div className="mx-auto max-w-lg px-4 py-8 sm:px-6">
         {!orderId || !paymentId ? (
           <MissingParamsView />
         ) : hasPaid ? (
-          <SuccessView orderId={orderId} title="مدفوع سابقًا" alreadyPaid />
+          <SuccessView orderId={orderId} alreadyPaid />
         ) : (
           <VerifyFlow
             orderId={orderId}
@@ -106,6 +109,7 @@ function VerifyFlow({
   paymentId: string;
   paymentsReady: boolean;
 }) {
+  const { t } = useLang();
   const verify = useVerifyEmbeddedPayment(orderId);
   /* البرونزية-4: مفتاح واحد لكل نية تحقق — يتولد lazily عند أول محاولة.
      كل المحاولات ترسل **نفس المفتاح** حتى الإعادات (idempotent بلا دفعات مزدوجة). */
@@ -170,12 +174,11 @@ function VerifyFlow({
     return (
       <ResultCard>
         <p className="text-sm font-bold text-foreground">
-          حالة الدفعة من بوابة الدفع:{" "}
+          {t("payment.gatewayStatus")}{" "}
           <FinanceStatusBadge status={verify.data.status} />
         </p>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          إذا خُصم المبلغ من بطاقتك ولم تكتمل الحالة فلا تقلق — تحقّق مجددًا أو
-          تواصل مع الدعم وسيُطابق المبلغ تلقائياً.
+          {t("payment.recheckReassure")}
         </p>
         <Button
           type="button"
@@ -184,7 +187,7 @@ function VerifyFlow({
           className="min-h-[44px] gap-2 rounded-full"
         >
           <RefreshCw className="h-4 w-4" aria-hidden="true" />
-          تحقق مجددًا
+          {t("payment.reverify")}
         </Button>
         <OrderLinks orderId={orderId} />
       </ResultCard>
@@ -204,15 +207,15 @@ function VerifyFlow({
       return (
         <ResultCard>
           <p className="text-sm font-bold text-foreground">
-            انتهت جلستك قبل التحقق من الدفعة
+            {t("payment.sessionExpired")}
           </p>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            سجّل الدخول ثم عد إلى هذه الصفحة — مبلغك محفوظ ومرتبط بالطلب.
+            {t("payment.sessionExpiredBody")}
           </p>
           <Button asChild className="min-h-[44px] gap-2 rounded-full">
             <Link href={`/login?next=${encodeURIComponent(`/payment/return?order=${orderId}`)}`}>
               <LogIn className="h-4 w-4" aria-hidden="true" />
-              تسجيل الدخول
+              {t("common.signIn")}
             </Link>
           </Button>
         </ResultCard>
@@ -225,11 +228,11 @@ function VerifyFlow({
       return (
         <ResultCard>
           {autoActive ? (
-            <VerifySpinner label="لم تُعتمد الدفعة بعد — نتحقق تلقائيًا خلال لحظات…" />
+            <VerifySpinner label={t("payment.autoRetrying")} />
           ) : (
             <div className="space-y-3">
               <p className="text-sm font-bold text-foreground">
-                لم تُعتمد الدفعة بعد
+                {t("payment.notApproved")}
               </p>
               <Button
                 type="button"
@@ -238,14 +241,12 @@ function VerifyFlow({
                 className="min-h-[44px] gap-2 rounded-full"
               >
                 <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                تحقق مجددًا
+                {t("payment.reverify")}
               </Button>
             </div>
           )}
           <p className="text-xs leading-relaxed text-muted-foreground">
-            في حالات نادرة يتأخر تأكيد البوابة ثوانٍ معدودة. إذا خُصم المبلغ
-            وبقيت هذه الرسالة فاضغط «تحقق مجددًا» أو تواصل مع الدعم — لا تتكرر
-            الدفعة إطلاقاً.
+            {t("payment.notApprovedNote")}
           </p>
           <OrderLinks orderId={orderId} />
         </ResultCard>
@@ -260,13 +261,13 @@ function VerifyFlow({
           className="w-full rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-center"
         >
           <p className="text-sm font-extrabold text-destructive">
-            {verify.error?.message || "تعذّر التحقق من الدفعة"}
+            {verify.error?.message || t("payment.verifyFailed")}
           </p>
         </div>
         <div className="flex w-full items-start gap-2 rounded-xl border border-accent/40 bg-accent/10 p-4">
           <LifeBuoy className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" aria-hidden="true" />
           <p className="text-sm font-bold leading-relaxed text-accent-ink">
-            تواصل مع الدعم — ولا تحاول الدفع مرة أخرى قبل حسم حالة هذه الدفعة.
+            {t("payment.contactSupport")}
           </p>
         </div>
         <OrderLinks orderId={orderId} />
@@ -280,6 +281,7 @@ function VerifyFlow({
 /* ─── عروض مساعدة ────────────────────────────────────────── */
 
 function VerifySpinner({ label }: { label?: string }) {
+  const { t } = useLang();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
@@ -287,10 +289,10 @@ function VerifySpinner({ label }: { label?: string }) {
       </span>
       <div className="space-y-1">
         <h2 className="text-lg font-extrabold text-foreground">
-          جارٍ التحقق من دفعتك
+          {t("payment.verifying")}
         </h2>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {label ?? "لحظات فقط — نطابق الدفعة مع بوابة الدفع وطلبك"}
+          {label ?? t("payment.verifyingBody")}
         </p>
       </div>
     </div>
@@ -300,26 +302,27 @@ function VerifySpinner({ label }: { label?: string }) {
 function SuccessView({
   orderId,
   alreadyPaid = false,
-  title = "تم الدفع بنجاح",
 }: {
   orderId: number;
   alreadyPaid?: boolean;
-  title?: string;
 }) {
+  const { t } = useLang();
   return (
     <div className="flex flex-col items-center justify-center gap-5 py-10 text-center">
       <span className="flex h-20 w-20 items-center justify-center rounded-full bg-success/15">
         <CheckCircle2 className="h-12 w-12 text-success" aria-hidden="true" />
       </span>
       <div className="space-y-1">
-        <h2 className="text-xl font-extrabold text-foreground">{title}</h2>
+        <h2 className="text-xl font-extrabold text-foreground">
+          {alreadyPaid ? t("payment.alreadyPaid") : t("payment.successTitle")}
+        </h2>
         <p className="text-sm text-muted-foreground">
           {alreadyPaid
-            ? "هذا الطلب مدفوع بالكامل — لا حاجة لأي دفع إضافي"
-            : "شكراً لك — سيبدأ المتجر بتحضير طلبك"}
+            ? t("payment.alreadyPaidShort")
+            : t("payment.thanksPreparing")}
         </p>
         <p className="text-sm text-muted-foreground">
-          رقم الطلب:{" "}
+          {t("common.orderNumber")}{" "}
           <span dir="ltr" className="font-bold tabular-nums text-foreground">
             #{orderId}
           </span>
@@ -329,7 +332,7 @@ function SuccessView({
         <Button asChild size="lg" className="min-h-[48px] w-full rounded-full">
           <Link href={`/orders/${orderId}`}>
             <CreditCard className="h-4 w-4" aria-hidden="true" />
-            متابعة الطلب
+            {t("payment.continueOrder")}
           </Link>
         </Button>
         <Button
@@ -338,7 +341,7 @@ function SuccessView({
           size="lg"
           className="min-h-[44px] w-full rounded-full"
         >
-          <Link href="/orders">طلباتي</Link>
+          <Link href="/orders">{t("nav.orders")}</Link>
         </Button>
       </div>
     </div>
@@ -346,6 +349,7 @@ function SuccessView({
 }
 
 function MissingParamsView() {
+  const { t } = useLang();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <span className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
@@ -353,15 +357,14 @@ function MissingParamsView() {
       </span>
       <div className="space-y-1">
         <h2 className="text-lg font-extrabold text-foreground">
-          رابط نتيجة الدفع غير مكتمل
+          {t("payment.missingParams")}
         </h2>
         <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-          لم نتمكن من تحديد الطلب أو الدفعة من الرابط. إن كنت دفعت فعلاً فلا
-          تقلق — راجع طلباتك أو تواصل مع الدعم لحسم الحالة.
+          {t("payment.missingParamsBody")}
         </p>
       </div>
       <Button asChild size="lg" className="min-h-[44px] w-full max-w-xs rounded-full">
-        <Link href="/orders">الذهاب إلى طلباتي</Link>
+        <Link href="/orders">{t("payment.goToOrders")}</Link>
       </Button>
     </div>
   );
@@ -376,13 +379,14 @@ function ResultCard({ children }: { children: React.ReactNode }) {
 }
 
 function OrderLinks({ orderId }: { orderId: number }) {
+  const { t } = useLang();
   return (
     <div className="mt-2 flex w-full max-w-xs flex-col gap-2">
       <Button asChild variant="outline" className="min-h-[44px] rounded-full">
-        <Link href={`/orders/${orderId}`}>متابعة الطلب</Link>
+        <Link href={`/orders/${orderId}`}>{t("payment.continueOrder")}</Link>
       </Button>
       <Button asChild variant="ghost" className="min-h-[44px] rounded-full">
-        <Link href="/orders">طلباتي</Link>
+        <Link href="/orders">{t("nav.orders")}</Link>
       </Button>
     </div>
   );

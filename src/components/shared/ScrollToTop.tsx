@@ -3,6 +3,7 @@
 import { useEffect, useState, useId } from "react";
 import { ArrowUp } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const CIRCLE_SIZE = 48;
@@ -23,6 +24,7 @@ export function ScrollToTop() {
   const [visible, setVisible] = useState(false);
   const [progress, setProgress] = useState(0);
   const prefersReduced = usePrefersReducedMotion();
+  const { t } = useLang();
   const tooltipId = useId();
 
   useEffect(() => {
@@ -68,8 +70,8 @@ export function ScrollToTop() {
       <button
         type="button"
         onClick={scrollToTop}
-        title="العودة للأعلى"
-        aria-label="العودة للأعلى"
+        title={t("profile.scrollToTop")}
+        aria-label={t("profile.scrollToTop")}
         aria-describedby={tooltipId}
         data-visible={visible ? "1" : "0"}
         className={cn(
@@ -116,7 +118,7 @@ export function ScrollToTop() {
         </svg>
         <ArrowUp className="relative z-10 h-5 w-5" />
         <span id={tooltipId} className="sr-only">
-          العودة للأعلى
+          {t("profile.scrollToTop")}
         </span>
       </button>
     </>

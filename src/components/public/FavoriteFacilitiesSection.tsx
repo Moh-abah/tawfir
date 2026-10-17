@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useFavorites";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -25,6 +26,7 @@ import { cn } from "@/lib/utils";
  * متجاوب: grid 1×ن على الموبايل، 2×ن على sm+.
  */
 export function FavoriteFacilitiesSection() {
+  const { t } = useLang();
   const { accessToken, hydrated } = useCustomerAuth();
   const { data, isLoading } = useFavorites();
   const setNotify = useSetNotifyOffers();
@@ -37,10 +39,10 @@ export function FavoriteFacilitiesSection() {
 
   if (isLoading) {
     return (
-      <section className="mb-8" aria-label="المتاجر المفضلة">
+      <section className="mb-8" aria-label={t("home.favFacilities.aria")}>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
           <Store className="h-5 w-5 text-primary" aria-hidden="true" />
-          متجري المفضل
+          {t("home.favFacilities.title")}
         </h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -53,18 +55,18 @@ export function FavoriteFacilitiesSection() {
 
   if (items.length === 0) {
     return (
-      <section className="mb-8" aria-label="المتاجر المفضلة">
+      <section className="mb-8" aria-label={t("home.favFacilities.aria")}>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
           <Store className="h-5 w-5 text-primary" aria-hidden="true" />
-          متجري المفضل
+          {t("home.favFacilities.title")}
         </h2>
         <div className="rounded-2xl border border-dashed border-border/60 bg-card/50 p-6 text-center">
           <Heart className="mx-auto mb-2 h-8 w-8 text-muted-foreground/40" aria-hidden="true" />
           <p className="mb-1 text-sm font-bold text-foreground">
-            لا توجد متاجر مفضلة بعد
+            {t("home.favFacilities.emptyTitle")}
           </p>
           <p className="text-xs text-muted-foreground">
-            اضغط زر القلب على أي متجر لتتلقى إشعارات فورية عند نشر عروضه الجديدة ⚡
+            {t("home.favFacilities.emptyDesc")}
           </p>
         </div>
       </section>
@@ -72,17 +74,17 @@ export function FavoriteFacilitiesSection() {
   }
 
   return (
-    <section className="mb-8" aria-label="المتاجر المفضلة">
+    <section className="mb-8" aria-label={t("home.favFacilities.aria")}>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-lg font-bold text-foreground">
           <Store className="h-5 w-5 text-primary" aria-hidden="true" />
-          متجري المفضل
+          {t("home.favFacilities.title")}
           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
             {items.length}
           </span>
         </h2>
         <p className="text-[10px] text-muted-foreground">
-          إشعارات العروض الجديدة ⚡
+          {t("home.favFacilities.notifyHint")}
         </p>
       </div>
 
@@ -107,9 +109,15 @@ export function FavoriteFacilitiesSection() {
                 {fav.facility_name}
               </Link>
               <p className="text-[10px] text-muted-foreground">
-                {fav.facility_type === "restaurant" ? "مطعم" : fav.facility_type === "cafe" ? "كافتيريا" : "متجر"}
+                {fav.facility_type === "restaurant"
+                  ? t("home.favFacilities.typeRestaurant")
+                  : fav.facility_type === "cafe"
+                    ? t("home.favFacilities.typeCafe")
+                    : t("home.favFacilities.typeStore")}
                 {" · "}
-                {fav.notify_offers ? "إشعارات مفعّلة" : "إشعارات معطّلة"}
+                {fav.notify_offers
+                  ? t("home.favFacilities.notifyOn")
+                  : t("home.favFacilities.notifyOff")}
               </p>
             </div>
             <button
@@ -123,8 +131,8 @@ export function FavoriteFacilitiesSection() {
               disabled={setNotify.isPending}
               aria-label={
                 fav.notify_offers
-                  ? "إيقاف إشعارات العروض"
-                  : "تفعيل إشعارات العروض"
+                  ? t("home.favFacilities.notifyDisableAria")
+                  : t("home.favFacilities.notifyEnableAria")
               }
               aria-pressed={fav.notify_offers}
               className={cn(

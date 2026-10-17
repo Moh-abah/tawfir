@@ -22,6 +22,7 @@ import { Copy, KeyRound, Timer, Truck } from "lucide-react";
 import { useOrderTracking } from "@/hooks/useOrderTracking";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
+import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export interface OrderTrackingCardProps {
@@ -32,6 +33,7 @@ export interface OrderTrackingCardProps {
 }
 
 export function OrderTrackingCard({ orderId, status }: OrderTrackingCardProps) {
+  const { t } = useLang();
   const { data, isLoading, isError } = useOrderTracking(orderId, status);
 
   /* وضع الانتظار الرشيق: لا بيانات = لا بطاقة (الشريط الأساسي كافٍ) */
@@ -50,10 +52,10 @@ export function OrderTrackingCard({ orderId, status }: OrderTrackingCardProps) {
     haptic("success");
     try {
       await navigator.clipboard.writeText(data.delivery_code);
-      toast({ title: "تم نسخ كود التسليم" });
+      toast({ title: t("orders.codeCopied") });
     } catch {
       toast({
-        title: "انسخ الكود يدوياً",
+        title: t("orders.copyManually"),
         description: data.delivery_code,
       });
     }
@@ -98,14 +100,14 @@ export function OrderTrackingCard({ orderId, status }: OrderTrackingCardProps) {
             <div className="flex items-center gap-2 border-b border-primary/20 bg-primary/[0.06] px-4 py-2.5">
               <KeyRound className="h-4.5 w-4.5 text-primary" aria-hidden="true" />
               <p className="text-xs font-black text-foreground">
-                كود التسليم — اقرأه للمندوب عند وصوله لبابك
+                {t("orders.codeHeading")}
               </p>
             </div>
             <button
               type="button"
               onClick={copyCode}
               className="group flex w-full flex-col items-center gap-2 px-4 py-6 native-tap"
-              aria-label={`كود التسليم ${data.delivery_code} — انقر لنسخه`}
+              aria-label={t("orders.codeAria", { code: data.delivery_code ?? "" })}
             >
               <span
                 dir="ltr"
@@ -115,7 +117,7 @@ export function OrderTrackingCard({ orderId, status }: OrderTrackingCardProps) {
               </span>
               <span className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground transition-colors group-hover:text-foreground">
                 <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                انقر لنسخ الكود
+                {t("orders.tapToCopy")}
               </span>
             </button>
           </div>
@@ -132,14 +134,11 @@ export function OrderTrackingCard({ orderId, status }: OrderTrackingCardProps) {
                 )}
               >
                 <Timer className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                مدة التوصيل: {data.delivery_duration_minutes} دقيقة
+                {t("orders.duration", { minutes: data.delivery_duration_minutes ?? 0 })}
               </span>
             )}
             {data.breakdown && (
-              <span
-                dir="rtl"
-                className="rounded-full bg-muted/60 px-3.5 py-1.5 text-[11px] font-bold text-muted-foreground"
-              >
+              <span className="rounded-full bg-muted/60 px-3.5 py-1.5 text-[11px] font-bold text-muted-foreground">
                 {data.breakdown}
                 {data.distance_display ? ` · ${data.distance_display}` : ""}
               </span>

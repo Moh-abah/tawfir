@@ -22,10 +22,10 @@ import {
   getNotificationCategory,
   getNotificationDateGroup,
   NOTIFICATION_CATEGORIES,
-  NOTIFICATION_DATE_GROUP_LABELS,
   type NotificationCategory,
 } from "@/lib/notifications-meta";
 import { formatDate } from "@/lib/format";
+import { useLang, type Lang } from "@/lib/i18n";
 import { SoundService } from "@/lib/sound-service";
 import { cn } from "@/lib/utils";
 import type { NotificationOut } from "@/types/api.generated";
@@ -33,9 +33,41 @@ import type { NotificationOut } from "@/types/api.generated";
 type TabKey = "all" | "unread";
 type CategoryFilter = NotificationCategory | "all";
 
+/* ─── قواميس العرض المحلية حسب اللغة (الفئات/المجموعات التاريخية/الوقت النسبي) ─── */
+const CATEGORY_LABEL_KEY: Record<NotificationCategory, string> = {
+  orders: "profile.notif.catOrders",
+  offers: "profile.notif.catOffers",
+  membership: "profile.notif.catMembership",
+  system: "profile.notif.catSystem",
+};
+
+const DATE_GROUP_LABEL_KEY: Record<"today" | "yesterday" | "older", string> = {
+  today: "profile.notif.groupToday",
+  yesterday: "profile.notif.groupYesterday",
+  older: "profile.notif.groupOlder",
+};
+
+/** الوقت النسبي — العربية من المكتبة المركزية، والإنجليزية مكافئ محلي هنا */
+function relativeTimeLabel(iso: string, lang: Lang): string {
+  if (lang === "ar") return formatRelativeTime(iso);
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const diffMs = Math.max(0, Date.now() - then);
+  const sec = Math.floor(diffMs / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  if (sec < 60) return "now";
+  if (min < 60) return min === 1 ? "1 min ago" : `${min} min ago`;
+  if (hr < 24) return hr === 1 ? "1 hr ago" : `${hr} hrs ago`;
+  if (day < 30) return day === 1 ? "1 day ago" : `${day} days ago`;
+  return new Date(iso).toLocaleDateString("en-US");
+}
+
 export function NotificationsContent() {
   const router = useRouter();
   const { accessToken, hydrated } = useCustomerAuth();
+  const { t, lang } = useLang();
   const [tab, setTab] = useState<TabKey>("all");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [page, setPage] = useState(1);
@@ -105,16 +137,16 @@ export function NotificationsContent() {
 
   return (
     <>
-      <ScreenHeader title="الإشعارات" fallbackHref="/">
+      <ScreenHeader title={t("nav.notifications")} fallbackHref="/">
         {showBell && <NotificationBell />}
       </ScreenHeader>
-      <div className="mx-auto w-full max-w-3xl px-4 py-6 pb-24 sm:py-8" dir="rtl">
+      <div className="mx-auto w-full max-w-3xl px-4 py-6 pb-24 sm:py-8">
         {/* شريط الحالة + تعليم الكل كمقروء */}
         <div className="mb-4 flex items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {count > 0
-              ? `لديك ${count} إشعار غير مقروء`
-              : "كل إشعاراتك مقروءة"}
+              ? t("profile.notif.unreadCount", { count })
+              : t("profile.notif.allRead")}
           </p>
           {count > 0 && (
             <Button
@@ -130,7 +162,7 @@ export function NotificationsContent() {
               ) : (
                 <CheckCheck className="h-4 w-4" aria-hidden="true" />
               )}
-              تعليم الكل كمقروء
+              {t("profile.notif.markAll")}
             </Button>
           )}
         </div>
@@ -138,10 +170,10 @@ export function NotificationsContent() {
       <Tabs value={tab} onValueChange={handleTabChange} className="mb-3">
         <TabsList className="grid w-full grid-cols-2 rounded-full">
           <TabsTrigger value="all" className="rounded-full">
-            الكل
+            {t("profile.notif.tabAll")}
           </TabsTrigger>
           <TabsTrigger value="unread" className="rounded-full">
-            غير المقروء
+            {t("profile.notif.tabUnread")}
             {count > 0 && (
               <Badge className="ms-1.5 h-5 min-w-5 px-1 text-[10px] tabular-nums">
                 {count}
@@ -155,7 +187,7 @@ export function NotificationsContent() {
       <div
         className="mb-5 flex gap-2 overflow-x-auto pb-1 no-mobile-scrollbar"
         role="group"
-        aria-label="تصفية الإشعارات حسب الفئة"
+        aria-label={t("profile.notif.filterA11y")}
       >
         <button
           type="button"
@@ -168,7 +200,7 @@ export function NotificationsContent() {
               : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
           )}
         >
-          الكل
+          {t("profile.notif.tabAll")}
         </button>
         {NOTIFICATION_CATEGORIES.map((c) => (
           <button
@@ -183,7 +215,7 @@ export function NotificationsContent() {
                 : "border-border/60 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground",
             )}
           >
-            {c.label}
+            {t(CATEGORY_LABEL_KEY[c.key])}
           </button>
         ))}
       </div>
@@ -206,35 +238,35 @@ export function NotificationsContent() {
       ) : isError ? (
         <EmptyState
           icon={Bell}
-          title="تعذّر تحميل الإشعارات"
-          description="تأكد من اتصالك بالإنترنت ثم أعد المحاولة."
+          title={t("profile.notif.errTitle")}
+          description={t("profile.notif.errDesc")}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Bell}
           title={
             category !== "all"
-              ? "لا توجد إشعارات في هذه الفئة"
+              ? t("profile.notif.emptyCat")
               : unreadOnly
-                ? "لا توجد إشعارات غير مقروءة"
-                : "لا توجد إشعارات"
+                ? t("profile.notif.emptyUnread")
+                : t("profile.notif.emptyAll")
           }
           description={
             category !== "all"
-              ? "جرّب فئة أخرى أو اعرض كل الإشعارات."
+              ? t("profile.notif.emptyCatDesc")
               : unreadOnly
-                ? "تم تعليم كل إشعاراتك كمقروءة."
-                : "ستظهر هنا إشعارات الطلبات والعضوية والعروض الجديدة."
+                ? t("profile.notif.emptyUnreadDesc")
+                : t("profile.notif.emptyAllDesc")
           }
         />
       ) : (
         <>
           {grouped.map((group) => (
-            <section key={group.key} className="mb-5" aria-label={NOTIFICATION_DATE_GROUP_LABELS[group.key]}>
+            <section key={group.key} className="mb-5" aria-label={t(DATE_GROUP_LABEL_KEY[group.key])}>
               {/* عنوان القسم التاريخي */}
               <div className="mb-2 flex items-center gap-3">
                 <h2 className="text-[11px] font-black uppercase tracking-wide text-muted-foreground">
-                  {NOTIFICATION_DATE_GROUP_LABELS[group.key]}
+                  {t(DATE_GROUP_LABEL_KEY[group.key])}
                 </h2>
                 <span className="h-px flex-1 bg-border/60" aria-hidden="true" />
                 <span className="text-[10px] text-muted-foreground/70 tabular-nums">
@@ -285,7 +317,7 @@ export function NotificationsContent() {
                               {!n.is_read && (
                                 <span
                                   className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary"
-                                  aria-label="غير مقروء"
+                                  aria-label={t("profile.notif.unreadA11y")}
                                 />
                               )}
                             </div>
@@ -297,7 +329,7 @@ export function NotificationsContent() {
                                 {formatDate(n.created_at)}
                               </p>
                               <p className="text-[11px] font-medium text-muted-foreground/70">
-                                {formatRelativeTime(n.created_at)}
+                                {relativeTimeLabel(n.created_at, lang)}
                               </p>
                             </div>
                           </div>
@@ -328,10 +360,10 @@ export function NotificationsContent() {
                 disabled={page <= 1 || isFetching}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                السابق
+                {t("profile.notif.prev")}
               </Button>
               <span className="text-xs text-muted-foreground">
-                صفحة {page} من {pages} ({total})
+                {t("profile.notif.pageOf", { page, pages, total })}
               </span>
               <Button
                 type="button"
@@ -341,7 +373,7 @@ export function NotificationsContent() {
                 disabled={page >= pages || isFetching}
                 onClick={() => setPage((p) => Math.min(pages, p + 1))}
               >
-                التالي
+                {t("profile.notif.next")}
               </Button>
             </div>
           )}

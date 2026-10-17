@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/i18n";
 import { DiscountBadge } from "@/components/shared/DiscountBadge";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
 import { ImagePlaceholder, PLACEHOLDER_ICONS } from "@/components/shared/ImagePlaceholder";
@@ -69,7 +70,12 @@ import {
   PLACEHOLDER_CHECKOUT_PRODUCT,
 } from "@/components/public/CheckoutSheet";
 
-function fallbackCopy(text: string, toastFn: (opts: { title: string; variant?: "destructive" }) => void) {
+function fallbackCopy(
+  text: string,
+  toastFn: (opts: { title: string; variant?: "destructive" }) => void,
+  okTitle: string,
+  failTitle: string
+) {
   try {
     const ta = document.createElement("textarea");
     ta.value = text;
@@ -79,9 +85,9 @@ function fallbackCopy(text: string, toastFn: (opts: { title: string; variant?: "
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    toastFn({ title: "تم نسخ الرابط" });
+    toastFn({ title: okTitle });
   } catch {
-    toastFn({ title: "تعذّر نسخ الرابط", variant: "destructive" });
+    toastFn({ title: failTitle, variant: "destructive" });
   }
 }
 
@@ -102,6 +108,7 @@ function ProductCard({
 }) {
   /* الجولة 17 — معاينة ملء الشاشة من شبكة المتجر بلا مغادرة القائمة */
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const { t } = useLang();
   const price = parseFloat(product.price);
   const memberRate = isMember ? facilityRate : 0;
   const hasMemberDiscount = isMember && memberRate > 0;
@@ -133,7 +140,7 @@ function ProductCard({
         )}
         {!product.is_available && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-sm font-bold text-white">
-            غير متاح حاليا
+            {t("catalog.facility.unavailable")}
           </span>
         )}
         {/* الجولة 17 — زر معاينة ملء الشاشة: stopPropagation كي لا يفتح
@@ -146,7 +153,7 @@ function ProductCard({
               haptic("tick");
               setLightboxOpen(true);
             }}
-            aria-label={`تكبير صورة ${product.name}`}
+            aria-label={t("catalog.product.zoomAria", { name: product.name })}
             className="native-tap absolute bottom-2 left-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-black/60 hover:scale-105 active:scale-95 sm:opacity-0 sm:group-hover:opacity-100"
           >
             <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
@@ -201,7 +208,7 @@ function ProductCard({
             className="min-h-[44px] shrink-0 gap-1.5 rounded-full"
           >
             <ShoppingBag className="h-3.5 w-3.5" />
-            {product.is_available ? "اطلب" : "نفد"}
+            {product.is_available ? t("catalog.facility.order") : t("catalog.product.soldOut")}
           </Button>
         </div>
       </div>
@@ -234,6 +241,7 @@ function ProductGridSkeleton() {
 
 /* ─── Enhanced Empty State (no products + no categories) ── */
 function EnhancedEmptyState() {
+  const { t } = useLang();
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
       <div className="relative mb-6">
@@ -242,9 +250,9 @@ function EnhancedEmptyState() {
           <UtensilsCrossed className="h-10 w-10 text-muted-foreground/25" />
         </div>
       </div>
-      <h3 className="text-lg font-bold text-foreground mb-2">لا توجد منتجات بعد</h3>
+      <h3 className="text-lg font-bold text-foreground mb-2">{t("catalog.facility.noProductsYetTitle")}</h3>
       <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-        هذا المتجر لم يضف أي منتجات حتى الآن. ترقّب التحديثات القادمة!
+        {t("catalog.facility.noProductsYetDesc")}
       </p>
     </div>
   );
@@ -252,6 +260,7 @@ function EnhancedEmptyState() {
 
 /* ─── Breadcrumbs ────────────────────────────────────── */
 function Breadcrumbs({ facilityName }: { facilityName: string }) {
+const { t } = useLang();
 const prefersReduced = usePrefersReducedMotion();
   const containerVariants = prefersReduced
     ? { hidden: {}, visible: {} }
@@ -261,7 +270,7 @@ const prefersReduced = usePrefersReducedMotion();
       };
 
   return (
-    <nav aria-label="مسار التصفح" className="animate-page-enter">
+    <nav aria-label={t("catalog.facility.breadcrumbsAria")} className="animate-page-enter">
       <motion.ol
         variants={containerVariants}
         initial="hidden"
@@ -273,7 +282,7 @@ const prefersReduced = usePrefersReducedMotion();
             href="/"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            الرئيسية
+            {t("nav.home")}
           </Link>
         </li>
         <li>
@@ -284,7 +293,7 @@ const prefersReduced = usePrefersReducedMotion();
             href="/facilities"
             className="text-muted-foreground transition-colors hover:text-foreground"
           >
-            المتاجر
+            {t("nav.facilities")}
           </Link>
         </li>
         <li>
@@ -301,14 +310,16 @@ const prefersReduced = usePrefersReducedMotion();
 }
 
 /* ─── Report Dialog ────────────────────────────────── */
+/* مفاتيح القاموس — العرض عبر t() ليعمل بلغتين */
 const REPORT_CATEGORIES = [
-  { value: "inappropriate", label: "محتوى غير لائق" },
-  { value: "wrong_info", label: "معلومات خاطئة" },
-  { value: "closed", label: "متجر مغلق" },
-  { value: "other", label: "أخرى" },
+  { value: "inappropriate", labelKey: "catalog.facility.report.inappropriate" },
+  { value: "wrong_info", labelKey: "catalog.facility.report.wrongInfo" },
+  { value: "closed", labelKey: "catalog.facility.report.closed" },
+  { value: "other", labelKey: "catalog.facility.report.other" },
 ] as const;
 
 function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { t } = useLang();
   const { toast } = useToast();
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -318,13 +329,13 @@ function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     if (!category.trim()) return;
     setIsSubmitting(true);
     setTimeout(() => {
-      toast({ title: "تم إرسال البلاغ بنجاح. شكرًا لك" });
+      toast({ title: t("catalog.facility.report.ok") });
       setCategory("");
       setDescription("");
       setIsSubmitting(false);
       onOpenChange(false);
     }, 600);
-  }, [category, toast, onOpenChange]);
+  }, [category, t, toast, onOpenChange]);
 
   const handleClose = useCallback(() => {
     setCategory("");
@@ -336,28 +347,28 @@ function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>إبلاغ عن متجر</DialogTitle>
-          <DialogDescription>سيتم مراجعة البلاغ واتخاذ الإجراء المناسب</DialogDescription>
+          <DialogTitle>{t("catalog.facility.report.title")}</DialogTitle>
+          <DialogDescription>{t("catalog.facility.report.desc")}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <label htmlFor="report-category" className="text-sm font-medium text-foreground">نوع البلاغ</label>
+            <label htmlFor="report-category" className="text-sm font-medium text-foreground">{t("catalog.facility.report.type")}</label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger id="report-category" className="w-full min-h-[44px]">
-                <SelectValue placeholder="اختر نوع البلاغ" />
+                <SelectValue placeholder={t("catalog.facility.report.typePlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {REPORT_CATEGORIES.map((cat) => (
-                  <SelectItem key={cat.value} value={cat.value} className="min-h-[44px]">{cat.label}</SelectItem>
+                  <SelectItem key={cat.value} value={cat.value} className="min-h-[44px]">{t(cat.labelKey)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <label htmlFor="report-desc" className="text-sm font-medium text-foreground">تفاصيل البلاغ</label>
+            <label htmlFor="report-desc" className="text-sm font-medium text-foreground">{t("catalog.facility.report.details")}</label>
             <Textarea
               id="report-desc"
-              placeholder="اشرح المشكلة التي واجهتها..."
+              placeholder={t("catalog.facility.report.placeholder")}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[100px] resize-none"
@@ -370,14 +381,14 @@ function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
             onClick={handleClose}
             className="min-h-[44px]"
           >
-            إلغاء
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!category.trim() || isSubmitting}
             className="min-h-[44px]"
           >
-            {isSubmitting ? "جارٍ الإرسال..." : "إرسال البلاغ"}
+            {isSubmitting ? t("catalog.facility.report.sending") : t("catalog.facility.report.submit")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -387,6 +398,7 @@ function ReportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
 /* ─── Main Content ──────────────────────────────────── */
 export default function FacilityDetailContent() {
+  const { t } = useLang();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [reportOpen, setReportOpen] = useState(false);
@@ -470,8 +482,8 @@ const prefersReduced = usePrefersReducedMotion();
     if (!hydrated) return;
     if (!accessToken) {
       toast({
-        title: "سجّل الدخول أولاً",
-        description: "يجب تسجيل الدخول لإتمام الطلب.",
+        title: t("catalog.auth.loginTitle"),
+        description: t("catalog.auth.loginDesc"),
       });
       router.push("/login");
       return;
@@ -479,7 +491,7 @@ const prefersReduced = usePrefersReducedMotion();
     setSelectedProduct(null);
     setCheckoutProduct(p);
     setCheckoutOpen(true);
-  }, [hydrated, accessToken, toast, router]);
+  }, [hydrated, accessToken, toast, router, t]);
 
   const checkoutEffectiveProduct: CheckoutProduct = checkoutProduct
     ? {
@@ -517,28 +529,32 @@ const prefersReduced = usePrefersReducedMotion();
     const url = window.location.href;
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(() => {
-        toast({ title: "تم نسخ الرابط" });
+        toast({ title: t("catalog.facility.copyOk") });
       }).catch(() => {
-        fallbackCopy(url, toast);
+        fallbackCopy(url, toast, t("catalog.facility.copyOk"), t("catalog.facility.copyFail"));
       });
     } else {
-      fallbackCopy(url, toast);
+      fallbackCopy(url, toast, t("catalog.facility.copyOk"), t("catalog.facility.copyFail"));
     }
-  }, [toast]);
+  }, [toast, t]);
 
   const handleShareTwitter = useCallback(() => {
     if (typeof window === "undefined") return;
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذا المتجر"} على توفير`);
+    const text = encodeURIComponent(
+      t("catalog.facility.shareText", { name: facility?.name ?? t("catalog.facility.defaultShareName") })
+    );
     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
-  }, [facility?.name, toast]);
+  }, [facility?.name, t]);
 
   const handleShareWhatsApp = useCallback(() => {
     if (typeof window === "undefined") return;
     const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`تعرف على ${facility?.name ?? "هذا المتجر"} على توفير`);
+    const text = encodeURIComponent(
+      t("catalog.facility.shareText", { name: facility?.name ?? t("catalog.facility.defaultShareName") })
+    );
     window.open(`https://wa.me/?text=${text}%20${url}`, "_blank");
-  }, [facility?.name, toast]);
+  }, [facility?.name, t]);
 
   /* ─── Reading progress ────────────────────────────── */
   useEffect(() => {
@@ -603,8 +619,8 @@ const prefersReduced = usePrefersReducedMotion();
         <ScreenHeader title="تفاصيل المتجر" fallbackHref="/facilities" />
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <ErrorState
-            title="تعذّر تحميل المتجر"
-            message="حدث خطأ أثناء جلب بيانات المتجر"
+            title={t("catalog.facility.errorTitle")}
+            message={t("catalog.facility.errorDesc")}
             onRetry={() => void directFacility.refetch()}
           />
         </div>
@@ -663,9 +679,9 @@ const prefersReduced = usePrefersReducedMotion();
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Landmark className="h-20 w-20 text-muted-foreground/20 mb-4" />
-            <h2 className="text-lg font-bold text-foreground mb-1">المتجر غير موجود</h2>
-            <p className="text-sm text-muted-foreground mb-4">لم نتمكن من العثور على هذا المتجر</p>
-            <Link href="/facilities" className="text-sm text-secondary hover:underline min-h-[44px] inline-flex items-center">العودة للمتاجر</Link>
+            <h2 className="text-lg font-bold text-foreground mb-1">{t("catalog.facility.notFoundTitle")}</h2>
+            <p className="text-sm text-muted-foreground mb-4">{t("catalog.facility.notFoundDesc")}</p>
+            <Link href="/facilities" className="text-sm text-secondary hover:underline min-h-[44px] inline-flex items-center">{t("catalog.facility.backToStores")}</Link>
           </div>
         </div>
       </>
@@ -756,7 +772,7 @@ const prefersReduced = usePrefersReducedMotion();
               <div>
                 <h2 className="text-2xl font-black text-white sm:text-3xl">{facility.name}</h2>
                 <span className="mt-2 inline-block rounded-full bg-secondary/90 px-3 py-1 text-xs font-medium text-white">
-                  {TYPE_LABEL[facility.type]}
+                  {t(`catalog.type.${facility.type}`)}
                 </span>
                 {/* v3.2.2 — تلميح الخصم الذي يكتبه التاجر صار يُخزَّن ويُعرض
                     للعملاء (كان يُقبل ويُهمل خادمياً — بصمة §4-ب). */}
@@ -795,7 +811,7 @@ const prefersReduced = usePrefersReducedMotion();
           )}
           {googleMapsUrl && (
             <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full bg-muted px-3.5 py-2 text-sm text-secondary hover:bg-muted/80 min-h-[44px] transition-colors">
-              <ExternalLink className="h-4 w-4 shrink-0" />افتح في الخرائط
+              <ExternalLink className="h-4 w-4 shrink-0" />{t("catalog.facility.openInMaps")}
             </a>
           )}
           <div className="mr-auto flex items-center gap-2">
@@ -803,12 +819,12 @@ const prefersReduced = usePrefersReducedMotion();
               onClick={() => {
                 setIsFavorite((prev) => {
                   const next = !prev;
-                  toast({ title: next ? "تمت الإضافة للمفضلة" : "تمت الإزالة من المفضلة" });
+                  toast({ title: next ? t("catalog.facility.favAdded") : t("catalog.facility.favRemoved") });
                   return next;
                 });
               }}
               className="inline-flex items-center gap-2 rounded-full bg-muted px-3.5 py-2 text-sm min-h-[44px] transition-colors hover:bg-muted/80"
-              aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+              aria-label={isFavorite ? t("catalog.facility.favRemoveAria") : t("catalog.facility.favAddAria")}
             >
               <motion.span
                 key={isFavorite ? "filled" : "outline"}
@@ -818,7 +834,7 @@ const prefersReduced = usePrefersReducedMotion();
               >
                 <Heart className={cn("h-4 w-4 shrink-0 transition-colors", isFavorite ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary")} />
               </motion.span>
-              {isFavorite ? "مفضلة" : "تفضيل"}
+              {isFavorite ? t("catalog.facility.favActive") : t("catalog.facility.favInactive")}
             </button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -829,7 +845,7 @@ const prefersReduced = usePrefersReducedMotion();
                   )}
                 >
                   <Share2 className="h-4 w-4 shrink-0" />
-                  مشاركة
+                  {t("common.share")}
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -838,21 +854,21 @@ const prefersReduced = usePrefersReducedMotion();
                   onClick={handleCopyLink}
                 >
                   <Copy className="h-4 w-4 text-muted-foreground" />
-                  <span>نسخ الرابط</span>
+                  <span>{t("catalog.facility.copyLink")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="min-h-[44px] gap-3 cursor-pointer"
                   onClick={handleShareTwitter}
                 >
                   <Twitter className="h-4 w-4 text-muted-foreground" />
-                  <span>مشاركة على X</span>
+                  <span>{t("catalog.facility.shareX")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="min-h-[44px] gap-3 cursor-pointer"
                   onClick={handleShareWhatsApp}
                 >
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                  <span>مشاركة عبر واتساب</span>
+                  <span>{t("catalog.facility.shareWhatsApp")}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -861,7 +877,7 @@ const prefersReduced = usePrefersReducedMotion();
               className="inline-flex items-center gap-2 rounded-full bg-muted px-3.5 py-2 text-sm text-muted-foreground hover:bg-muted/80 hover:text-destructive min-h-[44px] transition-colors"
             >
               <Flag className="h-4 w-4 shrink-0" />
-              إبلاغ
+              {t("catalog.facility.report")}
             </button>
           </div>
           <ReportDialog open={reportOpen} onOpenChange={setReportOpen} />
@@ -893,7 +909,7 @@ const prefersReduced = usePrefersReducedMotion();
                     {selectedProduct.category}
                   </span>
                 </div>
-                <DialogDescription className="sr-only">عرض تفاصيل المنتج</DialogDescription>
+                <DialogDescription className="sr-only">{t("catalog.facility.quickViewAria")}</DialogDescription>
               </DialogHeader>
               {selectedProduct.description && (
                 <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
@@ -923,7 +939,7 @@ const prefersReduced = usePrefersReducedMotion();
                   className="w-full rounded-full min-h-[44px] gap-2"
                 >
                   <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-                  {selectedProduct.is_available ? "اطلب الآن" : "غير متوفر"}
+                  {selectedProduct.is_available ? t("catalog.facility.orderNow") : t("catalog.facility.unavailableBtn")}
                 </Button>
               </DialogFooter>
             </motion.div>
@@ -947,7 +963,7 @@ const prefersReduced = usePrefersReducedMotion();
                     : "bg-muted text-muted-foreground hover:bg-muted/80"
                 )}
               >
-                {cat}
+                {cat === "الكل" ? t("catalog.facilities.filterAll") : cat}
                 {categoryCounts[cat] !== undefined && (
                   <span className={cn(
                     "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold leading-none",
@@ -964,7 +980,7 @@ const prefersReduced = usePrefersReducedMotion();
           <div className="relative">
             <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="ابحث عن منتج..."
+              placeholder={t("catalog.facility.searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="rounded-full pr-10"
@@ -977,20 +993,20 @@ const prefersReduced = usePrefersReducedMotion();
           {prodLoading ? (
             <ProductGridSkeleton />
           ) : prodError ? (
-            <ErrorState title="تعذّر تحميل المنتجات" message="حدث خطأ أثناء جلب المنتجات" onRetry={() => prodRefetch()} />
+            <ErrorState title={t("catalog.facility.productsErrorTitle")} message={t("catalog.facility.productsErrorDesc")} onRetry={() => prodRefetch()} />
           ) : hasNoProductsAndNoCategories ? (
             <EnhancedEmptyState />
           ) : !products || products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
               <UtensilsCrossed className="h-16 w-16 text-muted-foreground/20 mb-4" />
-              <h3 className="text-lg font-bold text-foreground mb-1">لا توجد منتجات</h3>
-              <p className="text-sm text-muted-foreground max-w-sm">لا توجد منتجات متاحة في هذه الفئة حاليًا</p>
+              <h3 className="text-lg font-bold text-foreground mb-1">{t("catalog.facility.noProductsTitle")}</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">{t("catalog.facility.noProductsDesc")}</p>
             </div>
           ) : (
             <>
               {/* Product count */}
               <p className="mb-4 text-sm text-muted-foreground">
-                عدد المنتجات: {totalProducts}
+                {t("catalog.facility.productsCount", { count: totalProducts })}
               </p>
               <motion.div
                 initial="hidden"
@@ -1016,7 +1032,7 @@ const prefersReduced = usePrefersReducedMotion();
                     onClick={showMore}
                     className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-border/60 bg-card px-6 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-accent/10"
                   >
-                    عرض المزيد ({totalProducts - visibleCount} متبقٍ)
+                    {t("catalog.facility.showMore", { count: totalProducts - visibleCount })}
                   </button>
                 </div>
               )}
@@ -1027,7 +1043,7 @@ const prefersReduced = usePrefersReducedMotion();
         {/* Back Link */}
         <div className="mt-8 mb-20 md:mb-0">
           <Link href="/facilities" className="inline-flex items-center gap-1.5 text-sm text-secondary hover:underline min-h-[44px]">
-            <ArrowRight className="h-4 w-4" />العودة لقائمة المتاجر
+            <ArrowRight className="h-4 w-4" />{t("catalog.facility.backToStoresList")}
           </Link>
         </div>
       </div>
@@ -1040,18 +1056,18 @@ const prefersReduced = usePrefersReducedMotion();
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground">
                 {hydrated && accessToken
-                  ? "خصومات حصرية مع عضوية توفير"
-                  : "سجّل واحصل على خصومات حصرية"}
+                  ? t("catalog.facility.ctaMemberTitle")
+                  : t("catalog.facility.ctaGuestTitle")}
               </p>
               <p className="text-xs text-muted-foreground">
                 {hydrated && accessToken
-                  ? "اشترك في العضوية واستمتع بالخصم الفوري على طلباتك"
-                  : "أنشئ حساباً مجاناً واستمتع بالخصم الفوري"}
+                  ? t("catalog.facility.ctaMemberDesc")
+                  : t("catalog.facility.ctaGuestDesc")}
               </p>
             </div>
             <Button asChild size="sm" className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 min-h-[44px] shrink-0">
               <Link href={hydrated && accessToken ? "/membership/subscribe" : "/register"}>
-                {hydrated && accessToken ? "اشترك الآن" : "تسجيل"}
+                {hydrated && accessToken ? t("catalog.facility.subscribe") : t("catalog.facility.register")}
               </Link>
             </Button>
           </div>

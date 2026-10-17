@@ -11,23 +11,38 @@
  */
 
 import { cn } from "@/lib/utils";
+import { getActiveLang, useLang } from "@/lib/i18n";
 
 export type CurrencyCode = string; // "SAR" | "YER" كما تعيدها الاستجابة
 
-/** تنسيق مبلغ بالعملة — ar-SA للسعودية و ar-YE لليمن. */
+/** تنسيق مبلغ بالعملة — عربي: ar-SA/ar-YE · إنجليزي: en-US بأرقام لاتينية. */
 export function formatMoney(
   amount: number | string | null | undefined,
   currency: CurrencyCode | null | undefined
 ): string {
   const num = typeof amount === "string" ? parseFloat(amount) : amount;
   if (num == null || Number.isNaN(num)) return "—";
-  const locale = String(currency ?? "") === "SAR" ? "ar-SA" : "ar-YE";
+  const isEn = getActiveLang() === "en";
+  const locale = isEn
+    ? "en-US"
+    : String(currency ?? "") === "SAR"
+      ? "ar-SA"
+      : "ar-YE";
   const formatted = new Intl.NumberFormat(locale, {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   }).format(num);
-  const symbol =
-    currency === "SAR" ? "ر.س" : currency === "YER" ? "ر.ي" : String(currency ?? "");
+  const symbol = isEn
+    ? currency === "SAR"
+      ? "SAR"
+      : currency === "YER"
+        ? "YER"
+        : String(currency ?? "")
+    : currency === "SAR"
+      ? "ر.س"
+      : currency === "YER"
+        ? "ر.ي"
+        : String(currency ?? "");
   return symbol ? `${formatted} ${symbol}` : formatted;
 }
 
@@ -43,6 +58,10 @@ export function MoneyText({
   className?: string;
   strong?: boolean;
 }) {
+  /* الاشتراك في سياق اللغة يضمن إعادة الرسم عند التبديل حتى لو كان
+     الأب مكوّن خادمي لا يعيد الرسم بنفسه */
+  const { lang } = useLang();
+  void lang;
   return (
     <span
       dir="ltr"

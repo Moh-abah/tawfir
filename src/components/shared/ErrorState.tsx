@@ -2,6 +2,7 @@
 
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
 
 interface ErrorStateProps {
   title?: string;
@@ -10,10 +11,13 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = "حدث خطأ",
-  message = "لم نتمكن من تحميل البيانات. يرجى المحاولة مرة أخرى.",
+  title,
+  message,
   onRetry,
 }: ErrorStateProps) {
+  const { t } = useLang();
+  const heading = title ?? t("common.error");
+  const body = message ?? t("profile.errState.message");
   return (
     <div className="flex items-center justify-center py-16 px-4">
       <div className="flex flex-col items-center text-center rounded-2xl border bg-card p-8 sm:p-10 max-w-sm w-full">
@@ -35,11 +39,11 @@ export function ErrorState({
             <AlertTriangle className="relative h-8 w-8 text-destructive" />
           </div>
         </div>
-        <h3 className="text-lg font-bold text-foreground mb-1">{title}</h3>
-        <p className="text-sm text-muted-foreground max-w-xs mb-5 leading-relaxed">{message}</p>
+        <h3 className="text-lg font-bold text-foreground mb-1">{heading}</h3>
+        <p className="text-sm text-muted-foreground max-w-xs mb-5 leading-relaxed">{body}</p>
         {onRetry && (
           <Button variant="outline" onClick={onRetry} className="rounded-full">
-            إعادة المحاولة
+            {t("common.retry")}
           </Button>
         )}
       </div>

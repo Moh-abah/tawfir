@@ -14,6 +14,7 @@ import {
 import { useFavoritesStore } from "@/store/favorites.store";
 import { productService } from "@/services/product.service";
 import { useHasMounted } from "@/hooks/useHasMounted";
+import { useLang } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ import type { ProductWithFacilityOut } from "@/types/api.generated";
  */
 export function FavoritesContent() {
   const hasMounted = useHasMounted();
+  const { t } = useLang();
   const favoriteIds = useFavoritesStore((s) => s.favoriteIds);
   const clearFavorites = useFavoritesStore((s) => s.clearFavorites);
   const [confirmingClear, setConfirmingClear] = useState(false);
@@ -91,12 +93,12 @@ export function FavoritesContent() {
     }
     setConfirmingClear(false);
     clearFavorites();
-    toast({ title: "تمت إزالة كل المفضلات" });
+    toast({ title: t("profile.fav.cleared") });
   };
 
   return (
     <>
-      <ScreenHeader title="المفضلة" fallbackHref="/">
+      <ScreenHeader title={t("nav.favorites")} fallbackHref="/">
         {ids.length > 0 && (
           <button
             type="button"
@@ -109,12 +111,12 @@ export function FavoritesContent() {
             )}
             aria-label={
               confirmingClear
-                ? "تأكيد إزالة كل المفضلات"
-                : "إزالة كل المفضلات"
+                ? t("profile.fav.confirmA11y")
+                : t("profile.fav.clearA11y")
             }
           >
             <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-            {confirmingClear ? "تأكيد؟" : "إزالة الكل"}
+            {confirmingClear ? t("profile.fav.confirmClear") : t("profile.fav.clearAll")}
           </button>
         )}
       </ScreenHeader>
@@ -127,8 +129,10 @@ export function FavoritesContent() {
         {ids.length > 0 && (
           <p className="mb-4 text-xs text-muted-foreground">
             {loading && total === 0
-              ? "جارٍ تحميل مفضلتك..."
-              : `${total} ${total === 1 ? "وجبة" : "وجبات"} في مفضلتك`}
+              ? t("profile.fav.loading")
+              : total === 1
+                ? t("profile.fav.countOne", { count: total })
+                : t("profile.fav.countMany", { count: total })}
           </p>
         )}
 
@@ -136,15 +140,15 @@ export function FavoritesContent() {
         {hasMounted && ids.length === 0 ? (
           <EmptyState
             icon={Heart}
-            title="لا توجد مفضلات بعد"
-            description="اضغط على أيقونة القلب في أي وجبة لإضافتها هنا — تبقى مفضلاتك محفوظة على جهازك."
+            title={t("profile.fav.emptyTitle")}
+            description={t("profile.fav.emptyDesc")}
             action={
               <Link
                 href="/"
                 className="native-tap mt-2 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Store className="h-4 w-4" aria-hidden="true" />
-                تصفّح الوجبات
+                {t("auth.success.browseCta")}
               </Link>
             }
           />
@@ -161,7 +165,7 @@ export function FavoritesContent() {
           <div className="space-y-6">
             {/* المتوفر */}
             {available.length > 0 && (
-              <section aria-label="وجبات مفضلة متوفرة">
+              <section aria-label={t("profile.fav.availableA11y")}>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {available.map((product) => (
                     <ProductCard key={product.id} product={product} />
@@ -172,13 +176,13 @@ export function FavoritesContent() {
 
             {/* النافد */}
             {outOfStock.length > 0 && (
-              <section aria-label="وجبات مفضلة نفدت مؤقتاً">
+              <section aria-label={t("profile.fav.outOfStockA11y")}>
                 <h2 className="mb-3 flex items-center gap-1.5 text-xs font-extrabold text-muted-foreground">
                   <span
                     className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground/50"
                     aria-hidden="true"
                   />
-                  نفدت مؤقتاً ({outOfStock.length})
+                  {t("profile.fav.outOfStock", { count: outOfStock.length })}
                 </h2>
                 <div className="grid grid-cols-2 gap-3 opacity-70 sm:grid-cols-3 lg:grid-cols-4">
                   {outOfStock.map((product) => (

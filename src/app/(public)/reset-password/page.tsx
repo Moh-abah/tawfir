@@ -12,6 +12,7 @@ import { PasswordInput } from "@/components/shared/PasswordInput";
 import { AuthShell } from "@/components/shared/AuthShell";
 import { authFlowService } from "@/services/auth-flow.service";
 import { useToast } from "@/hooks/use-toast";
+import { useLang } from "@/lib/i18n";
 
 /**
  * صفحة إعادة تعيين كلمة المرور — /reset-password?token=...
@@ -21,6 +22,7 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLang();
   const token = searchParams.get("token") ?? "";
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,13 +34,13 @@ function ResetPasswordForm() {
     onSuccess: () => {
       setDone(true);
       toast({
-        title: "تم تعيين كلمة المرور الجديدة",
-        description: "سجّل دخولك الآن بكلمة المرور الجديدة",
+        title: t("auth.reset.doneTitle"),
+        description: t("auth.reset.toastDesc"),
       });
       setTimeout(() => router.push("/login"), 2500);
     },
     onError: (e: Error) => {
-      setFieldError(e.message || "تعذّر إعادة التعيين — قد يكون الرابط منتهياً");
+      setFieldError(e.message || t("auth.reset.errGeneric"));
     },
   });
 
@@ -46,11 +48,11 @@ function ResetPasswordForm() {
     e.preventDefault();
     setFieldError(null);
     if (newPassword.length < 8) {
-      setFieldError("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل");
+      setFieldError(t("auth.reset.errMin"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setFieldError("التأكيد لا يطابق كلمة المرور الجديدة");
+      setFieldError(t("auth.reset.errMismatch"));
       return;
     }
     mutation.mutate();
@@ -60,9 +62,9 @@ function ResetPasswordForm() {
     <AuthShell backHref="/login">
       <Card className="w-full rounded-2xl border-border/60 bg-card/95 shadow-soft-lg backdrop-blur-sm">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">تعيين كلمة مرور جديدة</CardTitle>
+          <CardTitle className="text-xl">{t("auth.reset.title")}</CardTitle>
           <CardDescription>
-            أدخل كلمة المرور الجديدة لحسابك لإتمام الاستعادة
+            {t("auth.reset.desc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -70,28 +72,28 @@ function ResetPasswordForm() {
             <div role="status" className="flex flex-col items-center gap-3 p-2 text-center">
               <CheckCircle2 className="h-10 w-10 text-success" aria-hidden="true" />
               <p className="text-sm font-bold text-foreground">
-                تم تعيين كلمة المرور الجديدة
+                {t("auth.reset.doneTitle")}
               </p>
               <p className="text-xs text-muted-foreground">
-                سيتم تحويلك لصفحة الدخول خلال لحظات...
+                {t("auth.reset.redirecting")}
               </p>
             </div>
           ) : !token ? (
             /* لا توكن في الرابط — الرابط غير صالح */
             <div role="alert" className="space-y-4 p-2 text-center">
               <KeyRound className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden="true" />
-              <p className="text-sm font-bold text-foreground">رابط غير صالح</p>
+              <p className="text-sm font-bold text-foreground">{t("auth.reset.invalidLink")}</p>
               <p className="text-xs text-muted-foreground">
-                رابط إعادة التعيين ناقص أو منتهٍ — اطلب رابطاً جديداً من صفحة الدخول.
+                {t("auth.reset.invalidLinkDesc")}
               </p>
               <Button asChild className="min-h-[44px] w-full rounded-full">
-                <Link href="/login">العودة لتسجيل الدخول</Link>
+                <Link href="/login">{t("auth.reset.backToLogin")}</Link>
               </Button>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               <div className="space-y-2">
-                <Label htmlFor="reset-new">كلمة المرور الجديدة</Label>
+                <Label htmlFor="reset-new">{t("auth.reset.newPassword")}</Label>
                 <PasswordInput
                   id="reset-new"
                   autoComplete="new-password"
@@ -103,10 +105,10 @@ function ResetPasswordForm() {
                   minLength={8}
                   required
                 />
-                <p className="text-xs text-muted-foreground">8 أحرف على الأقل</p>
+                <p className="text-xs text-muted-foreground">{t("auth.reset.minHint")}</p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reset-confirm">تأكيد كلمة المرور</Label>
+                <Label htmlFor="reset-confirm">{t("auth.field.passwordConfirm")}</Label>
                 <PasswordInput
                   id="reset-confirm"
                   autoComplete="new-password"
@@ -136,7 +138,7 @@ function ResetPasswordForm() {
                 ) : (
                   <KeyRound className="h-4 w-4" aria-hidden="true" />
                 )}
-                {mutation.isPending ? "جارٍ الحفظ..." : "حفظ كلمة المرور الجديدة"}
+                {mutation.isPending ? t("auth.reset.saving") : t("auth.reset.saveCta")}
               </Button>
             </form>
           )}
@@ -148,7 +150,7 @@ function ResetPasswordForm() {
         className="inline-flex min-h-[44px] items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        العودة لتسجيل الدخول
+        {t("auth.reset.backToLogin")}
       </Link>
     </AuthShell>
   );
