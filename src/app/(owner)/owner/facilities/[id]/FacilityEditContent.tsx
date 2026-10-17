@@ -69,19 +69,34 @@ const prefersReduced = usePrefersReducedMotion();
   });
   const { register, handleSubmit, control, reset, setValue } = form;
 
-  /* بطاقة تحديد الموقع (لصق رابط خرائط قوقل / GPS / يدوي) — مزامنة مع النموذج:
-     اشتقاق بدل effect — القيمة المختارة إن وُجدت وإلا إحداثيات المتجر المخزنة */
+  /* بطاقة تحديد الموقع (لصق رابط خرائط قوقل / GPS / يدوي) — مزامنة مع النموذج.
+     ═══ إصلاح الجولة 45 (شكوى المالك في شاشة تعديل المتجر) ═══
+     كان الاشتقاق التفاعلي «pickerValue ?? إحداثيات المتجر المخزنة» يُعيد
+     القيمة المخزنة فورًا بعد «تحديث / إعادة التحديد» — ومزامنة الوضع داخل
+     المكوّن (قيمة موجودة + وضع choose → done) تُعيد بطاقة التأكيد فورًا،
+     فلا يستطيع التاجر ترك البطاقة ولا تحديد موقع جديد (المعاينة/التأكيد
+     والتعديل مستحيلان). الآن: بذرة واحدة عند تحميل بيانات المتجر (بذور
+     أثناء الرسم أدناه) والبطاقة تملك حالتها بعدها بحرية. */
   const [pickerValue, setPickerValue] = useState<StoreLocation | null>(null);
-  const effectivePickerValue: StoreLocation | null =
-    pickerValue ??
-    (facility?.latitude != null && facility?.longitude != null
-      ? { lat: facility.latitude, lng: facility.longitude, source: "map" }
-      : null);
+  const [seededFacilityId, setSeededFacilityId] = useState<number | null>(null);
   const handleLocationChange = (loc: StoreLocation | null) => {
     setPickerValue(loc);
     setValue("latitude", loc ? loc.lat : null);
     setValue("longitude", loc ? loc.lng : null);
   };
+
+  /* بذرة واحدة لبطاقة الموقع من الإحداثيات المخزنة — «ضبط الحالة أثناء
+     الرسم» النمط الرسمي (نفسه المستخدم داخل المكوّن)؛ بذر واحد لكل تحميل
+     بيانات، والبطاقة تملك حالتها بعدها بحرية (التحديث/الإلغاء/إعادة
+     التحديد تعمل دون أن تُعاد القيمة القديمة خلف ظهرها) */
+  if (facility && !isLoading && seededFacilityId !== facility.id) {
+    setSeededFacilityId(facility.id);
+    setPickerValue(
+      facility.latitude != null && facility.longitude != null
+        ? { lat: facility.latitude, lng: facility.longitude, source: "map" }
+        : null,
+    );
+  }
 
   // Populate form when data loads
   useEffect(() => {
@@ -310,7 +325,7 @@ const prefersReduced = usePrefersReducedMotion();
                     نفس بطاقة التسجيل (رابط مختصر/كامل + GPS + إدخال يدوي) */}
                 <div className="sm:col-span-2">
                   <StoreLocationPicker
-                    value={effectivePickerValue}
+                    value={pickerValue}
                     onChange={handleLocationChange}
                     mapReturnPath={`/owner/facilities/${facilityId}`}
                     idPrefix="facility-edit-loc"
