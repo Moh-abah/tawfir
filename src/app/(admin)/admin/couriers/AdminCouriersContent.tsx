@@ -588,7 +588,8 @@ function MonitorSection({
                 <OpenInMapsButton
                   lat={m.last_lat}
                   lng={m.last_lng}
-                  label={m.public_name ?? `مندوب #${m.courier_id}`}
+                  /* بلا تسمية — دبوس الإحداثيات الحرفي عند آخر موقع للمندوب
+                     (التسمية النصية تجعل قوقل يبحث عن اسم المندوب كنص) */
                   mode="view"
                   variant="ghost"
                   size="sm"

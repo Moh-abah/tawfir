@@ -15,7 +15,7 @@
 import { useSyncExternalStore, type ReactNode } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { externalMapUrl } from "@/lib/external-maps";
+import { externalMapUrl, externalMapViewFallback } from "@/lib/external-maps";
 import { haptic } from "@/lib/haptic";
 import { cn } from "@/lib/utils";
 
@@ -88,10 +88,4 @@ export function OpenInMapsButton({
       </a>
     </Button>
   );
-}
-
-/** رابط Google الثابت — للرسم الخادمي (بلا navigator) */
-function externalMapViewFallback(t: { lat: number; lng: number; label?: string }) {
-  const query = t.label ? `${encodeURIComponent(t.label)}` : `${t.lat},${t.lng}`;
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }

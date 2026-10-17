@@ -63,6 +63,39 @@ export function externalMapsNavUrl(target: ExternalMapTarget): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving`;
 }
 
+/** رابط Google الثابت — للرسم الخادمي (بلا navigator) */
+export function externalMapViewFallback(target: ExternalMapTarget): string {
+  const query = target.label
+    ? encodeURIComponent(target.label)
+    : `${target.lat},${target.lng}`;
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+/**
+ * رابط «فتح موقع المتجر» للعميل — يُفضّل صفحة المكان على الدبوس الحرفي
+ * (طلب المالك: «يفضل أن تظهر صفحة المطعم التي في الخريطة مع بيانات
+ * المطعم إذا كان مكتمل البيانات والصور في قوقل ماب»).
+ *
+ * بوجود الاسم: بحثٌ بالاسم داخل نطاقٍ ضيق (17z ≈ 200م) حول إحداثيات
+ * المتجر — فإن كان المطعم/الكافيه مسجلاً في قوقل ماب عرضت قوقل صفحة
+ * المكان كاملة (الاسم والصور والتقييمات وأزرار الاتصال)؛ وإن لم يكن
+ * عرضت نتائج قريبة من النقطة — كلاهما أفضل من دبوس إحداثيات صامت.
+ * بلا اسم: إسقاطٌ إلى دبوس الإحداثيات الحرفي كالسابق.
+ *
+ * محسوب بصيغة Google فقط (قابلة للرسم الخادمي حرفياً — بلا navigator
+ * لا خطر اختلاف hydration) — روابط google.com/maps تفتح تطبيق قوقل
+ * على أندرويد وعلى iOS عبر Universal Link، وتعمل على الويب دائماً.
+ */
+export function externalPlaceViewUrl(target: ExternalMapTarget): string {
+  const name = target.label?.trim();
+  if (!name) return externalMapViewFallback(target);
+  /* صيغة المسار الرسمية التي تولّدها قوقل نفسها عند البحث:
+     /maps/search/الاسم/@lat,lng,17z — تطبّق انحياز الموقع وتعرض صفحة المكان */
+  return `https://www.google.com/maps/search/${encodeURIComponent(
+    name,
+  )}/@${target.lat},${target.lng},17z`;
+}
+
 /** الرابط الموحّد حسب الوضع المطلوب */
 export function externalMapUrl(
   target: ExternalMapTarget,

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { externalPlaceViewUrl } from "@/lib/external-maps";
 import {
   Dialog,
   DialogContent,
@@ -688,8 +689,15 @@ const prefersReduced = usePrefersReducedMotion();
     );
   }
 
+  /* طلب المالك: زر «فتح في الخرائط» يُفضّل صفحة المكان الكاملة — بحث
+     باسم المتجر داخل نطاق إحداثياته (17z) فيعرض قوقل صفحة المطعم/المتجر
+     ببياناته وصوره من قوقل ماب إن كان مسجلاً هناك، وإلا نتائج قريبة */
   const googleMapsUrl = facility.latitude && facility.longitude
-    ? `https://www.google.com/maps/search/?api=1&query=${facility.latitude},${facility.longitude}`
+    ? externalPlaceViewUrl({
+        lat: facility.latitude,
+        lng: facility.longitude,
+        label: facility.name,
+      })
     : null;
 
   const allCategories = ["الكل", ...(categories ?? [])];

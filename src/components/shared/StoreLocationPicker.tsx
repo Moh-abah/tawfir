@@ -49,7 +49,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { haptic } from "@/lib/haptic";
 import { isNativePlatform } from "@/lib/capacitor";
-import { externalMapViewUrl } from "@/lib/external-maps";
+import {
+  externalMapViewUrl,
+  isAppleMapsPlatform,
+} from "@/lib/external-maps";
 import {
   getNativeLocationPosition,
   NativeLocationError,
@@ -78,9 +81,6 @@ export interface StoreLocationPickerProps {
 }
 
 /* ─── ثوابت وأدوات ─────────────────────────────────────────────── */
-
-/** مركز افتراضي عند فتح الخريطة (صنعاء القديمة) */
-const MAP_CENTER = { lat: 15.3694, lng: 44.1910 } as const;
 
 /** مفتاح مسودة الإحداثيات في sessionStorage (تُستعاد إن أُغلق التطبيق) */
 const DRAFT_KEY = "tawfir_store_location_draft";
@@ -176,6 +176,11 @@ export function StoreLocationPicker({
   /* رابط خرائط قوقل (طلب المالك): لصق الرابط → استخراج الموقع كاملاً */
   const [linkInput, setLinkInput] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
+  /* جارٍ جلب الموقع الحالي قبل فتح الخريطة (طلب المالك: افتحها على موقعي) */
+  const [mapOpening, setMapOpening] = useState(false);
+  /* منع النوافذ المنبثقة (انتهت تفعيلة النقر أثناء انتظار GPS) —
+     نعرض الرابط في بطاقة قابلة للنقر داخل المكوّن بدل الصمت */
+  const [mapFallbackUrl, setMapFallbackUrl] = useState<string | null>(null);
 
   /* التقاط الحافظة عند العودة من الخريطة (APK) */
   const captureArmedRef = useRef(false);
@@ -360,24 +365,90 @@ export function StoreLocationPicker({
     captureCleanupRef.current = cleanup;
   };
 
-  /** فتح تطبيق الخرائط عند مركز المدينة (Apple Maps على iOS · Google على غيره) */
+  /** فتح تطبيق الخرائط — على موقع المستخدم الحالي لا على مركز ثابت (شكوى
+   * المالك: «يوجهني دائماً إلى صنعاء ومفروض أن يفتح موقعي الحالي»):
+   * نجاح الموقع → مركز الخريطة عنده · فشله/رفضه → الخريطة العامة
+   * (تفتح على الأجهزة قرب آخر موقع معروف للمستخدم) مع إرشاد واضح. */
   const openExternalMap = (withCapture: boolean) => {
-    if (disabled) return;
+    if (disabled || mapOpening) return;
     haptic("light");
     saveDraft();
     if (withCapture) armReturnCapture();
-    const url = externalMapViewUrl({ ...MAP_CENTER, label: "صنعاء" });
-    try {
-      window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      /* فتحٌ محظور — إرشاد المستخدم أدناه */
-    }
-    toast({
-      title: "فتحنا الخريطة",
-      description:
-        "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
-    });
+    setMapOpening(true);
+    setMapFallbackUrl(null);
+    void (async () => {
+      const here = await getCurrentPositionLoose();
+      setMapOpening(false);
+      const url = here
+        ? externalMapViewUrl(here)
+        : isAppleMapsPlatform()
+          ? "https://maps.apple.com/"
+          : "https://www.google.com/maps/";
+      let opened: Window | null = null;
+      try {
+        opened = window.open(url, "_blank", "noopener,noreferrer");
+      } catch {
+        opened = null;
+      }
+      if (!opened) {
+        /* المتصفح منع النافذة (انتهت تفعيلة النقر أثناء انتظار الموقع) —
+           بطاقة رابط مباشرة داخل المكوّن بدل فشل صامت */
+        setMapFallbackUrl(url);
+        toast({
+          title: "منع المتصفح فتح الخريطة تلقائياً",
+          description: "اضغط الرابط الظاهر بالأسفل لفتح الخريطة",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast(
+        here
+          ? {
+              title: "فتحنا الخريطة على موقعك الحالي",
+              description:
+                "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
+            }
+          : {
+              title: "لم نستطع تحديد موقعك الحالي",
+              description:
+                "فتحنا الخريطة العامة — ابحث عن منطقة متجرك، اضغط مطولاً على موقعه وانسخ الإحداثيات",
+            },
+      );
+    })();
   };
+
+  /** جلب موضع تقريبي متسامح لتمركز الخريطة (بلا دقة عالية — مهلة قصيرة
+   * وكاش 5 دقائق يكفيان للتمركز) — يُرجع null عند أي فشل بدل الاستثناء */
+  function getCurrentPositionLoose(): Promise<{ lat: number; lng: number } | null> {
+    return new Promise((resolve) => {
+      /* APK (Capacitor): الإضافة الأصلية بلا نافذة دقة عالية */
+      if (isNativePlatform()) {
+        void (async () => {
+          try {
+            const pos = await getNativeLocationPosition({
+              enableHighAccuracy: false,
+              timeout: 8000,
+              maximumAge: 300000,
+            });
+            resolve(pos ? { lat: pos.lat, lng: pos.lng } : null);
+          } catch {
+            resolve(null);
+          }
+        })();
+        return;
+      }
+      /* الويب/PWA */
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => resolve(null),
+        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+      );
+    });
+  }
 
   /** تطبيق إحداثيات مستخرجة: تحقق ثم تعبئة الحقول مع توست نجاح */
   const applyParsedCoords = (parsed: { lat: number; lng: number }): boolean => {
@@ -574,11 +645,13 @@ export function StoreLocationPicker({
       ? "يبدو أن الإحداثيات معكوسة — خط العرض في اليمن بين 12 و19 وخط الطول بين 42 و54"
       : null;
 
-  /* رابط المعاينة: قبل التركيب Google (مطابق للـSSR) · بعده منصة الجهاز */
+  /* رابط المعاينة: قبل التركيب Google (مطابق للـSSR) · بعده منصة الجهاز.
+     بلا تسمية — الدبوس الحرفي عند الإحداثيات؛ التسمية النصية مثل
+     «موقع متجرك» تجعل قوقل يبحث عن الكلمات نفسها بدل إظهار النقطة */
   const viewUrl = value
     ? mounted
-      ? externalMapViewUrl({ lat: value.lat, lng: value.lng, label: "موقع متجرك" })
-      : googleViewFallback(value.lat, value.lng, "موقع متجرك")
+      ? externalMapViewUrl({ lat: value.lat, lng: value.lng })
+      : googleViewFallback(value.lat, value.lng)
     : "";
 
   /* زر الرجوع لاختيار طريقة أخرى */
@@ -781,32 +854,66 @@ export function StoreLocationPicker({
             <li>٤- ارجع هنا والصقها بضغطة واحدة</li>
           </ol>
 
-          {/* أزرار فتح الخريطة */}
+          {/* أزرار فتح الخريطة — تنتظر أولاً جلب الموقع الحالي (طلب المالك:
+              افتح الخريطة على موقعي لا على مركز ثابت) */}
           <div className="grid gap-2 sm:grid-cols-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => openExternalMap(false)}
-              disabled={disabled}
+              disabled={disabled || mapOpening}
               className="h-12 min-h-[44px] gap-2 rounded-xl font-bold native-tap"
-              aria-label="فتح تطبيق الخرائط لتحديد موقع المتجر"
+              aria-label="فتح تطبيق الخرائط على موقعك الحالي لتحديد موقع المتجر"
             >
-              <ExternalLink className="h-5 w-5" aria-hidden="true" />
-              افتح الخريطة
+              {mapOpening ? (
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <ExternalLink className="h-5 w-5" aria-hidden="true" />
+              )}
+              {mapOpening ? "جارٍ تحديد موقعك…" : "افتح الخريطة"}
             </Button>
             {isNativePlatform() && (
               <Button
                 type="button"
                 onClick={() => openExternalMap(true)}
-                disabled={disabled}
+                disabled={disabled || mapOpening}
                 className="h-12 min-h-[44px] gap-2 rounded-xl font-bold native-tap"
-                aria-label="فتح تطبيق الخرائط والتقاط الموقع تلقائياً عند العودة"
+                aria-label="فتح تطبيق الخرائط على موقعك الحالي والتقاط الموقع تلقائياً عند العودة"
               >
-                <MapPin className="h-5 w-5" aria-hidden="true" />
+                {mapOpening ? (
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <MapPin className="h-5 w-5" aria-hidden="true" />
+                )}
                 افتح الخريطة والتقط الموقع
               </Button>
             )}
           </div>
+
+          {/* منع النوافذ المنبثقة — رابط مباشر قابل للنقر (بديل الفشل الصامت) */}
+          {mapFallbackUrl && (
+            <div className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3">
+              <p className="text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                منع المتصفح فتح الخريطة تلقائياً — اضغط الزر لفتحها يدوياً:
+              </p>
+              <Button
+                asChild
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-11 gap-2 rounded-xl border-amber-500/50 font-bold"
+              >
+                <a
+                  href={mapFallbackUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                  افتح الخريطة الآن
+                </a>
+              </Button>
+            </div>
+          )}
 
           {/* ─── لصق رابط خرائط قوقل مباشرة (طلب المالك) ───
               افتح خرائط قوقل ← ابحث عن متجرك ← شارك ← نسخ الرابط —
@@ -1026,8 +1133,9 @@ export function StoreLocationPicker({
               </span>
             </span>
             <span className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              افتح تطبيق الخرائط، اضغط مطولاً على موقع متجرك، انسخ
-              الإحداثيات ثم ألصقها هنا
+              نفتح لك تطبيق الخرائط على موقعك الحالي — اضغط مطولاً على
+              موقع متجرك، انسخ الإحداثيات ثم ألصقها هنا (أو الصق رابط
+              متجرك من قوقل ماب مباشرة)
             </span>
             <span className="mt-3 inline-flex h-11 min-h-[44px] items-center justify-center gap-2 rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-xs transition-colors group-hover:bg-primary/90">
               <MapPin className="h-4 w-4" aria-hidden="true" />
