@@ -83,6 +83,13 @@ const STATIC: Partial<Record<NotificationType, NotificationMeta>> = {
     bgClass: "bg-teal-500/10",
     hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
   },
+  /* نوع حي مؤكد من الإنتاج (مندوب في الطريق) — كان غير موجودة فكان النقر ميّت */
+  order_courier_en_route: {
+    icon: Truck,
+    colorClass: "text-teal-500",
+    bgClass: "bg-teal-500/10",
+    hrefFor: (d, role = "customer") => ordersHrefFor(d, role),
+  },
   order_delivered: {
     icon: PartyPopper,
     colorClass: "text-emerald-500",
@@ -216,6 +223,13 @@ export function getNotificationHref(
     /* أنواع المندوب (task_*) ليست في الجدول — المندوب يذهب لمهامه */
     if (resolvedRole === "courier" && type?.startsWith("task_")) {
       return "/courier/tasks";
+    }
+    /* حارس المستقبل: أي نوع طلبات جديد يضيفه الباك إند لاحقاً يُوجَّه
+       لطلبات البوابة الصحيحة بدل نقرة ميتة (اختبار الرياض الحي أثبت
+       أن الخادم يرسل أنواعاً غير مدرجة كـ order_courier_en_route) */
+    if (type?.startsWith("order_")) {
+      const href = ordersHrefFor(data ?? null, resolvedRole);
+      if (!href.endsWith("/") && !href.includes("undefined")) return href;
     }
     return null;
   }

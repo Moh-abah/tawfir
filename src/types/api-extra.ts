@@ -34,6 +34,7 @@ export type NotificationType =
   | "order_confirmed"
   | "order_preparing"
   | "order_out_for_delivery"
+  | "order_courier_en_route"
   | "order_delivered"
   | "order_cancelled"
   | "membership_new_request"

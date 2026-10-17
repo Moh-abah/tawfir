@@ -6,11 +6,18 @@
  * متابعة التحويلات، والمتصفح لا يستطيع (CORS) — لذلك نتبعها هنا
  * خادمياً ونعيد الرابط النهائي الذي يحمل @lat,lng أو !3d!4d.
  *
+ * روابط «صفحة مكان» (مثل مشاركة مطعم) تنتهي برابط لا يحمل إحداثيات صراحة
+ * بل يحمل **رمز Plus Code** في اسم المكان (مثل PJCW+PJV) — نفكّه محلياً
+ * بخوارزمية OLC الرسمية (src/lib/plus-code.ts) مع مرجع المدينة من الرابط،
+ * ونعيد الإحداثيات + اسم المكان مع الرابط النهائي.
+ *
  * أمان:
  *  - http/https فقط، بلا مضيفات داخلية (SSRF guard)
  *  - مهلة 8 ثوانٍ + سقف حجم القراءة
  *  - نُتبع حتى 5 قفزات يدوياً لنلتقط الرابط النهائي حتماً
  */
+
+import { extractPlaceName, extractPlusCodeCoords } from "@/lib/plus-code";
 
 export const runtime = "nodejs";
 
@@ -113,5 +120,33 @@ export async function POST(req: Request) {
     /* مهلة/شبكة: نُرجع ما وصلنا إليه — قد يكون كافياً للتحليل */
   }
 
-  return Response.json({ finalUrl: current.toString() });
+  const finalUrl = current.toString();
+
+  /* استخراج الإحداثيات من الرابط النهائي نفسه (!3d!4d / @lat,lng / q=)
+     ثم Plus Code إن لم توجد (روابط صفحات الأماكن المشاركة) */
+  let lat: number | undefined;
+  let lng: number | undefined;
+  const m34 = finalUrl.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+  const mAt = finalUrl.match(/@(-?\d{1,2}\.\d+),(-?\d{1,3}\.\d+)/);
+  if (m34) {
+    lat = Number.parseFloat(m34[1]);
+    lng = Number.parseFloat(m34[2]);
+  } else if (mAt) {
+    lat = Number.parseFloat(mAt[1]);
+    lng = Number.parseFloat(mAt[2]);
+  }
+  if (
+    (lat === undefined || lng === undefined || !Number.isFinite(lat) || !Number.isFinite(lng))
+  ) {
+    const fromPlusCode = extractPlusCodeCoords(finalUrl);
+    if (fromPlusCode) {
+      lat = fromPlusCode.lat;
+      lng = fromPlusCode.lng;
+    }
+  }
+  if (lat === undefined || lng === undefined || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return Response.json({ finalUrl });
+  }
+
+  return Response.json({ finalUrl, lat, lng, name: extractPlaceName(finalUrl) });
 }

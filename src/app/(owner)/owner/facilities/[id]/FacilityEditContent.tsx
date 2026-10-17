@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StoreLocationPicker, type StoreLocation } from "@/components/shared/StoreLocationPicker";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/format";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
@@ -66,7 +67,21 @@ const prefersReduced = usePrefersReducedMotion();
       discount_hint: "",
     },
   });
-  const { register, handleSubmit, control, reset } = form;
+  const { register, handleSubmit, control, reset, setValue } = form;
+
+  /* بطاقة تحديد الموقع (لصق رابط خرائط قوقل / GPS / يدوي) — مزامنة مع النموذج:
+     اشتقاق بدل effect — القيمة المختارة إن وُجدت وإلا إحداثيات المتجر المخزنة */
+  const [pickerValue, setPickerValue] = useState<StoreLocation | null>(null);
+  const effectivePickerValue: StoreLocation | null =
+    pickerValue ??
+    (facility?.latitude != null && facility?.longitude != null
+      ? { lat: facility.latitude, lng: facility.longitude, source: "map" }
+      : null);
+  const handleLocationChange = (loc: StoreLocation | null) => {
+    setPickerValue(loc);
+    setValue("latitude", loc ? loc.lat : null);
+    setValue("longitude", loc ? loc.lng : null);
+  };
 
   // Populate form when data loads
   useEffect(() => {
@@ -289,6 +304,17 @@ const prefersReduced = usePrefersReducedMotion();
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="address">العنوان</Label>
                   <Input id="address" {...register("address")} />
+                </div>
+
+                {/* طلب المالك: لصق رابط خرائط قوقل يستخرج الموقع كاملاً —
+                    نفس بطاقة التسجيل (رابط مختصر/كامل + GPS + إدخال يدوي) */}
+                <div className="sm:col-span-2">
+                  <StoreLocationPicker
+                    value={effectivePickerValue}
+                    onChange={handleLocationChange}
+                    mapReturnPath={`/owner/facilities/${facilityId}`}
+                    idPrefix="facility-edit-loc"
+                  />
                 </div>
 
                 <div className="space-y-2">

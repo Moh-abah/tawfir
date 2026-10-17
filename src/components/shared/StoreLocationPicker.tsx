@@ -398,8 +398,10 @@ export function StoreLocationPicker({
     return true;
   };
 
-  /** حل رابط مختصر (maps.app.goo.gl) خادمياً عبر مسار الفرونت */
-  const resolveShortLink = async (url: string): Promise<string | null> => {
+  /** حل رابط مختصر (maps.app.goo.gl) خادمياً — يُعيد الرابط النهائي مع الإحداثيات/الاسم إن استُخرجت */
+  const resolveShortLink = async (
+    url: string,
+  ): Promise<{ finalUrl: string; lat?: number; lng?: number; name?: string | null } | null> => {
     try {
       const res = await fetch("/api/utils/resolve-map-link", {
         method: "POST",
@@ -407,8 +409,14 @@ export function StoreLocationPicker({
         body: JSON.stringify({ url }),
       });
       if (!res.ok) return null;
-      const data = (await res.json()) as { finalUrl?: string };
-      return data.finalUrl ?? null;
+      const data = (await res.json()) as {
+        finalUrl?: string;
+        lat?: number;
+        lng?: number;
+        name?: string | null;
+      };
+      if (!data.finalUrl) return null;
+      return { finalUrl: data.finalUrl, lat: data.lat, lng: data.lng, name: data.name };
     } catch {
       return null;
     }
@@ -426,11 +434,19 @@ export function StoreLocationPicker({
     try {
       let candidate = text;
       let parsed = extractCoordsFromMapLink(candidate);
+      let resolvedName: string | null = null;
       if (!parsed && looksLikeMapUrl(candidate)) {
-        const finalUrl = await resolveShortLink(candidate);
-        if (finalUrl) {
-          candidate = finalUrl;
+        const resolved = await resolveShortLink(candidate);
+        if (resolved) {
+          candidate = resolved.finalUrl;
           parsed = extractCoordsFromMapLink(candidate);
+          /* الخادم استخرج الإحداثيات بنفسه (Plus Code) — نستخدمها مباشرة */
+          if (!parsed && resolved.lat !== undefined && resolved.lng !== undefined) {
+            parsed = { lat: resolved.lat, lng: resolved.lng };
+            resolvedName = resolved.name ?? null;
+          } else if (parsed) {
+            resolvedName = resolved.name ?? null;
+          }
         }
       }
       if (!parsed) {
@@ -446,6 +462,12 @@ export function StoreLocationPicker({
         return;
       }
       applyParsedCoords(parsed);
+      if (resolvedName) {
+        toast({
+          title: "تم استخراج موقع متجرك",
+          description: resolvedName,
+        });
+      }
     } finally {
       setLinkBusy(false);
     }
@@ -471,11 +493,21 @@ export function StoreLocationPicker({
     }
     const parsed = extractCoordsFromMapLink(text);
     if (!parsed) {
-      /* الرابط المختصر بلا إحداثيات → حله خادمياً ثم حاول مرة أخرى */
+      /* الرابط المختصر بلا إحداثيات → حله خادمياً (قد يستخرجها من Plus Code) ثم حاول مرة أخرى */
       if (looksLikeMapUrl(text)) {
-        const finalUrl = await resolveShortLink(text);
-        const reparsed = finalUrl ? extractCoordsFromMapLink(finalUrl) : null;
-        if (reparsed && applyParsedCoords(reparsed)) return;
+        const resolved = await resolveShortLink(text);
+        const reparsed = resolved
+          ? extractCoordsFromMapLink(resolved.finalUrl) ??
+            (resolved.lat !== undefined && resolved.lng !== undefined
+              ? { lat: resolved.lat, lng: resolved.lng }
+              : null)
+          : null;
+        if (reparsed && applyParsedCoords(reparsed)) {
+          if (resolved?.name) {
+            toast({ title: "تم استخراج موقع متجرك", description: resolved.name });
+          }
+          return;
+        }
       }
       setCoordError(
         "لم أجد إحداثيات في الحافظة — الصق رابط الموقع من خرائط قوقل أو الإحداثيات بصيغة 15.3694, 44.1910",
