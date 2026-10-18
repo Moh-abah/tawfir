@@ -93,6 +93,12 @@ export interface StoreLocationPickerProps {
   mapReturnPath?: string;
   /** بادئة معرفات الحقول — تفادي تصادم DOM عند تعدد النماذج */
   idPrefix?: string;
+  /**
+   * (الجولة 49) يُستدعى عند جلب بيانات المتجر من قوقل ماب أو مسحها —
+   * ليملأ النموذج الأب حقوله تلقائياً (العنوان/هاتف المتجر) من بطاقة
+   * «وجدنا متجرك» بدل إعادة الكتابة اليدوية (طلب المالك الصريح).
+   */
+  onPlaceResolved?: (place: GooglePlaceData | null) => void;
 }
 
 /* ─── ثوابت وأدوات ─────────────────────────────────────────────── */
@@ -179,6 +185,7 @@ export function StoreLocationPicker({
   disabled = false,
   mapReturnPath = "/owner/register",
   idPrefix = "store-loc",
+  onPlaceResolved,
 }: StoreLocationPickerProps) {
   const [mode, setMode] = useState<PickerMode>(() => (value ? "done" : "choose"));
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -190,6 +197,12 @@ export function StoreLocationPicker({
   const [coordError, setCoordError] = useState<string | null>(null);
   /* بيانات المتجر المستخرجة من قوقل ماب (الجولة 48) — تُعرض في بطاقة */
   const [resolvedPlace, setResolvedPlace] = useState<GooglePlaceData | null>(null);
+
+  /* (الجولة 49) إشعار الأب ببيانات المكان لملء حقوله — effect واحد على
+     تغيّر الحالة (جلب جديد أو مسح)؛ الأب يقرر ماذا يملأ بشرط الفراغ */
+  useEffect(() => {
+    onPlaceResolved?.(resolvedPlace);
+  }, [resolvedPlace, onPlaceResolved]);
   /* رابط خرائط قوقل (طلب المالك): لصق الرابط → استخراج الموقع كاملاً */
   const [linkInput, setLinkInput] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
@@ -467,7 +480,14 @@ export function StoreLocationPicker({
     });
   }
 
-  /** تطبيق إحداثيات مستخرجة: تحقق ثم تعبئة الحقول مع توست نجاح */
+  /** تطبيق إحداثيات مستخرجة: تحقق ثم تعبئة الحقول + التطبيق الفوري.
+   *  ═══ إصلاح الجولة 49 (شكوى المالك الحرفية) ═══
+   *  كان الاستخراج من رابط الخرائط يملأ حقلي lat/lng الداخليين فقط
+   *  ويطلب ضغطة إضافية على «تأكيد الموقع» — فكان المالك يرى بطاقة
+   *  «وجدنا متجرك» ثم يضغط «حفظ التعديلات» مباشرة، فلا تصل الإحداثيات
+   *  للنموذج أبداً (نموذج التعديل يرسل null، والتسجيل لا يحفظ معلّقاً).
+   *  الآن: التطبيق فوري بنجاح الاستخراج (نفس مسار confirmCoords) —
+   *  لصق الرابط ← «وجدنا متجرك» ← الإحداثيات مضبوطة ← الحفظ يعمل. */
   const applyParsedCoords = (parsed: { lat: number; lng: number }): boolean => {
     const err = validateCoords(parsed.lat, parsed.lng);
     if (err) {
@@ -478,10 +498,13 @@ export function StoreLocationPicker({
     setCoordError(null);
     setLatInput(String(parsed.lat));
     setLngInput(String(parsed.lng));
-    haptic("tick");
+    haptic("success");
+    onChange({ lat: parsed.lat, lng: parsed.lng, accuracy: null, source: "map" });
+    setMode("done");
+    clearDraft();
     toast({
-      title: "تم استخراج موقع متجرك",
-      description: "راجعه ثم اضغط «تأكيد الموقع»",
+      title: "تم تحديد موقع متجرك",
+      description: "راجعه بصرياً عبر «عرض على الخريطة» ثم احفظ",
     });
     return true;
   };
@@ -747,6 +770,75 @@ export function StoreLocationPicker({
     </button>
   );
 
+  /* بطاقة بيانات المتجر الغنية من قوقل ماب — تُعرض في وضع الخريطة أسفل
+     حقل الرابط وفي وضع التأكيد (done) أيضاً: بعد التطبيق الفوري (الجولة
+     49) ينتقل الوضع تلقائياً لـdone فور اللصق، وبلا هذا الانتقال للبطاقة
+     المشتركة ستختفي «وجدنا متجرك» لحظة النجاح ويظن التاجر أن البيانات ضاعت */
+  const resolvedPlaceCard = resolvedPlace ? (
+    <div
+      role="status"
+      className="space-y-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3"
+    >
+      <p className="flex items-start gap-1.5 text-xs font-black text-foreground">
+        <CheckCircle2
+          className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+          aria-hidden="true"
+        />
+        <span>وجدنا متجرك في قوقل ماب: {resolvedPlace.name}</span>
+      </p>
+      {resolvedPlace.address && (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {resolvedPlace.address}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold text-muted-foreground">
+        {resolvedPlace.rating !== null && resolvedPlace.rating !== undefined && (
+          <span dir="ltr">★ {resolvedPlace.rating.toFixed(1)}</span>
+        )}
+        {resolvedPlace.reviewCount !== null &&
+          resolvedPlace.reviewCount !== undefined && (
+            <span className="tabular-nums">
+              {resolvedPlace.reviewCount} تعليقاً
+            </span>
+          )}
+        {resolvedPlace.category && <span>{resolvedPlace.category}</span>}
+        {resolvedPlace.phone && (
+          <span dir="ltr" className="tabular-nums">
+            {resolvedPlace.phone}
+          </span>
+        )}
+        {resolvedPlace.plusCode && (
+          <span dir="ltr" className="tabular-nums">
+            {resolvedPlace.plusCode}
+          </span>
+        )}
+      </div>
+      <p className="text-[10px] leading-relaxed text-muted-foreground/80">
+        فتح موقع متجرك من التطبيق سيعيد توجيه الزائر إلى هذا المتجر نفسه
+        في خرائط قوقل
+      </p>
+      {resolvedPlace.placeUrl && (
+        <Button
+          asChild
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5 rounded-lg border-emerald-500/40 text-[11px] font-bold"
+        >
+          <a
+            href={resolvedPlace.placeUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="فتح صفحة المتجر في خرائط قوقل للتأكد"
+          >
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            فتح صفحة المتجر في خرائط قوقل
+          </a>
+        </Button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-3">
       {mode === "done" && value ? (
@@ -809,6 +901,8 @@ export function StoreLocationPicker({
               </a>
             </Button>
           </div>
+          {/* بيانات المتجر من قوقل ماب — تبقى ظاهرة بعد التطبيق الفوري */}
+          {resolvedPlaceCard}
         </div>
       ) : mode === "gps" ? (
         /* ─── مسار GPS: التحميل والأخطاء والتعافي ─── */
@@ -1051,74 +1145,8 @@ export function StoreLocationPicker({
               نسخ الرابط — والصقه هنا وسنستخرج الموقع تلقائياً
             </p>
 
-            {/* ─── بطاقة بيانات المتجر من قوقل ماب (الجولة 48 — طلب المالك:
-                «يعرض بيانات متجري في قوقل ماب») ─── */}
-            {resolvedPlace && (
-              <div
-                role="status"
-                className="space-y-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3"
-              >
-                <p className="flex items-start gap-1.5 text-xs font-black text-foreground">
-                  <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
-                    aria-hidden="true"
-                  />
-                  <span>
-                    وجدنا متجرك في قوقل ماب: {resolvedPlace.name}
-                  </span>
-                </p>
-                {resolvedPlace.address && (
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    {resolvedPlace.address}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold text-muted-foreground">
-                  {resolvedPlace.rating !== null && resolvedPlace.rating !== undefined && (
-                    <span dir="ltr">★ {resolvedPlace.rating.toFixed(1)}</span>
-                  )}
-                  {resolvedPlace.reviewCount !== null &&
-                    resolvedPlace.reviewCount !== undefined && (
-                      <span className="tabular-nums">
-                        {resolvedPlace.reviewCount} تعليقاً
-                      </span>
-                    )}
-                  {resolvedPlace.category && <span>{resolvedPlace.category}</span>}
-                  {resolvedPlace.phone && (
-                    <span dir="ltr" className="tabular-nums">
-                      {resolvedPlace.phone}
-                    </span>
-                  )}
-                  {resolvedPlace.plusCode && (
-                    <span dir="ltr" className="tabular-nums">
-                      {resolvedPlace.plusCode}
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] leading-relaxed text-muted-foreground/80">
-                  فتح موقع متجرك من التطبيق سيعيد توجيه الزائر إلى هذا المتجر نفسه
-                  في خرائط قوقل
-                </p>
-                {resolvedPlace.placeUrl && (
-                  <Button
-                    asChild
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-1.5 rounded-lg border-emerald-500/40 text-[11px] font-bold"
-                  >
-                    <a
-                      href={resolvedPlace.placeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="فتح صفحة المتجر في خرائط قوقل للتأكد"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-                      فتح صفحة المتجر في خرائط قوقل
-                    </a>
-                  </Button>
-                )}
-              </div>
-            )}
+            {/* بيانات المتجر من قوقل ماب — نفس البطاقة المشتركة مع وضع التأكيد */}
+            {resolvedPlaceCard}
           </div>
 
           {/* إدخال الإحداثيات الدقيق */}

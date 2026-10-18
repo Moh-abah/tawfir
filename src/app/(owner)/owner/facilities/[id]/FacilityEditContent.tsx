@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { ArrowRight, MapPin, Loader2, Save, Check, Package, Eye, EyeOff, BadgeCheck, BadgePercent } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -36,7 +36,7 @@ export default function FacilityEditContent() {
   const params = useParams<{ id: string }>();
   const facilityId = Number(params.id);
   const router = useRouter();
-const prefersReduced = usePrefersReducedMotion();
+  const prefersReduced = usePrefersReducedMotion();
   const [showSuccess, setShowSuccess] = useState(false);
 
   /* v3.2.1 — نوع موسّع بحقلَي حرية التاجر من العقد الحي
@@ -98,9 +98,14 @@ const prefersReduced = usePrefersReducedMotion();
     );
   }
 
-  // Populate form when data loads
+  /* تعبئة النموذج عند التحميل — مرة واحدة لكل متجر (الجولة 49):
+     كانت إعادة الجلب (بعد أي إبطال كاش) تعيد reset بقيم الخادم القديمة
+     فتمسح ما اختاره التاجر من بطاقة الموقع لحظة حفظه — الآن البذر
+     الأول فقط، وقيم التاجر بعد ذلك مقدّسة حتى الحفظ */
+  const resetFacilityIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (facility) {
+    if (facility && resetFacilityIdRef.current !== facility.id) {
+      resetFacilityIdRef.current = facility.id;
       reset({
         name: facility.name,
         description: facility.description ?? "",
