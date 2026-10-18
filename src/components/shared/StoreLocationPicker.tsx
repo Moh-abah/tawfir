@@ -52,6 +52,7 @@ import { isNativePlatform } from "@/lib/capacitor";
 import {
   externalMapViewUrl,
   isAppleMapsPlatform,
+  isCanonicalPlaceUrl,
 } from "@/lib/external-maps";
 import {
   getNativeLocationPosition,
@@ -68,6 +69,11 @@ export interface StoreLocation {
   source: "gps" | "map";
   /** وصف/عنوان مختار من الخريطة إن توفر */
   label?: string;
+  /** (الجولة 50 — «صفحة المتجر ذاتها») رابط قوقل القانوني للمتجر
+   *  (?cid=…) كما عاد من محلّل الرابط — يُخزّن خادمياً في location_source
+   *  عند التسجيل فيفتح زر «افتح في الخرائط» صفحة المتجر نفسها لا نتائج
+   *  بحث (طلب المالك الصريح). */
+  placeUrl?: string | null;
 }
 
 /** بيانات المتجر كما استُخرجت من خرائط قوقل (الجولة 48 — طلب المالك:
@@ -488,7 +494,10 @@ export function StoreLocationPicker({
    *  للنموذج أبداً (نموذج التعديل يرسل null، والتسجيل لا يحفظ معلّقاً).
    *  الآن: التطبيق فوري بنجاح الاستخراج (نفس مسار confirmCoords) —
    *  لصق الرابط ← «وجدنا متجرك» ← الإحداثيات مضبوطة ← الحفظ يعمل. */
-  const applyParsedCoords = (parsed: { lat: number; lng: number }): boolean => {
+  const applyParsedCoords = (
+    parsed: { lat: number; lng: number },
+    placeUrl?: string | null,
+  ): boolean => {
     const err = validateCoords(parsed.lat, parsed.lng);
     if (err) {
       setCoordError(err);
@@ -499,7 +508,15 @@ export function StoreLocationPicker({
     setLatInput(String(parsed.lat));
     setLngInput(String(parsed.lng));
     haptic("success");
-    onChange({ lat: parsed.lat, lng: parsed.lng, accuracy: null, source: "map" });
+    /* (الجولة 50) الرابط القانوني يرافق الإحداثيات في الأعلى ليخزّنه
+       النموذج الأب في location_source عند التسجيل */
+    onChange({
+      lat: parsed.lat,
+      lng: parsed.lng,
+      accuracy: null,
+      source: "map",
+      placeUrl: placeUrl ?? null,
+    });
     setMode("done");
     clearDraft();
     toast({
@@ -607,7 +624,7 @@ export function StoreLocationPicker({
         });
         return;
       }
-      applyParsedCoords(parsed);
+      applyParsedCoords(parsed, resolved?.placeUrl ?? null);
       if (resolvedName) {
         toast({
           title: "تم استخراج موقع متجرك",
@@ -662,7 +679,7 @@ export function StoreLocationPicker({
               ? { lat: resolved.lat, lng: resolved.lng }
               : null)
           : null;
-        if (reparsed && applyParsedCoords(reparsed)) {
+        if (reparsed && applyParsedCoords(reparsed, resolved?.placeUrl ?? null)) {
           if (resolved?.name) {
             toast({ title: "تم استخراج موقع متجرك", description: resolved.name });
             /* بيانات المتجر الغنية من قوقل ماب (الجولة 48) */
@@ -716,7 +733,8 @@ export function StoreLocationPicker({
     }
     setCoordError(null);
     haptic("success");
-    onChange({ lat, lng, accuracy: null, source: "map" });
+    /* إدخال يدوي — بلا رابط قانوني (المصدر إحداثيات فقط) */
+    onChange({ lat, lng, accuracy: null, source: "map", placeUrl: null });
     setMode("done");
     clearDraft();
     toast({
@@ -750,10 +768,16 @@ export function StoreLocationPicker({
   /* رابط المعاينة: قبل التركيب Google (مطابق للـSSR) · بعده منصة الجهاز.
      بلا تسمية — الدبوس الحرفي عند الإحداثيات؛ التسمية النصية مثل
      «موقع متجرك» تجعل قوقل يبحث عن الكلمات نفسها بدل إظهار النقطة */
+  /* (الجولة 50) المعاينة تفضّل رابط المتجر القانوني حين توفر — يفتح
+     صفحة المتجر نفسها لا دبوساً حرفياً (نفس سلوك زر العميل) */
   const viewUrl = value
     ? mounted
-      ? externalMapViewUrl({ lat: value.lat, lng: value.lng })
-      : googleViewFallback(value.lat, value.lng)
+      ? value.placeUrl && isCanonicalPlaceUrl(value.placeUrl)
+        ? value.placeUrl
+        : externalMapViewUrl({ lat: value.lat, lng: value.lng })
+      : value.placeUrl && isCanonicalPlaceUrl(value.placeUrl)
+        ? value.placeUrl
+        : googleViewFallback(value.lat, value.lng)
     : "";
 
   /* زر الرجوع لاختيار طريقة أخرى */

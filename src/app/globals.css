@@ -1328,6 +1328,30 @@ html[data-native] .hide-in-standalone {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--cap-safe-bottom, 0px));
 }
 
+/* ═══ الجولة 50 — تلميح تمرير أفقي للشرائح ═══════════════════════
+   الشرائح القابلة للتمرير أفقياً (فلاتر الطلبات/شريط الإجماليات)
+   كانت تُقص فجأة عند الحافة فيبدو آخر عنصر مبتوراً عيباً — قناع
+   متدرّج على الحافتين يوحي بوجود المزيد. أثره محصور بالموبايل/التابلت
+   (أقل من lg) كي لا تبهت حواف الشبكات على الديسكتوب. */
+@media (max-width: 1023px) {
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 14px,
+      #000 calc(100% - 14px),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to left,
+      transparent 0,
+      #000 14px,
+      #000 calc(100% - 14px),
+      transparent 100%
+    );
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    سلوك Native على اللمس (YouTube / Netflix style)
    ═══════════════════════════════════════════════════════════════ */

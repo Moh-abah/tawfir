@@ -57,24 +57,26 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/60 bg-card p-4 shadow-soft",
+        /* الجولة 50 — كثافة موبايل: كانت عموداً واحداً (4 بطاقات × ~120px
+           = شاشة كاملة قبل أي محتوى) — الآن 2×2 مضغوطة كالنمط الأصلي */
+        "rounded-2xl border border-border/60 bg-card p-3 shadow-soft sm:p-4",
         className
       )}
     >
       <div className="flex items-center gap-2">
         <span
           className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-full sm:h-8 sm:w-8",
             TONE_CHIP[tone]
           )}
         >
-          <Icon className="h-4 w-4" aria-hidden="true" />
+          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
         </span>
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="truncate text-[11px] font-medium text-muted-foreground sm:text-xs">{label}</p>
       </div>
-      <div className="mt-2.5">{children}</div>
+      <div className="mt-1.5 sm:mt-2.5">{children}</div>
       {hint && (
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/80">
+        <p className="mt-1 hidden text-[11px] leading-relaxed text-muted-foreground/80 sm:block">
           {hint}
         </p>
       )}
@@ -270,8 +272,8 @@ function CardBody({
         </div>
       )}
 
-      {/* ═══ شبكة البطاقات ═══ */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {/* ═══ شبكة البطاقات — 2×2 مضغوطة موبايلاً (الجولة 50) ═══ */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-3">
         {/* الذمة القائمة — amber إن > 0، success إن 0 */}
         <StatCard
           icon={Wallet}
@@ -287,7 +289,7 @@ function CardBody({
             amount={card.outstanding_debt}
             currency={card.currency}
             strong
-            className={cn("text-xl", TONE_VALUE[debtTone])}
+            className={cn("text-lg sm:text-xl", TONE_VALUE[debtTone])}
           />
         </StatCard>
 
@@ -297,7 +299,7 @@ function CardBody({
             amount={card.accumulated_commissions}
             currency={card.currency}
             strong
-            className="text-xl text-foreground"
+            className="text-lg sm:text-xl text-foreground"
           />
         </StatCard>
 
@@ -312,7 +314,7 @@ function CardBody({
             amount={card.paid_total}
             currency={card.currency}
             strong
-            className="text-xl text-success"
+            className="text-lg sm:text-xl text-success"
           />
         </StatCard>
 
@@ -330,7 +332,7 @@ function CardBody({
           <p
             dir="ltr"
             className={cn(
-              "text-xl font-extrabold tabular-nums",
+              "text-lg sm:text-xl font-extrabold tabular-nums",
               Number(card.pending_notifications) > 0
                 ? "text-amber-700 dark:text-amber-300"
                 : "text-foreground"
@@ -352,7 +354,7 @@ function CardBody({
               amount={card.debt_cap}
               currency={card.currency}
               strong
-              className="text-xl text-foreground"
+              className="text-lg sm:text-xl text-foreground"
             />
           </StatCard>
         )}

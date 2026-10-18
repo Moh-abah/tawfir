@@ -30,8 +30,49 @@ import type { Facility } from "@/types/api.generated";
  * قديم — يُمسح فقط)، ولا يعمل إلا بتوكن حي.
  */
 
-/** نفس مفتاح شاشة التسجيل — مصدر الحقيقة الوحيد بين الشاشتين */
+/** مفتاح المعلّق — مصدر الحقيقة بين شاشة التسجيل والهوك */
 export const PENDING_LOCATION_KEY = "tawfir_owner_pending_location";
+
+/**
+ * (الجولة 50) مفتاح بذور «صفحة المتجر ذاتها» — خريطة {facilityId: رابط
+ * قوقل القانوني ?cid=…} يكتبها شاشة التسجيل عند النجاح، ويرفعها هذا
+ * الهوك للخادم عند كل دخول (تحقق ملكية خادمياً) فيجدد سجل زر
+ * «افتح في الخرائط» — رفع البذرة لا يفشل الدخول أبداً (تحسين صامت).
+ */
+const PLACE_SEEDS_KEY = "tawfir_owner_place_seeds";
+
+function readPlaceSeeds(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(PLACE_SEEDS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** رفع بذور الصفحات القانونية — الأدق أولاً: رابط المتجر نفسه لا بحث */
+function seedPlaceUrls(
+  accessToken: string,
+  ownedIds: Set<number>,
+): void {
+  const seeds = readPlaceSeeds();
+  for (const [idStr, url] of Object.entries(seeds)) {
+    const id = Number(idStr);
+    if (!Number.isInteger(id) || !ownedIds.has(id)) continue;
+    if (!/^https:\/\/[^\s|]*google\.com\/maps/.test(url)) continue;
+    void fetch("/api/utils/place-page", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ facility_id: id, place_url: url }),
+    }).catch(() => {
+      /* تحسين صامت — الزر يسقط للبحث الذكي حتى الدخول التالي */
+    });
+  }
+}
 
 interface PendingLocation {
   lat: number;
@@ -103,6 +144,14 @@ export function useApplyPendingLocation(): PendingLocationState {
     if (!hydrated || !accessToken || !facilitiesLoaded) return;
     if (attemptedRef.current) return;
     attemptedRef.current = true;
+
+    /* ═══ (الجولة 50) تجديد بذور «صفحة المتجر ذاتها» عند كل دخول ═══
+       يرفع روابط ?cid=… المحلية لسجل الخادم (تحقق ملكية خادمياً) —
+       فيبقى زر «افتح في الخرائط» يفتح صفحة المتجر نفسها لا نتائج بحث */
+    seedPlaceUrls(
+      accessToken,
+      new Set((facilities ?? []).map((f) => f.id)),
+    );
 
     const pending = readPendingLocation();
     if (!pending) return; // لا معلّق — الحالة الطبيعية لمعظم الدخولات

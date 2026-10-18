@@ -13,7 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { externalPlaceViewUrl } from "@/lib/external-maps";
+import {
+  externalPlaceViewUrl,
+  extractStoredPlaceUrl,
+} from "@/lib/external-maps";
 import {
   Dialog,
   DialogContent,
@@ -448,6 +451,42 @@ const prefersReduced = usePrefersReducedMotion();
   const memberRate = me.data?.membership?.discount_rate ?? 0;
   const hasMemberDiscount = isMember && memberRate > 0;
 
+  /* ═══ الجولة 50 — زر «افتح في الخرائط» يفتح صفحة المتجر ذاتها ═══
+     (طلب المالك: «يوجهني إلى صفحة المطعم ذاتها التي قام التاجر بإضافة
+     رابط متجره من قوقل ماب» — لا نتائج بحث كثيرة).
+     سلسلة الدقة:
+      1) رابط المتجر القانوني المُخزّن خادمياً في location_source عند
+         التسجيل (map|https://maps.google.com/?cid=…) — فوري بلا نداء.
+      2) سجل الصفحات المبذور من التاجر (ذاكرة خادمية أسبوعية) — للمتاجر
+         الأقدم؛ نداء واحد خفيف عند غياب (1).
+      3) البحث بالاسم داخل نطاق إحداثيات المتجر (السلوك السابق). */
+  const storedPlaceUrl = useMemo(
+    () => extractStoredPlaceUrl(facility?.location_source),
+    [facility?.location_source],
+  );
+  const [seededPlace, setSeededPlace] = useState<{ id: number; url: string } | null>(
+    null,
+  );
+  /* حارس المعرف: سجل متجر آخر لا يتسرب لهذا الزر عند تنقل داخل القائمة */
+  const seededPlaceUrl =
+    seededPlace && seededPlace.id === facilityId ? seededPlace.url : null;
+  useEffect(() => {
+    if (storedPlaceUrl || !facility?.id) return;
+    let alive = true;
+    const id = facility.id;
+    fetch(`/api/utils/place-page?facility_id=${id}`)
+      .then((r) => (r.ok ? (r.json() as Promise<{ placeUrl?: string }>) : null))
+      .then((d) => {
+        if (alive && d?.placeUrl) setSeededPlace({ id, url: d.placeUrl });
+      })
+      .catch(() => {
+        /* بلا سجل — يبقى البحث الذكي */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [facility?.id, storedPlaceUrl]);
+
   /* إصلاح الأداء (صفحات المتاجر الكبيرة): كانت الشبكة تعرض كل المنتجات
      دفعة واحدة مع stagger حركة لكل كارت — على متجر بـ100 منتج = 100 كارت
      + 100 طلب تقييم + 100 أنيميشن في أول طلاء = تهنيج على الجوال.
@@ -689,16 +728,19 @@ const prefersReduced = usePrefersReducedMotion();
     );
   }
 
-  /* طلب المالك: زر «فتح في الخرائط» يُفضّل صفحة المكان الكاملة — بحث
-     باسم المتجر داخل نطاق إحداثياته (17z) فيعرض قوقل صفحة المطعم/المتجر
-     ببياناته وصوره من قوقل ماب إن كان مسجلاً هناك، وإلا نتائج قريبة */
-  const googleMapsUrl = facility.latitude && facility.longitude
-    ? externalPlaceViewUrl({
-        lat: facility.latitude,
-        lng: facility.longitude,
-        label: facility.name,
-      })
-    : null;
+  /* ═══ الجولة 50 — رابط زر «افتح في الخرائط» بسلسلة الدقة أعلاه ═══
+     رابط المتجر القانوني (المُخزّن أو المبذور) → البحث بالاسم والإحداثيات
+     → (داخل externalPlaceViewUrl) دبوس الإحداثيات بلا اسم. */
+  const googleMapsUrl =
+    storedPlaceUrl ??
+    seededPlaceUrl ??
+    (facility.latitude && facility.longitude
+      ? externalPlaceViewUrl({
+          lat: facility.latitude,
+          lng: facility.longitude,
+          label: facility.name,
+        })
+      : null);
 
   const allCategories = ["الكل", ...(categories ?? [])];
   const hasNoProductsAndNoCategories = !products?.length && !categories?.length;

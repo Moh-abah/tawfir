@@ -16,6 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreLocationPicker, type StoreLocation } from "@/components/shared/StoreLocationPicker";
+import { isCanonicalPlaceUrl } from "@/lib/external-maps";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/format";
 import { ImageWithSkeleton } from "@/components/shared/ImageWithSkeleton";
@@ -36,6 +38,7 @@ export default function FacilityEditContent() {
   const params = useParams<{ id: string }>();
   const facilityId = Number(params.id);
   const router = useRouter();
+  const { toast } = useToast();
 const prefersReduced = usePrefersReducedMotion();
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -83,6 +86,45 @@ const prefersReduced = usePrefersReducedMotion();
     setPickerValue(loc);
     setValue("latitude", loc ? loc.lat : null);
     setValue("longitude", loc ? loc.lng : null);
+    /* ═══ الجولة 50 — «صفحة المتجر ذاتها» للمتاجر الأقدم ═══
+       تحديث PUT للملك يسقط location_source (أُثبت حياً) — حين يعيد
+       التاجر حلّ رابطه هنا نُبذر الصفحة القانونية في سجل الخادم
+       /api/utils/place-page (تحقق ملكية بالتوكن خادمياً) فيفتح زر
+       «افتح في الخرائط» في صفحة العميل صفحة المتجر نفسها 7 أيام
+       (قابلة لإعادة البذر بكل تحديث موقع) — طلب المالك. */
+    if (loc?.placeUrl && isCanonicalPlaceUrl(loc.placeUrl)) {
+      const token = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("tawfir_owner_token="))
+        ? decodeURIComponent(
+            (document.cookie
+              .split("; ")
+              .find((c) => c.startsWith("tawfir_owner_token=")) ?? "").split("=")[1],
+          )
+        : null;
+      fetch("/api/utils/place-page", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          facility_id: facilityId,
+          place_url: loc.placeUrl,
+        }),
+      })
+        .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+        .then(() =>
+          toast({
+            title: "سنعتمد رابط متجرك في الخرائط",
+            description:
+              "زر «افتح في الخرائط» للعملاء سيفتح صفحة متجرك نفسها في قوقل ماب",
+          }),
+        )
+        .catch(() => {
+          /* البذر تحسين لا شرط — الإحداثيات تُحفظ كالمعتاد */
+        });
+    }
   };
 
   /* بذرة واحدة لبطاقة الموقع من الإحداثيات المخزنة — «ضبط الحالة أثناء

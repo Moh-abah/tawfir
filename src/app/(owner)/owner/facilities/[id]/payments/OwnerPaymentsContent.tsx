@@ -73,15 +73,18 @@ function SummaryCard({
   tone?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border bg-card p-3.5">
-      <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", tone)}>
-        <Icon className="h-5 w-5" aria-hidden="true" />
+    /* الجولة 50 — موبايلاً: شريط أفقي snap تمرّده الإبهام (كانت شبكة
+       2×4 بثمانية بطاقات تملأ الشاشة قبل أي سجل مع نصوص مقصوصة
+       «إجمالي م…») — وديسكتوباً تبقى شبكة 4 كما هي */
+    <div className="flex w-[45%] shrink-0 snap-start items-center gap-2 rounded-2xl border bg-card p-2.5 sm:w-auto sm:gap-3 sm:p-3.5 lg:w-auto">
+      <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11", tone)}>
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
       </span>
       <div className="min-w-0">
-        <p dir="ltr" className="truncate text-lg font-black leading-tight tabular-nums text-foreground">
+        <p dir="ltr" className="truncate text-base font-black leading-tight tabular-nums text-foreground sm:text-lg">
           {typeof value === "number" ? value.toLocaleString("en-US") : value}
         </p>
-        <p className="truncate text-[11px] font-medium text-muted-foreground">{label}</p>
+        <p className="line-clamp-2 text-[11px] font-medium leading-snug text-muted-foreground">{label}</p>
         {sub && <p className="truncate text-[10px] text-muted-foreground/80">{sub}</p>}
       </div>
     </div>
@@ -182,9 +185,9 @@ export default function OwnerPaymentsContent() {
 
         {/* الإجماليات */}
         {paymentsQuery.isLoading ? (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="flex gap-2.5 overflow-hidden lg:grid lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-20 rounded-2xl" />
+              <Skeleton key={i} className="h-20 w-[45%] shrink-0 rounded-2xl lg:w-auto" />
             ))}
           </div>
         ) : paymentsQuery.isError ? (
@@ -199,7 +202,8 @@ export default function OwnerPaymentsContent() {
           />
         ) : summary ? (
           <section aria-label="إجماليات المدفوعات" className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {/* الجولة 50 — شريط snap أفقي موبايلاً · شبكة 4 أعمدة ديسكتوباً */}
+            <div className="scroll-area-thin scroll-fade-x -mx-4 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:snap-none lg:grid-cols-4 lg:overflow-visible lg:px-0">
               <SummaryCard
                 icon={Wallet}
                 label="إجمالي طلبات المحافظ"

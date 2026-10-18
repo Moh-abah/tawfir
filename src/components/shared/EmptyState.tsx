@@ -37,7 +37,10 @@ export function EmptyState({
   image = identityUrl("/identity/tawfir-empty-state-480.png"),
 }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 px-4 py-16">
+    /* الجولة 50 — كثافة موبايل: كانت py-16 + رسمة 148px تدفع الحالة
+       الفارغة تحت الشريط السفلي الثابت فتُبتر الرسمة (= «شريط أسود»
+       يظنه المستخدم خللاً) — الآن مضغوطة أعلى الطية على الموبايل */
+    <div className="flex flex-col items-center justify-center gap-2.5 px-4 py-10 sm:gap-3 sm:py-16">
       {image ? (
         <div className="relative" aria-hidden="true">
           <span className="glow-emerald absolute -inset-6 rounded-full" />
@@ -48,7 +51,7 @@ export function EmptyState({
             height={480}
             draggable={false}
             unoptimized
-            className="h-auto w-[148px] select-none object-contain opacity-90 sm:w-[168px]"
+            className="h-auto w-[116px] select-none object-contain opacity-90 sm:w-[168px]"
           />
           {/* الأيقونة الأصلية كشارة أسفل الرسمة — تُبقي دلالة الاستخدام */}
           <span className="absolute -bottom-1 -end-1 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-card shadow-soft">

@@ -71,6 +71,56 @@ export function externalMapViewFallback(target: ExternalMapTarget): string {
   return `https://www.google.com/maps/search/?api=1&query=${query}`;
 }
 
+/* ════════════════════════════════════════════════════════════════
+   الجولة 50 — «صفحة المتجر ذاتها» (طلب المالك الصريح)
+   ════════════════════════════════════════════════════════════════
+   شكوى المالك: زر «افتح في الخرائط» يبحث باسم المطعم فيظهر لعميله
+   **نتائج بحث كثيرة**، والمطلوب أن يفتح **صفحة المطعم نفسها** التي
+   أضاف التاجر رابطها من قوقل ماب عند التسجيل — لا نمط بديل ولا ترقيع.
+
+   السلسلة المرجعية المعتمدة (الأدق أولاً):
+   1) رابط المكان القانوني `https://maps.google.com/?cid=<CID>` —
+      يُلتقط من رابط التاجر عند التسجيل (محلّل resolve-map-link ينتج
+      finalUrl بهذه الصيغة حين يتعرف على المكان) ويُخزَّن داخل حقل
+      `location_source` الخادمي بصيغة `map|<الرابط>` — حقل نصّي حر
+      يقبله الخادم حرفياً في OwnerRegister ولا يوجد له مستهلك آخر.
+   2) `resolve-place-page` — محلّلنا الخادمي للمتاجر الأقدم (سُجّلت
+      قبل الجولة 50 بلا رابط مخزّن): يجد صفحة المكان بالاسم قرب
+      الإحداثيات ويخزّنها في ذاكرة الخادم.
+   3) البحث بالاسم داخل نطاق الإحداثيات (17z) — السلوك السابق.
+   4) دبوس الإحداثيات الصامت.
+ */
+
+/** هل الرابط صفحة مكان قانونية تفتح المتجر نفسه؟ (?cid= أو /place/) */
+export function isCanonicalPlaceUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return (
+    url.includes("maps.google.com/?cid=") ||
+    url.includes("google.com/maps?cid=") ||
+    url.includes("google.com/maps/place/")
+  );
+}
+
+/**
+ * استخراج رابط صفحة المتجر القانوني من قيمة `location_source` الخادمية.
+ * الصيغة المتفق عليها: `map|https://maps.google.com/?cid=…` — وأي رابط
+ * قوقل ماب حر في النص يُقبل أيضاً (تحمّل للصيغ القديمة)؛ بلا رابط → null.
+ */
+export function extractStoredPlaceUrl(
+  locationSource: string | null | undefined,
+): string | null {
+  if (!locationSource) return null;
+  const m = locationSource.match(/https?:\/\/[^\s|<>"]+/);
+  if (!m) return null;
+  const url = m[0];
+  /* نُقبل روابط قوقل ماب فقط — لا فتح أرbitrary URLs من حقل المستخدم */
+  return /(^https?:\/\/)?((www|maps)\.)?(google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|plus\.codes)/i.test(
+    url,
+  )
+    ? url
+    : null;
+}
+
 /**
  * رابط «فتح موقع المتجر» للعميل — يُفضّل صفحة المكان على الدبوس الحرفي
  * (طلب المالك: «يفضل أن تظهر صفحة المطعم التي في الخريطة مع بيانات

@@ -42,6 +42,15 @@ export interface OwnerRegisterInput {
   phone_facility?: string | null;
   working_hours?: string | null;
   image_url?: string | null;
+  /**
+   * الجولة 50 — مصدر موقع المتجر (حقل نصّي حر يقبه OwnerRegister):
+   *  - "gps" — زر «أنا داخل المتجر»
+   *  - "map" — إحداثيات ملصوقة من الخريطة
+   *  - "map|<رابط قوقل القانوني ?cid=…>" — التاجر أضاف رابط متجره من
+   *    قوقل ماب فتُخزَّن **صفحة المتجر ذاتها** ويفتحها زر «افتح في
+   *    الخرائط» في صفحة العميل مباشرة (لا نتائج بحث) — طلب المالك.
+   */
+  location_source?: string | null;
   /** نسبة الخصم لعضوية توفير (10-30) — الجولة 3 */
   discount_rate?: number;
 }

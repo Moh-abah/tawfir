@@ -62,6 +62,7 @@ import {
   type GooglePlaceData,
   type StoreLocation,
 } from "@/components/shared/StoreLocationPicker";
+import { isCanonicalPlaceUrl } from "@/lib/external-maps";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { useOwnerRegister, parseRegisterError } from "@/hooks/useOwnerRegister";
 import { useRequestOtp } from "@/hooks/useRequestOtp";
@@ -900,11 +901,19 @@ export default function OwnerRegisterPage() {
         : null,
       working_hours: values.working_hours?.trim() || null,
       image_url: values.image_url?.trim() || null,
+      /* ═══ الجولة 50 — «صفحة المتجر ذاتها» (طلب المالك الصريح) ═══
+         الباك اند يقبل location_source بنمط صارم ^(gps|map)$ (أُثبت حياً
+         422 string_pattern_mismatch) — فلا يركب الرابط هنا. بدل ذلك:
+         رابط الصفحة القانوني ?cid=… يُخزّن محلياً كبذرة (persistPlaceSeed)
+         ويرفعه الهوك الموثّق عند أول تسجيل دخول إلى سجل /api/utils/place-page
+         ليفتح زر «افتح في الخرائط» صفحة المتجر نفسها للعملاء. */
+      location_source: location ? location.source : null,
       discount_rate: values.discount_rate,
     };
     register.mutate(payload, {
       onSuccess: (result) => {
         persistPendingLocation();
+        persistPlaceSeed(result.facility_id);
         setSuccessResult(result);
         setOtpStage(null);
       },
@@ -920,8 +929,31 @@ export default function OwnerRegisterPage() {
     });
   }
 
+  /* ═══ الجولة 50 — بذرة «صفحة المتجر ذاتها» (تخزين محلي) ═══
+     رابط المتجر القانوني ?cid=… يُحفظ هنا عند نجاح التسجيل، والهوك
+     الموثّق (useApplyPendingLocation) يرفعه لسجل الخادم عند أول دخول
+     (تحقق ملكية بالتوكن خادمياً) — الباك اند يسقط location_source في
+     التحديث (أُثبت حياً) فهذا هو المسار الموثّق الوحيد. يُعاد الرفع
+     عند كل دخول لاحق فيجدد نافذة السجل الأسبوعية تلقائياً. */
+  const PLACE_SEEDS_KEY = "tawfir_owner_place_seeds";
+  function persistPlaceSeed(facilityId: number) {
+    if (typeof window === "undefined") return;
+    const url = location?.placeUrl;
+    if (!url || !isCanonicalPlaceUrl(url) || !Number.isFinite(facilityId)) return;
+    try {
+      const raw = window.localStorage.getItem(PLACE_SEEDS_KEY);
+      const seeds = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      seeds[String(facilityId)] = url;
+      window.localStorage.setItem(PLACE_SEEDS_KEY, JSON.stringify(seeds));
+    } catch {
+      /* تخزين معطّل — الزر يسقط للبحث الذكي */
+    }
+  }
+
   /* حفظ الإحداثيات محلياً — ترتفع للباك اند تلقائياً بعد أول تسجيل دخول
-     (الجولة 49: localStorage بدل sessionStorage — يصمد لإغلاق التبويب) */
+     (الجولة 49: localStorage بدل sessionStorage — يصمد لإغلاق التبويب)
+     (الجولة 50: يرافقها رابط صفحة المتجر القانوني إن وُجد — تُبذر في
+     سجل الخادم عند أول دخول عبر الهوك — انظر persistPlaceSeed) */
   function persistPendingLocation() {
     if (!location || typeof window === "undefined") return;
     try {
@@ -932,6 +964,7 @@ export default function OwnerRegisterPage() {
           lng: location.lng,
           source: location.source,
           label: location.label ?? null,
+          placeUrl: location.placeUrl ?? null,
           savedAt: Date.now(),
           /* الجولة 49 — توقيع المتجر: يمنع تطبيق إحداثيات متجر ثانٍ
              (سُجّل لاحقاً من المتصفح نفسه) على المتجر الأول عند تعدد

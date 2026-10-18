@@ -735,7 +735,7 @@ export default function OwnerOrdersContent() {
       <div className="flex flex-col gap-3">
         {/* Filter chips — horizontally scrollable on mobile */}
         <div
-          className="scroll-area-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          className="scroll-area-thin scroll-fade-x -mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
           role="tablist"
           aria-label="تصفية الطلبات حسب الحالة"
         >
