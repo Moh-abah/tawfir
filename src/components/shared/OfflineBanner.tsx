@@ -70,6 +70,18 @@ export function OfflineBanner() {
     };
   }, [goOnline, goOffline]);
 
+  /* تحصين (جولة 47): بعض البيئات — ويب-فيو ضعيف الشبكة أو انقطاع لحظي أثناء
+     إقلاع الصفحة — تُطلق حدث offline ثم يعود الاتصال دون حدث online مقابل،
+     فتعلق الشريحة مزيفة والمتصفح متصل فعلاً (مُثبت حياً على النشر).
+     نبض تحقق خفيف كل 4ث: إن كان المتصفح متصلاً والحالة عالقة → استعادة.
+     goOnline صامتة إن لم تكن الحالة offline — تكلفة صفرية بلا سلوك جديد. */
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (navigator.onLine) goOnline();
+    }, 4000);
+    return () => clearInterval(id);
+  }, [goOnline]);
+
   const isOffline = bannerState === "offline";
   const isRestored = bannerState === "restored";
 

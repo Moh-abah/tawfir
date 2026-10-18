@@ -70,6 +70,21 @@ export interface StoreLocation {
   label?: string;
 }
 
+/** بيانات المتجر كما استُخرجت من خرائط قوقل (الجولة 48 — طلب المالك:
+ *  «مفروض الحساب يعمل ويعرض بيانات متجري في قوقل ماب») */
+export interface GooglePlaceData {
+  name: string;
+  address?: string | null;
+  phone?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  website?: string | null;
+  category?: string | null;
+  plusCode?: string | null;
+  /** رابط قوقل القانوني للمتجر (?cid=…) — يفتح نفس المتجر حتماً */
+  placeUrl?: string | null;
+}
+
 export interface StoreLocationPickerProps {
   value: StoreLocation | null;
   onChange: (loc: StoreLocation | null) => void;
@@ -173,6 +188,8 @@ export function StoreLocationPicker({
   const [latInput, setLatInput] = useState("");
   const [lngInput, setLngInput] = useState("");
   const [coordError, setCoordError] = useState<string | null>(null);
+  /* بيانات المتجر المستخرجة من قوقل ماب (الجولة 48) — تُعرض في بطاقة */
+  const [resolvedPlace, setResolvedPlace] = useState<GooglePlaceData | null>(null);
   /* رابط خرائط قوقل (طلب المالك): لصق الرابط → استخراج الموقع كاملاً */
   const [linkInput, setLinkInput] = useState("");
   const [linkBusy, setLinkBusy] = useState(false);
@@ -188,7 +205,7 @@ export function StoreLocationPicker({
 
   /* كاشف التركيب (SSR-safe) — لاكتشاف منصة الخرائط بعد التركيب */
   const mounted = useSyncExternalStore(
-    () => () => {},
+    () => () => { },
     () => true,
     () => false,
   );
@@ -404,15 +421,15 @@ export function StoreLocationPicker({
       toast(
         here
           ? {
-              title: "فتحنا الخريطة على موقعك الحالي",
-              description:
-                "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
-            }
+            title: "فتحنا الخريطة على موقعك الحالي",
+            description:
+              "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
+          }
           : {
-              title: "لم نستطع تحديد موقعك الحالي",
-              description:
-                "فتحنا الخريطة العامة — ابحث عن منطقة متجرك، اضغط مطولاً على موقعه وانسخ الإحداثيات",
-            },
+            title: "لم نستطع تحديد موقعك الحالي",
+            description:
+              "فتحنا الخريطة العامة — ابحث عن منطقة متجرك، اضغط مطولاً على موقعه وانسخ الإحداثيات",
+          },
       );
     })();
   };
@@ -469,10 +486,18 @@ export function StoreLocationPicker({
     return true;
   };
 
-  /** حل رابط مختصر (maps.app.goo.gl) خادمياً — يُعيد الرابط النهائي مع الإحداثيات/الاسم إن استُخرجت */
+  /** حل رابط مختصر (maps.app.goo.gl) خادمياً — يُعيد الرابط النهائي
+   *  مع الإحداثيات/الاسم وبيانات المتجر الغنية إن استُخرجت (الجولة 48) */
   const resolveShortLink = async (
     url: string,
-  ): Promise<{ finalUrl: string; lat?: number; lng?: number; name?: string | null } | null> => {
+  ): Promise<
+    | (GooglePlaceData & {
+      finalUrl: string;
+      lat?: number;
+      lng?: number;
+    })
+    | null
+  > => {
     try {
       const res = await fetch("/api/utils/resolve-map-link", {
         method: "POST",
@@ -485,9 +510,34 @@ export function StoreLocationPicker({
         lat?: number;
         lng?: number;
         name?: string | null;
+        address?: string | null;
+        phone?: string | null;
+        rating?: number | null;
+        reviewCount?: number | null;
+        website?: string | null;
+        category?: string | null;
+        plusCode?: string | null;
       };
       if (!data.finalUrl) return null;
-      return { finalUrl: data.finalUrl, lat: data.lat, lng: data.lng, name: data.name };
+      return {
+        finalUrl: data.finalUrl,
+        lat: data.lat,
+        lng: data.lng,
+        name: data.name ?? "",
+        address: data.address ?? null,
+        phone: data.phone ?? null,
+        rating: data.rating ?? null,
+        reviewCount: data.reviewCount ?? null,
+        website: data.website ?? null,
+        category: data.category ?? null,
+        plusCode: data.plusCode ?? null,
+        /* رابط ?cid= القانوني يفتح نفس المتجر حتماً (قوقل يحوله لصفحة المكان) */
+        placeUrl:
+          data.finalUrl.includes("maps.google.com/?cid=") ||
+            data.finalUrl.includes("google.com/maps?cid=")
+            ? data.finalUrl
+            : null,
+      };
     } catch {
       return null;
     }
@@ -506,8 +556,10 @@ export function StoreLocationPicker({
       let candidate = text;
       let parsed = extractCoordsFromMapLink(candidate);
       let resolvedName: string | null = null;
+      /* نرفع التعريف خارج الكتلة لاستخدام بيانات المتجر الغنية لاحقاً */
+      let resolved: Awaited<ReturnType<typeof resolveShortLink>> = null;
       if (!parsed && looksLikeMapUrl(candidate)) {
-        const resolved = await resolveShortLink(candidate);
+        resolved = await resolveShortLink(candidate);
         if (resolved) {
           candidate = resolved.finalUrl;
           parsed = extractCoordsFromMapLink(candidate);
@@ -537,6 +589,20 @@ export function StoreLocationPicker({
         toast({
           title: "تم استخراج موقع متجرك",
           description: resolvedName,
+        });
+      }
+      /* بيانات المتجر الغنية من قوقل ماب (الجولة 48) — تُعرض في بطاقة تحت الحقل */
+      if (resolved?.name) {
+        setResolvedPlace({
+          name: resolved.name,
+          address: resolved.address,
+          phone: resolved.phone,
+          rating: resolved.rating,
+          reviewCount: resolved.reviewCount,
+          website: resolved.website,
+          category: resolved.category,
+          plusCode: resolved.plusCode,
+          placeUrl: resolved.placeUrl,
         });
       }
     } finally {
@@ -569,13 +635,25 @@ export function StoreLocationPicker({
         const resolved = await resolveShortLink(text);
         const reparsed = resolved
           ? extractCoordsFromMapLink(resolved.finalUrl) ??
-            (resolved.lat !== undefined && resolved.lng !== undefined
-              ? { lat: resolved.lat, lng: resolved.lng }
-              : null)
+          (resolved.lat !== undefined && resolved.lng !== undefined
+            ? { lat: resolved.lat, lng: resolved.lng }
+            : null)
           : null;
         if (reparsed && applyParsedCoords(reparsed)) {
           if (resolved?.name) {
             toast({ title: "تم استخراج موقع متجرك", description: resolved.name });
+            /* بيانات المتجر الغنية من قوقل ماب (الجولة 48) */
+            setResolvedPlace({
+              name: resolved.name,
+              address: resolved.address,
+              phone: resolved.phone,
+              rating: resolved.rating,
+              reviewCount: resolved.reviewCount,
+              website: resolved.website,
+              category: resolved.category,
+              plusCode: resolved.plusCode,
+              placeUrl: resolved.placeUrl,
+            });
           }
           return;
         }
@@ -630,6 +708,7 @@ export function StoreLocationPicker({
     onChange(null);
     setMode("choose");
     setCoordError(null);
+    setResolvedPlace(null);
   };
 
   /* تلميح معكوسية الإحداثيات (خط العرض في اليمن 12-19 والطول 42-54) */
@@ -637,11 +716,11 @@ export function StoreLocationPicker({
   const lngNum = Number.parseFloat(lngInput);
   const swappedHint =
     Number.isFinite(latNum) &&
-    Number.isFinite(lngNum) &&
-    latNum >= 20 &&
-    latNum <= 60 &&
-    lngNum >= 12 &&
-    lngNum <= 19
+      Number.isFinite(lngNum) &&
+      latNum >= 20 &&
+      latNum <= 60 &&
+      lngNum >= 12 &&
+      lngNum <= 19
       ? "يبدو أن الإحداثيات معكوسة — خط العرض في اليمن بين 12 و19 وخط الطول بين 42 و54"
       : null;
 
@@ -934,6 +1013,7 @@ export function StoreLocationPicker({
                 onChange={(e) => {
                   setLinkInput(e.target.value);
                   setCoordError(null);
+                  setResolvedPlace(null); /* رابط جديد — بطاقة قوقل القديمة بلا معنى */
                 }}
                 disabled={disabled || linkBusy}
                 type="url"
@@ -970,6 +1050,75 @@ export function StoreLocationPicker({
               خرائط قوقل ← ابحث عن متجرك ← <span className="font-bold">شارك</span> ←
               نسخ الرابط — والصقه هنا وسنستخرج الموقع تلقائياً
             </p>
+
+            {/* ─── بطاقة بيانات المتجر من قوقل ماب (الجولة 48 — طلب المالك:
+                «يعرض بيانات متجري في قوقل ماب») ─── */}
+            {resolvedPlace && (
+              <div
+                role="status"
+                className="space-y-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-3"
+              >
+                <p className="flex items-start gap-1.5 text-xs font-black text-foreground">
+                  <CheckCircle2
+                    className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    وجدنا متجرك في قوقل ماب: {resolvedPlace.name}
+                  </span>
+                </p>
+                {resolvedPlace.address && (
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    {resolvedPlace.address}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] font-semibold text-muted-foreground">
+                  {resolvedPlace.rating !== null && resolvedPlace.rating !== undefined && (
+                    <span dir="ltr">★ {resolvedPlace.rating.toFixed(1)}</span>
+                  )}
+                  {resolvedPlace.reviewCount !== null &&
+                    resolvedPlace.reviewCount !== undefined && (
+                      <span className="tabular-nums">
+                        {resolvedPlace.reviewCount} تعليقاً
+                      </span>
+                    )}
+                  {resolvedPlace.category && <span>{resolvedPlace.category}</span>}
+                  {resolvedPlace.phone && (
+                    <span dir="ltr" className="tabular-nums">
+                      {resolvedPlace.phone}
+                    </span>
+                  )}
+                  {resolvedPlace.plusCode && (
+                    <span dir="ltr" className="tabular-nums">
+                      {resolvedPlace.plusCode}
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] leading-relaxed text-muted-foreground/80">
+                  فتح موقع متجرك من التطبيق سيعيد توجيه الزائر إلى هذا المتجر نفسه
+                  في خرائط قوقل
+                </p>
+                {resolvedPlace.placeUrl && (
+                  <Button
+                    asChild
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-1.5 rounded-lg border-emerald-500/40 text-[11px] font-bold"
+                  >
+                    <a
+                      href={resolvedPlace.placeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="فتح صفحة المتجر في خرائط قوقل للتأكد"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      فتح صفحة المتجر في خرائط قوقل
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* إدخال الإحداثيات الدقيق */}
