@@ -59,6 +59,7 @@ import { PhoneInput } from "@/components/shared/PhoneInput";
 import { WorkingHoursSelector } from "@/components/shared/WorkingHoursSelector";
 import {
   StoreLocationPicker,
+  type GooglePlaceData,
   type StoreLocation,
 } from "@/components/shared/StoreLocationPicker";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
@@ -92,15 +93,20 @@ import type { FacilityType, OtpRequestOut } from "@/types/api.generated";
 /* ════════════════════════════════════════════════════════════════ */
 
 /**
- * مفتاح sessionStorage لموقع المتجر المعلّق: الباك اند الحالي لا يقبل
+ * مفتاح التخزين المحلي لموقع المتجر المعلّق: الباك اند الحالي لا يقبل
  * latitude/longitude في POST /owner/register — نحفظ الإحداثيات محلياً
- * {lat, lng, source, label} بعد نجاح التسجيل، وتلتقطها صفحة إدارة
- * المتجر عند أول تسجيل دخول لترفعها عبر PUT /owner/facility/{id}.
+ * {lat, lng, source, label} بعد نجاح التسجيل، ويرفعها تلقائياً
+ * useApplyPendingLocation (بوابة المالك) عند أول تسجيل دخول عبر
+ * PUT /owner/facility/{id}.
+ *
+ * الجولة 49: sessionStorage → localStorage — الجلسة تموت بإغلاق
+ * التبويب فكان الموقع يضيع إن سجّل التاجر دخوله لاحقاً من تبويب
+ * جديد (سبب رئيسي لضياع مواقع المتاجر المسجلة بالرابط).
  */
 const PENDING_LOCATION_KEY = "tawfir_owner_pending_location";
 
 /** رسالة خطأ الجوال اليمني الموحّدة (التحقق عبر validateYemeniPhone). */
-const PHONE_MSG = "أدخل رقم جوال يمني صحيح (مثال: 777 123 456)";
+const PHONE_MSG = "أدخل رقم جوال  صحيح ";
 
 /* ════════════════════════════════════════════════════════════════ */
 /*  مخطط التحقق — عربي كامل (يمني — لا سعودي)                        */
@@ -153,9 +159,19 @@ const registerSchema = z
       .string()
       .trim()
       .optional()
-      .refine((v) => !v || /^https?:\/\/.+/u.test(v), {
-        message: "أدخل رابطاً صالحاً يبدأ بـ http",
-      }),
+      .refine(
+        (v) =>
+          !v ||
+          /^https?:\/\/.+/u.test(v) ||
+          /^\/uploads\//u.test(v),
+        {
+          /* الجولة 49: نقبل مسار /uploads/ النسبي — نتيجة الرفع الناجح
+             من الجهاز تُحفظ كمسار نسبي في الباك اند، ورفضها كان يولّد
+             الخطأ الأحمر «أدخل رابطاً صالحاً يبدأ بـ http» بعد نجاح
+             الرفع نفسه (شكوى المالك في تسجيل بدرية) */
+          message: "أدخل رابطاً صالحاً يبدأ بـ http",
+        },
+      ),
     discount_rate: z
       .number()
       .int()
@@ -649,9 +665,9 @@ function SuccessScreen({
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : {
-        initial: { opacity: 0, y: 20, scale: 0.97 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-      };
+      initial: { opacity: 0, y: 20, scale: 0.97 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+    };
 
   return (
     <motion.div
@@ -904,17 +920,24 @@ export default function OwnerRegisterPage() {
     });
   }
 
-  /* حفظ الإحداثيات محلياً — ترتفع للباك اند لاحقاً بعد أول تسجيل دخول */
+  /* حفظ الإحداثيات محلياً — ترتفع للباك اند تلقائياً بعد أول تسجيل دخول
+     (الجولة 49: localStorage بدل sessionStorage — يصمد لإغلاق التبويب) */
   function persistPendingLocation() {
     if (!location || typeof window === "undefined") return;
     try {
-      window.sessionStorage.setItem(
+      window.localStorage.setItem(
         PENDING_LOCATION_KEY,
         JSON.stringify({
           lat: location.lat,
           lng: location.lng,
           source: location.source,
           label: location.label ?? null,
+          savedAt: Date.now(),
+          /* الجولة 49 — توقيع المتجر: يمنع تطبيق إحداثيات متجر ثانٍ
+             (سُجّل لاحقاً من المتصفح نفسه) على المتجر الأول عند تعدد
+             التسجيلات قبل أول دخول — الهوك يطابق بالاسم قبل الكتابة */
+          facilityName: form.getValues("facility_name").trim() || null,
+          ownerEmail: form.getValues("email").trim().toLowerCase() || null,
         })
       );
       setPendingLocationSaved(true);
@@ -922,6 +945,24 @@ export default function OwnerRegisterPage() {
       /* تخزين معطّل/وضع خاص — نتجاهل بصمت */
     }
   }
+
+  /* (الجولة 49 — طلب المالك الصريح) تعبئة حقول النموذج من بطاقة «وجدنا
+     متجرك»: العنوان الكامل + هاتف المتجر — عند الفراغ فقط (لا نطمس ما
+     كتبه التاجر يدوياً)، وتُمسح الحقول لا نلمسها — قرار الأب دائماً */
+  const handlePlaceResolved = useCallback(
+    (place: GooglePlaceData | null) => {
+      if (!place) return;
+      if (place.address && !form.getValues("address").trim()) {
+        form.setValue("address", place.address, { shouldValidate: true });
+      }
+      if (place.phone && !form.getValues("phone_facility").trim()) {
+        form.setValue("phone_facility", place.phone, {
+          shouldValidate: true,
+        });
+      }
+    },
+    [form]
+  );
 
   /* رصد فشل الرفع بسبب المصادقة (401/توكن/bearer) من ImageUploader */
   const handleUploadError = useCallback((message: string) => {
@@ -933,9 +974,9 @@ export default function OwnerRegisterPage() {
   const cardAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : {
-        initial: { opacity: 0, y: 24, scale: 0.97 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-      };
+      initial: { opacity: 0, y: 24, scale: 0.97 },
+      animate: { opacity: 1, y: 0, scale: 1 },
+    };
 
   /* ─── شاشة النجاح تحل محل النموذج — لا توجيه تلقائي ─── */
   if (successResult) {
@@ -1337,6 +1378,7 @@ export default function OwnerRegisterPage() {
                       disabled={isBusy}
                       mapReturnPath="/owner/register"
                       idPrefix="owner-register-loc"
+                      onPlaceResolved={handlePlaceResolved}
                     />
                   </div>
 
