@@ -62,9 +62,9 @@ import {
   type GooglePlaceData,
   type StoreLocation,
 } from "@/components/shared/StoreLocationPicker";
-import { isCanonicalPlaceUrl } from "@/lib/external-maps";
 import { PWAInstallButton } from "@/components/pwa/PWAInstallButton";
 import { useOwnerRegister, parseRegisterError } from "@/hooks/useOwnerRegister";
+import { persistPlaceSeed } from "@/hooks/useApplyPendingLocation";
 import { useRequestOtp } from "@/hooks/useRequestOtp";
 import { useVerifyOtp } from "@/hooks/useVerifyOtp";
 import { useResendOtp } from "@/hooks/useResendOtp";
@@ -913,7 +913,7 @@ export default function OwnerRegisterPage() {
     register.mutate(payload, {
       onSuccess: (result) => {
         persistPendingLocation();
-        persistPlaceSeed(result.facility_id);
+        persistPlaceSeed(result.facility_id, location?.placeUrl ?? null);
         setSuccessResult(result);
         setOtpStage(null);
       },
@@ -934,21 +934,9 @@ export default function OwnerRegisterPage() {
      الموثّق (useApplyPendingLocation) يرفعه لسجل الخادم عند أول دخول
      (تحقق ملكية بالتوكن خادمياً) — الباك اند يسقط location_source في
      التحديث (أُثبت حياً) فهذا هو المسار الموثّق الوحيد. يُعاد الرفع
-     عند كل دخول لاحق فيجدد نافذة السجل الأسبوعية تلقائياً. */
-  const PLACE_SEEDS_KEY = "tawfir_owner_place_seeds";
-  function persistPlaceSeed(facilityId: number) {
-    if (typeof window === "undefined") return;
-    const url = location?.placeUrl;
-    if (!url || !isCanonicalPlaceUrl(url) || !Number.isFinite(facilityId)) return;
-    try {
-      const raw = window.localStorage.getItem(PLACE_SEEDS_KEY);
-      const seeds = raw ? (JSON.parse(raw) as Record<string, string>) : {};
-      seeds[String(facilityId)] = url;
-      window.localStorage.setItem(PLACE_SEEDS_KEY, JSON.stringify(seeds));
-    } catch {
-      /* تخزين معطّل — الزر يسقط للبحث الذكي */
-    }
-  }
+     عند كل دخول لاحق فيجدد نافذة السجل الأسبوعية تلقائياً.
+     (تحقق الجولة 50: التنفيذ انتقل للعقد الموحد persistPlaceSeed في
+     useApplyPendingLocation — شاشة التسجيل وتعديل المتجر والعقد واحد). */
 
   /* حفظ الإحداثيات محلياً — ترتفع للباك اند تلقائياً بعد أول تسجيل دخول
      (الجولة 49: localStorage بدل sessionStorage — يصمد لإغلاق التبويب)

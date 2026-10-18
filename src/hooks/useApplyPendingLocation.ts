@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ownerService } from "@/services/owner.service";
 import { useOwnerAuth } from "@/hooks/useOwnerAuth";
 import { useToast } from "@/hooks/use-toast";
+import { isCanonicalPlaceUrl } from "@/lib/external-maps";
 import type { Facility } from "@/types/api.generated";
 
 /* ════════════════════════════════════════════════════════════════ */
@@ -39,7 +40,7 @@ export const PENDING_LOCATION_KEY = "tawfir_owner_pending_location";
  * الهوك للخادم عند كل دخول (تحقق ملكية خادمياً) فيجدد سجل زر
  * «افتح في الخرائط» — رفع البذرة لا يفشل الدخول أبداً (تحسين صامت).
  */
-const PLACE_SEEDS_KEY = "tawfir_owner_place_seeds";
+export const PLACE_SEEDS_KEY = "tawfir_owner_place_seeds";
 
 function readPlaceSeeds(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -48,6 +49,36 @@ function readPlaceSeeds(): Record<string, string> {
     return raw ? (JSON.parse(raw) as Record<string, string>) : {};
   } catch {
     return {};
+  }
+}
+
+/**
+ * (الجولة 50-تحقق) حفظ بذرة «صفحة المتجر ذاتها» محلياً — العقد الموحد
+ * الذي تستخدمه شاشتا التسجيل وتعديل المتجر، والهوك يرفعه للخادم عند كل
+ * دخول مالك (تحقق ملكية خادمياً) فيتجدد زر «افتح في الخرائط» حتى بعد
+ * إعادة تشغيل خادم الواجهة — ذاكرة السجل الخادمية متطايرة، والبذرة
+ * المحلية عند التاجر هي ما يجعل النظام مشفياً ذاتياً (تصحيح البذور
+ * المبذورة من شاشة التعديل قبل هذا العقد الموحد).
+ */
+export function persistPlaceSeed(
+  facilityId: number,
+  placeUrl: string | null | undefined,
+): void {
+  if (typeof window === "undefined") return;
+  if (
+    !placeUrl ||
+    !isCanonicalPlaceUrl(placeUrl) ||
+    !Number.isInteger(facilityId) ||
+    facilityId <= 0
+  )
+    return;
+  try {
+    const raw = window.localStorage.getItem(PLACE_SEEDS_KEY);
+    const seeds = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    seeds[String(facilityId)] = placeUrl;
+    window.localStorage.setItem(PLACE_SEEDS_KEY, JSON.stringify(seeds));
+  } catch {
+    /* تخزين معطّل — الزر يسقط للبحث الذكي */
   }
 }
 

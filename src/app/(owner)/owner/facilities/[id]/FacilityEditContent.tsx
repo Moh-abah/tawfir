@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StoreLocationPicker, type StoreLocation } from "@/components/shared/StoreLocationPicker";
 import { isCanonicalPlaceUrl } from "@/lib/external-maps";
+import { persistPlaceSeed } from "@/hooks/useApplyPendingLocation";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/lib/format";
@@ -91,8 +92,12 @@ const prefersReduced = usePrefersReducedMotion();
        التاجر حلّ رابطه هنا نُبذر الصفحة القانونية في سجل الخادم
        /api/utils/place-page (تحقق ملكية بالتوكن خادمياً) فيفتح زر
        «افتح في الخرائط» في صفحة العميل صفحة المتجر نفسها 7 أيام
-       (قابلة لإعادة البذر بكل تحديث موقع) — طلب المالك. */
+       (قابلة لإعادة البذر بكل تحديث موقع) — طلب المالك.
+       (تحقق الجولة 50: تُحفظ البذرة محلياً أيضاً بالعقد الموحد
+       persistPlaceSeed — الهوك يرفعها عند كل دخول فيتجدد السجل
+       تلقائياً حتى بعد إعادة تشغيل خادم الواجهة). */
     if (loc?.placeUrl && isCanonicalPlaceUrl(loc.placeUrl)) {
+      persistPlaceSeed(facilityId, loc.placeUrl);
       const token = document.cookie
         .split("; ")
         .find((c) => c.startsWith("tawfir_owner_token="))
