@@ -12,6 +12,10 @@ import {
   type CheckoutProduct,
 } from "@/components/public/CheckoutSheet";
 import { useSpecialOffers } from "@/hooks/useSpecialOffers";
+import { useMarketFacilities } from "@/hooks/useMarketFacilities";
+import { useCustomerCoords } from "@/hooks/useCustomerCoords";
+import { useRegionStore } from "@/store/region.store";
+import { geoTierSort } from "@/lib/geo-sort";
 import { useLang } from "@/lib/i18n";
 import type { SpecialOfferOut } from "@/types/api.generated";
 
@@ -34,6 +38,35 @@ export function SpecialOffersSection() {
 
   const offers = useMemo(() => data?.items ?? [], [data]);
 
+  /* الجولة 46 — فرز «حولي ← منطقتي ← مدينتي» للوفر أيضاً (طلب المالك):
+   * ملخص العرض بلا إحداثيات في الباك إند — نربط facility_id بمتاجر
+   * السوق (استعلام مشترك مع قسم المتاجر) ونفرز بنفس الطبقات. قبل
+   * وصول المتاجر يُعرض الترتيب الأصلي (الأحدث) بلا رفرفة. */
+  const coords = useCustomerCoords();
+  const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
+  const { data: marketFacilities } = useMarketFacilities();
+  const sortedOffers = useMemo(() => {
+    const facMap = new Map(
+      (marketFacilities ?? []).map((f) => [f.id, f])
+    );
+    if (facMap.size === 0) return offers;
+    return geoTierSort(
+      offers,
+      (o) => {
+        const f = facMap.get(o.facility_id);
+        return f
+          ? {
+              latitude: f.latitude,
+              longitude: f.longitude,
+              region_id: f.region_id,
+            }
+          : null;
+      },
+      coords,
+      selectedRegionId
+    );
+  }, [offers, marketFacilities, coords, selectedRegionId]);
+
   // إخفاء القسم بالكامل إن لم تكن هناك عروض أو حدث خطأ
   if (error || (!isLoading && offers.length === 0)) {
     return null;
@@ -43,6 +76,8 @@ export function SpecialOffersSection() {
     setSelectedOffer(offer);
     setOpen(true);
   };
+
+  const visibleOffers = sortedOffers.length ? sortedOffers : offers;
 
   // بناء CheckoutProduct من العرض الخاص المُحدّد
   const checkoutProduct: CheckoutProduct = selectedOffer
@@ -101,7 +136,7 @@ export function SpecialOffersSection() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
-          {offers.map((offer) => (
+          {visibleOffers.map((offer) => (
             <SpecialOfferCard
               key={offer.id}
               specialOffer={offer}

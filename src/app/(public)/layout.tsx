@@ -3,12 +3,10 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { WelcomeBanner } from "@/components/shared/WelcomeBanner";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ScrollToTop } from "@/components/shared/ScrollToTop";
-import { CookieConsent } from "@/components/shared/CookieConsent";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { NativeNotificationsNudge } from "@/components/shared/NativeNotificationsNudge";
 import { StickyMiniCart } from "@/components/public/StickyMiniCart";
@@ -123,7 +121,9 @@ export default function PublicLayout({
         )}
       >
       <IosSplashLinks />
-      {!isAuthRoute && <WelcomeBanner />}
+      {/* الجولة 46 — أُزيل WelcomeBanner (البانر العلوي العائم بتسجيل الدخول)
+          وأُزيل CookieConsent (بانر الكوكيز) بطلب المالك: كلاهما لا حاجة
+          له ويؤذي تجربة الموبايل. */}
       {!isAuthRoute && <MainHeader />}
       {/* داخل الـAPK فقط: شريط تفعيل إشعارات التطبيق عند رفض الإذن —
           نافذة السماح الأصلية + مسار التعافي عبر إعدادات النظام */}
@@ -150,7 +150,6 @@ export default function PublicLayout({
       {/* الجولة 11 — شريط سلة عائم (يظهر عند وجود أصناف في السلة) */}
       {!isReceiptRoute && !isAuthRoute && <StickyMiniCart />}
       {!isReceiptRoute && <ScrollToTop />}
-      <CookieConsent />
       </div>
     </MarketProvider>
   );

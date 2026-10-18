@@ -14,6 +14,7 @@ import {
   Loader2,
   MapPin,
   MapPinned,
+  PackageOpen,
   Navigation,
   RefreshCw,
   Search,
@@ -39,8 +40,9 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TawfirPillBadge } from "@/components/shared/TawfirPillBadge";
 import { SectionTitle } from "@/components/public/SectionTitle";
-import { useFacilities } from "@/hooks/useFacilities";
-import { useNearbyProducts } from "@/hooks/useNearbyProducts";
+import { useMarketFacilities } from "@/hooks/useMarketFacilities";
+import { useCustomerCoords } from "@/hooks/useCustomerCoords";
+import { geoTierSort } from "@/lib/geo-sort";
 import { useProducts } from "@/hooks/useProducts";
 import { useFavorites, useToggleFavorite } from "@/hooks/useFavorites";
 import { useCustomerAuth } from "@/hooks/useCustomerAuth";
@@ -48,9 +50,11 @@ import { useRatingAggregate } from "@/hooks/useRatings";
 import { Stars } from "@/components/shared/Stars";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRegionStore } from "@/store/region.store";
+import { useMarketStore, effectiveCountryCode } from "@/store/market.store";
 import { useRecentSearchesStore } from "@/store/recent-searches.store";
 import { toast } from "@/hooks/use-toast";
 import { TYPE_ICON } from "@/lib/constants";
+import { useNearbyProducts } from "@/hooks/useNearbyProducts";
 import { useLang } from "@/lib/i18n";
 import { resolveImageUrl } from "@/lib/format";
 import { haptic } from "@/lib/haptic";
@@ -208,13 +212,23 @@ function OffersSection() {
     if (trimmedSearch.length >= 2) addRecentSearch(trimmedSearch);
   }, [trimmedSearch, addRecentSearch]);
 
+  /* الجولة 46 — فرز «حولي ← منطقتي ← مدينتي»: نفس الاستعلام والمكوّن،
+   * فرز العرض فقط. page_size 40 لتغطية أوسع للمدينة (كانت 20).
+   * المصدر: إحداثيات صامتة (بلا طلب إذن) + المنطقة المختارة. */
+  const coords = useCustomerCoords();
+  const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
+
   const { data, isLoading, error, refetch } = useProducts({
     only_available: true,
     type: activeType ?? undefined,
     search: trimmedSearch || undefined,
+    page_size: 40,
   });
 
-  const products = data?.items ?? [];
+  const products = useMemo(
+    () => geoTierSort(data?.items ?? [], (p) => p.facility, coords, selectedRegionId),
+    [data, coords, selectedRegionId]
+  );
   const filteredCount = products.length;
 
   return (
@@ -379,7 +393,8 @@ function NearbySection() {
   const [locating, setLocating] = useState(false);
   const [enabled, setEnabled] = useState(false);
   // نطاق البحث — بارامتر radius_km في GET /products/nearby (الجولة 5)
-  const [radiusKm, setRadiusKm] = useState(10);
+  // الجولة 46: الافتراضي 25كم (تغطية المدينة بدل 10كم) — الرقائق تبقى يدوية
+  const [radiusKm, setRadiusKm] = useState(25);
 
   const { data, isLoading, error, refetch } = useNearbyProducts(
     coords?.lat ?? null,
@@ -719,11 +734,16 @@ function FacilityCardSkeleton() {
 function FacilitiesSection() {
   const { t, lang } = useLang();
   const ArrowNext = lang === "ar" ? ArrowLeft : ArrowRight;
-  const { data, isLoading, error, refetch } = useFacilities();
+  /* الجولة 46 — متاجر السوق كاملة (بلا حصر بمنطقة واحدة) + فرز
+     «حولي ← منطقتي ← مدينتي». نفس الكروت نفس القسم — فرز وعرض فقط:
+     كان region_id يُحصر القائمة في المنطقة المختارة تلقائياً (أول
+     منطقة في القائمة) فتختفي مطاعم المدينة والمنطقة عن الرئيسية. */
   const selectedRegionId = useRegionStore((s) => s.selectedRegionId);
+  const { data, isLoading, error, refetch } = useMarketFacilities();
+  const coords = useCustomerCoords();
   const facilities = useMemo(
-    () => [...(data ?? [])].sort((a, b) => a.display_order - b.display_order || a.id - b.id),
-    [data]
+    () => geoTierSort(data ?? [], (f) => f, coords, selectedRegionId),
+    [data, coords, selectedRegionId]
   );
 
   return (
@@ -761,12 +781,6 @@ function FacilitiesSection() {
             <FacilityCardSkeleton key={i} />
           ))}
         </div>
-      ) : !selectedRegionId ? (
-        <EmptyState
-          icon={Landmark}
-          title={t("home.stores.selectRegionTitle")}
-          description={t("home.stores.selectRegionDesc")}
-        />
       ) : facilities.length === 0 ? (
         <EmptyState
           icon={Landmark}
@@ -806,6 +820,21 @@ function FacilitiesSection() {
 export default function HomePage() {
   return (
     <div className="w-full">
+      {/* الجولة 45 — مدخل تحميل حزم الإصلاحات للمالك (أداة تسليم محلية
+          خارج منتج العميل؛ لا تدخل حزم الدمج إلى مستودع الإنتاج).
+          قفل الجولة 46: يظهر فقط عندما NEXT_PUBLIC_DELIVERY_TOOL=1
+          (مضبوط في .env.local هنا حصراً) — على النشر/الإنتاج المتغير
+          غير موجود فيختفي الزر تلقائياً مهما كانت طريقة النشر. */}
+      {process.env.NEXT_PUBLIC_DELIVERY_TOOL === "1" && (
+        <Link
+          href="/download"
+          className="fixed bottom-24 left-3 z-40 inline-flex min-h-[44px] items-center gap-1.5 rounded-full border bg-background/90 px-3.5 text-xs font-bold text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground native-tap"
+          aria-label="تحميل حزم إصلاحات المنصة"
+        >
+          <PackageOpen className="h-4 w-4" aria-hidden="true" />
+          حزم الإصلاحات
+        </Link>
+      )}
       <HeroSection />
       <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:space-y-14 sm:px-6 sm:py-14">
         <OffersSection />
