@@ -7,6 +7,7 @@ import { OwnerSidebar } from "@/components/owner/OwnerSidebar";
 import { OwnerMobileTopBar } from "@/components/owner/OwnerMobileTopBar";
 import { OwnerMobileBottomNav } from "@/components/owner/OwnerMobileBottomNav";
 import { OwnerMobileMenuSheet } from "@/components/owner/OwnerMobileMenuSheet";
+import { useApplyPendingLocation } from "@/hooks/useApplyPendingLocation";
 
 /**
  * هيكل بوابة المالك (عميل) — الواجهة والحراسة.
@@ -24,6 +25,11 @@ export function OwnerPortalShell({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  /* (الجولة 49) إتمام الدائرة المقطوعة: رفع إحداثيات التسجيل المعلّقة
+     عند أول دخول — الهوك يقرأ المفتاح المحلي ويرفعها لـPUT
+     /owner/facility/{id} فيظهر زر الموقع للعملاء (كان لا قارئ أصلاً) */
+  useApplyPendingLocation();
 
   // استخراج facilityId من المسار لتمريره لقائمة ☰
   let facilityId: number | null = null;

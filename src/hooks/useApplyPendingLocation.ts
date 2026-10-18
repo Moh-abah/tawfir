@@ -34,135 +34,135 @@ import type { Facility } from "@/types/api.generated";
 export const PENDING_LOCATION_KEY = "tawfir_owner_pending_location";
 
 interface PendingLocation {
- lat: number;
- lng: number;
- source?: string;
- label?: string | null;
- savedAt?: number;
- /** (الجولة 49) توقيع المتجر المسجّل — يمنع تطبيق إحداثيات متجر ثانٍ
-  *  سُجّل من المتصفح نفسه على المتجر الأول (مفتاح المعلّق واحد) */
- facilityName?: string | null;
- ownerEmail?: string | null;
+  lat: number;
+  lng: number;
+  source?: string;
+  label?: string | null;
+  savedAt?: number;
+  /** (الجولة 49) توقيع المتجر المسجّل — يمنع تطبيق إحداثيات متجر ثانٍ
+   *  سُجّل من المتصفح نفسه على المتجر الأول (مفتاح المعلّق واحد) */
+  facilityName?: string | null;
+  ownerEmail?: string | null;
 }
 
 export function readPendingLocation(): PendingLocation | null {
- if (typeof window === "undefined") return null;
- try {
-  const raw = window.localStorage.getItem(PENDING_LOCATION_KEY);
-  if (!raw) return null;
-  const parsed = JSON.parse(raw) as PendingLocation;
-  if (
-   typeof parsed?.lat === "number" &&
-   Number.isFinite(parsed.lat) &&
-   typeof parsed?.lng === "number" &&
-   Number.isFinite(parsed.lng)
-  ) {
-   return parsed;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PENDING_LOCATION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PendingLocation;
+    if (
+      typeof parsed?.lat === "number" &&
+      Number.isFinite(parsed.lat) &&
+      typeof parsed?.lng === "number" &&
+      Number.isFinite(parsed.lng)
+    ) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
   }
-  return null;
- } catch {
-  return null;
- }
 }
 
 export function clearPendingLocation(): void {
- if (typeof window === "undefined") return;
- try {
-  window.localStorage.removeItem(PENDING_LOCATION_KEY);
- } catch {
-  /* تخزين معطّل — لا شيء */
- }
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(PENDING_LOCATION_KEY);
+  } catch {
+    /* تخزين معطّل — لا شيء */
+  }
 }
 
 export type PendingLocationState =
- | "idle" // بلا معلّق أو لم يُحاول بعد
- | "applying" // رفع جارٍ
- | "done" // رُفع ووُفّق
- | "failed"; // فشل الرفع — سيُعاد في الدخول التالي
+  | "idle" // بلا معلّق أو لم يُحاول بعد
+  | "applying" // رفع جارٍ
+  | "done" // رُفع ووُفّق
+  | "failed"; // فشل الرفع — سيُعاد في الدخول التالي
 
 export function useApplyPendingLocation(): PendingLocationState {
- const { accessToken, hydrated } = useOwnerAuth();
- const queryClient = useQueryClient();
- const { toast } = useToast();
- const [state, setState] = useState<PendingLocationState>("idle");
+  const { accessToken, hydrated } = useOwnerAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [state, setState] = useState<PendingLocationState>("idle");
 
- /* بيانات متاجر المالك — تعمل فقط بتوكن حي (enabled) */
- const { data: facilities, isSuccess: facilitiesLoaded } = useQuery<
-  Facility[]
- >({
-  queryKey: ["my-facilities"],
-  queryFn: () => ownerService.getMyFacilities(),
-  enabled: hydrated && !!accessToken,
-  staleTime: 30_000,
- });
+  /* بيانات متاجر المالك — تعمل فقط بتوكن حي (enabled) */
+  const { data: facilities, isSuccess: facilitiesLoaded } = useQuery<
+    Facility[]
+  >({
+    queryKey: ["my-facilities"],
+    queryFn: () => ownerService.getMyFacilities(),
+    enabled: hydrated && !!accessToken,
+    staleTime: 30_000,
+  });
 
- /* حارس إعادة التشغيل الصارم — محاولة واحدة لكل جلسة تركيب */
- const attemptedRef = useRef(false);
+  /* حارس إعادة التشغيل الصارم — محاولة واحدة لكل جلسة تركيب */
+  const attemptedRef = useRef(false);
 
- useEffect(() => {
-  if (!hydrated || !accessToken || !facilitiesLoaded) return;
-  if (attemptedRef.current) return;
-  attemptedRef.current = true;
+  useEffect(() => {
+    if (!hydrated || !accessToken || !facilitiesLoaded) return;
+    if (attemptedRef.current) return;
+    attemptedRef.current = true;
 
-  const pending = readPendingLocation();
-  if (!pending) return; // لا معلّق — الحالة الطبيعية لمعظم الدخولات
+    const pending = readPendingLocation();
+    if (!pending) return; // لا معلّق — الحالة الطبيعية لمعظم الدخولات
 
-  /* (الجولة 49) المرشح: متجر بلا إحداثيات — ومع تعدد المرشحين يُطابق
-     توقيع المعلّق (اسم المتجر) قبل أي كتابة، وإلا اعتُبر غامضاً
-     ويُبقى المعلّق بلا تطبيق خاطئ (التراجع عن كتابة خاطئة أصعب).
-     وقاعدة الحذف نفسها موقّعة: معلّق باسم متجر ليس في هذا الحساب
-     (المستخدم سجّل متجراً ثانياً وهو داخل جلسة متجر آخر) لا يُمس —
-     فهو ملك الحساب الآخر وسيُستهلك عند دخوله الفعلي. */
-  const all = facilities ?? [];
-  const withoutCoords = all.filter(
-   (f) => f.latitude == null || f.longitude == null,
-  );
-  const name = (pending.facilityName ?? "").trim().toLowerCase();
-  const belongsHere = !name || all.some(
-   (f) => (f.name ?? "").trim().toLowerCase() === name,
-  );
-  if (!withoutCoords.length) {
-   if (belongsHere) clearPendingLocation(); // محدد أصلاً أو بلا توقيع
-   return;
-  }
-  let facility = withoutCoords[0];
-  if (withoutCoords.length > 1) {
-   const matched = name
-    ? withoutCoords.find(
-     (f) => (f.name ?? "").trim().toLowerCase() === name,
-    )
-    : undefined;
-   if (!matched) return; // غامض — لا كتابة تخمينية فوق متاجر حقيقية
-   facility = matched;
-  } else if (!belongsHere) {
-   return; // المعلّق لمتجر آخر — لا تطبيق ولا مسح في هذه الجلسة
-  }
+    /* (الجولة 49) المرشح: متجر بلا إحداثيات — ومع تعدد المرشحين يُطابق
+       توقيع المعلّق (اسم المتجر) قبل أي كتابة، وإلا اعتُبر غامضاً
+       ويُبقى المعلّق بلا تطبيق خاطئ (التراجع عن كتابة خاطئة أصعب).
+       وقاعدة الحذف نفسها موقّعة: معلّق باسم متجر ليس في هذا الحساب
+       (المستخدم سجّل متجراً ثانياً وهو داخل جلسة متجر آخر) لا يُمس —
+       فهو ملك الحساب الآخر وسيُستهلك عند دخوله الفعلي. */
+    const all = facilities ?? [];
+    const withoutCoords = all.filter(
+      (f) => f.latitude == null || f.longitude == null,
+    );
+    const name = (pending.facilityName ?? "").trim().toLowerCase();
+    const belongsHere = !name || all.some(
+      (f) => (f.name ?? "").trim().toLowerCase() === name,
+    );
+    if (!withoutCoords.length) {
+      if (belongsHere) clearPendingLocation(); // محدد أصلاً أو بلا توقيع
+      return;
+    }
+    let facility = withoutCoords[0];
+    if (withoutCoords.length > 1) {
+      const matched = name
+        ? withoutCoords.find(
+            (f) => (f.name ?? "").trim().toLowerCase() === name,
+          )
+        : undefined;
+      if (!matched) return; // غامض — لا كتابة تخمينية فوق متاجر حقيقية
+      facility = matched;
+    } else if (!belongsHere) {
+      return; // المعلّق لمتجر آخر — لا تطبيق ولا مسح في هذه الجلسة
+    }
 
-  void Promise.resolve()
-   .then(() =>
-    ownerService.updateMyFacility(facility.id, {
-     latitude: pending.lat,
-     longitude: pending.lng,
-    }),
-   )
-   .then(() => {
-    clearPendingLocation();
-    queryClient.invalidateQueries({ queryKey: ["my-facilities"] });
-    queryClient.invalidateQueries({
-     queryKey: ["my-facility", facility.id],
-    });
-    setState("done");
-    toast({
-     title: "تم حفظ موقع متجرك",
-     description:
-      "الإحداثيات التي حددتها عند التسجيل رُفعت لمتجرك — زر «فتح في الخرائط» ظاهر الآن للعملاء على موقع متجرك نفسه.",
-    });
-   })
-   .catch(() => {
-    /* نُبقي المعلّق — محاولة الدخول التالي تُكملها */
-    setState("failed");
-   });
- }, [hydrated, accessToken, facilitiesLoaded, facilities, queryClient, toast]);
+    void Promise.resolve()
+      .then(() =>
+        ownerService.updateMyFacility(facility.id, {
+          latitude: pending.lat,
+          longitude: pending.lng,
+        }),
+      )
+      .then(() => {
+        clearPendingLocation();
+        queryClient.invalidateQueries({ queryKey: ["my-facilities"] });
+        queryClient.invalidateQueries({
+          queryKey: ["my-facility", facility.id],
+        });
+        setState("done");
+        toast({
+          title: "تم حفظ موقع متجرك",
+          description:
+            "الإحداثيات التي حددتها عند التسجيل رُفعت لمتجرك — زر «فتح في الخرائط» ظاهر الآن للعملاء على موقع متجرك نفسه.",
+        });
+      })
+      .catch(() => {
+        /* نُبقي المعلّق — محاولة الدخول التالي تُكملها */
+        setState("failed");
+      });
+  }, [hydrated, accessToken, facilitiesLoaded, facilities, queryClient, toast]);
 
- return state;
+  return state;
 }

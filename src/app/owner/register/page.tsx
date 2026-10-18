@@ -106,7 +106,7 @@ import type { FacilityType, OtpRequestOut } from "@/types/api.generated";
 const PENDING_LOCATION_KEY = "tawfir_owner_pending_location";
 
 /** رسالة خطأ الجوال اليمني الموحّدة (التحقق عبر validateYemeniPhone). */
-const PHONE_MSG = "أدخل رقم جوال  صحيح ";
+const PHONE_MSG = "أدخل رقم جوال يمني صحيح (مثال: 777 123 456)";
 
 /* ════════════════════════════════════════════════════════════════ */
 /*  مخطط التحقق — عربي كامل (يمني — لا سعودي)                        */
@@ -665,9 +665,9 @@ function SuccessScreen({
   const anim = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : {
-      initial: { opacity: 0, y: 20, scale: 0.97 },
-      animate: { opacity: 1, y: 0, scale: 1 },
-    };
+        initial: { opacity: 0, y: 20, scale: 0.97 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+      };
 
   return (
     <motion.div
@@ -974,9 +974,9 @@ export default function OwnerRegisterPage() {
   const cardAnimation = prefersReduced
     ? { initial: { opacity: 1 }, animate: { opacity: 1 } }
     : {
-      initial: { opacity: 0, y: 24, scale: 0.97 },
-      animate: { opacity: 1, y: 0, scale: 1 },
-    };
+        initial: { opacity: 0, y: 24, scale: 0.97 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+      };
 
   /* ─── شاشة النجاح تحل محل النموذج — لا توجيه تلقائي ─── */
   if (successResult) {

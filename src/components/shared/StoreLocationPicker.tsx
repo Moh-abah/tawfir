@@ -218,7 +218,7 @@ export function StoreLocationPicker({
 
   /* كاشف التركيب (SSR-safe) — لاكتشاف منصة الخرائط بعد التركيب */
   const mounted = useSyncExternalStore(
-    () => () => { },
+    () => () => {},
     () => true,
     () => false,
   );
@@ -434,15 +434,15 @@ export function StoreLocationPicker({
       toast(
         here
           ? {
-            title: "فتحنا الخريطة على موقعك الحالي",
-            description:
-              "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
-          }
+              title: "فتحنا الخريطة على موقعك الحالي",
+              description:
+                "اضغط مطولاً على موقع متجرك، انسخ الإحداثيات ثم عد هنا والصقها",
+            }
           : {
-            title: "لم نستطع تحديد موقعك الحالي",
-            description:
-              "فتحنا الخريطة العامة — ابحث عن منطقة متجرك، اضغط مطولاً على موقعه وانسخ الإحداثيات",
-          },
+              title: "لم نستطع تحديد موقعك الحالي",
+              description:
+                "فتحنا الخريطة العامة — ابحث عن منطقة متجرك، اضغط مطولاً على موقعه وانسخ الإحداثيات",
+            },
       );
     })();
   };
@@ -515,10 +515,10 @@ export function StoreLocationPicker({
     url: string,
   ): Promise<
     | (GooglePlaceData & {
-      finalUrl: string;
-      lat?: number;
-      lng?: number;
-    })
+        finalUrl: string;
+        lat?: number;
+        lng?: number;
+      })
     | null
   > => {
     try {
@@ -557,7 +557,7 @@ export function StoreLocationPicker({
         /* رابط ?cid= القانوني يفتح نفس المتجر حتماً (قوقل يحوله لصفحة المكان) */
         placeUrl:
           data.finalUrl.includes("maps.google.com/?cid=") ||
-            data.finalUrl.includes("google.com/maps?cid=")
+          data.finalUrl.includes("google.com/maps?cid=")
             ? data.finalUrl
             : null,
       };
@@ -658,9 +658,9 @@ export function StoreLocationPicker({
         const resolved = await resolveShortLink(text);
         const reparsed = resolved
           ? extractCoordsFromMapLink(resolved.finalUrl) ??
-          (resolved.lat !== undefined && resolved.lng !== undefined
-            ? { lat: resolved.lat, lng: resolved.lng }
-            : null)
+            (resolved.lat !== undefined && resolved.lng !== undefined
+              ? { lat: resolved.lat, lng: resolved.lng }
+              : null)
           : null;
         if (reparsed && applyParsedCoords(reparsed)) {
           if (resolved?.name) {
@@ -739,11 +739,11 @@ export function StoreLocationPicker({
   const lngNum = Number.parseFloat(lngInput);
   const swappedHint =
     Number.isFinite(latNum) &&
-      Number.isFinite(lngNum) &&
-      latNum >= 20 &&
-      latNum <= 60 &&
-      lngNum >= 12 &&
-      lngNum <= 19
+    Number.isFinite(lngNum) &&
+    latNum >= 20 &&
+    latNum <= 60 &&
+    lngNum >= 12 &&
+    lngNum <= 19
       ? "يبدو أن الإحداثيات معكوسة — خط العرض في اليمن بين 12 و19 وخط الطول بين 42 و54"
       : null;
 

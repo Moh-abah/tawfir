@@ -152,9 +152,9 @@ function parseEmbedPlace(html: string, ftid: string, cidUrl: string): GooglePlac
   let category: string | null = null;
   const tailBase = websiteM
     ? tail.slice(
-      (websiteM.index ?? 0) + websiteM[0].length,
-      (websiteM.index ?? 0) + websiteM[0].length + 300,
-    )
+        (websiteM.index ?? 0) + websiteM[0].length,
+        (websiteM.index ?? 0) + websiteM[0].length + 300,
+      )
     : null;
   const catCandidates: Array<string | null> = [];
   if (tailBase) {

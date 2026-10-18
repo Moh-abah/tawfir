@@ -1,9 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Image, { type ImageLoaderProps } from "next/image";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * جولة 49 — مرور مباشر للروابط المطلقة (إصلاح انهيار الصفحة):
+ * كان next/image يرمي «Invalid src prop» أثناء الرسم نفسه لأي مضيف
+ * خارجي غير مُدرج في remotePatterns — قبل أن يصل وقت onError — فتنهار
+ * الصفحة كلها (حدود الخطأ) بمجرد أن يلصق تاجر رابط صورة من أي مضيف
+ * آخر (z-cdn، imgur، دروببوكس...). الآن: الروابط المطلقة تُمرَّر كما
+ * هي بلا تحقق مضيف (لا تحسين عبر وسيط _next/image وهو الصحيح لها)،
+ * والمسارات المحلية (/uploads/...) تحافظ على مسار التحسين الكامل.
+ */
+function passthroughLoader({ src }: ImageLoaderProps): string {
+  return src;
+}
+
+const ABSOLUTE_URL_RE = /^https?:\/\//i;
 
 interface ImageWithSkeletonProps {
   src: string;
@@ -81,6 +96,7 @@ export function ImageWithSkeleton({
         priority={priority}
         loading={priority ? "eager" : undefined}
         sizes={fill ? sizes : undefined}
+        loader={ABSOLUTE_URL_RE.test(src) ? passthroughLoader : undefined}
         className={cn(
           "object-cover transition-opacity duration-300",
           loaded ? "opacity-100" : "opacity-0"

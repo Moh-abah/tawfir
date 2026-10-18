@@ -36,7 +36,7 @@ export default function FacilityEditContent() {
   const params = useParams<{ id: string }>();
   const facilityId = Number(params.id);
   const router = useRouter();
-  const prefersReduced = usePrefersReducedMotion();
+const prefersReduced = usePrefersReducedMotion();
   const [showSuccess, setShowSuccess] = useState(false);
 
   /* v3.2.1 — نوع موسّع بحقلَي حرية التاجر من العقد الحي
@@ -100,8 +100,8 @@ export default function FacilityEditContent() {
 
   /* تعبئة النموذج عند التحميل — مرة واحدة لكل متجر (الجولة 49):
      كانت إعادة الجلب (بعد أي إبطال كاش) تعيد reset بقيم الخادم القديمة
-     فتمسح ما اختاره التاجر من بطاقة الموقع لحظة حفظه — الآن البذر
-     الأول فقط، وقيم التاجر بعد ذلك مقدّسة حتى الحفظ */
+     فتمسح ما اختاره التاجر من بطاقة الموقع قبل حفظه — الآن البذر الأول
+     فقط لكل معرّف متجر، وقيم التاجر بعد ذلك مقدّسة حتى الحفظ */
   const resetFacilityIdRef = useRef<number | null>(null);
   useEffect(() => {
     if (facility && resetFacilityIdRef.current !== facility.id) {
